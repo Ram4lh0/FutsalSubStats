@@ -5,12 +5,15 @@
 import { useParams, useRouter } from 'next/navigation';
 import ClubShell from '@/components/ClubShell.jsx';
 import { useUI } from '@/lib/ui.jsx';
+import { useAuth } from '@/lib/auth.jsx';
 import { clubs } from '@/lib/data/repository.js';
+import * as sync from '@/lib/data/sync.js';
 
 export default function SettingsPage() {
   const { clubId } = useParams();
   const router = useRouter();
   const { toast, confirmar } = useUI();
+  const { userId, user } = useAuth();
 
   return (
     <ClubShell clubId={clubId}>
@@ -32,9 +35,15 @@ export default function SettingsPage() {
                   { okLabel: 'Apagar clube' }
                 );
                 if (!ok) return;
-                await clubs.remove(club.id);
-                toast('Clube apagado.', 'ok');
-                router.push('/dashboard');
+                try {
+                  await clubs.archive(club.id);
+                  await sync.saveNow(userId, user?.email);
+                  toast('Clube apagado e sincronizado.', 'ok');
+                  router.push('/dashboard');
+                } catch (err) {
+                  toast(`Clube apagado neste dispositivo, mas ainda não subiu: ${err.message}`, 'error');
+                  router.push('/dashboard');
+                }
               }}
             >
               Apagar clube
