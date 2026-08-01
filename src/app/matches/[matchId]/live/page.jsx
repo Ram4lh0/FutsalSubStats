@@ -11,6 +11,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Guard from '@/components/Guard.jsx';
 import { Empty } from '@/components/bits.jsx';
 import { Dialog, useUI } from '@/lib/ui.jsx';
+import { useAuth } from '@/lib/auth.jsx';
 import Halftime from '@/components/live/Halftime.jsx';
 import { Scoreboard, ClockBox, Court, Bench, Penalties, clockMsOf } from '@/components/live/pieces.jsx';
 import {
@@ -24,6 +25,7 @@ import useNow from '@/lib/useNow.js';
 import { beep, unlockAudio } from '@/lib/beep.js';
 import * as GE from '@/lib/goalEditing.jsx';
 import { clubs, events, matches, loadMatch } from '@/lib/data/repository.js';
+import * as sync from '@/lib/data/sync.js';
 import * as A from '@/domain/actions.js';
 import * as V from '@/domain/validation.js';
 import { countOnCourt, foulsInPeriod, foulsTotal } from '@/domain/reducer.js';
@@ -61,6 +63,7 @@ function Live() {
   const router = useRouter();
   const ui = useUI();
   const { toast, confirmar } = ui;
+  const { userId, user } = useAuth();
 
   const [carregado, setCarregado] = useState(null);
   const [club, setClub] = useState(null);
@@ -577,6 +580,7 @@ function Live() {
     );
     if (!ok) return;
     await commit(A.finishFirstHalf(state), 'Intervalo.', { sync: 'checkpoint' });
+    await sync.saveNow(userId, user?.email);
   }
 
   async function startSecondHalf(lineup) {
@@ -622,6 +626,7 @@ function Live() {
     await events.append(A.finishMatch(state), { sync: 'checkpoint' });
     const fresco = await loadMatch(matchId);
     await matches.update(matchId, { teamFouls: foulsTotal(fresco.state, 'US') });
+    await sync.saveNow(userId, user?.email);
     router.push(`/matches/${matchId}/summary`);
   }
 
