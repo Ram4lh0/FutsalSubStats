@@ -1,0 +1,28 @@
+workflows:
+  web-pwa-ci:
+    name: FutsalSubStats Web/PWA CI
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      node: lts
+      npm: default
+      vars:
+        NEXT_TELEMETRY_DISABLED: "1"
+    cache:
+      cache_paths:
+        - node_modules
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Run tests
+        script: npm test
+      - name: Build Next.js app
+        script: npm run build
