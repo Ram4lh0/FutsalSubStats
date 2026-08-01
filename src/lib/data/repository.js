@@ -1,0 +1,329 @@
+// data/repository.js
+//
+// PORTA DE REPOSITÓRIO (contrato). Toda a aplicação fala apenas com este objecto —
+// nenhuma vista importa IndexedDB directamente. Para migrar para Supabase basta criar
+// um `supabaseRepository.js` com os mesmos métodos (as assinaturas foram escolhidas
+// para mapear 1:1 em `supabase.from('clubs').select()` etc.) e trocar a importação
+// em src/app.js.
+//
+//   clubs.list()                 -> select * from clubs where owner_id = auth.uid()
+//   players.listByClub(clubId)   -> select * from players where club_id = $1
+//   events.append(event)         -> insert into match_events ... on conflict (client_event_id) do nothing
+//
+// Os nomes dos campos estão em camelCase; a conversão para snake_case do PostgreSQL
+// fica isolada em `toRow`/`fromRow` do futuro adaptador.
+
+import * as db from './local.js';
+import { notifyLocalChange } from './sync.js';
+import { uid } from '../../domain/actions.js';
+import { buildMatchState } from '../../domain/reducer.js';
+import { LOCATION, EVENT, MATCH_TIMING, timingOf, timingConfig } from '../../domain/constants.js';
+
+const now = () => Date.now();
+// Tudo o que se escreve nasce por enviar. O `dirty` só cai quando o servidor
+// confirmar — se a app fechar a meio, a linha continua na fila.
+const stamp = (o) => ({ ...o, createdAt: o.createdAt ?? now(), updatedAt: now(), dirty: true });
+
+/* ---------------------------------------------------------------- perfil */
+
+export const profile = {
+  async get() {
+    const rows = await db.all(db.STORES.profile);
+    return rows[0] || null;
+  },
+  async save(data) {
+    const existing = await profile.get();
+    const row = stamp({ id: existing?.id || uid(), ...existing, ...data });
+    await db.put(db.STORES.profile, row);
+    return row;
+  },
+};
+
+/* ---------------------------------------------------------------- clubes */
+
+export const clubs = {
+  async list() {
+    const rows = await db.all(db.STORES.clubs);
+    return rows.filter((c) => !c.archivedAt).sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+  },
+  get: (id) => db.get(db.STORES.clubs, id),
+  async create(data) {
+    const row = stamp({
+      id: uid(),
+      ownerId: (await profile.get())?.id || null,
+      name: data.name.trim(),
+      // Apelido curto para o marcador e para os resumos. Opcional: sem ele
+      // mostra-se o nome completo.
+      shortName: (data.shortName || '').trim() || null,
+      logoUrl: data.logoUrl || null,
+      primaryColor: data.primaryColor || '#22c55e',
+      secondaryColor: data.secondaryColor || '#0f172a',
+      currentSeason: data.currentSeason || null,
+      // Como esta equipa joga: cronometrado ou corrido. Vale para todos os jogos.
+      timing: data.timing === MATCH_TIMING.TIMED ? MATCH_TIMING.TIMED : MATCH_TIMING.UNTIMED,
+      archivedAt: null,
+    });
+    await db.put(db.STORES.clubs, row);
+    notifyLocalChange();
+    return row;
+  },
+  async update(id, patch) {
+    const cur = await db.get(db.STORES.clubs, id);
+    const row = stamp({ ...cur, ...patch });
+    await db.put(db.STORES.clubs, row);
+    notifyLocalChange();
+    return row;
+  },
+  async archive(id) {
+    return clubs.update(id, { archivedAt: now() });
+  },
+  async remove(id) {
+    const ms = await matches.listByClub(id);
+    for (const m of ms) await matches.remove(m.id);
+    for (const p of await players.listByClub(id)) await db.del(db.STORES.players, p.id);
+    await db.del(db.STORES.clubs, id);
+  },
+};
+
+/* ------------------------------------------------------------- jogadores */
+
+export const players = {
+  async listByClub(clubId) {
+    const rows = await db.byIndex(db.STORES.players, 'by_club', clubId);
+    return rows.sort((a, b) => a.shirtNumber - b.shirtNumber);
+  },
+  get: (id) => db.get(db.STORES.players, id),
+  async create(clubId, data) {
+    const row = stamp({
+      id: uid(),
+      clubId,
+      name: data.name.trim(),
+      shirtNumber: Number(data.shirtNumber),
+      preferredPosition: data.preferredPosition || 'UNIVERSAL',
+      strongFoot: data.strongFoot || 'UNKNOWN',
+      photoUrl: data.photoUrl || null,
+      isActive: true,
+    });
+    await db.put(db.STORES.players, row);
+    notifyLocalChange();
+    return row;
+  },
+  async update(id, patch) {
+    const cur = await db.get(db.STORES.players, id);
+    const row = stamp({
+      ...cur,
+      ...patch,
+      ...(patch.shirtNumber != null ? { shirtNumber: Number(patch.shirtNumber) } : {}),
+    });
+    await db.put(db.STORES.players, row);
+    notifyLocalChange();
+    return row;
+  },
+  setActive: (id, isActive) => players.update(id, { isActive }),
+  /** Só permitido a jogadores sem histórico (regra 3.1). */
+  async remove(id) {
+    const used = (await db.all(db.STORES.matchSquad)).some((s) => s.playerId === id);
+    if (used) throw new Error('Este jogador tem jogos registados. Desative-o em vez de o apagar.');
+    await db.del(db.STORES.players, id);
+  },
+};
+
+/* ------------------------------------------------------------------ jogos */
+
+export const matches = {
+  async listByClub(clubId) {
+    const rows = await db.byIndex(db.STORES.matches, 'by_club', clubId);
+    return rows.sort((a, b) => (b.scheduledAt || b.createdAt) - (a.scheduledAt || a.createdAt));
+  },
+  get: (id) => db.get(db.STORES.matches, id),
+  async create(clubId, data) {
+    // O jogo herda o tipo de tempo do clube e guarda uma cópia: mudar o clube
+    // mais tarde não pode alterar jogos já disputados.
+    const club = await clubs.get(clubId);
+    const timing = timingOf(club);
+    const row = stamp({
+      id: uid(),
+      clubId,
+      timing,
+      opponentName: data.opponentName.trim(),
+      opponentShortName: (data.opponentShortName || '').trim() || null,
+      competition: data.competition || null,
+      venue: data.venue || null,
+      homeOrAway: data.homeOrAway || 'HOME',
+      scheduledAt: data.scheduledAt || now(),
+      season: data.season || null,
+      periodDurationMs: timingConfig(club).periodDurationMs,
+      notes: data.notes || null,
+    });
+    await db.put(db.STORES.matches, row);
+    notifyLocalChange();
+    return row;
+  },
+  async update(id, patch) {
+    const cur = await db.get(db.STORES.matches, id);
+    const row = stamp({ ...cur, ...patch });
+    await db.put(db.STORES.matches, row);
+    notifyLocalChange();
+    return row;
+  },
+  async remove(id) {
+    for (const s of await db.byIndex(db.STORES.matchSquad, 'by_match', id))
+      await db.del(db.STORES.matchSquad, s.id);
+    for (const e of await db.byIndex(db.STORES.matchEvents, 'by_match', id))
+      await db.del(db.STORES.matchEvents, e.id);
+    await db.del(db.STORES.matches, id);
+  },
+};
+
+/* ------------------------------------------------------------ convocados */
+
+export const squad = {
+  listByMatch: (matchId) => db.byIndex(db.STORES.matchSquad, 'by_match', matchId),
+  /** Substitui a convocatória inteira preservando as linhas já existentes. */
+  async replace(matchId, entries) {
+    const existing = await squad.listByMatch(matchId);
+    const byPlayer = new Map(existing.map((r) => [r.playerId, r]));
+    const keep = new Set();
+    const rows = [];
+    for (const e of entries) {
+      const prev = byPlayer.get(e.playerId);
+      const row = stamp({
+        id: prev?.id || uid(),
+        matchId,
+        playerId: e.playerId,
+        playerNameSnapshot: e.playerNameSnapshot,
+        shirtNumberSnapshot: e.shirtNumberSnapshot,
+        preferredPosition: e.preferredPosition || null,
+        initialPosition: e.initialPosition || null,
+        initialLocation: e.initialLocation || LOCATION.BENCH,
+        createdAt: prev?.createdAt,
+      });
+      rows.push(row);
+      keep.add(row.id);
+    }
+    for (const r of existing) if (!keep.has(r.id)) await db.del(db.STORES.matchSquad, r.id);
+    await db.putMany(db.STORES.matchSquad, rows);
+    notifyLocalChange();
+    return rows;
+  },
+};
+
+/* ----------------------------------------------------------------- eventos */
+
+export const events = {
+  async listByMatch(matchId) {
+    const rows = await db.byIndex(db.STORES.matchEvents, 'by_match', matchId);
+    return rows.sort((a, b) => a.seq - b.seq);
+  },
+  /**
+   * Escrita idempotente: o clientEventId único impede que a mesma acção
+   * seja gravada duas vezes quando a ligação regressa (secção 10).
+   */
+  async append(event, { sync: syncMode = 'immediate' } = {}) {
+    const existing = await events.listByMatch(event.matchId);
+    if (existing.some((e) => e.clientEventId === event.clientEventId)) return null;
+    const seq = existing.reduce((m, e) => Math.max(m, e.seq || 0), 0) + 1;
+    const row = { ...event, seq, syncedAt: null };
+    await db.put(db.STORES.matchEvents, row);
+    if (syncMode !== 'defer') notifyLocalChange();
+    return row;
+  },
+  async markUndone(eventId, by = null, { sync: syncMode = 'immediate' } = {}) {
+    const ev = await db.get(db.STORES.matchEvents, eventId);
+    if (!ev) return null;
+    const row = { ...ev, undoneAt: now(), undoneBy: by, syncedAt: null };
+    await db.put(db.STORES.matchEvents, row);
+    if (syncMode !== 'defer') notifyLocalChange();
+    return row;
+  },
+  async markSynced(ids) {
+    const rows = [];
+    for (const id of ids) {
+      const ev = await db.get(db.STORES.matchEvents, id);
+      if (ev) rows.push({ ...ev, syncedAt: now() });
+    }
+    if (rows.length) await db.putMany(db.STORES.matchEvents, rows);
+    return rows;
+  },
+  async pending() {
+    return (await db.all(db.STORES.matchEvents)).filter((e) => !e.syncedAt);
+  },
+};
+
+/* -------------------------------------------------------- carregar um jogo */
+
+export async function loadMatch(matchId) {
+  const match = await matches.get(matchId);
+  if (!match) return null;
+  const [sq, evs] = await Promise.all([squad.listByMatch(matchId), events.listByMatch(matchId)]);
+  return { match, squad: sq, events: evs, state: buildMatchState(match, sq, evs) };
+}
+
+export async function loadClubMatchStates(clubId) {
+  const list = await matches.listByClub(clubId);
+  const out = [];
+  for (const m of list) {
+    const sq = await squad.listByMatch(m.id);
+    const evs = await events.listByMatch(m.id);
+    out.push({ match: m, state: buildMatchState(m, sq, evs) });
+  }
+  return out;
+}
+
+/** Jogo em curso (para o atalho "retomar jogo"). */
+export async function findLiveMatch() {
+  const all = await db.all(db.STORES.matches);
+  for (const m of all) {
+    const evs = await events.listByMatch(m.id);
+    if (!evs.length) continue;
+    const started = evs.some((e) => e.eventType === EVENT.FIRST_HALF_STARTED && !e.undoneAt);
+    const finished = evs.some((e) => e.eventType === EVENT.MATCH_FINISHED && !e.undoneAt);
+    if (started && !finished) return m;
+  }
+  return null;
+}
+
+/* ------------------------------------------------------- backup completo */
+
+export async function dump() {
+  const out = { version: 1, exportedAt: new Date().toISOString(), data: {} };
+  for (const [key, store] of Object.entries(db.STORES)) {
+    out.data[key] = await db.all(store);
+  }
+  return out;
+}
+
+export async function restore(payload, { replace = true } = {}) {
+  if (!payload || !payload.data) throw new Error('Ficheiro de backup inválido.');
+  if (replace) await db.clearAll();
+  for (const [key, store] of Object.entries(db.STORES)) {
+    const rows = payload.data[key] || [];
+    if (!rows.length) continue;
+    // Tudo o que entra por aqui é novo para o servidor: um backup restaurado
+    // tem de subir inteiro, senão os jogos novos ficam sem clube onde assentar.
+    await db.putMany(
+      store,
+      rows.map((r) =>
+        store === db.STORES.matchEvents ? { ...r, syncedAt: null } : { ...r, dirty: true }
+      )
+    );
+  }
+  notifyLocalChange();
+}
+
+/** Marca tudo como pendente, para forçar um envio completo. */
+export async function markAllPending() {
+  for (const [key, store] of Object.entries(db.STORES)) {
+    if (key === 'profile') continue;
+    const rows = await db.all(store);
+    if (!rows.length) continue;
+    await db.putMany(
+      store,
+      rows.map((r) =>
+        store === db.STORES.matchEvents ? { ...r, syncedAt: null } : { ...r, dirty: true }
+      )
+    );
+  }
+}
+
+export const raw = db;
