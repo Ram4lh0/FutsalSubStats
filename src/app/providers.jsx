@@ -61,7 +61,10 @@ function SyncBridge() {
       return sync.flush(userId, user?.email);
     };
     const atualizar = async () => {
-      if (isLive) return sincronizar();
+      if (isLive) {
+        await sync.pendingCount();
+        return;
+      }
       try {
         await sync.pull(userId);
       } catch {
@@ -83,7 +86,7 @@ function SyncBridge() {
     window.addEventListener('focus', aoVoltar);
     document.addEventListener('visibilitychange', aoFocar);
     window.addEventListener(sync.DATA_CHANGED_EVENT, aoVoltar);
-    const timer = setInterval(aoVoltar, isLive ? 60000 : 3000);
+    const timer = isLive ? null : setInterval(aoVoltar, 3000);
 
     return () => {
       vivo = false;
@@ -91,7 +94,7 @@ function SyncBridge() {
       window.removeEventListener('focus', aoVoltar);
       document.removeEventListener('visibilitychange', aoFocar);
       window.removeEventListener(sync.DATA_CHANGED_EVENT, aoVoltar);
-      clearInterval(timer);
+      if (timer) clearInterval(timer);
     };
   }, [userId, user?.email, isLive]);
 
