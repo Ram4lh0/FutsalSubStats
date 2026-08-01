@@ -10,8 +10,10 @@ import DataTable from '@/components/DataTable.jsx';
 import { GoalsByHalf } from '@/components/Goals.jsx';
 import { Badge, Empty, StatCard, StatusBadge } from '@/components/bits.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
+import { useAuth } from '@/lib/auth.jsx';
 import * as GE from '@/lib/goalEditing.jsx';
 import { clubs, matches, loadMatch } from '@/lib/data/repository.js';
+import * as sync from '@/lib/data/sync.js';
 import { matchSummaryCsv, download, slug } from '@/lib/data/exporter.js';
 import { matchStatsTable, matchResult } from '@/domain/stats.js';
 import { foulsTotal, foulsInPeriod } from '@/domain/reducer.js';
@@ -35,6 +37,7 @@ function Resumo() {
   const router = useRouter();
   const search = useSearchParams();
   const ui = useUI();
+  const { userId, user } = useAuth();
   const [dados, setDados] = useState(null);
 
   // De onde se veio. Só quando não há origem — ou seja, quando se chega aqui por
@@ -65,13 +68,14 @@ function Resumo() {
         matchId,
         ourName: clubShort(club),
         opponentName: opponentShort(match),
+        syncUser: { userId, email: user?.email },
       })
     )
       carregar();
   }
 
   async function editarGolo(goal) {
-    if (await GE.editGoal(ui, { matchId, goal })) carregar();
+    if (await GE.editGoal(ui, { matchId, goal, syncUser: { userId, email: user?.email } })) carregar();
   }
 
   async function editarNotas() {
@@ -80,7 +84,8 @@ function Resumo() {
     ));
     if (valor == null) return;
     await matches.update(matchId, { notes: valor });
-    ui.toast('Notas guardadas.', 'ok');
+    await sync.saveNow(userId, user?.email);
+    ui.toast('Notas guardadas e sincronizadas.', 'ok');
     carregar();
   }
 

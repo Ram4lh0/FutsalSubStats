@@ -8,7 +8,9 @@ import ClubShell from '@/components/ClubShell.jsx';
 import DataTable from '@/components/DataTable.jsx';
 import { Badge, Empty } from '@/components/bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
+import { useAuth } from '@/lib/auth.jsx';
 import { players } from '@/lib/data/repository.js';
+import * as sync from '@/lib/data/sync.js';
 import { rosterCsv, download, slug } from '@/lib/data/exporter.js';
 import { clubAggregate } from '@/domain/stats.js';
 import { fmt } from '@/domain/clock.js';
@@ -29,6 +31,7 @@ export default function RosterPage() {
 function Roster({ club, entries, roster }) {
   const router = useRouter();
   const { toast } = useUI();
+  const { userId, user } = useAuth();
   const [filtros, setFiltros] = useState({
     sort: 'number',
     position: 'ALL',
@@ -72,10 +75,16 @@ function Roster({ club, entries, roster }) {
   }, [roster, filtros, agg, versao]);
 
   async function alternarAtivo(p) {
-    await players.setActive(p.id, !p.isActive);
-    p.isActive = !p.isActive;
-    setVersao((v) => v + 1);
-    toast(p.isActive ? 'Jogador reativado.' : 'Jogador desativado.', 'ok');
+    const novoEstado = !p.isActive;
+    try {
+      await players.setActive(p.id, novoEstado);
+      await sync.saveNow(userId, user?.email);
+      p.isActive = novoEstado;
+      setVersao((v) => v + 1);
+      toast(p.isActive ? 'Jogador reativado e sincronizado.' : 'Jogador desativado e sincronizado.', 'ok');
+    } catch (err) {
+      toast(`Jogador guardado neste dispositivo, mas ainda não subiu: ${err.message}`, 'error');
+    }
   }
 
   const campo = (k) => ({
