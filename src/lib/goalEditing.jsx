@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { Dialog } from './ui.jsx';
 import { events, loadMatch } from './data/repository.js';
+import * as sync from './data/sync.js';
 import * as A from '@/domain/actions.js';
 import { EVENT } from '@/domain/constants.js';
 import { fmt } from '@/domain/clock.js';
@@ -170,12 +171,13 @@ export function goalDialog(ui, state, goal, { title } = {}) {
  * Edita um golo isolado. Devolve true se mudou alguma coisa, para quem chama
  * saber se precisa de redesenhar.
  */
-export async function editGoal(ui, { matchId, goal }) {
+export async function editGoal(ui, { matchId, goal, syncUser = null }) {
   const antes = await loadMatch(matchId);
   if (!antes) return false;
   const patch = await goalDialog(ui, antes.state, goal);
   if (!patch) return false;
   await events.append(A.attributeGoal(antes.state, { targetEventId: goal.eventId, ...patch }));
+  if (syncUser) await sync.saveNow(syncUser.userId, syncUser.email);
   ui.toast(goal.team === 'US' ? 'Golo atualizado.' : 'Golo sofrido atualizado.', 'ok');
   return true;
 }
@@ -237,7 +239,7 @@ function ScoreDialog({ state, ourName, opponentName, onClose, onSave }) {
  * solto por cima. Assim o número de golos e a lista de golos nunca divergem, e
  * há mesmo um golo 1, 2, 3… para atribuir a alguém.
  */
-export async function correctScore(ui, { matchId, ourName, opponentName }) {
+export async function correctScore(ui, { matchId, ourName, opponentName, syncUser = null }) {
   const carregado = await loadMatch(matchId);
   if (!carregado) return false;
 
@@ -270,6 +272,7 @@ export async function correctScore(ui, { matchId, ourName, opponentName }) {
     await events.append(A.attributeGoal(snap.state, { targetEventId: goal.eventId, ...patch }));
   }
 
+  if (syncUser) await sync.saveNow(syncUser.userId, syncUser.email);
   ui.toast('Correções guardadas.', 'ok');
   return true;
 }
