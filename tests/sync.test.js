@@ -224,6 +224,25 @@ test('um jogo novo arrasta o clube, mesmo que o clube já se julgue enviado', as
   assert.equal(servidor.tabelas.matches.length, 1);
 });
 
+test('um clube apagado fica arquivado no servidor e nao volta no outro dispositivo', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { clube } = await cenario();
+  await push(UTILIZADOR);
+
+  await clubs.archive(clube.id);
+  await push(UTILIZADOR);
+
+  assert.ok(servidor.tabelas.clubs[0].archived_at, 'o apagado sobe como arquivo');
+
+  await limpar();
+  await pull(UTILIZADOR);
+
+  assert.equal((await clubs.list()).length, 0, 'clubes arquivados ficam escondidos');
+  assert.equal((await db.get(db.STORES.clubs, clube.id)).archivedAt > 0, true);
+});
+
 test('pedir sincronizacao enquanto outra corre faz uma segunda passagem', async () => {
   await limpar();
 
