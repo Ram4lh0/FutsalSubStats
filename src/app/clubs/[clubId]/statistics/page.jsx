@@ -15,11 +15,11 @@ export default function StatsPage() {
   return <ClubShell clubId={clubId}>{(dados) => <Stats {...dados} />}</ClubShell>;
 }
 
-function Stats({ club, entries }) {
+function Stats({ club, entries, roster }) {
   const router = useRouter();
-  const agg = useMemo(() => clubAggregate(entries), [entries]);
+  const agg = useMemo(() => clubAggregate(entries, roster), [entries, roster]);
   const linhas = useMemo(
-    () => Object.values(agg.perPlayer).sort((a, b) => b.courtMs - a.courtMs),
+    () => Object.values(agg.perPlayer).sort((a, b) => b.courtMs - a.courtMs || a.number - b.number),
     [agg]
   );
 

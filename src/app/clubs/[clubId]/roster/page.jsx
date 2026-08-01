@@ -40,7 +40,7 @@ function Roster({ club, entries, roster }) {
   });
   const [versao, setVersao] = useState(0);
 
-  const agg = useMemo(() => clubAggregate(entries), [entries]);
+  const agg = useMemo(() => clubAggregate(entries, roster), [entries, roster]);
 
   const linhas = useMemo(() => {
     const t = (p) => agg.perPlayer[p.id]?.courtMs || 0;
