@@ -159,11 +159,11 @@ export const matches = {
     notifyLocalChange();
     return row;
   },
-  async update(id, patch) {
+  async update(id, patch, { sync: syncMode = 'immediate' } = {}) {
     const cur = await db.get(db.STORES.matches, id);
     const row = stamp({ ...cur, ...patch });
     await db.put(db.STORES.matches, row);
-    notifyLocalChange();
+    if (syncMode !== 'defer') notifyLocalChange();
     return row;
   },
   async remove(id) {

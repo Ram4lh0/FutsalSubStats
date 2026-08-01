@@ -579,8 +579,7 @@ function Live() {
       { okLabel: 'Terminar 1.ª parte', danger: false }
     );
     if (!ok) return;
-    await commit(A.finishFirstHalf(state), 'Intervalo.', { sync: 'checkpoint' });
-    await sync.saveNow(userId, user?.email);
+    await commit(A.finishFirstHalf(state), 'Intervalo.', { sync: 'defer' });
   }
 
   async function startSecondHalf(lineup) {
@@ -623,9 +622,9 @@ function Live() {
    * o histórico e as exportações não terem de reconstruir tudo.
    */
   async function endMatch() {
-    await events.append(A.finishMatch(state), { sync: 'checkpoint' });
+    await events.append(A.finishMatch(state), { sync: 'defer' });
     const fresco = await loadMatch(matchId);
-    await matches.update(matchId, { teamFouls: foulsTotal(fresco.state, 'US') });
+    await matches.update(matchId, { teamFouls: foulsTotal(fresco.state, 'US') }, { sync: 'defer' });
     await sync.saveNow(userId, user?.email);
     router.push(`/matches/${matchId}/summary`);
   }
