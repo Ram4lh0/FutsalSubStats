@@ -11,7 +11,7 @@ import { Dialog } from './ui.jsx';
 import { events, loadMatch } from './data/repository.js';
 import * as sync from './data/sync.js';
 import * as A from '@/domain/actions.js';
-import { EVENT } from '@/domain/constants.js';
+import { EVENT, normalizePosition } from '@/domain/constants.js';
 import { fmt } from '@/domain/clock.js';
 
 export const OWN_GOAL = '__OWN_GOAL__';
@@ -56,7 +56,21 @@ function periodOf(state, ms, fallback) {
 function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
   const nosso = goal.team === 'US';
   const emCampo = onCourtAt(state, goal.matchElapsedMs);
-  const pool = (emCampo.length ? emCampo : Object.values(state.players)).sort(
+  const jogadores = emCampo.length ? emCampo : Object.values(state.players);
+  const guardaRedes = Object.values(state.players).filter((p) => {
+    const estavaNaBaliza = (p.stints || []).some(
+      (st) =>
+        st.startMatchMs <= goal.matchElapsedMs &&
+        (st.endMatchMs == null || st.endMatchMs > goal.matchElapsedMs) &&
+        st.startingPosition === 'GOALKEEPER'
+    );
+    return (
+      estavaNaBaliza ||
+      p.playerId === goal.goalkeeperId ||
+      normalizePosition(p.preferredPosition) === 'GOALKEEPER'
+    );
+  });
+  const pool = (nosso ? jogadores : guardaRedes).sort(
     (a, b) => a.number - b.number
   );
 

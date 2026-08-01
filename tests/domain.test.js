@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 
 import { buildMatchState, countOnCourt, foulsInPeriod, foulsTotal } from '../src/domain/reducer.js';
 import { readClock, fmt, periodProgress } from '../src/domain/clock.js';
-import { playerMatchStats } from '../src/domain/stats.js';
+import { clubAggregate, playerMatchStats } from '../src/domain/stats.js';
 import * as A from '../src/domain/actions.js';
 import * as V from '../src/domain/validation.js';
 import {
@@ -420,6 +420,25 @@ test('os golos sofridos ficam no guarda-redes que estava em campo', () => {
   // Um golo nosso não conta como sofrido a ninguém.
   st = step(ctx, (s) => A.goal(s, EVENT.TEAM_GOAL_ADDED, T0 + 7 * MIN), T0 + 7 * MIN);
   assert.equal(st.goals[2].goalkeeperId, null);
+});
+
+test('estatísticas do clube incluem jogadores novos e dados atuais do plantel', () => {
+  const roster = [
+    { id: 'p1', name: 'Ana Silva', shirtNumber: 99 },
+    { id: 'p9', name: 'Inês', shirtNumber: 9 },
+  ];
+  const ctx = { squad: makeSquad(), events: [] };
+  let st = step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  st = step(ctx, (s) => A.goal(s, EVENT.TEAM_GOAL_ADDED, T0 + MIN, { scorerId: 'p1' }), T0 + MIN);
+
+  const agg = clubAggregate([{ match, state: st }], roster);
+
+  assert.equal(agg.perPlayer.p1.name, 'Ana Silva');
+  assert.equal(agg.perPlayer.p1.number, 99);
+  assert.equal(agg.perPlayer.p1.matches, 1);
+  assert.equal(agg.perPlayer.p9.name, 'Inês');
+  assert.equal(agg.perPlayer.p9.matches, 0);
+  assert.equal(agg.perPlayer.p9.courtMs, 0);
 });
 
 test('dois amarelos no mesmo jogo contam como um vermelho, não como dois amarelos', () => {

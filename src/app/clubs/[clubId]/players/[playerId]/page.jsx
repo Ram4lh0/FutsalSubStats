@@ -55,7 +55,7 @@ function Ficha() {
 
       // A ficha usa a mesma função de agregação da aba de estatísticas, para as
       // duas nunca discordarem.
-      const agg = clubAggregate(entries).perPlayer[playerId] || VAZIO;
+      const agg = clubAggregate(entries, [player]).perPlayer[playerId] || VAZIO;
       setDados({ player, club, meus, agg });
     })();
   }, [clubId, playerId]);

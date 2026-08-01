@@ -94,7 +94,31 @@ export function matchResult(state) {
 /**
  * Agregado do clube. Recebe pares {match, state} já reconstruídos.
  */
-export function clubAggregate(entries) {
+function emptyPlayerAggregate(player, { fromRoster = false } = {}) {
+  return {
+    playerId: player.playerId || player.id,
+    name: player.name,
+    number: player.number ?? player.shirtNumber,
+    fromRoster,
+    matches: 0,
+    courtMs: 0,
+    benchMs: 0,
+    entries: 0,
+    matchesPlayed: 0,
+    longestSumMs: 0,
+    shortestSumMs: 0,
+    goals: 0,
+    assists: 0,
+    conceded: 0,
+    fouls: 0,
+    foulsSuffered: 0,
+    yellows: 0,
+    reds: 0,
+    expulsions: 0,
+  };
+}
+
+export function clubAggregate(entries, roster = []) {
   const agg = {
     matches: 0,
     finished: 0,
@@ -108,6 +132,12 @@ export function clubAggregate(entries) {
     },
     perPlayer: {},
   };
+
+  for (const p of roster) {
+    const id = p.playerId || p.id;
+    if (!id) continue;
+    agg.perPlayer[id] = emptyPlayerAggregate(p, { fromRoster: true });
+  }
 
   for (const { state } of entries) {
     agg.matches += 1;
@@ -128,29 +158,12 @@ export function clubAggregate(entries) {
         cards: state.cards || [],
         fouls: state.fouls || [],
       });
-      const acc = (agg.perPlayer[p.playerId] ||= {
-        playerId: p.playerId,
-        name: p.name,
-        number: p.number,
-        matches: 0,
-        courtMs: 0,
-        benchMs: 0,
-        entries: 0,
-        matchesPlayed: 0,
-        longestSumMs: 0,
-        shortestSumMs: 0,
-        goals: 0,
-        assists: 0,
-        conceded: 0,
-        fouls: 0,
-        foulsSuffered: 0,
-        yellows: 0,
-        reds: 0,
-        expulsions: 0,
-      });
+      const acc = (agg.perPlayer[p.playerId] ||= emptyPlayerAggregate(p));
       acc.matches += 1;
-      acc.name = p.name;
-      acc.number = p.number;
+      if (!acc.fromRoster) {
+        acc.name = p.name;
+        acc.number = p.number;
+      }
       acc.courtMs += s.courtMs;
       acc.benchMs += s.benchMs;
       acc.entries += s.entries;
