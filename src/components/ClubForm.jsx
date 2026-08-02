@@ -43,12 +43,12 @@ export default function ClubForm({ clubId }) {
   async function guardar(e) {
     e.preventDefault();
     if (aGuardar) return;
-    if (!form.name.trim()) return toast('O nome do clube é obrigatório.', 'error');
+    if (!(form.name || '').trim()) return toast('O nome do clube é obrigatório.', 'error');
     setAGuardar(true);
     const payload = {
-      name: form.name.trim(),
-      shortName: form.shortName.trim() || null,
-      currentSeason: form.currentSeason.trim() || null,
+      name: (form.name || '').trim(),
+      shortName: (form.shortName || '').trim() || null,
+      currentSeason: (form.currentSeason || '').trim() || null,
       primaryColor: form.primaryColor,
       secondaryColor: form.secondaryColor,
     };

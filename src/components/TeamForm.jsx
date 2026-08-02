@@ -40,10 +40,10 @@ export default function TeamForm({ clubId, teamId }) {
 
   async function guardar(e) {
     e.preventDefault();
-    if (!form.name.trim()) return toast('O escalão precisa de um nome.', 'error');
+    if (!(form.name || '').trim()) return toast('O escalão precisa de um nome.', 'error');
     const payload = {
-      name: form.name.trim(),
-      shortName: form.shortName.trim() || null,
+      name: (form.name || '').trim(),
+      shortName: (form.shortName || '').trim() || null,
       timing: form.timing,
     };
     const team = teamId ? await teams.update(teamId, payload) : await teams.create(clubId, payload);
