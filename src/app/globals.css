@@ -782,12 +782,28 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
     min-height: 0;
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "goalkeeper fixo"
+      "left_winger right_winger"
+      "pivot pivot";
     gap: 8px;
     padding: 8px;
   }
   .courtpick__court .court__bg { display: none; }
-  .slot { position: relative; transform: none; width: auto; }
-  .slot--pivot { grid-column: 1 / -1; }
+  .courtpick__court .slot {
+    position: relative;
+    transform: none;
+    left: auto;
+    top: auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 76px;
+  }
+  .courtpick__court .slot--goalkeeper { grid-area: goalkeeper; }
+  .courtpick__court .slot--fixo { grid-area: fixo; }
+  .courtpick__court .slot--left_winger { grid-area: left_winger; }
+  .courtpick__court .slot--right_winger { grid-area: right_winger; }
+  .courtpick__court .slot--pivot { grid-area: pivot; }
   .slot__clear { top: 4px; right: 4px; }
 
   .live__head { grid-template-columns: 1fr; }
