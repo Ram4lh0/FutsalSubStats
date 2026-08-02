@@ -93,6 +93,46 @@ async function clean(store, rows) {
 }
 
 /**
+ * Sobras do modelo antigo.
+ *
+ * Quando o clube passou a ter escalões, a base do servidor foi migrada — mas a
+ * base que vive dentro do browser não: ganhou as tabelas novas e ficou com os
+ * jogadores e os jogos de antes, sem escalão nenhum. O servidor recusa-os
+ * ("team_id não pode ser nulo") e, como o envio pára no primeiro erro, uma
+ * linha órfã de há meses bloqueava tudo o que viesse a seguir.
+ *
+ * Aqui: se o clube tiver um único escalão, a linha é adotada por ele — é o que
+ * a migração do servidor fez. Se não houver por onde decidir, a linha deixa de
+ * ser dada como pendente: fica guardada no dispositivo, mas para de encravar a
+ * fila. Quem quiser mesmo limpar tem o botão "Limpar este dispositivo".
+ */
+async function sanearOrfaos() {
+  const escaloes = await db.all(db.STORES.teams);
+  const porClube = new Map();
+  for (const t of escaloes) {
+    if (!porClube.has(t.clubId)) porClube.set(t.clubId, []);
+    porClube.get(t.clubId).push(t);
+  }
+
+  let adotados = 0;
+  let deLado = 0;
+  for (const store of [db.STORES.players, db.STORES.matches]) {
+    for (const linha of await dirtyRows(store)) {
+      if (linha.teamId) continue;
+      const candidatos = porClube.get(linha.clubId) || [];
+      if (candidatos.length === 1) {
+        await db.put(store, { ...linha, teamId: candidatos[0].id });
+        adotados += 1;
+      } else {
+        await db.put(store, { ...linha, dirty: false });
+        deLado += 1;
+      }
+    }
+  }
+  return { adotados, deLado };
+}
+
+/**
  * Empurra o que está por enviar. A ordem importa: um jogador não pode chegar
  * antes do clube, nem um evento antes do jogo a que pertence — as chaves
  * estrangeiras do Postgres recusariam a linha.
@@ -101,6 +141,13 @@ export async function push(userId, email) {
   const sb = supabase();
   if (!sb || !userId) return { pushed: 0 };
   let total = 0;
+
+  const orfaos = await sanearOrfaos();
+  if (orfaos.adotados || orfaos.deLado) {
+    console.warn(
+      `sobras do modelo antigo: ${orfaos.adotados} adotadas por um escalão, ${orfaos.deLado} postas de lado.`
+    );
+  }
 
   // O clube aponta para uma linha em `profiles`. Ela é criada por um gatilho
   // quando a conta nasce, mas contas criadas antes do gatilho existir ficariam
@@ -343,6 +390,23 @@ export async function flush(userId, email) {
       if (resolve) resolve(result);
     }
   }
+}
+
+/**
+ * Deitar fora tudo o que está guardado neste dispositivo e voltar a descarregar
+ * do servidor.
+ *
+ * É a cura para sobras de versões antigas da app — linhas com uma forma que o
+ * servidor já não aceita. Nada se perde do que já lá está em cima; o que houver
+ * por enviar, esse sim, desaparece, e é por isso que quem chama tem de avisar.
+ */
+export async function resetLocal(userId) {
+  await db.clearAll();
+  const r = await pull(userId);
+  await pendingCount();
+  notifyLocalChange();
+  set({ status: SYNC.SYNCED, error: null, lastSyncAt: Date.now() });
+  return r;
 }
 
 export async function pendingCount() {
