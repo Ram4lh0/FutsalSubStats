@@ -20,6 +20,7 @@ import {
   UNDOABLE_EVENTS,
   PENALTY_DURATION_MS,
   CARD,
+  normalizePosition,
 } from './constants.js';
 
 function findLastIndex(arr, pred) {
@@ -79,6 +80,81 @@ function expel(state, ev, playerId) {
   p.expelledAtMatchMs = ev.matchElapsedMs;
 }
 
+/* ------------------------------------------------------------------- 5v4 */
+
+/**
+ * Guarda-redes avançado: a baliza entregue a um jogador de campo para atacar com
+ * mais um. Reconhece-se sozinho — assim que quem ocupa a baliza não é
+ * guarda-redes de posição, a equipa está em 5v4 e a contagem começa.
+ *
+ * O botão no cartão do guarda-redes existe para o caso contrário: um guarda-redes
+ * a sério que sobe para jogar como quinto. Ninguém o adivinha, por isso pergunta-se.
+ */
+export function powerPlayAutomatico(state) {
+  const pid = state.court.GOALKEEPER;
+  if (!pid) return false;
+  const p = state.players[pid];
+  if (!p) return false;
+  // Sem posição registada não se inventa nada: um plantel antigo, importado sem
+  // posições, não pode passar o jogo inteiro marcado como 5v4.
+  if (!p.preferredPosition) return false;
+  return normalizePosition(p.preferredPosition) !== 'GOALKEEPER';
+}
+
+/**
+ * Abre ou fecha o período de 5v4 conforme a situação em campo mudou. Chamada
+ * depois de cada evento: é o campo que manda, não quem carregou no botão.
+ *
+ * O botão do cartão sobrepõe-se ao automatismo nos dois sentidos — liga quando a
+ * app não percebeu, desliga quando percebeu mal. A decisão vale enquanto for o
+ * mesmo jogador a ocupar a baliza; trocar de guarda-redes é situação nova e o
+ * automatismo volta a mandar.
+ */
+function syncPowerPlay(state, ev) {
+  if (state.powerPlayOverrideGk !== (state.court.GOALKEEPER || null)) {
+    state.powerPlayOverride = null;
+    state.powerPlayOverrideGk = null;
+  }
+
+  const emJogo =
+    state.currentPeriod > 0 &&
+    state.status !== MATCH_STATUS.HALFTIME &&
+    state.status !== MATCH_STATUS.FINISHED;
+  const auto = powerPlayAutomatico(state);
+  const ativo = emJogo && (state.powerPlayOverride ?? auto);
+  const aberto = state.powerPlays.find((x) => x.endMatchMs == null) || null;
+
+  if (ativo && !aberto) {
+    state.powerPlays.push({
+      startEventId: ev.id,
+      startMatchMs: ev.matchElapsedMs,
+      startPeriod: state.currentPeriod,
+      endEventId: null,
+      endMatchMs: null,
+      endPeriod: null,
+      manual: !auto,
+    });
+  } else if (!ativo && aberto) {
+    aberto.endEventId = ev.id;
+    aberto.endMatchMs = ev.matchElapsedMs;
+    aberto.endPeriod = state.currentPeriod;
+  }
+}
+
+/**
+ * Quantos jogadores faltam a cada equipa, neste instante.
+ *
+ * Nós: as sanções por cumprir. Eles: o contador que o treinador vai acertando à
+ * mão — o adversário não tem plantel registado, mas saber que estão reduzidos é
+ * o que decide se um golo devolve ou não um jogador nosso.
+ */
+export function shorthandedCount(state, matchMs) {
+  const nos = state.penalties.filter(
+    (p) => p.endedMatchMs == null && p.startMatchMs + p.durationMs > matchMs
+  ).length;
+  return { nos, eles: state.opponentExpulsions || 0 };
+}
+
 function positionOf(state, playerId) {
   for (const pos of POSITIONS) if (state.court[pos] === playerId) return pos;
   return null;
@@ -123,6 +199,13 @@ export function buildMatchState(match, squad, events) {
     cards: [],
     fouls: [],
     warnings: [],
+    // 5v4: períodos de guarda-redes avançado e o interruptor manual (null =
+    // segue o automatismo; true/false = o treinador decidiu).
+    powerPlays: [],
+    powerPlayOverride: null,
+    powerPlayOverrideGk: null,
+    // Expulsões do adversário ainda por cumprir, contadas à mão.
+    opponentExpulsions: 0,
   };
 
   for (const row of squad) {
@@ -162,7 +245,22 @@ export function buildMatchState(match, squad, events) {
     .slice()
     .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
 
-  for (const ev of ordered) applyEvent(state, ev);
+  for (const ev of ordered) {
+    applyEvent(state, ev);
+    syncPowerPlay(state, ev);
+  }
+
+  // O resultado ao intervalo é DERIVADO dos golos da 1.ª parte, não fotografado
+  // no apito. Corrigir um golo a frio — acrescentar um que faltava, mudar o
+  // minuto de outro — tem de mexer também no que estava ao intervalo, senão o
+  // jogo passa a contar duas histórias diferentes.
+  if (state.firstHalfMs != null) {
+    const naPrimeira = (g) => (g.period ? g.period === 1 : g.matchElapsedMs <= state.firstHalfMs);
+    state.halftimeTeamScore = state.goals.filter((g) => g.team === 'US' && naPrimeira(g)).length;
+    state.halftimeOpponentScore = state.goals.filter(
+      (g) => g.team === 'THEM' && naPrimeira(g)
+    ).length;
+  }
 
   // Estado antes do apito inicial
   if (!state.startedAt) {
@@ -251,8 +349,8 @@ function applyEvent(state, ev) {
       state.timerStatus = TIMER_STATUS.PAUSED;
       state.timerStartedAt = null;
       state.status = MATCH_STATUS.HALFTIME;
-      state.halftimeTeamScore = state.teamScore;
-      state.halftimeOpponentScore = state.opponentScore;
+      // O resultado ao intervalo não se fotografa aqui: é contado no fim, a
+      // partir dos golos da 1.ª parte (ver buildMatchState).
       state.firstHalfMs = ev.periodElapsedMs;
       state.lastFirstHalfCourt = { ...state.court };
       state.court = emptyCourt();
@@ -261,6 +359,10 @@ function applyEvent(state, ev) {
         p.position = null;
       }
       state.secondHalfLineupSet = false;
+      // O 5v4 marcado à mão não atravessa o intervalo: a 2.ª parte começa com a
+      // formação que o treinador escolher.
+      state.powerPlayOverride = null;
+      state.powerPlayOverrideGk = null;
       break;
     }
 
@@ -462,10 +564,12 @@ function applyEvent(state, ev) {
       }
       break;
     }
-    // Só a nossa equipa tem jogadores registados: uma expulsão é sempre nossa e a
-    // inferioridade é sempre nossa. Logo, um golo do adversário é sempre golo
-    // sofrido por quem está reduzido — e a sanção termina aí, sem intervenção.
-    // Termina apenas a mais antiga: cada golo devolve um jogador, não todos.
+    // Um golo sofrido devolve um jogador — mas só se estivermos mesmo em
+    // inferioridade. Se as duas equipas tiverem o mesmo número de expulsos
+    // (4v4, 3v3), ninguém está a ser castigado com menos gente do que o outro e
+    // o golo não repõe nada. Daí o contador de expulsões do adversário: sem ele
+    // a app não sabe quantos são eles.
+    // Termina apenas a sanção mais antiga: cada golo devolve um jogador, não todos.
     case EVENT.OPPONENT_GOAL_ADDED: {
       state.opponentScore += 1;
       state.goals.push({
@@ -480,9 +584,15 @@ function applyEvent(state, ev) {
         // do campo já sabe, e fica fixo no instante do golo.
         goalkeeperId: state.court.GOALKEEPER || null,
       });
-      const running = state.penalties
-        .filter((p) => p.endedMatchMs == null && p.startMatchMs + p.durationMs > ev.matchElapsedMs)
-        .sort((a, b) => a.startMatchMs - b.startMatchMs);
+      const { nos, eles } = shorthandedCount(state, ev.matchElapsedMs);
+      const running =
+        nos > eles
+          ? state.penalties
+              .filter(
+                (p) => p.endedMatchMs == null && p.startMatchMs + p.durationMs > ev.matchElapsedMs
+              )
+              .sort((a, b) => a.startMatchMs - b.startMatchMs)
+          : [];
       const first = running[0];
       if (first) {
         first.endedMatchMs = ev.matchElapsedMs;
@@ -562,6 +672,27 @@ function applyEvent(state, ev) {
       break;
     }
 
+    // O interruptor manual do 5v4. Quem abre e fecha o período em si é o
+    // `syncPowerPlay`, a seguir a este evento — aqui só se muda a intenção.
+    case EVENT.POWER_PLAY_STARTED:
+    case EVENT.POWER_PLAY_ENDED: {
+      state.powerPlayOverride = ev.eventType === EVENT.POWER_PLAY_STARTED;
+      state.powerPlayOverrideGk = state.court.GOALKEEPER || null;
+      break;
+    }
+
+    // Expulsões do adversário: um número, contado à mão. Não há cronómetro —
+    // o treinador tira quando eles voltarem a ser cinco. Serve só para a app
+    // saber se estamos ou não em inferioridade a sério.
+    case EVENT.OPPONENT_EXPULSION_ADDED: {
+      state.opponentExpulsions += 1;
+      break;
+    }
+    case EVENT.OPPONENT_EXPULSION_REMOVED: {
+      state.opponentExpulsions = Math.max(0, state.opponentExpulsions - 1);
+      break;
+    }
+
     default:
       state.warnings.push(`Evento desconhecido: ${ev.eventType}`);
   }
@@ -588,6 +719,11 @@ export function foulsInPeriod(state, team, period = state.currentPeriod) {
 /** Total do jogo: primeira mais segunda parte. */
 export function foulsTotal(state, team) {
   return state.fouls.filter((f) => f.team === team).length;
+}
+
+/** Está a decorrer um 5v4 neste momento? */
+export function powerPlayAtivo(state) {
+  return (state.powerPlays || []).some((x) => x.endMatchMs == null);
 }
 
 export function countOnCourt(state) {

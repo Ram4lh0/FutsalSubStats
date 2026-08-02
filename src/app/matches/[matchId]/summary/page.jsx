@@ -15,7 +15,7 @@ import * as GE from '@/lib/goalEditing.jsx';
 import { clubs, teams, competitions, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { matchSummaryCsv, download, slug } from '@/lib/data/exporter.js';
-import { matchStatsTable, matchResult } from '@/domain/stats.js';
+import { matchStatsTable, matchResult, powerPlayTotals } from '@/domain/stats.js';
 import { foulsTotal, foulsInPeriod } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
 import { MATCH_STATUS, POSITION_LABEL, HOME_AWAY_LABEL } from '@/domain/constants.js';
@@ -63,6 +63,30 @@ function Resumo() {
   if (dados.vazio) return <Empty>Jogo não encontrado.</Empty>;
 
   const { match, state, club, team, competition } = dados;
+  const pp = powerPlayTotals(state, state.elapsedMatchMs);
+
+  /** Quando é que se jogou com guarda-redes avançado, e por quanto tempo. */
+  function verPowerPlays() {
+    ui.open((close) => (
+      <Dialog title="Períodos em 5v4" onClose={() => close(null)}>
+        <ul className="stintlist">
+          {pp.periodos.map((x) => (
+            <li key={x.numero}>
+              <strong>{x.numero}.º período</strong>
+              {` — ${x.startPeriod}.ª parte — ${fmt(x.startMatchMs)} a ${
+                x.open ? 'fim do jogo' : fmt(x.endMatchMs)
+              } — `}
+              <span className="mono">{fmt(x.durationMs)}</span>
+              {x.manual ? <span className="muted"> · marcado à mão</span> : null}
+            </li>
+          ))}
+        </ul>
+        <p className="muted">
+          Total {fmt(pp.totalMs)} em {pp.count} {pp.count === 1 ? 'período' : 'períodos'}.
+        </p>
+      </Dialog>
+    ));
+  }
   const tabela = matchStatsTable(state, Date.now());
   const r = matchResult(state);
 
@@ -203,6 +227,16 @@ function Resumo() {
           hint={`${foulsInPeriod(state, 'US', 1)} na 1.ª · ${foulsInPeriod(state, 'US', 2)} na 2.ª`}
         />
         <StatCard label="Convocados" value={Object.keys(state.players).length} />
+        {/* 5v4: só aparece se tiver havido. Num jogo em que nunca se jogou com
+            guarda-redes avançado, um cartão a zeros era ruído. */}
+        {pp.count ? (
+          <StatCard
+            label="Tempo em 5v4"
+            value={fmt(pp.totalMs)}
+            hint={pp.count === 1 ? '1 período · ver quando' : `${pp.count} períodos · ver quando`}
+            onClick={verPowerPlays}
+          />
+        ) : null}
       </div>
 
       <h2 className="section">Golos</h2>

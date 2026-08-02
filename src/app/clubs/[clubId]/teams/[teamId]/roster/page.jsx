@@ -43,6 +43,9 @@ function Roster({ team, entries, roster, clubId, teamId }) {
   const [versao, setVersao] = useState(0);
 
   const agg = useMemo(() => clubAggregate(entries), [entries]);
+  // `versao` entra na conta para os totais acompanharem ativar/desativar.
+  const ativos = useMemo(() => roster.filter((p) => p.isActive).length, [roster, versao]);
+  const inativos = roster.length - ativos;
 
   const linhas = useMemo(() => {
     const t = (p) => agg.perPlayer[p.id]?.courtMs || 0;
@@ -91,6 +94,13 @@ function Roster({ team, entries, roster, clubId, teamId }) {
   return (
     <>
       <div className="toolbar">
+        {/* Quantos são ao todo e quantos contam para os jogos. A diferença
+            interessa: um plantel de 20 com 12 ativos não é um plantel de 20. */}
+        <span className="toolbar__count">
+          <strong>{roster.length}</strong> {roster.length === 1 ? 'jogador' : 'jogadores'}
+          <span className="muted"> · {ativos} {ativos === 1 ? 'ativo' : 'ativos'}</span>
+          {inativos ? <span className="muted"> · {inativos} inativos</span> : null}
+        </span>
         <input
           className="input input--search"
           placeholder="Procurar por nome ou número…"

@@ -115,6 +115,35 @@ function Assistente() {
     );
   }
 
+  // Todo o jogo pertence a uma prova — é o que permite ver as estatísticas do
+  // campeonato separadas das dos particulares. Sem nenhuma criada não há por
+  // onde começar, e mais vale dizê-lo já do que na quarta etapa.
+  if (!provas.length) {
+    return (
+      <>
+        <PageHead
+          title="Novo jogo"
+          subtitle={team?.name}
+          backTo={`/clubs/${clubId}/teams/${teamId}`}
+        />
+        <Empty
+          action={
+            <button
+              className="btn btn--primary"
+              onClick={() => router.push(`/clubs/${clubId}/teams/${teamId}/competitions/new`)}
+            >
+              Criar competição
+            </button>
+          }
+        >
+          Este escalão ainda não tem competições. Todo o jogo pertence a uma — campeonato, taça ou
+          particulares — para as estatísticas de cada prova ficarem separadas. Crie a primeira na aba
+          Competições.
+        </Empty>
+      </>
+    );
+  }
+
   const campo = (k) => ({
     value: info[k],
     onChange: (e) => setInfo((i) => ({ ...i, [k]: e.target.value })),
