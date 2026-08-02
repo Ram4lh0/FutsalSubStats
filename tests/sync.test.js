@@ -314,3 +314,53 @@ test('o escalão sobe antes do jogador e do jogo que dependem dele', async () =>
   assert.equal(servidor.tabelas.teams.length, 1, 'o escalão foi junto com o jogo');
   assert.equal(servidor.tabelas.teams[0].id, escalao.id);
 });
+
+test('um jogador do modelo antigo é adotado pelo escalão do clube', async () => {
+  // O caso real: a base do servidor foi migrada para escalões, a do browser não.
+  // Ficou lá um jogador sem escalão nenhum, e o servidor recusava-o — parando
+  // tudo o que vinha atrás na fila.
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao, jogador } = await cenario();
+
+  // Volta ao estado de antes da migração: sem escalão e por enviar.
+  await db.put(db.STORES.players, {
+    ...(await db.get(db.STORES.players, jogador.id)),
+    teamId: undefined,
+    dirty: true,
+  });
+
+  const { pushed } = await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.ok(pushed > 0, 'o envio não encrava');
+  assert.equal(servidor.tabelas.players.length, 1);
+  assert.equal(
+    servidor.tabelas.players[0].team_id,
+    escalao.id,
+    'adotado pelo único escalão do clube'
+  );
+});
+
+test('sem escalão onde encaixar, a linha antiga sai da fila em vez de a bloquear', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const clube = await clubs.create({ name: 'Sem escalões' });
+  const orfao = {
+    id: '99999999-9999-4999-8999-999999999999',
+    clubId: clube.id,
+    name: 'Jogador de antigamente',
+    shirtNumber: 3,
+    isActive: true,
+    dirty: true,
+  };
+  await db.put(db.STORES.players, orfao);
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(servidor.tabelas.players.length, 0, 'não sobe uma linha que o servidor recusa');
+  assert.equal(servidor.tabelas.clubs.length, 1, 'e o resto da fila passa à mesma');
+
+  const guardado = await db.get(db.STORES.players, orfao.id);
+  assert.equal(guardado.dirty, false, 'deixa de contar como pendente');
+  assert.equal(guardado.name, 'Jogador de antigamente', 'mas continua guardado no dispositivo');
+});

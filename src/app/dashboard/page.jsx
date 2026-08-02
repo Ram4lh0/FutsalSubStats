@@ -93,6 +93,30 @@ function Dashboard() {
     }
   }
 
+  /**
+   * Deitar fora o que está guardado no browser e voltar a descarregar do
+   * servidor. Serve para sobras de versões antigas da app — linhas com uma forma
+   * que o servidor já não aceita e que fazem a sincronização falhar sempre no
+   * mesmo sítio.
+   */
+  async function limparDispositivo() {
+    const porEnviar = await sync.pendingCount();
+    const ok = await confirmar(
+      porEnviar
+        ? `Há ${porEnviar} ${porEnviar === 1 ? 'alteração' : 'alterações'} por enviar. Limpar este dispositivo deita-as fora e volta a descarregar tudo o que está no servidor. O que já foi sincronizado não se perde.`
+        : 'Apaga tudo o que está guardado neste browser e volta a descarregar do servidor. O que já foi sincronizado não se perde — nem é tocado nos outros dispositivos.',
+      { okLabel: 'Limpar este dispositivo' }
+    );
+    if (!ok) return;
+    try {
+      await sync.resetLocal(userId);
+      await carregar();
+      toast('Dispositivo limpo e dados descarregados de novo.', 'ok');
+    } catch (e) {
+      toast(`Falha a descarregar: ${e.message}`, 'error');
+    }
+  }
+
   return (
     <>
       <PageHead
@@ -105,6 +129,9 @@ function Dashboard() {
             </button>
             <button className="btn btn--ghost" onClick={restaurar}>
               Restaurar
+            </button>
+            <button className="btn btn--ghost" onClick={limparDispositivo}>
+              Limpar este dispositivo
             </button>
             <button className="btn btn--primary" onClick={() => router.push('/clubs/new')}>
               Criar clube

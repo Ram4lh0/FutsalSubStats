@@ -76,6 +76,25 @@ mudado jogo a jogo. Nas estatísticas, saíram o maior e o menor período e entr
 as participações em golos marcados e sofridos. A migração dessa ronda é a
 `0003_escaloes_e_competicoes.sql`.
 
+## Sobras do modelo antigo (erro 23502)
+
+`null value in column "team_id"` acontecia porque a base de dados do servidor foi
+migrada para escalões e a base que vive dentro do browser não: ganhou as tabelas
+novas e ficou com os jogadores e jogos de antes, sem escalão. O servidor
+recusava-os, e como o envio pára no primeiro erro, uma linha de há meses
+bloqueava tudo o que vinha atrás.
+
+Duas correções:
+
+- **No envio**, uma linha antiga sem escalão é adotada pelo escalão do clube se
+  houver um só. Se não houver por onde decidir, deixa de contar como pendente —
+  fica guardada, mas para de encravar a fila.
+- **"Limpar este dispositivo"**, no painel dos clubes. Apaga o que está guardado
+  no browser e volta a descarregar do servidor. É a cura definitiva para sobras
+  de versões antigas. O que já foi sincronizado não se perde nem é tocado nos
+  outros dispositivos; o que estiver por enviar, esse desaparece — e a
+  confirmação diz quantas alterações são.
+
 ## Verificação
 
 `npm run check` corre três coisas: todos os `import` apontam para algo que
