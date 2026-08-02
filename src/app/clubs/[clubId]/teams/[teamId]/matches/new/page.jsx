@@ -365,7 +365,16 @@ function Assistente() {
   );
 }
 
-function Confirmacao({ club, info, lineup, escolhidos, aGuardar, onVoltar, onGuardar }) {
+function Confirmacao({
+  club,
+  competicaoNome,
+  info,
+  lineup,
+  escolhidos,
+  aGuardar,
+  onVoltar,
+  onGuardar,
+}) {
   const emCampo = Object.entries(lineup).filter(([, v]) => v);
   const idsEmCampo = new Set(emCampo.map(([, v]) => v));
 

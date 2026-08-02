@@ -133,8 +133,8 @@ function Preparacao() {
     setAGuardar(true);
     try {
       await matches.update(matchId, {
-        opponentName: form.opponentName.trim() || match.opponentName,
-        opponentShortName: form.opponentShortName.trim() || null,
+        opponentName: (form.opponentName || '').trim() || match.opponentName,
+        opponentShortName: (form.opponentShortName || '').trim() || null,
         scheduledAt: new Date(form.scheduledAt).getTime(),
         homeOrAway: form.homeOrAway,
         competition: form.competition,

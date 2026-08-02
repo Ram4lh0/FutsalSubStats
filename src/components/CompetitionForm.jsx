@@ -37,8 +37,8 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
 
   async function guardar(e) {
     e.preventDefault();
-    if (!form.name.trim()) return toast('A competição precisa de um nome.', 'error');
-    const payload = { name: form.name.trim(), shortName: form.shortName.trim() || null };
+    if (!(form.name || '').trim()) return toast('A competição precisa de um nome.', 'error');
+    const payload = { name: (form.name || '').trim(), shortName: (form.shortName || '').trim() || null };
     if (competitionId) await competitions.update(competitionId, payload);
     else await competitions.create(teamId, payload);
     toast('Competição guardada.', 'ok');
