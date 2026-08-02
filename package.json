@@ -7,9 +7,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "cap:sync:ios": "cap sync ios",
+    "cap:open:ios": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
     "@supabase/supabase-js": "^2.45.0",
     "next": "^15.0.0",
     "react": "^19.0.0",
