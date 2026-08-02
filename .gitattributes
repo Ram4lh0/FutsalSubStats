@@ -1,0 +1,11 @@
+# Normaliza os fins de linha: no repositório ficam sempre LF, no teu Windows o
+# git converte para CRLF ao levantar os ficheiros. Sem isto, cada gravação num
+# editor diferente marcava o ficheiro inteiro como alterado.
+* text=auto eol=lf
+
+# Ficheiros que são mesmo binários — não lhes tocar.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

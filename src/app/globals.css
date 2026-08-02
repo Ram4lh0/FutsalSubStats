@@ -239,6 +239,41 @@ ul { padding: 0; list-style: none; }
 }
 .btn--plus:hover { background: rgba(134, 214, 164, 0.18); }
 
+/* Linha inteira clicável: nas listas de jogos e de competições o alvo é a linha,
+   não um botão ao fundo dela. */
+.table tr.is-clickable { cursor: pointer; }
+.table tr.is-clickable:hover td { background: rgba(148, 163, 184, 0.08); }
+.table tr.is-clickable:active td { background: rgba(148, 163, 184, 0.14); }
+
+/* Guardar sem abrir é um fim de linha legítimo — merece cor, mas não a do botão
+   principal, que continua a ser "guardar e abrir". */
+.btn--soft {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #b9f6ce;
+}
+.btn--soft:hover { background: rgba(34, 197, 94, 0.26); }
+
+/* Editar ao canto do cartão: pequeno, discreto, sempre no mesmo sítio. */
+.card { position: relative; }
+.card__edit {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.card__edit:hover { color: var(--text); border-color: var(--muted); }
+
 .link { color: var(--info); cursor: pointer; font-weight: 600; }
 
 .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; background: var(--card-2); border: 1px solid var(--line); margin-left: 6px; }
@@ -600,12 +635,19 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   grid-template-columns: 1fr 1.1fr;
   gap: 16px;
   min-width: 0;
+  /* Sem altura mínima zero, as duas colunas esticam-se até caber tudo e o
+     deslize de dentro nunca chega a acontecer — era isso que travava o rato no
+     computador enquanto o dedo funcionava no iPad. */
   min-height: 0;
+  height: 100%;
   align-self: stretch;
   overflow: hidden;
 }
 .halftime > * { min-width: 0; min-height: 0; }
 .halftime__left, .halftime__right {
+  /* `min-height: 0` outra vez: um item de grelha recusa-se a encolher abaixo do
+     conteúdo, e sem encolher não há o que deslizar. */
+  min-height: 0;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);

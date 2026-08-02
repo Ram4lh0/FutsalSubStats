@@ -14,7 +14,7 @@ import { Empty, Field, StatusBadge } from '@/components/bits.jsx';
 import { confirmarPoucosConvocados } from '@/lib/squad.js';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
-import { clubs, players, matches, squad, events, loadMatch } from '@/lib/data/repository.js';
+import { clubs, teams, competitions, players, matches, squad, events, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { startFirstHalf } from '@/domain/actions.js';
 import { canStartFirstHalf, validateLineup, validateSquadSelection } from '@/domain/validation.js';
@@ -23,6 +23,7 @@ import {
   LOCATION,
   MATCH_STATUS,
   HOME_AWAY_LABEL,
+  MATCH_TIMING,
   MATCH_TIMING_LABEL,
   timingOf,
 } from '@/domain/constants.js';
@@ -62,9 +63,11 @@ function Preparacao() {
         );
       }
 
-      const [club, roster] = await Promise.all([
+      const [club, team, roster, provas] = await Promise.all([
         clubs.get(match.clubId),
-        players.listByClub(match.clubId),
+        teams.get(match.teamId),
+        players.listByTeam(match.teamId),
+        competitions.listByTeam(match.teamId),
       ]);
 
       const inicial = {};
@@ -77,11 +80,11 @@ function Preparacao() {
         opponentShortName: match.opponentShortName || '',
         scheduledAt: paraInput(match.scheduledAt),
         homeOrAway: match.homeOrAway,
-        competition: match.competition || '',
-        venue: match.venue || '',
+        competitionId: match.competitionId || '',
+        timing: timingOf(match),
         notes: match.notes || '',
       });
-      setDados({ match, state, club, roster });
+      setDados({ match, state, club, team, roster, provas });
     })();
   }, [matchId, router]);
 
@@ -89,7 +92,7 @@ function Preparacao() {
   if (dados.vazio) return <Empty>Jogo não encontrado.</Empty>;
   if (!form) return <p className="muted">A carregar…</p>;
 
-  const { match, state, club, roster } = dados;
+  const { match, state, club, team, roster, provas } = dados;
   // Um jogador inativo que já esteja convocado continua a aparecer: tirá-lo da
   // lista escondia uma convocatória feita antes de ele ser desativado.
   const elegiveis = roster.filter((p) => p.isActive || escolhidos.includes(p.id));
@@ -135,8 +138,7 @@ function Preparacao() {
         scheduledAt: new Date(form.scheduledAt).getTime(),
         homeOrAway: form.homeOrAway,
         competition: form.competition,
-        venue: form.venue,
-        notes: form.notes,
+          notes: form.notes,
       });
       await sync.saveNow(userId, user?.email);
       toast('Dados atualizados e sincronizados.', 'ok');
@@ -195,10 +197,10 @@ function Preparacao() {
     <>
       <PageHead
         title={`vs ${match.opponentName}`}
-        subtitle={`${club?.name || ''} · ${HOME_AWAY_LABEL[match.homeOrAway]} · ${
-          match.competition || 'Sem competição'
+        subtitle={`${[club?.name, team?.name].filter(Boolean).join(' · ')} · ${
+          HOME_AWAY_LABEL[match.homeOrAway]
         }`}
-        backTo={`/clubs/${match.clubId}/matches`}
+        backTo={`/clubs/${match.clubId}/teams/${match.teamId}/matches`}
         actions={<StatusBadge status={state.status} />}
       />
 
@@ -226,15 +228,25 @@ function Preparacao() {
           </div>
           <div className="form__row">
             <Field label="Competição">
-              <input className="input" {...campo('competition')} />
+              <select className="input" {...campo('competitionId')}>
+                <option value="">Sem competição</option>
+                {provas.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </Field>
-            <Field label="Local">
-              <input className="input" {...campo('venue')} />
+            <Field label="Tipo de jogo" hint="Vem do escalão; pode ser diferente neste jogo.">
+              <select className="input" {...campo('timing')}>
+                {Object.values(MATCH_TIMING).map((t) => (
+                  <option key={t} value={t}>
+                    {MATCH_TIMING_LABEL[t]}
+                  </option>
+                ))}
+              </select>
             </Field>
           </div>
-          <Field label="Tempo de jogo" hint="Vem do clube.">
-            <p className="readonly">{MATCH_TIMING_LABEL[timingOf(match)]}</p>
-          </Field>
           <Field label="Notas">
             <textarea className="input input--area" rows={2} {...campo('notes')} />
           </Field>
@@ -295,7 +307,7 @@ function Preparacao() {
               if (!ok) return;
               await matches.remove(matchId);
               toast('Jogo apagado.', 'ok');
-              router.push(`/clubs/${match.clubId}/matches`);
+              router.push(`/clubs/${match.clubId}/teams/${match.teamId}/matches`);
             }}
           >
             Apagar jogo

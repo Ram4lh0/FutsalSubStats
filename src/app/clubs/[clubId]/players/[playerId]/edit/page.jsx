@@ -1,14 +1,15 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import Guard from '@/components/Guard.jsx';
-import PlayerForm from '@/components/PlayerForm.jsx';
+// Rota antiga: jogadores e jogos passaram a viver dentro de cada escalão.
 
-export default function EditarJogador() {
-  const { clubId, playerId } = useParams();
-  return (
-    <Guard>
-      <PlayerForm clubId={clubId} playerId={playerId} />
-    </Guard>
-  );
+import { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+
+export default function RotaAntiga() {
+  const { clubId } = useParams();
+  const router = useRouter();
+  useEffect(() => {
+    router.replace(`/clubs/${clubId}`);
+  }, [clubId, router]);
+  return <p className="muted">A redirecionar…</p>;
 }

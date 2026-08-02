@@ -58,9 +58,8 @@ export const clubs = {
       logoUrl: data.logoUrl || null,
       primaryColor: data.primaryColor || '#22c55e',
       secondaryColor: data.secondaryColor || '#0f172a',
+      // A época é do clube: todos os escalões jogam a mesma.
       currentSeason: data.currentSeason || null,
-      // Como esta equipa joga: cronometrado ou corrido. Vale para todos os jogos.
-      timing: data.timing === MATCH_TIMING.TIMED ? MATCH_TIMING.TIMED : MATCH_TIMING.UNTIMED,
       archivedAt: null,
     });
     await db.put(db.STORES.clubs, row);
@@ -78,25 +77,118 @@ export const clubs = {
     return clubs.update(id, { archivedAt: now() });
   },
   async remove(id) {
-    const ms = await matches.listByClub(id);
-    for (const m of ms) await matches.remove(m.id);
-    for (const p of await players.listByClub(id)) await db.del(db.STORES.players, p.id);
+    for (const t of await teams.listByClub(id)) await teams.remove(t.id);
     await db.del(db.STORES.clubs, id);
+    notifyLocalChange();
+  },
+};
+
+/* -------------------------------------------------------------- escalões */
+
+/**
+ * O escalão é a unidade de trabalho: tem plantel, jogos, competições e
+ * estatísticas próprias. O clube é só o guarda-chuva que lhes dá nome e época.
+ */
+export const teams = {
+  async listByClub(clubId) {
+    const rows = await db.byIndex(db.STORES.teams, 'by_club', clubId);
+    return rows
+      .filter((t) => !t.archivedAt)
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+  },
+  get: (id) => db.get(db.STORES.teams, id),
+  async create(clubId, data) {
+    const row = stamp({
+      id: uid(),
+      clubId,
+      name: (data.name || '').trim(),
+      shortName: (data.shortName || '').trim() || null,
+      // O tipo de tempo é do escalão: os mais novos jogam corrido, os séniores
+      // cronometrado, e o mesmo clube tem os dois.
+      timing: data.timing === MATCH_TIMING.TIMED ? MATCH_TIMING.TIMED : MATCH_TIMING.UNTIMED,
+      archivedAt: null,
+    });
+    await db.put(db.STORES.teams, row);
+    notifyLocalChange();
+    return row;
+  },
+  async update(id, patch) {
+    const cur = await db.get(db.STORES.teams, id);
+    const row = stamp({ ...cur, ...patch });
+    await db.put(db.STORES.teams, row);
+    notifyLocalChange();
+    return row;
+  },
+  async remove(id) {
+    for (const m of await matches.listByTeam(id)) await matches.remove(m.id);
+    for (const p of await players.listByTeam(id)) await db.del(db.STORES.players, p.id);
+    for (const c of await competitions.listByTeam(id)) await db.del(db.STORES.competitions, c.id);
+    await db.del(db.STORES.teams, id);
+    notifyLocalChange();
+  },
+};
+
+/* ----------------------------------------------------------- competições */
+
+export const competitions = {
+  async listByTeam(teamId) {
+    const rows = await db.byIndex(db.STORES.competitions, 'by_team', teamId);
+    return rows
+      .filter((c) => !c.archivedAt)
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+  },
+  get: (id) => db.get(db.STORES.competitions, id),
+  async create(teamId, data) {
+    const row = stamp({
+      id: uid(),
+      teamId,
+      name: (data.name || '').trim(),
+      shortName: (data.shortName || '').trim() || null,
+      archivedAt: null,
+    });
+    await db.put(db.STORES.competitions, row);
+    notifyLocalChange();
+    return row;
+  },
+  async update(id, patch) {
+    const cur = await db.get(db.STORES.competitions, id);
+    const row = stamp({ ...cur, ...patch });
+    await db.put(db.STORES.competitions, row);
+    notifyLocalChange();
+    return row;
+  },
+  /** Apagar uma competição não apaga os jogos: eles ficam sem prova associada. */
+  async remove(id) {
+    const comp = await competitions.get(id);
+    if (comp) {
+      for (const m of await matches.listByTeam(comp.teamId)) {
+        if (m.competitionId === id) await matches.update(m.id, { competitionId: null });
+      }
+    }
+    await db.del(db.STORES.competitions, id);
+    notifyLocalChange();
   },
 };
 
 /* ------------------------------------------------------------- jogadores */
 
 export const players = {
+  async listByTeam(teamId) {
+    const rows = await db.byIndex(db.STORES.players, 'by_team', teamId);
+    return rows.sort((a, b) => a.shirtNumber - b.shirtNumber);
+  },
+  /** Ainda usado pelo backup e por ecrãs que só sabem o clube. */
   async listByClub(clubId) {
     const rows = await db.byIndex(db.STORES.players, 'by_club', clubId);
     return rows.sort((a, b) => a.shirtNumber - b.shirtNumber);
   },
   get: (id) => db.get(db.STORES.players, id),
-  async create(clubId, data) {
+  async create(teamId, data) {
+    const team = await teams.get(teamId);
     const row = stamp({
       id: uid(),
-      clubId,
+      teamId,
+      clubId: team?.clubId || null,
       name: data.name.trim(),
       shirtNumber: Number(data.shirtNumber),
       preferredPosition: data.preferredPosition || 'UNIVERSAL',
@@ -131,28 +223,34 @@ export const players = {
 /* ------------------------------------------------------------------ jogos */
 
 export const matches = {
+  async listByTeam(teamId) {
+    const rows = await db.byIndex(db.STORES.matches, 'by_team', teamId);
+    return rows.sort((a, b) => (b.scheduledAt || b.createdAt) - (a.scheduledAt || a.createdAt));
+  },
   async listByClub(clubId) {
     const rows = await db.byIndex(db.STORES.matches, 'by_club', clubId);
     return rows.sort((a, b) => (b.scheduledAt || b.createdAt) - (a.scheduledAt || a.createdAt));
   },
   get: (id) => db.get(db.STORES.matches, id),
-  async create(clubId, data) {
-    // O jogo herda o tipo de tempo do clube e guarda uma cópia: mudar o clube
-    // mais tarde não pode alterar jogos já disputados.
-    const club = await clubs.get(clubId);
-    const timing = timingOf(club);
+  async create(teamId, data) {
+    // O tipo de tempo vem do escalão mas pode ser mudado neste jogo — e o que
+    // fica guardado é uma cópia: mexer no escalão não reescreve jogos passados.
+    const team = await teams.get(teamId);
+    const timing = data.timing === MATCH_TIMING.TIMED || data.timing === MATCH_TIMING.UNTIMED
+      ? data.timing
+      : timingOf(team);
     const row = stamp({
       id: uid(),
-      clubId,
+      teamId,
+      clubId: team?.clubId || null,
       timing,
       opponentName: data.opponentName.trim(),
       opponentShortName: (data.opponentShortName || '').trim() || null,
-      competition: data.competition || null,
-      venue: data.venue || null,
+      competitionId: data.competitionId || null,
       homeOrAway: data.homeOrAway || 'HOME',
       scheduledAt: data.scheduledAt || now(),
       season: data.season || null,
-      periodDurationMs: timingConfig(club).periodDurationMs,
+      periodDurationMs: timingConfig({ timing }).periodDurationMs,
       notes: data.notes || null,
     });
     await db.put(db.STORES.matches, row);
@@ -259,8 +357,15 @@ export async function loadMatch(matchId) {
   return { match, squad: sq, events: evs, state: buildMatchState(match, sq, evs) };
 }
 
+export async function loadTeamMatchStates(teamId) {
+  return loadStatesOf(await matches.listByTeam(teamId));
+}
+
 export async function loadClubMatchStates(clubId) {
-  const list = await matches.listByClub(clubId);
+  return loadStatesOf(await matches.listByClub(clubId));
+}
+
+async function loadStatesOf(list) {
   const out = [];
   for (const m of list) {
     const sq = await squad.listByMatch(m.id);

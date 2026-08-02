@@ -127,8 +127,8 @@ export function stintsDialog(ui, state, p, clockMs) {
       <div className="grid grid--stats">
         {mini('Em campo', fmt(s.courtMs))}
         {mini('Entradas', s.entries)}
-        {mini('Maior período', fmt(s.longestStintMs))}
-        {mini('Menor período', fmt(s.entries ? s.shortestStintMs : 0))}
+        {mini('Part. golos', s.goalShare)}
+        {mini('Part. sofridos', s.concededShare)}
       </div>
       {s.stints.length ? (
         <ul className="stintlist">

@@ -12,7 +12,7 @@ import { Badge, Empty, StatCard, StatusBadge } from '@/components/bits.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import * as GE from '@/lib/goalEditing.jsx';
-import { clubs, matches, loadMatch } from '@/lib/data/repository.js';
+import { clubs, teams, competitions, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { matchSummaryCsv, download, slug } from '@/lib/data/exporter.js';
 import { matchStatsTable, matchResult } from '@/domain/stats.js';
@@ -47,8 +47,12 @@ function Resumo() {
   const carregar = useCallback(async () => {
     const carregado = await loadMatch(matchId);
     if (!carregado) return setDados({ vazio: true });
-    const club = await clubs.get(carregado.match.clubId);
-    setDados({ ...carregado, club });
+    const [club, team, prova] = await Promise.all([
+      clubs.get(carregado.match.clubId),
+      teams.get(carregado.match.teamId),
+      carregado.match.competitionId ? competitions.get(carregado.match.competitionId) : null,
+    ]);
+    setDados({ ...carregado, club, team, competition: prova });
   }, [matchId]);
 
   useEffect(() => {
@@ -58,7 +62,7 @@ function Resumo() {
   if (!dados) return <p className="muted">A carregar…</p>;
   if (dados.vazio) return <Empty>Jogo não encontrado.</Empty>;
 
-  const { match, state, club } = dados;
+  const { match, state, club, team, competition } = dados;
   const tabela = matchStatsTable(state, Date.now());
   const r = matchResult(state);
 
@@ -118,14 +122,20 @@ function Resumo() {
     <>
       <PageHead
         title={`${clubShort(club)} ${state.teamScore} — ${state.opponentScore} ${opponentShort(match)}`}
-        subtitle={`vs ${match.opponentName} · ${dateLabel(match.scheduledAt)} · ${
-          HOME_AWAY_LABEL[match.homeOrAway]
-        }${match.competition ? ' · ' + match.competition : ''}${match.venue ? ' · ' + match.venue : ''}`}
+        subtitle={[
+          `vs ${match.opponentName}`,
+          dateLabel(match.scheduledAt),
+          HOME_AWAY_LABEL[match.homeOrAway],
+          team?.name,
+          competition?.name,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
         {...(back
           ? { backTo: back }
           : state.status === MATCH_STATUS.FINISHED
             ? { homeTo: '/dashboard' }
-            : { backTo: `/clubs/${match.clubId}/matches` })}
+            : { backTo: `/clubs/${match.clubId}/teams/${match.teamId}/matches` })}
         actions={
           <>
             <StatusBadge status={state.status} />
@@ -134,7 +144,7 @@ function Resumo() {
               onClick={() =>
                 download(
                   `jogo-${slug(match.opponentName)}.csv`,
-                  matchSummaryCsv({ club, match, state }),
+                  matchSummaryCsv({ club, match, state, team, competition }),
                   'text/csv;charset=utf-8'
                 )
               }
@@ -223,8 +233,8 @@ function Resumo() {
             <th className="num" title="Cartões vermelhos">Vm</th>
             <th className="num">Em campo</th>
             <th className="num">Entradas</th>
-            <th className="num">Maior período</th>
-            <th className="num">Menor período</th>
+            <th className="num" title="Golos da equipa com este jogador em campo">Part. G</th>
+            <th className="num" title="Golos sofridos com este jogador em campo">Part. GS</th>
             <th />
           </tr>
         </thead>
@@ -245,8 +255,8 @@ function Resumo() {
               <td className="num mono">{s.reds}</td>
               <td className="num mono">{fmt(s.courtMs)}</td>
               <td className="num">{s.entries}</td>
-              <td className="num mono">{fmt(s.longestStintMs)}</td>
-              <td className="num mono">{fmt(s.shortestStintMs)}</td>
+              <td className="num mono">{s.goalShare}</td>
+              <td className="num mono">{s.concededShare}</td>
               <td className="right">
                 <button className="btn btn--tiny btn--ghost" onClick={() => verPeriodos(s)}>
                   Períodos
