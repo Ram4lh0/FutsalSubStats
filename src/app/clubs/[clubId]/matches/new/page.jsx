@@ -380,7 +380,7 @@ function Confirmacao({ club, info, lineup, escolhidos, aGuardar, onVoltar, onGua
           const p = escolhidos.find((c) => c.id === pid);
           return (
             <span key={pos} className="chip chip--static">
-              <strong>#{p.shirtNumber}</strong> {p.name} · {POSITION_LABEL[pos]}
+              <strong>{p.shirtNumber}</strong> {p.name} · {POSITION_LABEL[pos]}
             </span>
           );
         })}
@@ -392,7 +392,7 @@ function Confirmacao({ club, info, lineup, escolhidos, aGuardar, onVoltar, onGua
           .filter((p) => !idsEmCampo.has(p.id))
           .map((p) => (
             <span key={p.id} className="chip chip--static">
-              <strong>#{p.shirtNumber}</strong> {p.name}
+              <strong>{p.shirtNumber}</strong> {p.name}
             </span>
           ))}
       </div>

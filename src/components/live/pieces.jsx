@@ -166,7 +166,7 @@ function CourtCard({ pos, p, state, sel, clockMs, on }) {
       onClick={() => on.tapCourt(pos, p)}
     >
       <div className="pcard__top">
-        <span className="pcard__num">#{p.number}</span>
+        <span className="pcard__num">{p.number}</span>
         <span className="pcard__pos">{POSITION_SHORT[pos]}</span>
         <CardChips p={p} state={state} />
         <span
@@ -269,7 +269,7 @@ function BenchCard({ p, state, sel, clockMs, on }) {
       onClick={() => on.tapBench(p)}
     >
       <div className="pcard__top">
-        <span className="pcard__num">#{p.number}</span>
+        <span className="pcard__num">{p.number}</span>
         <CardChips p={p} state={state} />
         {expulso ? <span className="badge badge--danger">EXPULSO</span> : null}
         <span

@@ -97,7 +97,7 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
               <span className="slot__pos">{POSITION_SHORT[pos]}</span>
               {p ? (
                 <span className="slot__player">
-                  <strong>#{p.number}</strong>
+                  <strong>{p.number}</strong>
                   <span>{p.name}</span>
                 </span>
               ) : (
@@ -142,7 +142,7 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
                   .join(' ')}
                 onClick={() => tocarBanco(p.playerId)}
               >
-                <strong>#{p.number}</strong> {p.name}
+                <strong>{p.number}</strong> {p.name}
               </button>
             ))
           ) : (
