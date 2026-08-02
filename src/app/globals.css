@@ -755,6 +755,13 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .penalty { flex: 1 1 160px; }
 
   .live__head { grid-template-columns: 1fr; }
+  .live__controls { gap: 8px; }
+  .live__controls .btn--big {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 0.86rem;
+    border-radius: 12px;
+  }
   .setup__footer { flex-direction: column; align-items: stretch; }
   .setup__buttons { margin-left: 0; }
   .setup__buttons .btn { flex: 1; }
@@ -809,27 +816,41 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .courtpick__court .slot {
     position: absolute;
     transform: translate(-50%, -50%);
-    width: min(42%, 168px);
+    width: min(38%, 150px);
     min-width: 0;
-    min-height: 72px;
+    min-height: 62px;
     left: auto;
     top: auto;
   }
 
-  .court .pcard--empty { min-height: 72px; }
+  .court .pcard--court {
+    padding: 6px 8px;
+    gap: 2px;
+  }
+
+  .court .pcard--empty { min-height: 62px; }
+  .court .pcard__top { gap: 4px; }
+  .court .pcard__num { font-size: 1rem; }
+  .court .pcard__pos { font-size: 0.56rem; }
+  .court .pcard__name { font-size: 0.86rem; }
+  .court .pcard__goal { width: 24px; height: 24px; font-size: 0.7rem; }
+  .court .pcard__more { width: 24px; height: 24px; }
+  .court .pcard__times { gap: 0; }
+  .court .pcard__t { font-size: 0.66rem; }
+  .court .pcard__times .pcard__t:first-child { display: none; }
   .slot__clear { top: 4px; right: 4px; }
 
   .court .slot--pivot,
-  .courtpick__court .slot--pivot { left: 50%; top: 18%; }
+  .courtpick__court .slot--pivot { left: 50%; top: 16%; }
 
   .court .slot--left_winger,
-  .courtpick__court .slot--left_winger { left: 25%; top: 43%; }
+  .courtpick__court .slot--left_winger { left: 24%; top: 39%; }
 
   .court .slot--right_winger,
-  .courtpick__court .slot--right_winger { left: 75%; top: 43%; }
+  .courtpick__court .slot--right_winger { left: 76%; top: 39%; }
 
   .court .slot--fixo,
-  .courtpick__court .slot--fixo { left: 50%; top: 63%; }
+  .courtpick__court .slot--fixo { left: 50%; top: 61%; }
 
   .court .slot--goalkeeper,
   .courtpick__court .slot--goalkeeper { left: 50%; top: 84%; }
