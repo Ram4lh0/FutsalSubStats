@@ -31,3 +31,56 @@ workflows:
 
       - name: Build Next.js app
         script: npm run build
+
+  ios-capacitor-preview:
+    name: FutsalSubStats iOS Capacitor Preview
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      node: lts
+      xcode: latest
+      vars:
+        NEXT_TELEMETRY_DISABLED: "1"
+
+    cache:
+      cache_paths:
+        - node_modules
+        - ~/Library/Developer/Xcode/DerivedData
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Run tests
+        script: npm test
+
+      - name: Sync Capacitor iOS project
+        script: npx cap sync ios
+
+      - name: Build iOS simulator app
+        script: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/ios/Build/Products/Debug-iphonesimulator/App.app \
+            build/ios/Build/Products/Debug-iphonesimulator/FutsalSubStats.app.zip
+
+    artifacts:
+      - build/ios/Build/Products/Debug-iphonesimulator/FutsalSubStats.app.zip
