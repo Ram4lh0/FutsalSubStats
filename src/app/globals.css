@@ -142,6 +142,11 @@ ul { padding: 0; list-style: none; }
 .stat__label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .stat__value { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .stat__hint { font-size: 0.8rem; color: var(--muted); }
+/* Cartão que abre o detalhe por trás: é um botão, mas mantém o desenho do resto
+   da grelha — nada de o fazer parecer um controlo diferente. */
+.stat--clickable { text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.stat--clickable:hover { border-color: var(--primary); }
+.stat--clickable .stat__hint { text-decoration: underline; text-underline-offset: 2px; }
 /* Resultado final: verde ganhou, âmbar empatou, vermelho perdeu. */
 .stat--win { background: rgba(34, 197, 94, 0.14); border-color: rgba(34, 197, 94, 0.55); }
 .stat--win .stat__value, .stat--win .stat__hint { color: var(--primary); }
@@ -311,6 +316,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 
 .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .toolbar__spacer { flex: 1; }
+.toolbar__count { font-size: 0.9rem; white-space: nowrap; }
 .counter { font-weight: 700; font-variant-numeric: tabular-nums; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); }
 .counter.is-full { color: var(--warn); border-color: var(--warn); }
 
@@ -521,6 +527,15 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .penalty.is-alert { animation: none; box-shadow: 0 0 16px 3px rgba(239, 68, 68, 0.7); }
 }
 
+/* Expulsões do adversário: um contador, sem cronómetro. Discreto enquanto está
+   a zero — só ganha cor quando eles ficam mesmo reduzidos. */
+.penalty--rival { border-color: var(--line); }
+.penalty--rival.is-on { border-color: var(--info); }
+.rivalcount { display: flex; align-items: center; gap: 4px; }
+.rivalcount__n { min-width: 1.2ch; text-align: center; font-size: 1.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.penalty--rival.is-on .rivalcount__n { color: var(--info); }
+.rivalcount .foulbtn:disabled { opacity: 0.3; }
+
 .pcard { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; text-align: left; }
 /* Largura em % do campo, não do ecrã: assim o cartão acompanha o campo quando o
    iPad roda para vertical, em vez de ficar um risco fino. */
@@ -539,6 +554,13 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .pcard__cards { display: inline-flex; gap: 3px; }
 .menu__item--yellow { border-color: rgba(250, 204, 21, 0.5); }
 .menu__item .cardchip { margin-right: 4px; }
+
+/* Selo 5v4 no cartão de quem está à baliza. Apagado quando não há nada a
+   assinalar, aceso quando a equipa joga com guarda-redes avançado. */
+.ppchip { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.04em; padding: 3px 6px; border-radius: 7px; border: 1px solid var(--line); color: var(--muted); line-height: 1; }
+.ppchip.is-on { background: var(--info); border-color: var(--info); color: #04121c; }
+.ppchip.is-auto { cursor: default; }
+.ppchip:not(.is-auto):active { transform: scale(0.92); }
 
 .pcard__goal { margin-left: auto; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: var(--primary-ink); font-size: 0.8rem; font-weight: 800; }
 .pcard__goal:active { transform: scale(0.9); }

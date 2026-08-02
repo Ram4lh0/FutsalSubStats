@@ -4,9 +4,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildMatchState, countOnCourt, foulsInPeriod, foulsTotal } from '../src/domain/reducer.js';
+import {
+  buildMatchState,
+  countOnCourt,
+  foulsInPeriod,
+  foulsTotal,
+  powerPlayAtivo,
+} from '../src/domain/reducer.js';
 import { readClock, fmt, periodProgress } from '../src/domain/clock.js';
-import { clubAggregate, playerMatchStats } from '../src/domain/stats.js';
+import { clubAggregate, playerMatchStats, powerPlayTotals } from '../src/domain/stats.js';
 import * as A from '../src/domain/actions.js';
 import * as V from '../src/domain/validation.js';
 import {
@@ -713,4 +719,179 @@ test('durante a sanção a equipa não pode voltar aos cinco', () => {
   assert.ok(canReplaceExpelled(st2, 2.5 * MIN, 2 * MIN), 'um golo nosso não liberta nada');
   st2 = step(ctx2, (s) => A.goal(s, EVENT.OPPONENT_GOAL_ADDED, T0 + 3 * MIN), T0 + 3 * MIN);
   assert.equal(canReplaceExpelled(st2, 3 * MIN, 2 * MIN), null, 'golo sofrido liberta a posição');
+});
+
+/* --------------------------------------------------------- igualdade numérica */
+
+test('com o mesmo número de expulsos, um golo não repõe ninguém', () => {
+  // 5v5, um expulso de cada lado: 4v4. Ninguém está em inferioridade, por isso
+  // um golo não devolve jogador nenhum — nem a nós nem a eles.
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.redCard(s, { playerId: 'p2' }, T0 + 2 * MIN), T0 + 2 * MIN);
+  step(
+    ctx,
+    (s) => A.startPenalty(s, { playerId: 'p2', durationMs: 2 * MIN }, T0 + 2 * MIN),
+    T0 + 2 * MIN
+  );
+  let st = step(ctx, (s) => A.opponentExpulsion(s, 1, T0 + 2 * MIN), T0 + 2 * MIN);
+  assert.equal(st.opponentExpulsions, 1);
+
+  st = step(ctx, (s) => A.goal(s, EVENT.OPPONENT_GOAL_ADDED, T0 + 3 * MIN), T0 + 3 * MIN);
+  assert.ok(
+    canReplaceExpelled(st, 3 * MIN, 2 * MIN),
+    'a 4 contra 4, o golo sofrido não encurta a sanção'
+  );
+  assert.equal(st.penalties[0].endedMatchMs, null);
+
+  // Eles voltam aos cinco: agora sim, o próximo golo devolve o nosso jogador.
+  st = step(ctx, (s) => A.opponentExpulsion(s, -1, T0 + 3.5 * MIN), T0 + 3.5 * MIN);
+  assert.equal(st.opponentExpulsions, 0);
+  st = step(ctx, (s) => A.goal(s, EVENT.OPPONENT_GOAL_ADDED, T0 + 3.6 * MIN), T0 + 3.6 * MIN);
+  assert.equal(canReplaceExpelled(st, 3.6 * MIN, 2 * MIN), null);
+  assert.equal(st.penalties[0].endedReason, 'GOAL_CONCEDED');
+});
+
+test('o contador de expulsões do adversário não desce abaixo de zero', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const st = step(ctx, (s) => A.opponentExpulsion(s, -1, T0 + 1 * MIN), T0 + 1 * MIN);
+  assert.equal(st.opponentExpulsions, 0);
+});
+
+/* -------------------------------------------------------------------- 5v4 */
+
+/** Como makeSquad, mas com as posições preferidas preenchidas. */
+function squadComPosicoes() {
+  return makeSquad().map((row) => ({
+    ...row,
+    preferredPosition: row.playerId === 'p1' ? 'GOALKEEPER' : 'UNIVERSAL',
+  }));
+}
+
+test('5v4: um jogador de campo à baliza abre e fecha o período sozinho', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  const build = () => buildMatchState(match, ctx.squad, ctx.events);
+
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  assert.equal(build().powerPlays.length, 0, 'com o guarda-redes na baliza, nada');
+
+  // 5' — sai a guarda-redes, entra um universal para a baliza.
+  let st = step(
+    ctx,
+    (s) => A.substitute(s, { playerOutId: 'p1', playerInId: 'p6', position: 'GOALKEEPER' }, T0 + 5 * MIN),
+    T0 + 5 * MIN
+  );
+  assert.equal(st.powerPlays.length, 1);
+  assert.equal(st.powerPlays[0].startMatchMs, 5 * MIN);
+  assert.equal(st.powerPlays[0].endMatchMs, null, 'ainda a decorrer');
+  assert.equal(powerPlayAtivo(st), true);
+
+  // 8' — volta a guarda-redes: o período fecha.
+  st = step(
+    ctx,
+    (s) => A.substitute(s, { playerOutId: 'p6', playerInId: 'p1', position: 'GOALKEEPER' }, T0 + 8 * MIN),
+    T0 + 8 * MIN
+  );
+  assert.equal(st.powerPlays[0].endMatchMs, 8 * MIN);
+  assert.equal(powerPlayAtivo(st), false);
+
+  const totais = powerPlayTotals(st, st.elapsedMatchMs);
+  assert.equal(totais.count, 1);
+  assert.equal(totais.totalMs, 3 * MIN);
+});
+
+test('5v4: o botão liga quando é o próprio guarda-redes a subir', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+
+  let st = step(ctx, (s) => A.setPowerPlay(s, true, T0 + 2 * MIN), T0 + 2 * MIN);
+  assert.equal(powerPlayAtivo(st), true);
+  assert.equal(st.powerPlays[0].manual, true, 'marcado à mão, não detetado');
+
+  st = step(ctx, (s) => A.setPowerPlay(s, false, T0 + 4 * MIN), T0 + 4 * MIN);
+  assert.equal(powerPlayAtivo(st), false);
+  assert.equal(powerPlayTotals(st, st.elapsedMatchMs).totalMs, 2 * MIN);
+});
+
+test('5v4: o botão também desliga um automatismo que se enganou', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  let st = step(
+    ctx,
+    (s) => A.substitute(s, { playerOutId: 'p1', playerInId: 'p6', position: 'GOALKEEPER' }, T0 + 5 * MIN),
+    T0 + 5 * MIN
+  );
+  assert.equal(powerPlayAtivo(st), true);
+
+  st = step(ctx, (s) => A.setPowerPlay(s, false, T0 + 6 * MIN), T0 + 6 * MIN);
+  assert.equal(powerPlayAtivo(st), false, 'o treinador tem a última palavra');
+  assert.equal(powerPlayTotals(st, st.elapsedMatchMs).totalMs, 1 * MIN);
+
+  // Trocar de guarda-redes é situação nova: o automatismo volta a mandar.
+  st = step(
+    ctx,
+    (s) => A.substitute(s, { playerOutId: 'p6', playerInId: 'p7', position: 'GOALKEEPER' }, T0 + 7 * MIN),
+    T0 + 7 * MIN
+  );
+  assert.equal(powerPlayAtivo(st), true);
+});
+
+test('5v4: sem posição registada não se inventa nada', () => {
+  // Plantel antigo, importado sem posições: passar o jogo inteiro marcado como
+  // 5v4 seria pior do que não medir.
+  const ctx = { squad: makeSquad(), events: [] };
+  const st = step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  assert.equal(powerPlayAtivo(st), false);
+  assert.equal(st.powerPlays.length, 0);
+});
+
+test('5v4: o intervalo fecha o período e não o arrasta para a 2.ª parte', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.setPowerPlay(s, true, T0 + 2 * MIN), T0 + 2 * MIN);
+  let st = step(ctx, (s) => A.finishFirstHalf(s, T0 + 10 * MIN), T0 + 10 * MIN);
+
+  assert.equal(st.powerPlays.length, 1);
+  assert.equal(st.powerPlays[0].endMatchMs, 10 * MIN);
+
+  const T1 = T0 + 15 * MIN;
+  const lineup = { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4', PIVOT: 'p5' };
+  step(ctx, (s) => A.setSecondHalfLineup(s, lineup, T1), T1);
+  st = step(ctx, (s) => A.startSecondHalf(s, T1), T1);
+  assert.equal(powerPlayAtivo(st), false, 'a 2.ª parte começa limpa');
+  assert.equal(powerPlayTotals(st, st.elapsedMatchMs).totalMs, 8 * MIN);
+});
+
+/* ------------------------------------------------- resultado ao intervalo */
+
+test('corrigir um golo da 1.ª parte corrige também o resultado ao intervalo', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.goal(s, EVENT.TEAM_GOAL_ADDED, T0 + 3 * MIN), T0 + 3 * MIN);
+  let st = step(ctx, (s) => A.finishFirstHalf(s, T0 + 10 * MIN), T0 + 10 * MIN);
+  assert.equal(st.halftimeTeamScore, 1);
+
+  const T1 = T0 + 15 * MIN;
+  const lineup = { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4', PIVOT: 'p5' };
+  step(ctx, (s) => A.setSecondHalfLineup(s, lineup, T1), T1);
+  step(ctx, (s) => A.startSecondHalf(s, T1), T1);
+  st = step(ctx, (s) => A.goal(s, EVENT.TEAM_GOAL_ADDED, T1 + 2 * MIN), T1 + 2 * MIN);
+  assert.equal(st.teamScore, 2);
+  assert.equal(st.halftimeTeamScore, 1, 'um golo da 2.ª parte não mexe no intervalo');
+
+  // Afinal o segundo golo tinha sido aos 5' da 1.ª parte, registado tarde.
+  const golo = st.goals[1];
+  st = step(
+    ctx,
+    (s) =>
+      A.attributeGoal(
+        s,
+        { targetEventId: golo.eventId, matchElapsedMs: 5 * MIN, period: 1 },
+        T1 + 3 * MIN
+      ),
+    T1 + 3 * MIN
+  );
+  assert.equal(st.teamScore, 2, 'o resultado final não muda');
+  assert.equal(st.halftimeTeamScore, 2, 'o intervalo passa a contar os dois');
 });

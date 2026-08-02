@@ -655,6 +655,9 @@ function Live() {
     courtMenu,
     benchMenu,
     startPenalty,
+    togglePowerPlay: (ligar) =>
+      commit(A.setPowerPlay(state, ligar), ligar ? '5v4 a contar.' : '5v4 terminado.'),
+    opponentExpulsion: (delta) => commit(A.opponentExpulsion(state, delta)),
   };
 
   // O intervalo tem ecrã próprio: sem cronómetro e sem forma de "retomar" a

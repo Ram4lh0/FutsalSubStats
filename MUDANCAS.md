@@ -2,54 +2,84 @@
 
 ## Antes de correr: a base de dados
 
-No Supabase → **SQL Editor**, correr `supabase/migrations/0003_escaloes_e_competicoes.sql`.
+No Supabase → **SQL Editor**, correr `supabase/migrations/0004_5v4_e_expulsoes_do_adversario.sql`.
 
-A migração não perde nada: cada clube existente ganha um escalão chamado
-**"Sénior"** (podes renomeá-lo depois) e os jogadores e jogos passam para lá. As
-competições que estavam escritas à mão nos jogos viram competições a sério.
+São quatro tipos de evento novos. O Postgres recusa eventos que não conheça, por
+isso sem esta migração o 5v4 e as expulsões do adversário ficavam presos no iPad,
+com a sincronização a falhar.
+
+(Se ainda não tiveres corrido a `0003_escaloes_e_competicoes.sql`, essa vem
+primeiro.)
 
 Depois, no computador:
 
 ```
 npm install
+npm run check   # imports, propriedades e 48 testes
 npm run build
 ```
 
-E no browser, uma vez: sai da conta e volta a entrar, para a app descarregar a
-estrutura nova.
+## 5v4 — guarda-redes avançado
 
-## Estrutura
+**A app percebe sozinha.** Assim que quem está à baliza é um jogador de campo —
+fixo, ala, pivot ou universal —, começa a contar. Quando o guarda-redes volta, a
+contagem pára. Cada troca é um período novo.
 
-**O clube deixou de ter estatísticas.** Passou a ser um guarda-chuva: abre-se o
-clube e vêem-se os escalões. Comparar um Sub-15 com os séniores não dizia nada a
-ninguém.
+**O selo 5v4 no cartão da baliza** existe para os dois casos que o automatismo
+não resolve: um guarda-redes a sério que sobe para jogar como quinto (a app não
+adivinha), e uma deteção errada que se quer desligar. A decisão do treinador vale
+enquanto for o mesmo jogador à baliza; trocar de guarda-redes recomeça do
+automatismo. O intervalo também limpa a decisão.
 
-**O escalão é onde tudo vive** — plantel, jogos, competições e estatísticas.
-Cada jogador pertence a um escalão, e o número de camisola é único dentro dele:
-o 10 dos Sub-15 e o 10 dos séniores são pessoas diferentes.
+Se o plantel não tiver posições registadas, a app não inventa nada — fica calada
+e o selo continua disponível.
 
-**As competições são do escalão.** Há uma aba com o resumo de todas e, ao clicar
-numa, o detalhe: jogos, resultados e as estatísticas dos jogadores só nessa
-prova. Ao criar um jogo escolhe-se a competição.
+**No resumo do jogo** aparece o cartão "Tempo em 5v4" com o total; clicar abre a
+lista dos períodos, com a parte, o minuto de início e de fim e a duração. Também
+vai no CSV.
 
-**A época é do clube** (todos os escalões partilham a mesma). **O tipo de tempo é
-do escalão**, porque é aí que difere — e continua a poder ser mudado jogo a jogo,
-já preenchido com o do escalão.
+## Expulsões do adversário
 
-## Estatísticas
+Um contador com mais e menos, por baixo do campo. Sem cronómetro: tira-se quando
+eles voltarem a ser cinco.
 
-Saíram o maior e o menor período. Entraram as **participações em golos**: golos
-marcados e sofridos pela equipa com aquele jogador dentro das quatro linhas. Não
-é mérito individual — é a leitura de quanto a equipa produz (e sofre) com ele em
-campo. Os períodos de entrada e saída continuam todos registados, no botão de
-sempre.
+Serve para uma regra que a app estava a aplicar mal. Em futsal, um golo só
+devolve um jogador à equipa que está **com menos gente do que a outra**. Se cada
+equipa tiver um expulso — 4 contra 4 —, o golo não repõe ninguém; se eles
+voltarem aos cinco e marcarem, aí sim o nosso quinto jogador pode entrar. Sem
+saber quantos são eles, a app repunha sempre.
+
+## Resultado ao intervalo
+
+Passou a ser **contado a partir dos golos da 1.ª parte**, em vez de fotografado
+no apito. Corrigir um golo a frio — acrescentar um que faltava, acertar o minuto
+de outro — mexe agora também no resultado ao intervalo, em vez de deixar o jogo a
+contar duas histórias diferentes.
 
 ## Pormenores
 
-- A linha do jogo é clicável por inteiro; o botão "Abrir" desapareceu.
-- "Guardar jogo" ganhou cor suave, para se distinguir de "Guardar e abrir".
-- O local do jogo é só casa ou fora — o campo de texto do pavilhão saiu.
-- Cada cartão de clube e de escalão tem "Editar" ao canto, com eliminação e
-  confirmação lá dentro.
-- O intervalo volta a deslizar no computador (faltava deixar as colunas
-  encolherem abaixo do conteúdo).
+- A aba **Plantel** mostra quantos jogadores são ao todo, quantos estão ativos e
+  quantos inativos.
+- **Sem competições no escalão não se cria jogo.** Em vez de deixar chegar à
+  quarta etapa e falhar, o assistente avisa logo e leva a criar a primeira.
+- Corrigidos dois erros que rebentavam páginas: a competição no ecrã de
+  confirmação do jogo, e os apelidos por preencher nos formulários de clube,
+  escalão e competição.
+
+## Ronda anterior: escalões e competições
+
+O clube deixou de ter estatísticas e passou a ser um guarda-chuva: dentro dele
+vivem os escalões, e é no escalão que estão o plantel, os jogos, as competições e
+as estatísticas. Cada jogador pertence a um escalão, e o número de camisola é
+único dentro dele. A época é do clube; o tipo de tempo é do escalão e pode ser
+mudado jogo a jogo. Nas estatísticas, saíram o maior e o menor período e entraram
+as participações em golos marcados e sofridos. A migração dessa ronda é a
+`0003_escaloes_e_competicoes.sql`.
+
+## Verificação
+
+`npm run check` corre três coisas: todos os `import` apontam para algo que
+existe, todas as propriedades passadas a um componente são recebidas, e os 48
+testes do domínio e da sincronização. Os verificadores estão em `tools/` e são
+uma rede de segurança enquanto o compilador não corre aqui — não substituem o
+`npm run build`.

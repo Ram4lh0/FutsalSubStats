@@ -8,8 +8,12 @@
 
 import { fmt, periodProgress, readClock } from '@/domain/clock.js';
 import { playerMatchStats, playerCards } from '@/domain/stats.js';
-import { countOnCourt } from '@/domain/reducer.js';
-import { foulsInPeriod } from '@/domain/reducer.js';
+import {
+  countOnCourt,
+  foulsInPeriod,
+  powerPlayAtivo,
+  powerPlayAutomatico,
+} from '@/domain/reducer.js';
 import {
   POSITIONS,
   POSITION_SHORT,
@@ -168,6 +172,7 @@ function CourtCard({ pos, p, state, sel, clockMs, on }) {
       <div className="pcard__top">
         <span className="pcard__num">{p.number}</span>
         <span className="pcard__pos">{POSITION_SHORT[pos]}</span>
+        {pos === 'GOALKEEPER' ? <PowerPlayChip state={state} on={on} /> : null}
         <CardChips p={p} state={state} />
         <span
           className="pcard__goal"
@@ -303,6 +308,36 @@ function BenchCard({ p, state, sel, clockMs, on }) {
   );
 }
 
+/**
+ * O selo 5v4 no cartão de quem está à baliza.
+ *
+ * Quando quem lá está é um jogador de campo, a app percebe sozinha e o selo
+ * acende-se fixo: não há nada a decidir. O toque serve para o outro caso — um
+ * guarda-redes a sério que sobe para jogar como quinto, que ninguém adivinha.
+ */
+function PowerPlayChip({ state, on }) {
+  const auto = powerPlayAutomatico(state);
+  const ativo = powerPlayAtivo(state);
+  return (
+    <span
+      className={`ppchip ${ativo ? 'is-on' : ''} ${auto ? 'is-auto' : ''}`}
+      title={
+        ativo
+          ? auto
+            ? 'Guarda-redes avançado: está um jogador de campo à baliza. Toque para desligar.'
+            : 'A contar 5v4. Toque para terminar.'
+          : 'Toque para marcar que o guarda-redes está a jogar como quinto.'
+      }
+      onClick={(e) => {
+        e.stopPropagation();
+        on.togglePowerPlay(!ativo);
+      }}
+    >
+      5v4
+    </span>
+  );
+}
+
 /** Marca visual dos cartões já mostrados a este jogador. */
 function CardChips({ p, state }) {
   const c = playerCards(p.playerId, state.cards);
@@ -321,10 +356,45 @@ function CardChips({ p, state }) {
 
 /* --------------------------------------------------------------- sanções */
 
+/**
+ * Expulsões do adversário. Não têm cronómetro nem nomes — o que interessa é o
+ * número, porque é ele que decide se um golo sofrido devolve ou não um jogador
+ * nosso. Com 4 contra 4 ninguém repõe; a app só sabe isso se alguém lhe disser
+ * quantos são eles.
+ */
+function OpponentExpulsions({ state, on }) {
+  const n = state.opponentExpulsions || 0;
+  return (
+    <div className={`penalty penalty--rival ${n ? 'is-on' : ''}`}>
+      <span className="penalty__who">Expulsos do adversário</span>
+      <div className="rivalcount">
+        <button
+          className="foulbtn"
+          aria-label="Menos uma expulsão do adversário"
+          disabled={!n}
+          onClick={() => on.opponentExpulsion(-1)}
+        >
+          −
+        </button>
+        <span className="rivalcount__n">{n}</span>
+        <button
+          className="foulbtn foulbtn--add"
+          aria-label="Mais uma expulsão do adversário"
+          onClick={() => on.opponentExpulsion(1)}
+        >
+          +
+        </button>
+      </div>
+      <span className="penalty__label">
+        {n ? `Jogam com ${MAX_ON_COURT - n}` : 'Jogam com cinco'}
+      </span>
+    </div>
+  );
+}
+
 /** Cartões por baixo do campo, um por jogador expulso com sanção por cumprir. */
 export function Penalties({ state, clockMs, penaltyMs, on }) {
   const abertas = openPenalties(state, clockMs, penaltyMs);
-  if (!abertas.length) return null;
 
   return (
     <aside className="penalties">
@@ -358,6 +428,7 @@ export function Penalties({ state, clockMs, penaltyMs, on }) {
           </div>
         )
       )}
+      <OpponentExpulsions state={state} on={on} />
     </aside>
   );
 }

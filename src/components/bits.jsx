@@ -23,13 +23,22 @@ export function StatusBadge({ status }) {
 }
 
 /** `kind` pinta o cartão: 'win' | 'draw' | 'loss'. */
-export function StatCard({ label, value, hint, kind }) {
-  return (
-    <div className={`stat ${kind ? `stat--${kind}` : ''}`}>
+/** Com `onClick` o cartão passa a botão — para os que abrem o detalhe por trás. */
+export function StatCard({ label, value, hint, kind, onClick }) {
+  const conteudo = (
+    <>
       <span className="stat__label">{label}</span>
       <span className="stat__value">{value}</span>
       {hint ? <span className="stat__hint">{hint}</span> : null}
-    </div>
+    </>
+  );
+  const classe = `stat ${kind ? `stat--${kind}` : ''}`;
+  return onClick ? (
+    <button type="button" className={`${classe} stat--clickable`} onClick={onClick}>
+      {conteudo}
+    </button>
+  ) : (
+    <div className={classe}>{conteudo}</div>
   );
 }
 

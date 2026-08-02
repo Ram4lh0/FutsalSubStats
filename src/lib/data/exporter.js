@@ -2,7 +2,7 @@
 // Exportação e backup (secção 20): JSON completo, CSV por jogo e CSV do plantel.
 
 import { fmt } from '../../domain/clock.js';
-import { matchStatsTable } from '../../domain/stats.js';
+import { matchStatsTable, powerPlayTotals } from '../../domain/stats.js';
 import { foulsTotal, foulsInPeriod } from '../../domain/reducer.js';
 import {
   POSITION_LABEL,
@@ -24,6 +24,7 @@ export function toCsv(rows) {
 
 export function matchSummaryCsv({ club, match, state, team, competition }) {
   const table = matchStatsTable(state, Date.now());
+  const pp = powerPlayTotals(state, state.elapsedMatchMs);
   const rows = [
     ['Clube', club?.name || ''],
     ['Adversário', match.opponentName],
@@ -44,6 +45,14 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
     ['Faltas 1.ª parte', foulsInPeriod(state, 'US', 1)],
     ['Faltas 2.ª parte', foulsInPeriod(state, 'US', 2)],
     ['Faltas (adversário)', foulsTotal(state, 'THEM')],
+    ['Tempo em 5v4', fmt(pp.totalMs)],
+    ['Períodos em 5v4', pp.count],
+    ...pp.periodos.map((x) => [
+      `5v4 #${x.numero}`,
+      `${x.startPeriod}.ª parte · ${fmt(x.startMatchMs)}–${
+        x.endMatchMs == null ? 'fim' : fmt(x.endMatchMs)
+      } · ${fmt(x.durationMs)}`,
+    ]),
     [],
     ['Nº', 'Jogador', 'Golos', 'Assistências', 'Golos sofridos', 'Faltas', 'Faltas sofridas', 'Amarelos', 'Vermelhos', 'Em campo', 'Entradas', 'Part. golos', 'Part. sofridos', 'Estado'],
   ];

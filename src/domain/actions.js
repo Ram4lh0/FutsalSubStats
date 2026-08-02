@@ -103,6 +103,19 @@ export const startPenalty = (s, { playerId, durationMs = PENALTY_DURATION_MS }, 
 export const endPenalty = (s, { playerId }, now) =>
   makeEvent(s, EVENT.PENALTY_ENDED, { playerId, metadata: { playerId } }, now);
 
+/** O botão 5v4 do cartão do guarda-redes: ligar e desligar à mão. */
+export const setPowerPlay = (s, ligado, now) =>
+  makeEvent(s, ligado ? EVENT.POWER_PLAY_STARTED : EVENT.POWER_PLAY_ENDED, {}, now);
+
+/** Mais ou menos uma expulsão do adversário. */
+export const opponentExpulsion = (s, delta, now) =>
+  makeEvent(
+    s,
+    delta > 0 ? EVENT.OPPONENT_EXPULSION_ADDED : EVENT.OPPONENT_EXPULSION_REMOVED,
+    {},
+    now
+  );
+
 export const goal = (s, kind, now, extra = {}) => makeEvent(s, kind, extra, now);
 
 export const foul = (s, kind, now) => makeEvent(s, kind, {}, now);

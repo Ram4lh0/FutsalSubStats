@@ -101,6 +101,29 @@ export function matchStatsTable(state, now = Date.now()) {
     .sort((a, b) => b.courtMs - a.courtMs || a.number - b.number);
 }
 
+/**
+ * Períodos de 5v4 com a duração fechada. O período aberto conta até agora — no
+ * jogo a decorrer o número tem de subir enquanto a situação dura.
+ */
+export function powerPlayPeriods(state, clockMs) {
+  return (state.powerPlays || []).map((x, i) => ({
+    ...x,
+    numero: i + 1,
+    open: x.endMatchMs == null,
+    durationMs: Math.max(0, (x.endMatchMs ?? clockMs) - x.startMatchMs),
+  }));
+}
+
+/** Quanto tempo a equipa jogou com guarda-redes avançado, e em quantas vezes. */
+export function powerPlayTotals(state, clockMs) {
+  const periodos = powerPlayPeriods(state, clockMs);
+  return {
+    periodos,
+    count: periodos.length,
+    totalMs: periodos.reduce((a, x) => a + x.durationMs, 0),
+  };
+}
+
 export function matchResult(state) {
   if (state.status !== MATCH_STATUS.FINISHED) return null;
   if (state.teamScore > state.opponentScore) return 'W';
