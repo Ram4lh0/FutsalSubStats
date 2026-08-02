@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import * as db from '../src/lib/data/local.js';
-import { clubs, players, matches, squad, events } from '../src/lib/data/repository.js';
+import { clubs, teams, competitions, players, matches, squad, events } from '../src/lib/data/repository.js';
 import { flush, push, pull, setRemote } from '../src/lib/data/sync.js';
 import { restore, dump } from '../src/lib/data/repository.js';
 import * as A from '../src/domain/actions.js';
@@ -16,7 +16,10 @@ const UTILIZADOR = '11111111-1111-4111-8111-111111111111';
 
 /** Servidor de mentira: guarda o que recebe e conta as chamadas. */
 function servidorFalso({ falhaEm } = {}) {
-  const tabelas = { profiles: [], clubs: [], players: [], matches: [], match_squad: [], match_events: [] };
+  const tabelas = {
+    profiles: [], clubs: [], teams: [], competitions: [],
+    players: [], matches: [], match_squad: [], match_events: [],
+  };
   const chamadas = { upserts: 0, rpc: 0 };
 
   const query = (nome) => ({
@@ -68,9 +71,15 @@ async function limpar() {
 }
 
 async function cenario() {
-  const clube = await clubs.create({ name: 'Patameiras', shortName: 'PAT', timing: 'UNTIMED' });
-  const jogador = await players.create(clube.id, { name: 'Zef', shirtNumber: 7 });
-  const jogo = await matches.create(clube.id, { opponentName: 'Adversário', opponentShortName: 'ADV' });
+  const clube = await clubs.create({ name: 'Patameiras', shortName: 'PAT' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores', timing: 'UNTIMED' });
+  const prova = await competitions.create(escalao.id, { name: 'Campeonato' });
+  const jogador = await players.create(escalao.id, { name: 'Zef', shirtNumber: 7 });
+  const jogo = await matches.create(escalao.id, {
+    opponentName: 'Adversário',
+    opponentShortName: 'ADV',
+    competitionId: prova.id,
+  });
   await squad.replace(jogo.id, [
     {
       playerId: jogador.id,
@@ -80,7 +89,7 @@ async function cenario() {
     },
   ]);
   await events.append(A.matchCreated({ matchId: jogo.id }));
-  return { clube, jogador, jogo };
+  return { clube, escalao, prova, jogador, jogo };
 }
 
 test('a fila envia tudo por ordem e limpa a marca de pendente', async () => {
@@ -90,7 +99,7 @@ test('a fila envia tudo por ordem e limpa a marca de pendente', async () => {
   const { clube, jogo } = await cenario();
 
   const { pushed } = await push(UTILIZADOR, 'treinador@exemplo.pt');
-  assert.ok(pushed >= 5, 'clube, jogador, jogo, convocatória e evento');
+  assert.ok(pushed >= 7, 'clube, escalão, competição, jogador, jogo, convocatória e evento');
 
   // O perfil tem de existir antes do clube: é para lá que aponta o dono.
   assert.equal(servidor.tabelas.profiles.length, 1, 'o perfil é garantido antes do clube');
@@ -99,7 +108,13 @@ test('a fila envia tudo por ordem e limpa a marca de pendente', async () => {
   assert.equal(servidor.tabelas.clubs.length, 1);
   assert.equal(servidor.tabelas.clubs[0].owner_id, UTILIZADOR, 'o clube fica com dono');
   assert.equal(servidor.tabelas.clubs[0].short_name, 'PAT', 'o apelido viaja');
+  assert.equal(servidor.tabelas.teams.length, 1, 'o escalão subiu');
+  assert.equal(servidor.tabelas.teams[0].club_id, clube.id);
+  assert.equal(servidor.tabelas.competitions.length, 1, 'a competição subiu');
   assert.equal(servidor.tabelas.players[0].club_id, clube.id);
+  assert.ok(servidor.tabelas.players[0].team_id, 'o jogador pertence a um escalão');
+  assert.ok(servidor.tabelas.matches[0].team_id, 'o jogo pertence a um escalão');
+  assert.ok(servidor.tabelas.matches[0].competition_id, 'o jogo pertence a uma competição');
   assert.equal(servidor.tabelas.matches[0].opponent_short_name, 'ADV');
   assert.equal(servidor.tabelas.match_squad[0].match_id, jogo.id);
   assert.equal(servidor.tabelas.match_events.length, 1);
@@ -180,6 +195,7 @@ test('num dispositivo novo, descarregar traz tudo', async () => {
   assert.equal(lista.length, 1);
   assert.equal(lista[0].id, clube.id);
   assert.equal(lista[0].dirty, false, 'o que vem do servidor não volta a ser enviado');
+  assert.equal((await teams.listByClub(clube.id)).length, 1, 'o escalão desceu');
   assert.equal((await players.listByClub(clube.id)).length, 1);
   assert.equal((await matches.listByClub(clube.id)).length, 1);
   assert.equal((await events.listByMatch(jogo.id)).length, 1);
@@ -281,4 +297,20 @@ test('pedir sincronizacao enquanto outra corre faz uma segunda passagem', async 
 
   const ids = servidor.tabelas.clubs.map((c) => c.id).sort();
   assert.deepEqual(ids, [primeiro.id, segundo.id].sort());
+});
+
+test('o escalão sobe antes do jogador e do jogo que dependem dele', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao } = await cenario();
+
+  // O escalão dá-se por enviado sem nunca lá ter chegado: o jogo tem de o levar.
+  const escaloes = (await db.all(db.STORES.teams)).map((t) => ({ ...t, dirty: false }));
+  await db.putMany(db.STORES.teams, escaloes);
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  assert.equal(servidor.tabelas.teams.length, 1, 'o escalão foi junto com o jogo');
+  assert.equal(servidor.tabelas.teams[0].id, escalao.id);
 });

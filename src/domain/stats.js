@@ -32,6 +32,16 @@ export function playerCards(playerId, cards = []) {
   };
 }
 
+/**
+ * Estava este jogador em campo neste instante do jogo?
+ *
+ * Fim exclusivo: quem saiu exactamente no minuto do golo já não estava lá —
+ * senão uma substituição feita no golo dava participação a seis jogadores.
+ */
+function emCampoAos(stints, ms) {
+  return stints.some((s) => s.startMatchMs <= ms && (s.endMatchMs == null || s.endMatchMs > ms));
+}
+
 export function playerMatchStats(player, clockMs, { goals = [], cards = [], fouls = [] } = {}) {
   const stints = stintsWithDuration(player, clockMs);
   const courtMs = stints.reduce((a, s) => a + s.durationMs, 0);
@@ -66,6 +76,13 @@ export function playerMatchStats(player, clockMs, { goals = [], cards = [], foul
     expulsions: player.status === PLAYER_MATCH_STATUS.EXPELLED ? 1 : 0,
     goals: goals.filter((g) => g.scorerId === player.playerId).length,
     assists: goals.filter((g) => g.assistId === player.playerId).length,
+    // Participações em golos: quem estava em campo quando o golo aconteceu.
+    // Não é mérito individual — é a leitura de que a equipa marca (ou sofre)
+    // com este jogador dentro das quatro linhas.
+    goalShare: goals.filter((g) => g.team === 'US' && emCampoAos(stints, g.matchElapsedMs)).length,
+    concededShare: goals.filter(
+      (g) => g.team === 'THEM' && emCampoAos(stints, g.matchElapsedMs)
+    ).length,
     // Golos sofridos enquanto este jogador estava à baliza.
     conceded: goals.filter((g) => g.team === 'THEM' && g.goalkeeperId === player.playerId).length,
     // O jogador anotado numa falta é sempre nosso; o papel é que muda:
@@ -105,10 +122,10 @@ function emptyPlayerAggregate(player, { fromRoster = false } = {}) {
     benchMs: 0,
     entries: 0,
     matchesPlayed: 0,
-    longestSumMs: 0,
-    shortestSumMs: 0,
     goals: 0,
     assists: 0,
+    goalShare: 0,
+    concededShare: 0,
     conceded: 0,
     fouls: 0,
     foulsSuffered: 0,
@@ -169,29 +186,22 @@ export function clubAggregate(entries, roster = []) {
       acc.entries += s.entries;
       acc.goals += s.goals;
       acc.assists += s.assists;
+      acc.goalShare += s.goalShare;
+      acc.concededShare += s.concededShare;
       acc.conceded += s.conceded;
       acc.fouls += s.fouls;
       acc.foulsSuffered += s.foulsSuffered;
       acc.yellows += s.yellows;
       acc.reds += s.reds;
       acc.expulsions += s.expulsions;
-      // Média do maior e do menor período: só conta jogos em que entrou, senão
-      // os jogos passados no banco puxavam as duas médias para zero.
-      if (s.entries > 0) {
-        acc.matchesPlayed += 1;
-        acc.longestSumMs += s.longestStintMs;
-        acc.shortestSumMs += s.shortestStintMs;
-      }
+      // Jogos em que chegou a entrar — a base das médias por jogo jogado.
+      if (s.entries > 0) acc.matchesPlayed += 1;
     }
   }
 
   for (const acc of Object.values(agg.perPlayer)) {
     acc.avgCourtPerMatchMs = acc.matches ? Math.round(acc.courtMs / acc.matches) : 0;
     acc.avgEntriesPerMatch = acc.matches ? acc.entries / acc.matches : 0;
-    acc.avgLongestStintMs = acc.matchesPlayed ? Math.round(acc.longestSumMs / acc.matchesPlayed) : 0;
-    acc.avgShortestStintMs = acc.matchesPlayed
-      ? Math.round(acc.shortestSumMs / acc.matchesPlayed)
-      : 0;
   }
 
   return agg;

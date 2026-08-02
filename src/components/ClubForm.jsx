@@ -9,7 +9,7 @@ import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { clubs } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
-import { MATCH_TIMING, MATCH_TIMING_LABEL, timingOf } from '@/domain/constants.js';
+
 
 const VAZIO = {
   name: '',
@@ -17,12 +17,11 @@ const VAZIO = {
   currentSeason: '',
   primaryColor: '#22c55e',
   secondaryColor: '#0f172a',
-  timing: MATCH_TIMING.UNTIMED,
 };
 
 export default function ClubForm({ clubId }) {
   const router = useRouter();
-  const { toast } = useUI();
+  const { toast, confirmar } = useUI();
   const { userId, user } = useAuth();
   const [form, setForm] = useState(VAZIO);
   const [pronto, setPronto] = useState(!clubId);
@@ -31,7 +30,7 @@ export default function ClubForm({ clubId }) {
   useEffect(() => {
     if (!clubId) return;
     clubs.get(clubId).then((c) => {
-      if (c) setForm({ ...VAZIO, ...c, timing: timingOf(c) });
+      if (c) setForm({ ...VAZIO, ...c });
       setPronto(true);
     });
   }, [clubId]);
@@ -52,7 +51,6 @@ export default function ClubForm({ clubId }) {
       currentSeason: form.currentSeason.trim() || null,
       primaryColor: form.primaryColor,
       secondaryColor: form.secondaryColor,
-      timing: form.timing,
     };
     try {
       const club = clubId ? await clubs.update(clubId, payload) : await clubs.create(payload);
@@ -64,6 +62,17 @@ export default function ClubForm({ clubId }) {
     } finally {
       setAGuardar(false);
     }
+  }
+
+  async function eliminar() {
+    const ok = await confirmar(
+      `Apagar "${form.name}" elimina os escalões, os planteis, os jogos e todos os eventos. Esta ação não pode ser anulada.`,
+      { okLabel: 'Apagar clube' }
+    );
+    if (!ok) return;
+    await clubs.archive(clubId);
+    toast('Clube apagado.', 'ok');
+    router.push('/dashboard');
   }
 
   if (!pronto) return <p className="muted">A carregar…</p>;
@@ -92,21 +101,7 @@ export default function ClubForm({ clubId }) {
         <label className="field">
           <span className="field__label">Época atual (opcional)</span>
           <input className="input" placeholder="2025/26" {...campo('currentSeason')} />
-        </label>
-
-        <label className="field">
-          <span className="field__label">Tipo de jogo</span>
-          <select className="input" {...campo('timing')}>
-            {Object.values(MATCH_TIMING).map((t) => (
-              <option key={t} value={t}>
-                {MATCH_TIMING_LABEL[t]}
-              </option>
-            ))}
-          </select>
-          <span className="field__hint">
-            No cronometrado o tempo pára a cada interrupção e a sanção por expulsão é de 2 minutos.
-            No corrido são 30 minutos por parte e 3 minutos de sanção.
-          </span>
+          <span className="field__hint">Vale para todos os escalões deste clube.</span>
         </label>
 
         <div className="form__row">
@@ -121,6 +116,12 @@ export default function ClubForm({ clubId }) {
         </div>
 
         <div className="form__actions">
+          {clubId ? (
+            <button className="btn btn--danger btn--ghost" type="button" onClick={eliminar}>
+              Eliminar clube
+            </button>
+          ) : null}
+          <span className="toolbar__spacer" />
           <button className="btn btn--ghost" type="button" onClick={() => router.back()}>
             Cancelar
           </button>

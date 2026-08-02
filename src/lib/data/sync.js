@@ -7,7 +7,15 @@
 // tenta outra vez mais tarde e o treinador nem dá por isso.
 
 import * as db from './local.js';
-import { clubMapper, playerMapper, matchMapper, squadMapper, eventMapper } from './mappers.js';
+import {
+  clubMapper,
+  teamMapper,
+  competitionMapper,
+  playerMapper,
+  matchMapper,
+  squadMapper,
+  eventMapper,
+} from './mappers.js';
 
 export const SYNC = {
   SYNCED: 'SINCRONIZADO',
@@ -125,9 +133,25 @@ export async function push(userId, email) {
   const jogadoresNecessarios = new Set(convocadosSujos.map((s) => s.playerId));
   const jogadores = await comPais(db.STORES.players, jogadoresSujos, jogadoresNecessarios);
 
+  // A competição é pai do jogo, e o escalão é pai de tudo o resto.
+  const competicoesNecessarias = new Set(jogos.map((m) => m.competitionId).filter(Boolean));
+  const competicoes = await comPais(
+    db.STORES.competitions,
+    await dirtyRows(db.STORES.competitions),
+    competicoesNecessarias
+  );
+
+  const escaloesNecessarios = new Set([
+    ...jogadores.map((p) => p.teamId),
+    ...jogos.map((m) => m.teamId),
+    ...competicoes.map((c) => c.teamId),
+  ]);
+  const escaloes = await comPais(db.STORES.teams, await dirtyRows(db.STORES.teams), escaloesNecessarios);
+
   const clubesNecessarios = new Set([
     ...jogadores.map((p) => p.clubId),
     ...jogos.map((m) => m.clubId),
+    ...escaloes.map((t) => t.clubId),
   ]);
   const clubes = await comPais(db.STORES.clubs, await dirtyRows(db.STORES.clubs), clubesNecessarios);
 
@@ -141,6 +165,8 @@ export async function push(userId, email) {
   }
 
   for (const [store, mapper, linhas] of [
+    [db.STORES.teams, teamMapper, escaloes],
+    [db.STORES.competitions, competitionMapper, competicoes],
     [db.STORES.players, playerMapper, jogadores],
     [db.STORES.matches, matchMapper, jogos],
     [db.STORES.matchSquad, squadMapper, convocadosSujos],
@@ -190,6 +216,20 @@ export async function pull(userId) {
 
   const ids = (clubes || []).map((c) => c.id);
   if (!ids.length) return { pulled: total };
+
+  const { data: escaloes, error: e1b } = await sb.from('teams').select('*').in('club_id', ids);
+  if (e1b) throw e1b;
+  total += await merge(db.STORES.teams, (escaloes || []).map(teamMapper.fromRow));
+
+  const escalaoIds = (escaloes || []).map((t) => t.id);
+  if (escalaoIds.length) {
+    const { data: comps, error: e1c } = await sb
+      .from('competitions')
+      .select('*')
+      .in('team_id', escalaoIds);
+    if (e1c) throw e1c;
+    total += await merge(db.STORES.competitions, (comps || []).map(competitionMapper.fromRow));
+  }
 
   const { data: jogadores, error: e2 } = await sb.from('players').select('*').in('club_id', ids);
   if (e2) throw e2;

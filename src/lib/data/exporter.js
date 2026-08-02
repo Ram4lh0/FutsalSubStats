@@ -22,13 +22,14 @@ export function toCsv(rows) {
   return '\uFEFF' + rows.map((r) => r.map(csvEscape).join(';')).join('\r\n');
 }
 
-export function matchSummaryCsv({ club, match, state }) {
+export function matchSummaryCsv({ club, match, state, team, competition }) {
   const table = matchStatsTable(state, Date.now());
   const rows = [
     ['Clube', club?.name || ''],
     ['Adversário', match.opponentName],
     ['Data', new Date(match.scheduledAt).toLocaleString('pt-PT')],
-    ['Competição', match.competition || ''],
+    ['Escalão', team?.name || ''],
+    ['Competição', competition?.name || ''],
     ['Local', HOME_AWAY_LABEL[match.homeOrAway] || ''],
     ['Estado', MATCH_STATUS_LABEL[state.status]],
     ['Resultado', `${state.teamScore}-${state.opponentScore}`],
@@ -44,7 +45,7 @@ export function matchSummaryCsv({ club, match, state }) {
     ['Faltas 2.ª parte', foulsInPeriod(state, 'US', 2)],
     ['Faltas (adversário)', foulsTotal(state, 'THEM')],
     [],
-    ['Nº', 'Jogador', 'Golos', 'Assistências', 'Golos sofridos', 'Faltas', 'Faltas sofridas', 'Amarelos', 'Vermelhos', 'Em campo', 'Entradas', 'Maior período', 'Menor período', 'Estado'],
+    ['Nº', 'Jogador', 'Golos', 'Assistências', 'Golos sofridos', 'Faltas', 'Faltas sofridas', 'Amarelos', 'Vermelhos', 'Em campo', 'Entradas', 'Part. golos', 'Part. sofridos', 'Estado'],
   ];
   for (const p of table) {
     rows.push([
@@ -59,8 +60,8 @@ export function matchSummaryCsv({ club, match, state }) {
       p.reds,
       fmt(p.courtMs),
       p.entries,
-      fmt(p.longestStintMs),
-      fmt(p.shortestStintMs),
+      p.goalShare,
+      p.concededShare,
       p.expelled ? 'Expulso' : '',
     ]);
   }

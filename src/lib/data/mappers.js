@@ -19,7 +19,6 @@ export const clubMapper = {
     primary_color: c.primaryColor || null,
     secondary_color: c.secondaryColor || null,
     current_season: c.currentSeason || null,
-    timing: c.timing === 'TIMED' ? 'TIMED' : 'UNTIMED',
     archived_at: iso(c.archivedAt),
   }),
   fromRow: (r) => ({
@@ -31,7 +30,54 @@ export const clubMapper = {
     primaryColor: r.primary_color,
     secondaryColor: r.secondary_color,
     currentSeason: r.current_season,
+    archivedAt: ms(r.archived_at),
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};
+
+/* --------------------------------------------------------------- escalões */
+
+export const teamMapper = {
+  table: 'teams',
+  toRow: (t) => ({
+    id: t.id,
+    club_id: t.clubId,
+    name: t.name,
+    short_name: t.shortName || null,
+    timing: t.timing === 'TIMED' ? 'TIMED' : 'UNTIMED',
+    archived_at: iso(t.archivedAt),
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    clubId: r.club_id,
+    name: r.name,
+    shortName: r.short_name,
     timing: r.timing,
+    archivedAt: ms(r.archived_at),
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};
+
+/* ------------------------------------------------------------ competições */
+
+export const competitionMapper = {
+  table: 'competitions',
+  toRow: (c) => ({
+    id: c.id,
+    team_id: c.teamId,
+    name: c.name,
+    short_name: c.shortName || null,
+    archived_at: iso(c.archivedAt),
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    teamId: r.team_id,
+    name: r.name,
+    shortName: r.short_name,
     archivedAt: ms(r.archived_at),
     createdAt: ms(r.created_at),
     updatedAt: ms(r.updated_at),
@@ -46,6 +92,7 @@ export const playerMapper = {
   toRow: (p) => ({
     id: p.id,
     club_id: p.clubId,
+    team_id: p.teamId,
     name: p.name,
     shirt_number: p.shirtNumber,
     preferred_position: p.preferredPosition || 'UNIVERSAL',
@@ -56,6 +103,7 @@ export const playerMapper = {
   fromRow: (r) => ({
     id: r.id,
     clubId: r.club_id,
+    teamId: r.team_id,
     name: r.name,
     shirtNumber: r.shirt_number,
     preferredPosition: r.preferred_position,
@@ -75,10 +123,11 @@ export const matchMapper = {
   toRow: (m) => ({
     id: m.id,
     club_id: m.clubId,
+    team_id: m.teamId,
+    competition_id: m.competitionId || null,
     opponent_name: m.opponentName,
     opponent_short_name: m.opponentShortName || null,
     competition: m.competition || null,
-    venue: m.venue || null,
     season: m.season || null,
     home_or_away: m.homeOrAway || 'HOME',
     scheduled_at: iso(m.scheduledAt),
@@ -90,10 +139,11 @@ export const matchMapper = {
   fromRow: (r) => ({
     id: r.id,
     clubId: r.club_id,
+    teamId: r.team_id,
+    competitionId: r.competition_id,
     opponentName: r.opponent_name,
     opponentShortName: r.opponent_short_name,
     competition: r.competition,
-    venue: r.venue,
     season: r.season,
     homeOrAway: r.home_or_away,
     scheduledAt: ms(r.scheduled_at),

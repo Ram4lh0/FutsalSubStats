@@ -13,9 +13,10 @@ import { dayLabel } from '@/lib/format.js';
 import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
 
-export default function MatchList({ entries, backPath }) {
+export default function MatchList({ entries, competitions = [], backPath }) {
   const router = useRouter();
   const volta = backPath ? `?back=${encodeURIComponent(backPath)}` : '';
+  const nomeDaProva = (id) => competitions.find((c) => c.id === id)?.name || '—';
 
   return (
     <DataTable>
@@ -27,7 +28,6 @@ export default function MatchList({ entries, backPath }) {
           <th>Competição</th>
           <th className="num">Resultado</th>
           <th>Estado</th>
-          <th />
         </tr>
       </thead>
       <tbody>
@@ -40,11 +40,17 @@ export default function MatchList({ entries, backPath }) {
                 ? `/matches/${match.id}/setup`
                 : `/matches/${match.id}/live`;
           return (
-            <tr key={match.id}>
+            // A linha inteira abre o jogo: um alvo grande é mais fácil de
+            // acertar com o polegar do que um botão ao fundo da linha.
+            <tr
+              key={match.id}
+              className="is-clickable"
+              onClick={() => router.push(destino)}
+            >
               <td className="mono">{dayLabel(match.scheduledAt)}</td>
               <td>{match.opponentName}</td>
               <td>{match.homeOrAway === 'HOME' ? 'Casa' : 'Fora'}</td>
-              <td className="muted">{match.competition || '—'}</td>
+              <td className="muted">{nomeDaProva(match.competitionId)}</td>
               <td className="num mono">
                 <span className={r === 'W' ? 'res res--w' : r === 'L' ? 'res res--l' : r ? 'res res--d' : ''}>
                   {state.teamScore}–{state.opponentScore}
@@ -52,11 +58,6 @@ export default function MatchList({ entries, backPath }) {
               </td>
               <td>
                 <StatusBadge status={state.status} />
-              </td>
-              <td className="right">
-                <button className="btn btn--tiny btn--primary" onClick={() => router.push(destino)}>
-                  Abrir
-                </button>
               </td>
             </tr>
           );

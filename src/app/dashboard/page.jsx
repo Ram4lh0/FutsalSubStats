@@ -12,6 +12,7 @@ import * as sync from '@/lib/data/sync.js';
 import {
   clubs,
   players,
+  teams,
   loadClubMatchStates,
   findLiveMatch,
   dump,
@@ -44,9 +45,11 @@ function Dashboard() {
     for (const club of lista) {
       const plantel = await players.listByClub(club.id);
       const entries = await loadClubMatchStates(club.id);
+      const escaloes = await teams.listByClub(club.id);
       const terminados = entries.filter((e) => e.state.status === MATCH_STATUS.FINISHED);
       out.push({
         club,
+        escaloes: escaloes.length,
         ativos: plantel.filter((p) => p.isActive).length,
         jogos: entries.length,
         ultimo: terminados[0] || null,
@@ -136,12 +139,20 @@ function Dashboard() {
         </div>
       ) : (
         <div className="grid grid--cards">
-          {cartoes.map(({ club, ativos, jogos, ultimo }) => (
+          {cartoes.map(({ club, escaloes, ativos, jogos, ultimo }) => (
             <article
               key={club.id}
               className="card club-card"
               style={{ borderTopColor: club.primaryColor || '#22c55e' }}
             >
+              <button
+                className="card__edit"
+                title="Editar clube"
+                aria-label={`Editar ${club.name}`}
+                onClick={() => router.push(`/clubs/${club.id}/edit`)}
+              >
+                Editar
+              </button>
               <header className="club-card__head">
                 <div
                   className="club-card__crest"
@@ -156,6 +167,10 @@ function Dashboard() {
               </header>
               <dl className="club-card__stats">
                 <div>
+                  <dt>Escalões</dt>
+                  <dd>{escaloes}</dd>
+                </div>
+                <div>
                   <dt>Jogadores ativos</dt>
                   <dd>{ativos}</dd>
                 </div>
@@ -169,12 +184,6 @@ function Dashboard() {
                 </div>
               </dl>
               <div className="club-card__actions">
-                <button
-                  className="btn btn--ghost"
-                  onClick={() => router.push(`/clubs/${club.id}/roster`)}
-                >
-                  Plantel
-                </button>
                 <button className="btn btn--primary" onClick={() => router.push(`/clubs/${club.id}`)}>
                   Abrir clube
                 </button>

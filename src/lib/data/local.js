@@ -9,11 +9,14 @@
 // sempre, e só depois se tenta enviar. Um pavilhão sem rede não muda nada.
 
 const DB_NAME = 'futsal-live';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const STORES = {
   profile: 'profile',
   clubs: 'clubs',
+  // Escalões: a unidade de trabalho real. Um clube é só o guarda-chuva.
+  teams: 'teams',
+  competitions: 'competitions',
   players: 'players',
   matches: 'matches',
   matchSquad: 'match_squad',
@@ -73,6 +76,14 @@ export function open() {
         db.createObjectStore(STORES.profile, { keyPath: 'id' });
       if (!db.objectStoreNames.contains(STORES.clubs))
         db.createObjectStore(STORES.clubs, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(STORES.teams)) {
+        const s = db.createObjectStore(STORES.teams, { keyPath: 'id' });
+        s.createIndex('by_club', 'clubId');
+      }
+      if (!db.objectStoreNames.contains(STORES.competitions)) {
+        const s = db.createObjectStore(STORES.competitions, { keyPath: 'id' });
+        s.createIndex('by_team', 'teamId');
+      }
       if (!db.objectStoreNames.contains(STORES.players)) {
         const s = db.createObjectStore(STORES.players, { keyPath: 'id' });
         s.createIndex('by_club', 'clubId');
@@ -80,6 +91,12 @@ export function open() {
       if (!db.objectStoreNames.contains(STORES.matches)) {
         const s = db.createObjectStore(STORES.matches, { keyPath: 'id' });
         s.createIndex('by_club', 'clubId');
+      }
+      // Índices por escalão: acrescentados na versão 3, tanto em bases novas
+      // como nas que já existiam.
+      for (const nome of [STORES.players, STORES.matches]) {
+        const os = req.transaction.objectStore(nome);
+        if (!os.indexNames.contains('by_team')) os.createIndex('by_team', 'teamId');
       }
       if (!db.objectStoreNames.contains(STORES.matchSquad)) {
         const s = db.createObjectStore(STORES.matchSquad, { keyPath: 'id' });
@@ -159,7 +176,7 @@ export async function all(store) {
 export async function byIndex(store, index, value) {
   const db = await open();
   if (!db) {
-    const field = { by_club: 'clubId', by_match: 'matchId' }[index];
+    const field = { by_club: 'clubId', by_match: 'matchId', by_team: 'teamId' }[index];
     return [...memory[store].values()].filter((r) => r[field] === value);
   }
   return await wrap(tx(db, store, 'readonly').index(index).getAll(value));

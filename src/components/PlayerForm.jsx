@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import PageHead from './PageHead.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
-import { clubs, players } from '@/lib/data/repository.js';
+import { clubs, teams, players } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { validatePlayer } from '@/domain/validation.js';
 import {
@@ -22,11 +22,12 @@ import {
   FOOT_LABEL,
 } from '@/domain/constants.js';
 
-export default function PlayerForm({ clubId, playerId }) {
+export default function PlayerForm({ clubId, teamId, playerId }) {
   const router = useRouter();
   const { toast } = useUI();
   const { userId, user } = useAuth();
   const [club, setClub] = useState(null);
+  const [team, setTeam] = useState(null);
   const [roster, setRoster] = useState([]);
   const [pronto, setPronto] = useState(false);
   const [aGuardar, setAGuardar] = useState(false);
@@ -41,7 +42,10 @@ export default function PlayerForm({ clubId, playerId }) {
   useEffect(() => {
     (async () => {
       setClub(await clubs.get(clubId));
-      setRoster(await players.listByClub(clubId));
+      setTeam(await teams.get(teamId));
+      // Os números repetidos são verificados dentro do escalão: o 10 dos Sub-15
+      // e o 10 dos séniores são pessoas diferentes.
+      setRoster(await players.listByTeam(teamId));
       if (playerId) {
         const p = await players.get(playerId);
         if (p)
@@ -55,7 +59,7 @@ export default function PlayerForm({ clubId, playerId }) {
       }
       setPronto(true);
     })();
-  }, [clubId, playerId]);
+  }, [clubId, teamId, playerId]);
 
   const campo = (k) => ({
     value: form[k],
@@ -70,10 +74,10 @@ export default function PlayerForm({ clubId, playerId }) {
     setAGuardar(true);
     try {
       if (playerId) await players.update(playerId, form);
-      else await players.create(clubId, form);
+      else await players.create(teamId, form);
       await sync.saveNow(userId, user?.email);
       toast('Jogador guardado e sincronizado.', 'ok');
-      router.push(`/clubs/${clubId}/roster`);
+      router.push(`/clubs/${clubId}/teams/${teamId}/roster`);
     } catch (err) {
       toast(`Jogador guardado neste dispositivo, mas ainda não subiu: ${err.message}`, 'error');
     } finally {
@@ -87,8 +91,8 @@ export default function PlayerForm({ clubId, playerId }) {
     <>
       <PageHead
         title={playerId ? `Editar ${form.name}` : 'Novo jogador'}
-        subtitle={club?.name}
-        backTo={`/clubs/${clubId}/roster`}
+        subtitle={[club?.name, team?.name].filter(Boolean).join(' · ')}
+        backTo={`/clubs/${clubId}/teams/${teamId}/roster`}
       />
       <form className="card form" onSubmit={guardar}>
         <div className="form__row">
@@ -145,7 +149,7 @@ export default function PlayerForm({ clubId, playerId }) {
           <button
             className="btn btn--ghost"
             type="button"
-            onClick={() => router.push(`/clubs/${clubId}/roster`)}
+            onClick={() => router.push(`/clubs/${clubId}/teams/${teamId}/roster`)}
           >
             Cancelar
           </button>
