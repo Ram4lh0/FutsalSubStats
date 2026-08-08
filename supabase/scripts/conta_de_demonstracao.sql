@@ -69,9 +69,13 @@ begin
   values (seniores, 'Taça', 'TAÇA') returning id into taca;
 
   for i in 1..array_length(nomes, 1) loop
+    -- O `::strong_foot` não é decoração: dentro de um `case` o Postgres decide o
+    -- tipo do resultado antes de olhar para a coluna, e decide "texto". Os
+    -- valores são os nomes internos (RIGHT, LEFT, BOTH, UNKNOWN) — quem os
+    -- traduz para português é a app.
     insert into players (club_id, team_id, name, shirt_number, preferred_position, strong_foot)
     values (clube, seniores, nomes[i], i, posicoes[i],
-            case when i % 3 = 0 then 'LEFT' else 'RIGHT' end)
+            (case when i % 3 = 0 then 'LEFT' else 'RIGHT' end)::strong_foot)
     returning id into novo;
     ids := ids || novo;
   end loop;
@@ -94,7 +98,7 @@ begin
     ) values (
       jogo, ids[i], nomes[i], i, posicoes[i],
       case when i <= 5 then posicoes[i] else null end,
-      case when i <= 5 then 'COURT' else 'BENCH' end
+      (case when i <= 5 then 'COURT' else 'BENCH' end)::player_location
     );
   end loop;
 
