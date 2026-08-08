@@ -26,16 +26,14 @@ export default function EventsPage() {
 }
 
 function Historico() {
-  const { matchId } = useRouteParams();
-  const search = useSearchParams();
+  const { matchId, back, de } = useRouteParams();
   const { toast, confirmar } = useUI();
   const [dados, setDados] = useState(null);
 
   // Volta-se para a aba de onde se veio: a meio do jogo, no intervalo ou no
   // resumo. Sem isto, sair do histórico atirava sempre para o resumo.
-  const back = search.get('back');
   const backTo =
-    search.get('from') === 'live'
+    de === 'live'
       ? rotas.jogoAoVivo(matchId)
       : comOrigem(rotas.jogoResumo(matchId), { atras: back });
 

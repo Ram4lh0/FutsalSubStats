@@ -103,6 +103,20 @@ export default function LoginPage() {
             {aEnviar ? 'A ligar…' : modo === 'entrar' ? 'Entrar' : 'Criar conta'}
           </button>
         </div>
+
+        {/* A política tem de estar à mão ANTES de alguém criar conta, não
+            escondida lá dentro depois de já ter dado os dados. */}
+        <p className="muted small">
+          {modo === 'criar' ? 'Ao criar conta aceita a ' : 'Consulte a '}
+          <a
+            className="link"
+            onClick={() => router.push(rotas.privacidade())}
+            style={{ cursor: 'pointer' }}
+          >
+            política de privacidade
+          </a>
+          .
+        </p>
       </form>
     </div>
   );

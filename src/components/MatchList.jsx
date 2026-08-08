@@ -12,6 +12,7 @@ import { StatusBadge } from './bits.jsx';
 import { dayLabel } from '@/lib/format.js';
 import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
+import { rotas, comOrigem } from '@/lib/routes.js';
 
 export default function MatchList({ entries, competitions = [], backPath }) {
   const router = useRouter();
