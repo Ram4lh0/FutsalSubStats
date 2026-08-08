@@ -276,7 +276,6 @@ function BenchCard({ p, state, sel, clockMs, on }) {
       <div className="pcard__top">
         <span className="pcard__num">{p.number}</span>
         <CardChips p={p} state={state} />
-        {expulso ? <span className="badge badge--danger">EXPULSO</span> : null}
         <span
           className="pcard__more"
           onClick={(e) => {
@@ -288,9 +287,12 @@ function BenchCard({ p, state, sel, clockMs, on }) {
         </span>
       </div>
       <div className="pcard__name">{p.name}</div>
+      {/* A marca de expulso vai por baixo do minuto, e não na linha de cima:
+          ali ao lado do número e dos cartões não cabia, e saía do cartão. */}
       {expulso ? (
         <div className="pcard__times">
           <span className="pcard__t">Expulso aos {fmt(p.expelledAtMatchMs)}</span>
+          <span className="badge badge--danger">EXPULSO</span>
         </div>
       ) : (
         <div className="pcard__times">

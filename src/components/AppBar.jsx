@@ -117,7 +117,7 @@ export default function AppBar() {
           </button>
         )}
         {/* A conta tem página própria: é onde se transfere uma cópia dos dados e
-            onde se apaga tudo. O "Sair" fica aqui à mão, que é o que se usa
+            onde se apaga tudo. O logout fica aqui à mão, que é o que se usa
             todos os dias. */}
         {remote && user ? (
           <>
@@ -135,7 +135,7 @@ export default function AppBar() {
                 router.push(rotas.login());
               }}
             >
-              Sair
+              Logout
             </button>
           </>
         ) : null}

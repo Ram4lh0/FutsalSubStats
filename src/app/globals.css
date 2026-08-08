@@ -601,6 +601,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .pcard__more:active { background: rgba(255, 255, 255, 0.08); }
 .pcard--bench .pcard__more { margin-left: auto; }
 .pcard__name { font-weight: 600; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+/* A marca de expulso fica na sua própria linha, por baixo do minuto: ao lado do
+   número não cabia e transbordava do cartão. */
+.pcard--bench .badge--danger { align-self: flex-start; margin-top: 2px; }
 .pcard__times { display: flex; flex-direction: column; gap: 1px; }
 .pcard__t { font-size: 0.74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .pcard__t--hi { color: var(--primary); font-weight: 700; }

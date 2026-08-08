@@ -977,10 +977,13 @@ test('a sanção por cumprir continua na 2.ª parte, e a equipa entra reduzida',
     (s) => A.startPenalty(s, { playerId: 'p2', durationMs: 2 * MIN }, T0 + 9 * MIN),
     T0 + 9 * MIN
   );
+  // Antes do apito, com quatro em campo e a sanção a correr, o lugar do expulso
+  // continua trancado.
+  assert.ok(canReplaceExpelled(buildMatchState(match, ctx.squad, ctx.events), 10 * MIN, 2 * MIN));
+
   // A parte acaba com meio minuto de sanção por cumprir.
   let st = step(ctx, (s) => A.finishFirstHalf(s, T0 + 10.5 * MIN), T0 + 10.5 * MIN);
   assert.equal(st.penalties[0].endedMatchMs, null, 'não é fechada pelo apito');
-  assert.ok(canReplaceExpelled(st, st.elapsedMatchMs, 2 * MIN), 'ainda prende');
 
   const T1 = T0 + 15 * MIN;
   // Com a sanção a correr, a equipa entra com quatro — cinco seria infração.
@@ -1008,4 +1011,78 @@ test('cumpridos os dois minutos na 2.ª parte, a equipa volta aos cinco', () => 
 
   // Aos 11 minutos de jogo cumprem-se os dois minutos contados desde os 9.
   assert.equal(canReplaceExpelled(st, 11 * MIN, 2 * MIN), null);
+});
+
+test('com dois expulsos, cumprir uma sanção liberta um lugar — não os dois', () => {
+  // O erro: olhava-se para "há alguma sanção a correr?" e trancava-se o campo
+  // inteiro. Com dois expulsos e uma das sanções já cumprida, a equipa joga com
+  // quatro — um dos lugares tem de voltar a poder ser preenchido.
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+
+  // Dois expulsos, as duas contagens a andar.
+  step(ctx, (s) => A.redCard(s, { playerId: 'p2' }, T0 + 1 * MIN), T0 + 1 * MIN);
+  step(
+    ctx,
+    (s) => A.startPenalty(s, { playerId: 'p2', durationMs: 2 * MIN }, T0 + 1 * MIN),
+    T0 + 1 * MIN
+  );
+  step(ctx, (s) => A.redCard(s, { playerId: 'p3' }, T0 + 2 * MIN), T0 + 2 * MIN);
+  let st = step(
+    ctx,
+    (s) => A.startPenalty(s, { playerId: 'p3', durationMs: 2 * MIN }, T0 + 2 * MIN),
+    T0 + 2 * MIN
+  );
+
+  assert.equal(countOnCourt(st), 3, 'a jogar com três');
+  assert.ok(canReplaceExpelled(st, 2.5 * MIN, 2 * MIN), 'as duas a correr: nada a repor');
+
+  // Aos 3 minutos cumpre-se a primeira (começou ao minuto 1).
+  assert.equal(
+    canReplaceExpelled(st, 3 * MIN, 2 * MIN),
+    null,
+    'cumprida uma, um dos lugares abre'
+  );
+
+  // Preenchido esse lugar, o outro continua trancado até à sua vez.
+  st = step(
+    ctx,
+    (s) => A.replaceAfterExpulsion(s, { playerInId: 'p6', position: 'FIXO' }, T0 + 3 * MIN),
+    T0 + 3 * MIN
+  );
+  assert.equal(countOnCourt(st), 4);
+  assert.ok(
+    canReplaceExpelled(st, 3 * MIN, 2 * MIN),
+    'o segundo lugar espera pela sua sanção'
+  );
+
+  // Aos 4 minutos cumpre-se a segunda, e a equipa pode voltar aos cinco.
+  assert.equal(canReplaceExpelled(st, 4 * MIN, 2 * MIN), null);
+});
+
+test('um golo sofrido com dois expulsos devolve um jogador, não dois', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  for (const [id, min] of [['p2', 1], ['p3', 2]]) {
+    step(ctx, (s) => A.redCard(s, { playerId: id }, T0 + min * MIN), T0 + min * MIN);
+    step(
+      ctx,
+      (s) => A.startPenalty(s, { playerId: id, durationMs: 2 * MIN }, T0 + min * MIN),
+      T0 + min * MIN
+    );
+  }
+  const st = step(
+    ctx,
+    (s) => A.goal(s, EVENT.OPPONENT_GOAL_ADDED, T0 + 2.5 * MIN),
+    T0 + 2.5 * MIN
+  );
+
+  // A mais antiga terminou; a outra continua.
+  assert.equal(st.penalties[0].endedReason, 'GOAL_CONCEDED');
+  assert.equal(st.penalties[1].endedMatchMs, null);
+  assert.equal(
+    canReplaceExpelled(st, 2.5 * MIN, 2 * MIN),
+    null,
+    'abre um lugar logo a seguir ao golo'
+  );
 });

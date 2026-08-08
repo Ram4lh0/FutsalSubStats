@@ -100,7 +100,7 @@ function Conta() {
               router.push(rotas.login());
             }}
           >
-            Sair
+            Logout
           </button>
         }
       />
