@@ -1,5 +1,40 @@
 # O que mudou nesta ronda
 
+## A app passou a viver dentro do iPad
+
+Até aqui a app iOS abria uma janela de browser e carregava o site na Vercel. Isso
+é o padrão que a Apple recusa na regra 4.2 — *"não é suficientemente diferente de
+abrir o site no browser"*. Agora o código vai lá dentro.
+
+Para isso, os identificadores tiveram de sair do caminho dos endereços:
+
+| antes | agora |
+|---|---|
+| `/clubs/abc/teams/def/roster` | `/team/roster?c=abc&t=def` |
+| `/matches/xyz/live` | `/match/live?m=xyz` |
+
+A razão é simples: uma app sem servidor é um conjunto de ficheiros, e um ficheiro
+só pode ser escrito para um endereço que se conheça na altura de compilar.
+`/matches/abc…/live` não se conhece — nasce quando se cria o jogo.
+
+O que isto obrigou a mexer:
+
+- **`src/lib/routes.js`** — todos os endereços da app passam a sair daqui.
+  Nenhum é escrito à mão. Mudar a forma dos endereços é mexer num ficheiro só.
+- **`src/lib/useRouteParams.js`** — substitui o `useParams` do Next.
+- **`src/components/Pagina.jsx`** — a moldura de todas as páginas com ids. Junta
+  a exigência de conta iniciada com a fronteira que o Next obriga a ter à volta
+  de quem leia a barra de endereço.
+- **26 páginas movidas**, cada uma partida em duas funções: a de fora monta a
+  moldura, a de dentro lê os ids.
+- **`tools/check-routes.mjs`** — verificador novo. Apanha endereços escritos à
+  mão e páginas que leem ids no sítio errado, que é a falha mais provável de
+  quem acrescentar uma página e o erro do compilador não é nada evidente.
+
+**O que muda no dia a dia:** cada correção passa a precisar de um build. No
+TestFlight são uns 20 minutos, sem revisão. O site na Vercel continua a existir e
+a servir o mesmo código, para experimentar depressa.
+
 ## Antes de correr: a base de dados
 
 No Supabase → **SQL Editor**, correr `supabase/migrations/0004_5v4_e_expulsoes_do_adversario.sql`.

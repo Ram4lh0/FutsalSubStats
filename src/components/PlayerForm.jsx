@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth.jsx';
 import { clubs, teams, players } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { validatePlayer } from '@/domain/validation.js';
+import { rotas } from '@/lib/routes.js';
 import {
   POSITIONS_ALL,
   POSITION_LABEL,
@@ -77,7 +78,7 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
       else await players.create(teamId, form);
       await sync.saveNow(userId, user?.email);
       toast('Jogador guardado e sincronizado.', 'ok');
-      router.push(`/clubs/${clubId}/teams/${teamId}/roster`);
+      router.push(rotas.plantel(clubId, teamId));
     } catch (err) {
       toast(`Jogador guardado neste dispositivo, mas ainda não subiu: ${err.message}`, 'error');
     } finally {
@@ -92,7 +93,7 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
       <PageHead
         title={playerId ? `Editar ${form.name}` : 'Novo jogador'}
         subtitle={[club?.name, team?.name].filter(Boolean).join(' · ')}
-        backTo={`/clubs/${clubId}/teams/${teamId}/roster`}
+        backTo={rotas.plantel(clubId, teamId)}
       />
       <form className="card form" onSubmit={guardar}>
         <div className="form__row">
@@ -149,7 +150,7 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
           <button
             className="btn btn--ghost"
             type="button"
-            onClick={() => router.push(`/clubs/${clubId}/teams/${teamId}/roster`)}
+            onClick={() => router.push(rotas.plantel(clubId, teamId))}
           >
             Cancelar
           </button>

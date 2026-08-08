@@ -1,3 +1,24 @@
+#  ┌────────────────────────────────────────────────────────────────────┐
+#  │  Como isto se usa                                                  │
+#  └────────────────────────────────────────────────────────────────────┘
+#
+#  web-pwa-ci             corre a cada push: testes, verificadores e build.
+#  ios-capacitor-preview  compila para simulador, sem assinatura. Serve para
+#                         confirmar que o projeto iOS não partiu.
+#  ios-testflight         o que interessa: compila assinado e envia para o
+#                         TestFlight. É corrido à mão, não a cada push.
+#
+#  O ios-testflight precisa de duas coisas configuradas no Codemagic:
+#
+#  1. Uma integração com a App Store Connect API — em Teams → Integrations →
+#     Developer Portal, com o Issuer ID, o Key ID e o ficheiro .p8 gerados em
+#     App Store Connect → Users and Access → Integrations. Dá-lhe o nome
+#     `AppStoreConnect` (é o nome usado aqui em baixo).
+#  2. O grupo de variáveis `appstore`, com APP_STORE_APPLE_ID — o número que
+#     aparece no endereço da app em App Store Connect.
+#
+#  Ver TESTFLIGHT.md para o passo a passo.
+
 workflows:
   web-pwa-ci:
     name: FutsalSubStats Web/PWA CI
@@ -26,8 +47,8 @@ workflows:
       - name: Install dependencies
         script: npm ci
 
-      - name: Run tests
-        script: npm test
+      - name: Run checks and tests
+        script: npm run check
 
       - name: Build Next.js app
         script: npm run build
@@ -61,11 +82,13 @@ workflows:
       - name: Install dependencies
         script: npm ci
 
-      - name: Run tests
-        script: npm test
+      - name: Run checks and tests
+        script: npm run check
 
-      - name: Sync Capacitor iOS project
-        script: npx cap sync ios
+      - name: Build web bundle and sync iOS
+        script: |
+          npx next build
+          npx cap sync ios
 
       - name: Build iOS simulator app
         script: |
@@ -84,3 +107,98 @@ workflows:
 
     artifacts:
       - build/ios/Build/Products/Debug-iphonesimulator/FutsalSubStats.app.zip
+
+  # ------------------------------------------------------------ TestFlight
+  #
+  # Compila assinado e envia. Corre-se à mão, do painel do Codemagic, quando
+  # houver alguma coisa que valha a pena instalar no iPad.
+  #
+  # O código vai DENTRO da app (ver capacitor.config.json, `webDir: out`), por
+  # isso qualquer mudança na app obriga a um build novo. No TestFlight isso são
+  # uns 20 minutos e não passa por revisão nenhuma.
+  ios-testflight:
+    name: FutsalSubStats iOS TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: AppStoreConnect
+
+    environment:
+      node: lts
+      xcode: latest
+      cocoapods: default
+      groups:
+        - appstore
+      vars:
+        BUNDLE_ID: "com.ram4lh0.futsalsubstats"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+        NEXT_TELEMETRY_DISABLED: "1"
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.ram4lh0.futsalsubstats
+
+    cache:
+      cache_paths:
+        - node_modules
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Run checks and tests
+        script: npm run check
+
+      # A app deixou de ir buscar o site: o código vai lá dentro. O `next build`
+      # produz a pasta `out/`, e é ela que o Capacitor empacota.
+      - name: Build web bundle and sync iOS
+        script: |
+          npx next build
+          npx cap sync ios
+
+      - name: Set up signing
+        script: |
+          # Instala os perfis que o Codemagic foi buscar à Apple e escreve-os
+          # no projeto, para o xcodebuild não ter de adivinhar.
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Bump build number
+        script: |
+          # O número de build tem de subir sempre; a Apple recusa um repetido.
+          # Pergunta-se ao TestFlight qual foi o último e soma-se um, para
+          # ninguém ter de se lembrar disto à mão.
+          ULTIMO=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          cd ios/App
+          agvtool new-version -all $(($ULTIMO + 1))
+
+      - name: Build signed archive
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # Só testadores internos: não passam por revisão da Apple. Grupos
+        # externos passariam por Beta App Review, e é aí que a regra 4.2 —
+        # "isto não é mais do que um site" — poderia aparecer.
+        submit_to_app_store: false
+
+      email:
+        recipients:
+          - stef@junitec.pt
+        notify:
+          success: true
+          failure: true

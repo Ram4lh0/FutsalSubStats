@@ -8,7 +8,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Guard from './Guard.jsx';
 import PageHead from './PageHead.jsx';
 import { Tabs, Empty } from './bits.jsx';
 import {
@@ -19,14 +18,14 @@ import {
   loadTeamMatchStates,
 } from '@/lib/data/repository.js';
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
+import { rotas } from '@/lib/routes.js';
 
+// Quem exige a conta iniciada é agora o `Pagina`, que envolve todas as páginas.
 export default function TeamShell({ clubId, teamId, children }) {
   return (
-    <Guard>
-      <Shell clubId={clubId} teamId={teamId}>
-        {children}
-      </Shell>
-    </Guard>
+    <Shell clubId={clubId} teamId={teamId}>
+      {children}
+    </Shell>
   );
 }
 
@@ -65,12 +64,11 @@ function Shell({ clubId, teamId, children }) {
   if (!dados.team) return <Empty>Escalão não encontrado.</Empty>;
 
   const { club, team } = dados;
-  const base = `/clubs/${clubId}/teams/${teamId}`;
   const abas = [
-    { label: 'Plantel', to: `${base}/roster` },
-    { label: 'Jogos', to: `${base}/matches` },
-    { label: 'Competições', to: `${base}/competitions` },
-    { label: 'Estatísticas', to: base },
+    { label: 'Plantel', to: rotas.plantel(clubId, teamId) },
+    { label: 'Jogos', to: rotas.jogos(clubId, teamId) },
+    { label: 'Competições', to: rotas.competicoes(clubId, teamId) },
+    { label: 'Estatísticas', to: rotas.escalao(clubId, teamId) },
   ];
 
   return (
@@ -80,16 +78,16 @@ function Shell({ clubId, teamId, children }) {
         subtitle={[club?.name, club?.currentSeason ? `Época ${club.currentSeason}` : null]
           .filter(Boolean)
           .join(' · ')}
-        backTo={`/clubs/${clubId}`}
+        backTo={rotas.clube(clubId)}
         actions={
           <>
             <button
               className="btn btn--ghost"
-              onClick={() => router.push(`${base}/edit`)}
+              onClick={() => router.push(rotas.escalaoEditar(clubId, teamId))}
             >
               Editar escalão
             </button>
-            <button className="btn btn--primary" onClick={() => router.push(`${base}/matches/new`)}>
+            <button className="btn btn--primary" onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}>
               Novo jogo
             </button>
           </>
