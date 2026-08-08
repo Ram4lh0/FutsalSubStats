@@ -13,6 +13,7 @@ import DataTable from '@/components/DataTable.jsx';
 import { Empty } from '@/components/bits.jsx';
 import { clubAggregate } from '@/domain/stats.js';
 import { rotas } from '@/lib/routes.js';
+import useSoLeitura from '@/lib/useSoLeitura.js';
 
 export default function CompetitionsPage() {
   return (
@@ -25,7 +26,7 @@ export default function CompetitionsPage() {
 function Conteudo() {
   const { clubId, teamId } = useRouteParams();
   const router = useRouter();
-  const base = rotas.escalao(clubId, teamId);
+  const soLeitura = useSoLeitura();
 
   return (
     <TeamShell clubId={clubId} teamId={teamId}>
@@ -38,25 +39,29 @@ function Conteudo() {
 
         return (
           <>
-            <div className="toolbar">
-              <span className="toolbar__spacer" />
-              <button
-                className="btn btn--primary"
-                onClick={() => router.push(rotas.competicaoNova(clubId, teamId))}
-              >
-                Criar competição
-              </button>
-            </div>
+            {soLeitura ? null : (
+              <div className="toolbar">
+                <span className="toolbar__spacer" />
+                <button
+                  className="btn btn--primary"
+                  onClick={() => router.push(rotas.competicaoNova(clubId, teamId))}
+                >
+                  Criar competição
+                </button>
+              </div>
+            )}
 
             {!linhas.length ? (
               <Empty
                 action={
-                  <button
-                    className="btn btn--primary"
-                    onClick={() => router.push(rotas.competicaoNova(clubId, teamId))}
-                  >
-                    Criar a primeira competição
-                  </button>
+                  soLeitura ? null : (
+                    <button
+                      className="btn btn--primary"
+                      onClick={() => router.push(rotas.competicaoNova(clubId, teamId))}
+                    >
+                      Criar a primeira competição
+                    </button>
+                  )
                 }
               >
                 Ainda não há competições. Cada jogo pertence a uma, por isso vale a pena criar já o

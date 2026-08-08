@@ -23,6 +23,7 @@ import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
 import { dayLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
+import useSoLeitura from '@/lib/useSoLeitura.js';
 
 export default function DashboardPage() {
   return (
@@ -38,6 +39,7 @@ function Dashboard() {
   const { userId, user } = useAuth();
   const [cartoes, setCartoes] = useState(null);
   const [live, setLive] = useState(null);
+  const soLeitura = useSoLeitura();
 
   const carregar = useCallback(async () => {
     const lista = await clubs.list();
@@ -124,20 +126,22 @@ function Dashboard() {
         title="Os meus clubes"
         subtitle="Escolha um clube para gerir o plantel e os jogos."
         actions={
-          <>
-            <button className="btn btn--ghost" onClick={backup}>
-              Backup
-            </button>
-            <button className="btn btn--ghost" onClick={restaurar}>
-              Restaurar
-            </button>
-            <button className="btn btn--ghost" onClick={limparDispositivo}>
-              Limpar este dispositivo
-            </button>
-            <button className="btn btn--primary" onClick={() => router.push(rotas.clubeNovo())}>
-              Criar clube
-            </button>
-          </>
+          soLeitura ? null : (
+            <>
+              <button className="btn btn--ghost" onClick={backup}>
+                Backup
+              </button>
+              <button className="btn btn--ghost" onClick={restaurar}>
+                Restaurar
+              </button>
+              <button className="btn btn--ghost" onClick={limparDispositivo}>
+                Limpar este dispositivo
+              </button>
+              <button className="btn btn--primary" onClick={() => router.push(rotas.clubeNovo())}>
+                Criar clube
+              </button>
+            </>
+          )
         }
       />
 
@@ -173,14 +177,16 @@ function Dashboard() {
               className="card club-card"
               style={{ borderTopColor: club.primaryColor || '#22c55e' }}
             >
-              <button
-                className="card__edit"
-                title="Editar clube"
-                aria-label={`Editar ${club.name}`}
-                onClick={() => router.push(rotas.clubeEditar(club.id))}
-              >
-                Editar
-              </button>
+              {soLeitura ? null : (
+                <button
+                  className="card__edit"
+                  title="Editar clube"
+                  aria-label={`Editar ${club.name}`}
+                  onClick={() => router.push(rotas.clubeEditar(club.id))}
+                >
+                  Editar
+                </button>
+              )}
               <header className="club-card__head">
                 <div
                   className="club-card__crest"

@@ -19,6 +19,7 @@ import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS, MATCH_TIMING_SHORT, timingOf } from '@/domain/constants.js';
 import { dayLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
+import useSoLeitura from '@/lib/useSoLeitura.js';
 
 export default function ClubPage() {
   return (
@@ -32,6 +33,7 @@ function Escaloes() {
   const { clubId } = useRouteParams();
   const router = useRouter();
   const [dados, setDados] = useState(null);
+  const soLeitura = useSoLeitura();
 
   const carregar = useCallback(async () => {
     const club = await clubs.get(clubId);
@@ -73,17 +75,22 @@ function Escaloes() {
         subtitle={club.currentSeason ? `Época ${club.currentSeason}` : 'Escalões deste clube'}
         backTo={rotas.dashboard()}
         actions={
-          <>
-            <button className="btn btn--ghost" onClick={() => router.push(rotas.clubeEditar(clubId))}>
-              Editar clube
-            </button>
-            <button
-              className="btn btn--primary"
-              onClick={() => router.push(rotas.escalaoNovo(clubId))}
-            >
-              Criar escalão
-            </button>
-          </>
+          soLeitura ? null : (
+            <>
+              <button
+                className="btn btn--ghost"
+                onClick={() => router.push(rotas.clubeEditar(clubId))}
+              >
+                Editar clube
+              </button>
+              <button
+                className="btn btn--primary"
+                onClick={() => router.push(rotas.escalaoNovo(clubId))}
+              >
+                Criar escalão
+              </button>
+            </>
+          )
         }
       />
 
@@ -109,14 +116,16 @@ function Escaloes() {
               className="card club-card"
               style={{ borderTopColor: club.primaryColor || '#22c55e' }}
             >
-              <button
-                className="card__edit"
-                title="Editar escalão"
-                aria-label={`Editar ${team.name}`}
-                onClick={() => router.push(rotas.escalaoEditar(clubId, team.id))}
-              >
-                Editar
-              </button>
+              {soLeitura ? null : (
+                <button
+                  className="card__edit"
+                  title="Editar escalão"
+                  aria-label={`Editar ${team.name}`}
+                  onClick={() => router.push(rotas.escalaoEditar(clubId, team.id))}
+                >
+                  Editar
+                </button>
+              )}
               <header className="club-card__head">
                 <div
                   className="club-card__crest"
