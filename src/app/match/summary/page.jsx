@@ -32,16 +32,14 @@ export default function SummaryPage() {
 }
 
 function Resumo() {
-  const { matchId } = useRouteParams();
+  const { matchId, back } = useRouteParams();
   const router = useRouter();
-  const search = useSearchParams();
   const ui = useUI();
   const { userId, user } = useAuth();
   const [dados, setDados] = useState(null);
 
   // De onde se veio. Só quando não há origem — ou seja, quando se chega aqui por
   // ter acabado o jogo — é que a saída passa a ser a casa dos clubes.
-  const back = search.get('back');
 
   const carregar = useCallback(async () => {
     const carregado = await loadMatch(matchId);

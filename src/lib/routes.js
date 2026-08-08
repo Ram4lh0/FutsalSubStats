@@ -36,6 +36,8 @@ export const rotas = {
   raiz: () => '/',
   login: () => '/login',
   dashboard: () => '/dashboard',
+  conta: () => '/account',
+  privacidade: () => '/privacy',
 
   /* ------------------------------------------------------------- clubes */
   clubeNovo: () => '/clubs/new',

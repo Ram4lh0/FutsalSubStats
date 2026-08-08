@@ -67,6 +67,24 @@ export function AuthProvider({ children }) {
         if (sb) await sb.auth.signOut();
         setSession(null);
       },
+
+      /**
+       * Apagar a conta e tudo o que lhe pertence. Não há volta a dar.
+       *
+       * O servidor é que apaga: a app pede-o à função `delete_my_account`, que
+       * só sabe apagar quem a chamou. Feito isso, a sessão deixa de valer e o
+       * que está guardado no aparelho tem de ir também — senão ficava aqui uma
+       * cópia de dados de uma conta que já não existe.
+       */
+      async deleteAccount() {
+        const sb = supabase();
+        if (!sb) return { error: 'A app não está ligada a nenhum servidor.' };
+        const { error } = await sb.rpc('delete_my_account');
+        if (error) return { error: traduzir(error.message) };
+        await sb.auth.signOut().catch(() => {});
+        setSession(null);
+        return { error: null };
+      },
     }),
     [session, ready]
   );

@@ -90,16 +90,28 @@ export default function AppBar() {
           {estado.status}
           {estado.pending ? ` (${estado.pending})` : ''}
         </button>
+        {/* A conta tem página própria: é onde se transfere uma cópia dos dados e
+            onde se apaga tudo. O "Sair" fica aqui à mão, que é o que se usa
+            todos os dias. */}
         {remote && user ? (
-          <button
-            className="btn btn--ghost btn--tiny"
-            onClick={async () => {
-              await signOut();
-              router.push(rotas.login());
-            }}
-          >
-            Sair
-          </button>
+          <>
+            <button
+              className="btn btn--ghost btn--tiny"
+              onClick={() => router.push(rotas.conta())}
+              title={user.email || 'A minha conta'}
+            >
+              Conta
+            </button>
+            <button
+              className="btn btn--ghost btn--tiny"
+              onClick={async () => {
+                await signOut();
+                router.push(rotas.login());
+              }}
+            >
+              Sair
+            </button>
+          </>
         ) : null}
       </div>
     </header>
