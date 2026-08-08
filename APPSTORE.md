@@ -137,7 +137,84 @@ só-dispositivo.
 
 ---
 
-## 7. Ordem de trabalhos
+## 7. Fazer isto pelo terminal, em vez de clicar
+
+Quase tudo o que está aqui em cima pode ser feito por linha de comandos com o
+[`asc`](https://github.com/rorkai/App-Store-Connect-CLI) — um programa único, sem
+dependências, que fala com a API do App Store Connect. Corre em Windows.
+
+**Porque vale a pena:** o texto da ficha da app deixa de viver num formulário
+web e passa a viver no repositório, ao lado do código. Fica versionado, revisto
+em conjunto com o resto, e uma submissão nova não obriga a reescrever nada.
+
+Usa a **mesma chave da API** que o Codemagic precisa — geras uma vez, serve para
+os dois.
+
+### Instalar e entrar
+
+Windows (se ainda não estiver no winget, transferir o binário das
+[releases](https://github.com/rorkai/App-Store-Connect-CLI/releases/latest)):
+
+```
+winget install --id Rorkai.ASC --exact
+```
+
+```
+asc auth login --name "FutsalSubStats" --key-id "ABC123" --issuer-id "DEF456" --private-key AuthKey_ABC123.p8
+asc auth status --validate
+asc apps list --output table
+```
+
+O último comando dá-te o número da app, que é o `APP_STORE_APPLE_ID` de que o
+Codemagic precisa.
+
+### O que passa a ser um comando
+
+```
+# A ficha da app como ficheiros no repositório
+asc metadata init  --dir ./metadata --version "1.0.0" --locale "pt-PT"
+asc metadata apply --dir ./metadata --app "APP_ID" --version "1.0.0" --dry-run
+
+# Capturas de ecrã, sem arrastar nada para o browser
+asc screenshots upload --version-localization "ID" --path ./metadata/screenshots/pt-PT --device-type "IPHONE_65" --replace
+
+# O que falta antes de submeter — corre isto ANTES de carregar no botão
+asc review doctor --app "APP_ID"
+asc validate --app "APP_ID" --version "1.0.0"
+
+# Submeter e acompanhar
+asc publish appstore --app "APP_ID" --ipa ./build/App.ipa --version "1.0.0" --submit --confirm
+asc status --app "APP_ID" --watch
+```
+
+O `asc review doctor` é o mais útil dos três primeiros dias: diz o que está por
+preencher antes de a Apple to dizer três dias depois.
+
+### O que continua a ser à mão
+
+- **As declarações de privacidade** (secção 4). Não há comando; é o formulário.
+- **A conta de demonstração** e as notas da revisão, na primeira vez.
+- **Tirar** as capturas de ecrã. Enviar já é comando.
+
+### O que NÃO vale a pena
+
+**Xcode Command Line Tools** — só existem para macOS. Não te servem de nada em
+Windows, e mesmo com um Mac só passarias a poder compilar localmente, que é
+precisamente o que o Codemagic já faz por ti.
+
+**EAS CLI (Expo)** — consegue compilar projetos que não são Expo, através de
+*custom builds*, por isso em teoria daria para um projeto Capacitor. Mas seria
+trocar uma coisa que já está montada e funciona por outra pensada para React
+Native, com o mesmo resultado. Se o Codemagic um dia deixar de servir, a
+alternativa mais próxima do teu caso é o Capgo Cloud Build, feito de propósito
+para Capacitor.
+
+**Resumo da divisão de trabalho:** o Codemagic compila e envia o build; o `asc`
+trata de tudo o resto sem sair do terminal.
+
+---
+
+## 8. Ordem de trabalhos
 
 1. Correr a migração `0005` no Supabase.
 2. Criar e encher a conta de demonstração.
