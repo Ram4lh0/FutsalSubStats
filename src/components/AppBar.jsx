@@ -14,12 +14,17 @@ import { useUI, Dialog } from '@/lib/ui.jsx';
 import * as sync from '@/lib/data/sync.js';
 import { markAllPending } from '@/lib/data/repository.js';
 import { rotas } from '@/lib/routes.js';
+import { emDemo, limparDemo } from '@/lib/demo.js';
 
 export default function AppBar() {
   const router = useRouter();
   const ui = useUI();
   const { user, userId, remote, signOut } = useAuth();
   const [estado, setEstado] = useState({ status: sync.SYNC.LOCAL, pending: 0, online: true });
+  // Lido depois de montar: no servidor não há sessionStorage, e o estado tem de
+  // ser o mesmo dos dois lados para o React não se queixar.
+  const [demo, setDemo] = useState(false);
+  useEffect(() => setDemo(emDemo()), []);
 
   useEffect(() => sync.subscribe(setEstado), []);
 
@@ -81,6 +86,20 @@ export default function AppBar() {
       </button>
       <span className="appbar__spacer" />
       <div className="appbar__right">
+        {demo ? (
+          <>
+            <span className="sync sync--demo">DEMONSTRAÇÃO</span>
+            <button
+              className="btn btn--primary btn--tiny"
+              onClick={async () => {
+                await limparDemo();
+                router.replace(rotas.login());
+              }}
+            >
+              Criar conta
+            </button>
+          </>
+        ) : null}
         <button
           className={`sync ${classe}`}
           onClick={detalhes}
