@@ -33,6 +33,7 @@ const GLOBAIS = new Set([
   'File', 'FileReader', 'FormData', 'Headers', 'Request', 'Response', 'AbortController',
   'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame',
   'cancelAnimationFrame', 'queueMicrotask', 'structuredClone', 'Event', 'CustomEvent',
+  'ResizeObserver', 'IntersectionObserver', 'MutationObserver', 'screen', 'history',
   'Audio', 'AudioContext', 'webkitAudioContext', 'performance', 'process', 'globalThis',
   'Math', 'JSON', 'Object', 'Array', 'String', 'Number', 'Boolean', 'Date', 'RegExp',
   'Error', 'TypeError', 'RangeError', 'Promise', 'Map', 'Set', 'WeakMap', 'WeakSet',

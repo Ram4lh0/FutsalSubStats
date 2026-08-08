@@ -92,14 +92,35 @@ export default function DataTable({ children, players = false, tight = false, cl
 
   // A coluna do nome cola-se a seguir à do número, e para isso precisa de saber
   // a largura real da primeira — que só existe depois de a tabela estar no ecrã.
+  //
+  // Não chega medir uma vez: a largura muda quando o ecrã roda, quando as letras
+  // acabam de carregar, ou quando entra um número de dois dígitos. Se a medida
+  // ficar velha, a coluna do nome desalinha-se e passa a tapar a do número — que
+  // é precisamente o que ela devia proteger.
   useEffect(() => {
     if (!players || !table.current) return;
-    const id = requestAnimationFrame(() => {
-      const cel = table.current?.querySelector('thead th');
-      if (cel?.offsetWidth) table.current.style.setProperty('--col1', `${cel.offsetWidth}px`);
-    });
-    return () => cancelAnimationFrame(id);
-  });
+    const el = table.current;
+
+    const medir = () => {
+      const cel = el.querySelector('thead th');
+      if (cel?.offsetWidth) el.style.setProperty('--col1', `${cel.offsetWidth}px`);
+    };
+
+    const id = requestAnimationFrame(medir);
+    const observador =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(medir);
+    const primeira = el.querySelector('thead th');
+    if (observador && primeira) observador.observe(primeira);
+    window.addEventListener('resize', medir);
+    window.addEventListener('orientationchange', medir);
+
+    return () => {
+      cancelAnimationFrame(id);
+      observador?.disconnect();
+      window.removeEventListener('resize', medir);
+      window.removeEventListener('orientationchange', medir);
+    };
+  }, [players, children]);
 
   return (
     <div className={`tablewrap ${className}`} ref={wrap}>
