@@ -51,6 +51,7 @@ let repetirDepois = null;
 let repetirPromise = null;
 let resolverRepetir = null;
 let retryMs = 2000;
+let proximaTentativa = null;
 
 export function subscribe(fn) {
   listeners.add(fn);
@@ -145,6 +146,19 @@ async function sanearOrfaos() {
 export async function push(userId, email) {
   const sb = supabase();
   if (!sb || !userId) return { pushed: 0 };
+
+  // A fila corre de poucos em poucos segundos, e uma dessas passagens pode
+  // apanhar o utilizador a sair. Quando chegasse ao servidor a sessão já não
+  // existia, e a primeira escrita — o perfil — era recusada pela segurança por
+  // linha: "new row violates row-level security policy". Nada se perdia, mas o
+  // erro aparecia sempre a quem carregava em Sair.
+  //
+  // Confirmar de quem é a sessão ANTES de escrever resolve-o na origem.
+  if (typeof sb.auth?.getSession === 'function') {
+    const { data } = await sb.auth.getSession();
+    if (data?.session?.user?.id !== userId) return { pushed: 0 };
+  }
+
   let total = 0;
 
   const { adotados, orfaos } = await sanearOrfaos();
@@ -396,7 +410,7 @@ export async function flush(userId, email) {
     // Recuo progressivo até 1 minuto: sem rede, tentar de meio em meio segundo
     // só gastava bateria a meio de um jogo.
     retryMs = Math.min(retryMs * 2, 60000);
-    setTimeout(() => flush(userId, email), retryMs);
+    proximaTentativa = setTimeout(() => flush(userId, email), retryMs);
   } finally {
     aCorrer = false;
     if (repetirDepois) {
@@ -426,6 +440,20 @@ export async function resetLocal(userId) {
   notifyLocalChange();
   set({ status: SYNC.SYNCED, error: null, lastSyncAt: Date.now() });
   return r;
+}
+
+/**
+ * Encerrar a fila ao sair da conta.
+ *
+ * Sem isto ficava um reenvio agendado — e um aviso de erro no ecrã de entrada,
+ * de uma tentativa que já não tinha sessão nenhuma para usar.
+ */
+export function stop() {
+  if (proximaTentativa) clearTimeout(proximaTentativa);
+  proximaTentativa = null;
+  repetirDepois = null;
+  retryMs = 2000;
+  set({ status: SYNC.LOCAL, pending: 0, error: null });
 }
 
 export async function pendingCount() {
