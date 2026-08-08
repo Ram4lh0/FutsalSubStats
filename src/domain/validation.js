@@ -11,7 +11,7 @@ import {
   MAX_ON_COURT,
   POSITIONS,
 } from './constants.js';
-import { countOnCourt } from './reducer.js';
+import { countOnCourt, shorthandedCount } from './reducer.js';
 
 export function validateClub(data) {
   if (!data.name || !data.name.trim()) return 'O nome do clube é obrigatório.';
@@ -72,10 +72,56 @@ export function canFinishFirstHalf(state) {
   return null;
 }
 
+/**
+ * Quantos jogadores há mesmo para pôr em campo: os que estão convocados e não
+ * foram expulsos nem ficaram indisponíveis.
+ */
+export function availableCount(state) {
+  return Object.values(state.players).filter(
+    (p) =>
+      p.status === PLAYER_MATCH_STATUS.ON_COURT || p.status === PLAYER_MATCH_STATUS.ON_BENCH
+  ).length;
+}
+
+/**
+ * Quantos jogadores devem entrar para a segunda parte.
+ *
+ * Cinco, salvo dois casos: não haver cinco disponíveis (plantel curto ou
+ * expulsões), ou haver sanção por cumprir. A sanção atravessa o intervalo — as
+ * Leis do Jogo contam-na em tempo de jogo, e o que faltar continua a contar na
+ * segunda parte —, por isso a equipa tem mesmo de entrar reduzida.
+ */
+export function expectedOnCourt(state) {
+  const { nos } = shorthandedCount(state, state.elapsedMatchMs);
+  return Math.max(1, Math.min(MAX_ON_COURT - nos, availableCount(state)));
+}
+
+/**
+ * A segunda parte começa com o campo como deve estar — nem a menos nem a mais.
+ *
+ * Começar com quatro por distração — o treinador põe a formação a meio de uma
+ * conversa e carrega em começar — dá um jogador com tempo de jogo a menos e uma
+ * estatística errada que ninguém repara até ao fim da época. E começar com cinco
+ * havendo sanção por cumprir é jogar em infração.
+ */
 export function canStartSecondHalf(state) {
   if (state.status !== MATCH_STATUS.HALFTIME) return 'Termine primeiro a primeira parte.';
-  if (countOnCourt(state) === 0) return 'Defina a formação da segunda parte.';
-  if (countOnCourt(state) > MAX_ON_COURT) return `Máximo de ${MAX_ON_COURT} jogadores em campo.`;
+  const emCampo = countOnCourt(state);
+  if (emCampo === 0) return 'Defina a formação da segunda parte.';
+  if (emCampo > MAX_ON_COURT) return `Máximo de ${MAX_ON_COURT} jogadores em campo.`;
+
+  const exigidos = expectedOnCourt(state);
+  const { nos } = shorthandedCount(state, state.elapsedMatchMs);
+
+  if (emCampo > exigidos && nos > 0) {
+    return `Há sanção por cumprir: a equipa entra com ${exigidos}.`;
+  }
+  if (emCampo < exigidos) {
+    if (nos > 0) return `Coloque ${exigidos} jogadores em campo — a sanção ainda não terminou.`;
+    return exigidos === MAX_ON_COURT
+      ? `Coloque ${MAX_ON_COURT} jogadores em campo antes de começar a segunda parte.`
+      : `Só há ${exigidos} jogadores disponíveis — coloque-os todos em campo.`;
+  }
   return null;
 }
 

@@ -895,3 +895,117 @@ test('corrigir um golo da 1.ª parte corrige também o resultado ao intervalo', 
   assert.equal(st.teamScore, 2, 'o resultado final não muda');
   assert.equal(st.halftimeTeamScore, 2, 'o intervalo passa a contar os dois');
 });
+
+/* ------------------------------------ a segunda parte começa com o campo cheio */
+
+test('não se começa a 2.ª parte com menos de cinco em campo', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  let st = step(ctx, (s) => A.finishFirstHalf(s, T0 + 10 * MIN), T0 + 10 * MIN);
+
+  const T1 = T0 + 15 * MIN;
+  // Só quatro: falta o pivot.
+  const quatro = { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4' };
+  st = step(ctx, (s) => A.setSecondHalfLineup(s, quatro, T1), T1);
+  assert.match(V.canStartSecondHalf(st) || '', /5 jogadores em campo/);
+
+  const cinco = { ...quatro, PIVOT: 'p5' };
+  st = step(ctx, (s) => A.setSecondHalfLineup(s, cinco, T1), T1);
+  assert.equal(V.canStartSecondHalf(st), null, 'com os cinco, avança');
+});
+
+test('com menos de cinco disponíveis, exige-se o que houver', () => {
+  // Convocatória de quatro: não há quinto para pôr, e o jogo tem de poder seguir.
+  const squad = makeSquad().slice(0, 4);
+  const ctx = { squad, events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  let st = step(ctx, (s) => A.finishFirstHalf(s, T0 + 10 * MIN), T0 + 10 * MIN);
+
+  const T1 = T0 + 15 * MIN;
+  st = step(
+    ctx,
+    (s) => A.setSecondHalfLineup(s, { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3' }, T1),
+    T1
+  );
+  assert.match(V.canStartSecondHalf(st) || '', /Só há 4 jogadores disponíveis/);
+
+  st = step(
+    ctx,
+    (s) =>
+      A.setSecondHalfLineup(
+        s,
+        { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4' },
+        T1
+      ),
+    T1
+  );
+  assert.equal(V.canStartSecondHalf(st), null, 'os quatro que há chegam');
+});
+
+test('um expulso deixa de contar para os disponíveis', () => {
+  const squad = makeSquad().slice(0, 5);
+  const ctx = { squad, events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.redCard(s, { playerId: 'p5' }, T0 + 2 * MIN), T0 + 2 * MIN);
+  let st = step(ctx, (s) => A.finishFirstHalf(s, T0 + 10 * MIN), T0 + 10 * MIN);
+  assert.equal(V.availableCount(st), 4, 'cinco convocados menos um expulso');
+
+  const T1 = T0 + 15 * MIN;
+  st = step(
+    ctx,
+    (s) =>
+      A.setSecondHalfLineup(
+        s,
+        { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4' },
+        T1
+      ),
+    T1
+  );
+  assert.equal(V.canStartSecondHalf(st), null);
+});
+
+/* ------------------------------- a sanção atravessa o intervalo (Leis do Jogo) */
+
+test('a sanção por cumprir continua na 2.ª parte, e a equipa entra reduzida', () => {
+  // As Leis do Jogo contam os dois minutos em TEMPO DE JOGO. Ao contrário das
+  // faltas acumuladas, que zeram por período, o que falta da sanção transita.
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.redCard(s, { playerId: 'p2' }, T0 + 9 * MIN), T0 + 9 * MIN);
+  step(
+    ctx,
+    (s) => A.startPenalty(s, { playerId: 'p2', durationMs: 2 * MIN }, T0 + 9 * MIN),
+    T0 + 9 * MIN
+  );
+  // A parte acaba com meio minuto de sanção por cumprir.
+  let st = step(ctx, (s) => A.finishFirstHalf(s, T0 + 10.5 * MIN), T0 + 10.5 * MIN);
+  assert.equal(st.penalties[0].endedMatchMs, null, 'não é fechada pelo apito');
+  assert.ok(canReplaceExpelled(st, st.elapsedMatchMs, 2 * MIN), 'ainda prende');
+
+  const T1 = T0 + 15 * MIN;
+  // Com a sanção a correr, a equipa entra com quatro — cinco seria infração.
+  assert.equal(V.expectedOnCourt(st), 4);
+
+  const cinco = { GOALKEEPER: 'p1', FIXO: 'p6', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4', PIVOT: 'p5' };
+  st = step(ctx, (s) => A.setSecondHalfLineup(s, cinco, T1), T1);
+  assert.match(V.canStartSecondHalf(st) || '', /sanção por cumprir/);
+
+  const quatro = { GOALKEEPER: 'p1', FIXO: 'p6', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4' };
+  st = step(ctx, (s) => A.setSecondHalfLineup(s, quatro, T1), T1);
+  assert.equal(V.canStartSecondHalf(st), null, 'com quatro, avança');
+});
+
+test('cumpridos os dois minutos na 2.ª parte, a equipa volta aos cinco', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.redCard(s, { playerId: 'p2' }, T0 + 9 * MIN), T0 + 9 * MIN);
+  step(
+    ctx,
+    (s) => A.startPenalty(s, { playerId: 'p2', durationMs: 2 * MIN }, T0 + 9 * MIN),
+    T0 + 9 * MIN
+  );
+  const st = step(ctx, (s) => A.finishFirstHalf(s, T0 + 10.5 * MIN), T0 + 10.5 * MIN);
+
+  // Aos 11 minutos de jogo cumprem-se os dois minutos contados desde os 9.
+  assert.equal(canReplaceExpelled(st, 11 * MIN, 2 * MIN), null);
+});
