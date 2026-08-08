@@ -49,7 +49,9 @@ export const clubs = {
   get: (id) => db.get(db.STORES.clubs, id),
   async create(data) {
     const row = stamp({
-      id: uid(),
+      // Um id vindo de fora só acontece no jogo de experiência, que precisa de
+      // identificadores fixos para depois se apagar a si próprio.
+      id: data.id || uid(),
       ownerId: (await profile.get())?.id || null,
       name: data.name.trim(),
       // Apelido curto para o marcador e para os resumos. Opcional: sem ele
@@ -99,7 +101,9 @@ export const teams = {
   get: (id) => db.get(db.STORES.teams, id),
   async create(clubId, data) {
     const row = stamp({
-      id: uid(),
+      // Um id vindo de fora só acontece no jogo de experiência, que precisa de
+      // identificadores fixos para depois se apagar a si próprio.
+      id: data.id || uid(),
       clubId,
       name: (data.name || '').trim(),
       shortName: (data.shortName || '').trim() || null,
@@ -140,7 +144,9 @@ export const competitions = {
   get: (id) => db.get(db.STORES.competitions, id),
   async create(teamId, data) {
     const row = stamp({
-      id: uid(),
+      // Um id vindo de fora só acontece no jogo de experiência, que precisa de
+      // identificadores fixos para depois se apagar a si próprio.
+      id: data.id || uid(),
       teamId,
       name: (data.name || '').trim(),
       shortName: (data.shortName || '').trim() || null,
@@ -240,7 +246,9 @@ export const matches = {
       ? data.timing
       : timingOf(team);
     const row = stamp({
-      id: uid(),
+      // Um id vindo de fora só acontece no jogo de experiência, que precisa de
+      // identificadores fixos para depois se apagar a si próprio.
+      id: data.id || uid(),
       teamId,
       clubId: team?.clubId || null,
       timing,

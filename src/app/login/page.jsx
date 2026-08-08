@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth.jsx';
 import { useUI } from '@/lib/ui.jsx';
+import { iniciarDemo, limparDemo } from '@/lib/demo.js';
 import { rotas } from '@/lib/routes.js';
 
 export default function LoginPage() {
@@ -20,12 +21,32 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [aEnviar, setAEnviar] = useState(false);
+  const [aMontar, setAMontar] = useState(false);
 
   // Já com sessão (ou sem servidor configurado), não há nada a fazer aqui.
   useEffect(() => {
     if (!ready) return;
     if (!remote || session) router.replace(rotas.dashboard());
   }, [ready, remote, session, router]);
+
+  // Chegar a este ecrã encerra qualquer experiência a meio. Se ficasse por
+  // limpar, uma conta nova nascia com o FC Demonstração lá dentro.
+  useEffect(() => {
+    limparDemo();
+  }, []);
+
+  /** Monta a equipa fictícia e abre o jogo. Nada disto sai do dispositivo. */
+  async function experimentar() {
+    if (aMontar) return;
+    setAMontar(true);
+    try {
+      const matchId = await iniciarDemo();
+      router.push(rotas.jogoPreparar(matchId));
+    } catch (e) {
+      setAMontar(false);
+      toast(`Não foi possível preparar o jogo de experiência: ${e.message}`, 'error');
+    }
+  }
 
   async function submeter(e) {
     e.preventDefault();
@@ -102,6 +123,18 @@ export default function LoginPage() {
           <button className="btn btn--primary" type="submit" disabled={aEnviar}>
             {aEnviar ? 'A ligar…' : modo === 'entrar' ? 'Entrar' : 'Criar conta'}
           </button>
+        </div>
+
+        {/* Experimentar antes de decidir. O jogo é o mesmo código do jogo a
+            sério — só a equipa é que é inventada. */}
+        <div className="auth__demo">
+          <span className="auth__ou">ou</span>
+          <button className="btn btn--block" type="button" onClick={experimentar} disabled={aMontar}>
+            {aMontar ? 'A preparar…' : 'Experimentar sem criar conta'}
+          </button>
+          <span className="field__hint">
+            Um jogo completo com uma equipa fictícia, para ver como funciona.
+          </span>
         </div>
 
         {/* A política tem de estar à mão ANTES de alguém criar conta, não

@@ -76,6 +76,8 @@ ul { padding: 0; list-style: none; }
 .sync--ok { color: var(--primary); border-color: rgba(34, 197, 94, 0.4); }
 .sync--pending { color: var(--warn); border-color: rgba(245, 158, 11, 0.4); }
 .sync--offline { color: var(--danger); border-color: rgba(239, 68, 68, 0.4); }
+/* Em experiência: fica claro na barra que nada disto está a ser guardado. */
+.sync--demo { color: var(--info); border-color: rgba(56, 189, 248, 0.5); font-weight: 700; }
 
 .view {
   flex: 1 1 auto; min-height: 0; overflow: auto;
@@ -141,6 +143,17 @@ ul { padding: 0; list-style: none; }
 .prose { max-width: 68ch; line-height: 1.6; }
 .prose p { margin-bottom: 12px; }
 .prose .section:first-child { margin-top: 0; }
+
+/* Entrada do jogo de experiência, no ecrã de início de sessão. */
+.auth__demo { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+.auth__ou { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+/* Convite a criar conta, no fim da experiência. Fica acima de tudo o resto
+   porque é a única coisa que se pede a quem chegou ali. */
+.demo-cta { border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.07); }
+.demo-cta .page__title { margin-bottom: 10px; }
+.demo-cta p { margin-bottom: 10px; max-width: 62ch; line-height: 1.5; }
+.demo-cta__actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
 .collapse summary { cursor: pointer; font-weight: 600; }
 .collapse[open] summary { margin-bottom: 14px; }
 

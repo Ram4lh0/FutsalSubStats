@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import * as db from '../src/lib/data/local.js';
-import { clubs, teams, competitions, players, matches, squad, events } from '../src/lib/data/repository.js';
+import { clubs, teams, competitions, players, matches, squad, events, loadMatch } from '../src/lib/data/repository.js';
 import { flush, push, pull, setRemote } from '../src/lib/data/sync.js';
 import { restore, dump } from '../src/lib/data/repository.js';
 import * as A from '../src/domain/actions.js';
@@ -363,4 +363,50 @@ test('sem escalão onde encaixar, a linha antiga sai da fila em vez de a bloquea
   const guardado = await db.get(db.STORES.players, orfao.id);
   assert.equal(guardado.dirty, false, 'deixa de contar como pendente');
   assert.equal(guardado.name, 'Jogador de antigamente', 'mas continua guardado no dispositivo');
+});
+
+/* --------------------------------------------- o jogo de experiência */
+
+test('a demonstração monta uma equipa jogável e apaga-se só a si própria', async () => {
+  await limpar();
+  const { iniciarDemo, limparDemo, DEMO } = await import('../src/lib/demo.js');
+
+  // Dados reais de alguém que usou a app e saiu da conta: não podem ser tocados.
+  const meuClube = await clubs.create({ name: 'O meu clube a sério' });
+
+  const matchId = await iniciarDemo();
+  assert.equal(matchId, DEMO.jogo);
+
+  const jogo = await matches.get(matchId);
+  assert.ok(jogo, 'o jogo existe');
+  const convocados = await squad.listByMatch(matchId);
+  assert.equal(convocados.length, 10, 'plantel completo');
+  assert.equal(
+    convocados.filter((c) => c.initialLocation === LOCATION.COURT).length,
+    5,
+    'cinco em campo, prontos a começar'
+  );
+
+  // E o estado do jogo reconstrói-se como qualquer outro.
+  const { state } = await loadMatch(matchId);
+  assert.equal(Object.keys(state.players).length, 10);
+
+  await limparDemo();
+  assert.equal((await matches.get(matchId)) ?? null, null, 'o jogo desaparece');
+  assert.equal((await clubs.get(DEMO.clube)) ?? null, null, 'o clube fictício desaparece');
+  assert.ok(await clubs.get(meuClube.id), 'o clube a sério fica onde estava');
+});
+
+test('a demonstração não sobe para o servidor', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { iniciarDemo } = await import('../src/lib/demo.js');
+  await iniciarDemo();
+
+  // Sem sessão iniciada não há para onde enviar — e é isso que a protege.
+  const { pushed } = await push(null, null);
+  assert.equal(pushed, 0);
+  assert.equal(servidor.tabelas.clubs.length, 0);
+  assert.equal(servidor.tabelas.match_events.length, 0);
 });

@@ -68,6 +68,15 @@ Em **App Store Connect → a versão → App Review Information**:
   > marcador funcionam sem ligação à internet.
   >
   > A conta pode ser apagada dentro da app em Conta → Apagar a conta.
+  >
+  > A funcionalidade principal — cronometrar um jogo, marcar substituições,
+  > registar golos e ver as estatísticas — está disponível **sem conta**, no
+  > botão "Experimentar sem criar conta" do ecrã de início de sessão. A conta só
+  > é precisa para guardar o histórico e o ter no iPad e no telemóvel.
+  >
+  > Sobre esse histórico: é a razão de existir da app. Planteis, jogos, e o tempo
+  > de jogo de cada jogador ao segundo, ao longo de uma época. Não há recolha de
+  > dados para outro fim, nem publicidade, nem rastreio.
 
 ---
 
@@ -129,7 +138,38 @@ estatísticas por jogador, a lista de jogos de uma competição, o plantel.
 
 ---
 
-## 6. O que ainda pesa contra
+## 6. Auditoria de segurança
+
+Corrida em agosto de 2026, e agora automática em `npm run check`
+(`tools/check-security.mjs`). Verifica três coisas a cada alteração: toda a
+tabela tem segurança por linha **e** política; nenhuma função privilegiada corre
+com o caminho de pesquisa aberto; nenhuma chave de servidor escorregou para o
+código.
+
+**O que estava bem:**
+
+- As 9 tabelas têm segurança por linha ligada e política própria, todas
+  ancoradas em `clubs.owner_id = auth.uid()`. Um pedido feito com outra conta não
+  devolve linha nenhuma — a proteção está no servidor, não no ecrã.
+- Nenhum segredo no repositório, nem no histórico do git. A chave que vai no
+  browser é a pública, que não abre nada sem sessão iniciada.
+- Zero escrita direta de HTML, zero `eval` — não há por onde injetar código.
+- `append_match_event` corre com os direitos de quem a chama, portanto a
+  segurança por linha aplica-se-lhe.
+
+**O que estava mal, e foi corrigido na migração `0007`:**
+
+- `handle_new_user` corria com privilégios elevados sem `search_path` fixo. É o
+  aviso `function_search_path_mutable` do próprio verificador do Supabase: uma
+  função assim resolve os nomes das tabelas pelo caminho de quem a chama. Risco
+  prático baixo, dívida desnecessária.
+- As funções de gatilho ficaram com caminho fixo pela mesma razão.
+- `append_match_event` passou a ter execução explicitamente negada a visitantes
+  anónimos, em vez de depender do que estivesse por omissão.
+
+---
+
+## 7. O que ainda pesa contra
 
 **Regra 4.2 — funcionalidade mínima.** Empacotar o código dentro da app tirou-te
 da situação em que a rejeição era quase certa. O que joga a teu favor: funciona
@@ -144,16 +184,33 @@ O que ainda ajudaria, por ordem de esforço:
 3. **Notificação local quando a sanção de 2 minutos termina**, mesmo com a app em
    segundo plano.
 
-**A conta obrigatória.** A app exige sessão iniciada para tudo, e a Apple às
-vezes questiona isso quando as funcionalidades não dependem de servidor — as
-tuas, tirando a sincronização, não dependem. Se for levantado, a resposta é que
-a conta existe para sincronizar entre iPad e telemóvel e para não se perder o
-histórico ao trocar de aparelho. Se insistirem, a saída é deixar entrar em modo
-só-dispositivo.
+**A conta obrigatória — resolvido pelo jogo de experiência.** A regra 5.1.1(v) é
+hoje o motivo de rejeição mais frequente da App Store, e tem dois padrões: criar
+conta sem poder apagá-la, e obrigar a registar antes de usar funcionalidades que
+não dependem de conta.
+
+> *Users should be allowed to access non account-based features before
+> registration and login.*
+
+O primeiro já estava resolvido. O segundo passou a estar: no ecrã de início de
+sessão há **"Experimentar sem criar conta"**, que monta uma equipa fictícia e
+abre um jogo a sério — o mesmo código, o mesmo relógio, as mesmas estatísticas.
+Quem experimenta joga do princípio ao fim e vê o resumo com os tempos de cada
+jogador. Só então aparece o convite a criar conta, com o argumento à vista: o que
+acabou de fazer desaparece se sair, e com conta ficaria guardado.
+
+Nada disto sobe para servidor nenhum — sem sessão iniciada a fila não tem para
+onde enviar — e ao sair é apagado por identificador, um a um, sem tocar em dados
+reais que estejam no mesmo aparelho. Dois testes cobrem as duas coisas.
+
+Nas notas da revisão vale a pena acrescentar: *"The core functionality (live
+match tracking, timing, substitutions, statistics) is fully available without an
+account via 'Experimentar sem criar conta' on the login screen. An account is
+only required to persist history across devices."*
 
 ---
 
-## 7. Fazer isto pelo terminal, em vez de clicar
+## 8. Fazer isto pelo terminal, em vez de clicar
 
 Quase tudo o que está aqui em cima pode ser feito por linha de comandos com o
 [`asc`](https://github.com/rorkai/App-Store-Connect-CLI) — um programa único, sem
@@ -230,7 +287,7 @@ trata de tudo o resto sem sair do terminal.
 
 ---
 
-## 8. Ordem de trabalhos
+## 9. Ordem de trabalhos
 
 1. Correr a migração `0005` no Supabase.
 2. Criar e encher a conta de demonstração.

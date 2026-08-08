@@ -22,6 +22,7 @@ import { fmt } from '@/domain/clock.js';
 import { MATCH_STATUS, POSITION_LABEL, HOME_AWAY_LABEL } from '@/domain/constants.js';
 import { clubShort, opponentShort, dateLabel } from '@/lib/format.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
+import { emDemo, limparDemo } from '@/lib/demo.js';
 
 export default function SummaryPage() {
   return (
@@ -61,6 +62,9 @@ function Resumo() {
 
   const { match, state, club, team, competition } = dados;
   const pp = powerPlayTotals(state, state.elapsedMatchMs);
+  // O convite a criar conta só aparece no fim do jogo de experiência, e só
+  // depois de ele ter mesmo acabado: a meio ainda não há nada para mostrar.
+  const demo = emDemo() && state.status === MATCH_STATUS.FINISHED;
 
   /** Quando é que se jogou com guarda-redes avançado, e por quanto tempo. */
   function verPowerPlays() {
@@ -114,6 +118,14 @@ function Resumo() {
     carregar();
   }
 
+  /** Sair da experiência: os dados fictícios não ficam no aparelho. */
+  async function sairDaDemo() {
+    await limparDemo();
+    router.replace(rotas.login());
+  }
+
+  const criarConta = sairDaDemo;
+
   function verPeriodos(s) {
     ui.open((close) => (
       <Dialog title={`#${s.number} ${s.name}`} onClose={() => close(null)}>
@@ -141,6 +153,32 @@ function Resumo() {
 
   return (
     <>
+      {/* Fim do jogo de experiência: é aqui que se vê o que a app produz, e
+          portanto é aqui que faz sentido convidar a criar conta. Com uma saída
+          ao lado — prender alguém num ecrã é a melhor forma de o perder. */}
+      {demo ? (
+        <div className="card demo-cta">
+          <h2 className="page__title">Foi isto que a app fez</h2>
+          <p>
+            Todos estes números saíram do jogo que acabou de apontar: quanto tempo cada jogador
+            esteve em campo, quantas vezes entrou, quem marcou e quando. Numa época inteira, é este
+            histórico que responde a quem jogou a menos.
+          </p>
+          <p className="muted">
+            Este jogo era de treino, com uma equipa inventada, e desaparece quando sair. Com conta,
+            fica guardado e aparece no iPad e no telemóvel.
+          </p>
+          <div className="demo-cta__actions">
+            <button className="btn btn--primary btn--big" onClick={criarConta}>
+              Criar conta e guardar os meus jogos
+            </button>
+            <button className="btn btn--ghost" onClick={sairDaDemo}>
+              Agora não
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <PageHead
         title={`${clubShort(club)} ${state.teamScore} — ${state.opponentScore} ${opponentShort(match)}`}
         subtitle={[
