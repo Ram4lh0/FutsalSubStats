@@ -167,27 +167,27 @@ código.
 - `append_match_event` passou a ter execução explicitamente negada a visitantes
   anónimos, em vez de depender do que estivesse por omissão.
 
-### Avisos do `npm audit` que ficam por fechar, e porquê
+### Dependências: zero avisos, com o Next 16
 
-Depois de correr `npm audit fix` (sem `--force`) sobram seis avisos. Nenhum
-chega ao aparelho de quem usa a app, e a decisão de os deixar é deliberada:
+`npm audit` está limpo. Chegou-se lá em agosto de 2026 com `npm audit fix
+--force`, que subiu o **Next para a 16.3.0** e baixou o `@capacitor/cli` para a
+8.4.2. Correu bem: o build passa com Turbopack e as 26 páginas saem estáticas
+como antes.
 
-| Pacote | Onde vive | Porque não é explorável aqui |
-|---|---|---|
-| `postcss` | compila o CSS durante o build | As falhas exigem CSS controlado por um atacante. O CSS é o do projeto. |
-| `sharp` | otimizador de imagens do Next | Não é usado: `images: { unoptimized: true }` com exportação estática. |
-| `uuid` (via `@capacitor/cli`) | gera o projeto iOS | Só corre na máquina de quem compila. |
+Os avisos que existiam eram todos de ferramentas de compilação — `postcss`,
+`sharp`, `nanoid`, `uuid` — nenhuma delas viaja com os ficheiros que vão para a
+Vercel. Ou seja, o risco era baixo e a subida foi um bónus, não uma urgência.
 
-O que sai do `npm run build` são ficheiros HTML, CSS e JavaScript. Nenhuma
-destas bibliotecas viaja com eles: o que corre no browser é o Next em execução,
-o React e o cliente do Supabase — e nenhum deles tem avisos.
+**Duas coisas a saber para a próxima vez:**
 
-**Não usar `npm audit fix --force`.** Instalaria o `next@16` (mudança de versão
-maior) e baixaria o `@capacitor/cli`. Já uma vez o `--force` baixou o Next 15
-para a versão 9 e partiu o projeto todo.
-
-A subida para o Next 16 é uma tarefa própria, para fazer com tempo de correr
-tudo outra vez — não a poucos dias de submeter.
+- O `--force` faz mudanças de versão maior sem perguntar. Desta vez saiu bem;
+  noutra ocasião, neste mesmo projeto, baixou o Next 15 para a versão 9 e partiu
+  tudo. Usá-lo é uma decisão, não uma correção — e a seguir corre-se sempre
+  `npm run check` e `npm run build` antes de publicar.
+- O `@capacitor/cli` (8.4.2) ficou uma versão menor atrás do `core` e do `ios`
+  (8.5.0). O `cap doctor` não se queixa e dentro da mesma versão maior costuma
+  funcionar, mas se o build do iOS no Codemagic falhar, é o primeiro sítio a
+  olhar.
 
 ---
 
