@@ -1,11 +1,16 @@
 'use client';
 
-// components/AppBar.jsx — barra de topo com o estado da sincronização.
+// components/AppBar.jsx — barra de topo.
 //
-// O indicador não é enfeite: num pavilhão sem rede, o treinador precisa de ver
-// que os dados estão guardados no dispositivo e que nada se perdeu. Quando falha,
-// clicar mostra o que o servidor respondeu — sem isso, "erro de sincronização"
-// não ajuda ninguém a resolver nada.
+// O indicador de sincronização só aparece quando há alguma coisa a dizer: sem
+// rede, com coisas por enviar, ou em erro. Nesses casos não é enfeite — é o que
+// diz ao treinador que os dados estão guardados no dispositivo e que nada se
+// perdeu, e clicar mostra o que o servidor respondeu.
+//
+// Quando está tudo sincronizado, cala-se. Uma barra que passa o dia a anunciar
+// que está tudo bem ensina as pessoas a não olhar para ela — e no dia em que
+// tiver alguma coisa a dizer, já ninguém repara. Quem quiser confirmar tem o
+// estado na página da conta.
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -100,15 +105,17 @@ export default function AppBar() {
             </button>
           </>
         ) : null}
-        <button
-          className={`sync ${classe}`}
-          onClick={detalhes}
-          title={falhou ? 'Ver o que falhou' : ''}
-          style={{ cursor: falhou ? 'pointer' : 'default' }}
-        >
-          {estado.status}
-          {estado.pending ? ` (${estado.pending})` : ''}
-        </button>
+        {estado.status === sync.SYNC.SYNCED ? null : (
+          <button
+            className={`sync ${classe}`}
+            onClick={detalhes}
+            title={falhou ? 'Ver o que falhou' : ''}
+            style={{ cursor: falhou ? 'pointer' : 'default' }}
+          >
+            {estado.status}
+            {estado.pending ? ` (${estado.pending})` : ''}
+          </button>
+        )}
         {/* A conta tem página própria: é onde se transfere uma cópia dos dados e
             onde se apaga tudo. O "Sair" fica aqui à mão, que é o que se usa
             todos os dias. */}
