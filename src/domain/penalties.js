@@ -18,7 +18,8 @@
 //    golo sofrido pela equipa reduzida. Cada golo liberta um jogador — o da
 //    sanção mais antiga.
 
-import { PENALTY_DURATION_MS, PLAYER_MATCH_STATUS } from './constants.js';
+import { PENALTY_DURATION_MS, PLAYER_MATCH_STATUS, MAX_ON_COURT } from './constants.js';
+import { countOnCourt } from './reducer.js';
 
 export const PENALTY_STATUS = { PENDING: 'PENDING', RUNNING: 'RUNNING', DONE: 'DONE' };
 
@@ -71,18 +72,27 @@ export function openPenalties(state, clockMs, defaultDurationMs) {
 }
 
 /**
- * Enquanto uma sanção está a decorrer a equipa TEM de jogar reduzida — é esse o
- * castigo. Só se pode voltar aos cinco quando a contagem acabar ou quando um
- * golo sofrido a encurtar.
+ * Enquanto uma sanção está por cumprir a equipa tem de jogar com menos um — é
+ * esse o castigo. Mas o que fica bloqueado é UM lugar por cada sanção, não o
+ * campo inteiro.
+ *
+ * Com dois expulsos e uma das sanções já cumprida, a equipa joga com quatro:
+ * um dos lugares vazios volta a poder ser preenchido, o outro não. Comparar
+ * lugares vazios com sanções por cumprir é o que dá a resposta certa — olhar
+ * apenas para "há alguma sanção a correr?" trancava os dois.
  *
  * @returns null se pode repor, ou a mensagem a mostrar.
  */
 export function canReplaceExpelled(state, clockMs, defaultDurationMs) {
   const open = openPenalties(state, clockMs, defaultDurationMs);
+  const vazios = MAX_ON_COURT - countOnCourt(state);
+
+  // Mais lugares vazios do que sanções: sobra pelo menos um para preencher.
+  if (vazios > open.length) return null;
+
   const pending = open.find((p) => p.status === PENALTY_STATUS.PENDING);
   if (pending) return 'Comece a contagem da sanção antes de repor um jogador.';
-  const running = open.find((p) => p.status === PENALTY_STATUS.RUNNING);
-  if (running) return 'A equipa tem de jogar reduzida até a sanção terminar.';
+  if (open.length) return 'A equipa tem de jogar reduzida até a sanção terminar.';
   return null;
 }
 
