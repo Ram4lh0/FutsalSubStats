@@ -72,12 +72,19 @@ function Dashboard() {
     toast('Backup transferido.', 'ok');
   }
 
-  async function restaurar() {
+  /**
+   * Trazer para esta conta um ficheiro exportado noutra (ou noutro aparelho).
+   *
+   * É o caminho oficial para mudar de conta: a base deste aparelho pertence a
+   * quem está lá dentro, por isso passar dados de uma conta para outra faz-se
+   * por ficheiro, não deixando os dados ficarem para trás no browser.
+   */
+  async function importar() {
     const raw = await pickFile('application/json');
     if (!raw) return;
     const ok = await confirmar(
-      'Restaurar substitui todos os dados existentes neste dispositivo. Continuar?',
-      { okLabel: 'Restaurar' }
+      'Importar substitui todos os dados desta conta neste dispositivo pelos do ficheiro. Continuar?',
+      { okLabel: 'Importar' }
     );
     if (!ok) return;
     try {
@@ -87,12 +94,12 @@ function Dashboard() {
       const enviados = await sync.flush(userId, user?.email);
       toast(
         enviados
-          ? 'Dados restaurados e sincronizados.'
-          : 'Dados restaurados. A sincronização continua em segundo plano.',
+          ? 'Dados importados e sincronizados.'
+          : 'Dados importados. A sincronização continua em segundo plano.',
         'ok'
       );
     } catch (e) {
-      toast(`Falha ao restaurar: ${e.message}`, 'error');
+      toast(`Falha ao importar: ${e.message}`, 'error');
     }
   }
 
@@ -131,8 +138,8 @@ function Dashboard() {
               <button className="btn btn--ghost" onClick={backup}>
                 Backup
               </button>
-              <button className="btn btn--ghost" onClick={restaurar}>
-                Restaurar
+              <button className="btn btn--ghost" onClick={importar}>
+                Importar
               </button>
               <button className="btn btn--ghost" onClick={limparDispositivo}>
                 Limpar este dispositivo

@@ -374,7 +374,7 @@ test('a demonstração monta uma equipa jogável e apaga-se só a si própria', 
   // Dados reais de alguém que usou a app e saiu da conta: não podem ser tocados.
   const meuClube = await clubs.create({ name: 'O meu clube a sério' });
 
-  const matchId = await iniciarDemo();
+  const { matchId } = await iniciarDemo();
   assert.equal(matchId, DEMO.jogo);
 
   const jogo = await matches.get(matchId);
@@ -502,4 +502,39 @@ test('com a sessão certa, o envio segue como sempre', async () => {
   const { pushed } = await push(UTILIZADOR, 'treinador@exemplo.pt');
   assert.ok(pushed > 0);
   assert.equal(servidor.tabelas.profiles.length, 1);
+});
+
+test('a base deste aparelho é de uma conta de cada vez', async () => {
+  // O erro: a base do browser sobrevive ao logout. Quem saísse da conta e
+  // abrisse a demonstração via a sua equipa misturada com a fictícia.
+  await limpar();
+  const { garantirDono, DONO_DEMO, donoAtual } = await import('../src/lib/data/owner.js');
+
+  // Conta A cria um clube neste aparelho.
+  await garantirDono('conta-A');
+  const meu = await clubs.create({ name: 'O meu clube' });
+  assert.equal(donoAtual(), 'conta-A');
+
+  // A demonstração é outro dono: a base é limpa antes de começar.
+  const r = await garantirDono(DONO_DEMO);
+  assert.equal(r.trocou, true);
+  assert.equal((await clubs.get(meu.id)) ?? null, null, 'o clube da conta A saiu daqui');
+  assert.equal(donoAtual(), DONO_DEMO);
+
+  // E voltar a entrar na conta A limpa outra vez o que a demonstração deixou.
+  await clubs.create({ id: '00000000-dem0-4000-8000-000000000001', name: 'FC Demonstração' });
+  const r2 = await garantirDono('conta-A');
+  assert.equal(r2.trocou, true);
+  assert.equal((await clubs.list()).length, 0, 'a base fica vazia à espera do servidor');
+});
+
+test('o mesmo dono a voltar não perde nada', async () => {
+  await limpar();
+  const { garantirDono } = await import('../src/lib/data/owner.js');
+  await garantirDono('conta-A');
+  const meu = await clubs.create({ name: 'O meu clube' });
+
+  const r = await garantirDono('conta-A');
+  assert.equal(r.trocou, false);
+  assert.ok(await clubs.get(meu.id), 'continua tudo onde estava');
 });

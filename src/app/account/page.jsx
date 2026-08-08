@@ -19,6 +19,7 @@ import * as sync from '@/lib/data/sync.js';
 import { clubs, dump, markAllPending } from '@/lib/data/repository.js';
 import { downloadJson } from '@/lib/data/exporter.js';
 import { rotas } from '@/lib/routes.js';
+import { esquecerDono } from '@/lib/data/owner.js';
 
 export default function AccountPage() {
   return (
@@ -75,8 +76,10 @@ function Conta() {
         toast(error, 'error');
         return;
       }
-      // A conta deixou de existir: o que está guardado aqui não pode ficar.
+      // A conta deixou de existir: o que está guardado aqui não pode ficar, e o
+      // aparelho deixa de ter dono — o próximo a entrar começa do zero.
       await db.clearAll();
+      esquecerDono();
       toast('Conta apagada.', 'ok');
       router.replace(rotas.login());
     } catch (e) {

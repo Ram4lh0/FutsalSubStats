@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from '@/lib/auth.jsx';
 import { UIProvider } from '@/lib/ui.jsx';
 import { supabase } from '@/lib/supabase/client.js';
 import * as sync from '@/lib/data/sync.js';
+import { garantirDono } from '@/lib/data/owner.js';
 
 export default function Providers({ children }) {
   return (
@@ -73,6 +74,10 @@ function SyncBridge() {
       return sincronizar();
     };
     (async () => {
+      // A base deste aparelho é de uma conta de cada vez. Se a última a usá-lo
+      // foi outra — ou o jogo de experiência —, é limpa antes de qualquer
+      // leitura, para as duas não se misturarem no ecrã.
+      await garantirDono(userId);
       // Primeiro trazer o que existe lá em cima (dispositivo novo, ou jogos
       // criados noutro), depois empurrar o que ficou por enviar aqui.
       if (vivo) await atualizar();

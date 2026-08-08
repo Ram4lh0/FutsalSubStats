@@ -40,7 +40,16 @@ export default function LoginPage() {
     if (aMontar) return;
     setAMontar(true);
     try {
-      const matchId = await iniciarDemo();
+      const { matchId, limpou, perdidas } = await iniciarDemo();
+      if (limpou) {
+        toast(
+          perdidas
+            ? `Os dados da conta anterior saíram deste aparelho — ${perdidas} por enviar ficaram para trás. Estão na conta se já tinham subido.`
+            : 'Os dados da conta anterior saíram deste aparelho. Continuam guardados na conta.',
+          'ok',
+          7000
+        );
+      }
       router.push(rotas.jogoPreparar(matchId));
     } catch (e) {
       setAMontar(false);
