@@ -198,7 +198,7 @@ workflows:
 
       email:
         recipients:
-          - stef@junitec.pt
+          - review.futsalsubstats@gmail.com
         notify:
           success: true
           failure: true

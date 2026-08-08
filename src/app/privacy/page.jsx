@@ -14,7 +14,7 @@ import PageHead from '@/components/PageHead.jsx';
 import { rotas } from '@/lib/routes.js';
 
 const ATUALIZADA = '8 de agosto de 2026';
-const CONTACTO = 'stef@junitec.pt';
+const CONTACTO = 'review.futsalsubstats@gmail.com';
 
 export default function PrivacyPage() {
   const router = useRouter();
