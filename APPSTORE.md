@@ -9,10 +9,17 @@ Antes disto, o TestFlight: ver `TESTFLIGHT.md`.
 
 ## 1. Antes de submeter, correr no Supabase
 
-`supabase/migrations/0005_apagar_conta.sql`
+```
+supabase/migrations/0005_apagar_conta.sql
+supabase/migrations/0006_apagar_conta_por_ordem.sql
+```
 
-Cria a função que apaga a conta. **Sem ela o botão na app dá erro**, e um botão
-de apagar conta que não apaga é rejeição garantida — vão testá-lo.
+As duas, por esta ordem. A `0006` corrige a `0005`, que contava com as cascatas
+da base de dados e não chegava — há sete chaves a apontar para dentro da corrente
+sem cascata, algumas de propósito.
+
+**Sem isto o botão na app dá erro**, e um botão de apagar conta que não apaga é
+rejeição garantida: vão testá-lo.
 
 ---
 
@@ -24,8 +31,17 @@ conseguimos avaliar a funcionalidade" é dos motivos de rejeição mais comuns.
 
 A conta é a **`review.futsalsubstats@gmail.com`**.
 
-1. Cria-a pela app, normalmente. A palavra-passe vai ser escrita no formulário
-   da Apple, por isso que sirva só para isto.
+> **A palavra-passe não entra no repositório.** Nem em ficheiro, nem em
+> comentário. Vive em dois sítios: no teu gestor de palavras-passe e no campo
+> *Password* em App Store Connect. Que sirva só para isto — vai ser escrita num
+> formulário e lida por pessoas que não conheces.
+
+> **Contar que a conta seja apagada.** Quem revê vai carregar no botão de apagar
+> a conta, para confirmar que faz o que diz. E faz: a conta desaparece. Se houver
+> uma segunda submissão, é criá-la outra vez e voltar a correr o script — dois
+> minutos.
+
+1. Cria-a pela app, normalmente.
 2. Confirma o email.
 3. Corre `supabase/scripts/conta_de_demonstracao.sql` — já tem o email lá
    dentro. Fica com um clube, dois escalões, dez jogadores, duas competições, um
