@@ -7,7 +7,7 @@
 // fácil não é carregar por engano: pede-se o email escrito à mão, que é
 // deliberadamente chato de fazer sem querer.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Pagina from '@/components/Pagina.jsx';
 import PageHead from '@/components/PageHead.jsx';
@@ -16,7 +16,7 @@ import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import * as db from '@/lib/data/local.js';
 import * as sync from '@/lib/data/sync.js';
-import { clubs, dump } from '@/lib/data/repository.js';
+import { clubs, dump, markAllPending } from '@/lib/data/repository.js';
 import { downloadJson } from '@/lib/data/exporter.js';
 import { rotas } from '@/lib/routes.js';
 
@@ -31,9 +31,22 @@ export default function AccountPage() {
 function Conta() {
   const router = useRouter();
   const { toast, confirmar } = useUI();
-  const { user, deleteAccount, signOut } = useAuth();
+  const { user, userId, deleteAccount, signOut } = useAuth();
   const [confirmacao, setConfirmacao] = useState('');
   const [aApagar, setAApagar] = useState(false);
+  const [estado, setEstado] = useState({ status: sync.SYNC.LOCAL, pending: 0 });
+
+  useEffect(() => sync.subscribe(setEstado), []);
+
+  /**
+   * Reenviar tudo do zero. Resolve os casos em que o servidor tem metade das
+   * coisas e o dispositivo julga que já enviou o resto.
+   */
+  async function reenviarTudo() {
+    await markAllPending();
+    await sync.flush(userId, user?.email);
+    toast('A reenviar tudo.', 'ok');
+  }
 
   const email = user?.email || '';
   const podeApagar = confirmacao.trim().toLowerCase() === email.toLowerCase();
@@ -91,6 +104,50 @@ function Conta() {
           </button>
         }
       />
+
+      {/* O estado da sincronização vive aqui, e não na barra de topo: lá em cima
+          só aparece quando corre mal. Quem quiser confirmar que está tudo em
+          ordem vem cá ver — é uma pergunta que se faz de vez em quando, não a
+          toda a hora. */}
+      <div className="card">
+        <h2 className="section section--tight">Sincronização</h2>
+        <dl className="club-card__stats">
+          <div>
+            <dt>Estado</dt>
+            <dd className="small">{estado.status}</dd>
+          </div>
+          <div>
+            <dt>Por enviar</dt>
+            <dd>{estado.pending || 0}</dd>
+          </div>
+          <div>
+            <dt>Última vez</dt>
+            <dd className="small">
+              {estado.lastSyncAt
+                ? new Date(estado.lastSyncAt).toLocaleTimeString('pt-PT', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : '—'}
+            </dd>
+          </div>
+        </dl>
+        {estado.error ? (
+          <pre className="error">
+            {estado.error.message}
+            {estado.error.codigo ? `\n\ncódigo ${estado.error.codigo}` : ''}
+          </pre>
+        ) : null}
+        <div className="form__actions">
+          <button className="btn btn--ghost" onClick={reenviarTudo}>
+            Reenviar tudo
+          </button>
+          <span className="toolbar__spacer" />
+          <button className="btn btn--ghost" onClick={() => sync.flush(userId, user?.email)}>
+            Sincronizar agora
+          </button>
+        </div>
+      </div>
 
       <div className="card">
         <h2 className="section">Os teus dados</h2>
