@@ -8,6 +8,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase, hasRemote } from './supabase/client.js';
+import * as sync from './data/sync.js';
 
 const AuthContext = createContext(null);
 
@@ -63,6 +64,10 @@ export function AuthProvider({ children }) {
       },
 
       async signOut() {
+        // A fila pára ANTES de a sessão morrer: um reenvio agendado sem sessão
+        // não tem nada que fazer, e o erro que produzia aparecia ao utilizador
+        // já no ecrã de entrada.
+        sync.stop();
         const sb = supabase();
         if (sb) await sb.auth.signOut();
         setSession(null);

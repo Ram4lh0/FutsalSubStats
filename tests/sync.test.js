@@ -472,3 +472,34 @@ test('sem escalão onde encaixar, o jogo inteiro fica para trás em vez de subir
   );
   assert.equal(servidor.tabelas.clubs.length, 1, 'mas o resto da fila passa');
 });
+
+test('sair da conta não faz o envio escrever com uma sessão que já não existe', async () => {
+  // O erro que aparecia sempre ao carregar em Sair: a fila corre de poucos em
+  // poucos segundos, e uma dessas passagens apanhava o utilizador a sair. Quando
+  // chegava ao servidor a sessão já não existia, e a segurança por linha recusava
+  // a primeira escrita — o perfil.
+  await limpar();
+  const servidor = servidorFalso();
+  // Um servidor que sabe de quem é a sessão, como o Supabase a sério.
+  servidor.auth = { getSession: async () => ({ data: { session: null } }) };
+  setRemote(servidor);
+  await cenario();
+
+  const { pushed } = await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(pushed, 0, 'sem sessão, não se escreve nada');
+  assert.equal(servidor.tabelas.profiles.length, 0, 'nem sequer o perfil');
+});
+
+test('com a sessão certa, o envio segue como sempre', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  servidor.auth = {
+    getSession: async () => ({ data: { session: { user: { id: UTILIZADOR } } } }),
+  };
+  setRemote(servidor);
+  await cenario();
+
+  const { pushed } = await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.ok(pushed > 0);
+  assert.equal(servidor.tabelas.profiles.length, 1);
+});

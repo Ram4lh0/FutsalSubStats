@@ -666,7 +666,7 @@ function Live() {
   // primeira parte, que já foi encerrada. A única saída é começar a segunda.
   if (state.status === MATCH_STATUS.HALFTIME) {
     return (
-      <div className="live">
+      <div className="live live--pause">
         <header className="live__head live__head--halftime">
           <Scoreboard
             state={state}
@@ -756,10 +756,11 @@ function Live() {
         </div>
       </header>
 
-      <Court state={state} sel={sel} clockMs={clockMs} penaltyMs={penaltyMs()} on={on} />
-
-      {/* Faixa própria por baixo do campo: assim a contagem não tapa jogadores. */}
+      {/* Entre o marcador e o campo: a contagem da sanção decide substituições e
+          não pode ficar abaixo da dobra, à espera que alguém deslize para a ver. */}
       <Penalties state={state} clockMs={clockMs} penaltyMs={penaltyMs()} on={on} />
+
+      <Court state={state} sel={sel} clockMs={clockMs} penaltyMs={penaltyMs()} on={on} />
 
       <Bench state={state} sel={sel} clockMs={clockMs} on={on} />
 
