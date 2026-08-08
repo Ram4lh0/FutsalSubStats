@@ -166,7 +166,7 @@ function Resumo() {
           </p>
           <p className="muted">
             Este jogo era de treino, com uma equipa inventada, e desaparece quando sair. Com conta,
-            fica guardado e aparece no iPad e no telemóvel.
+            todos os teus jogos ficam guardados e tens acesso às estatísticas da tua equipa.
           </p>
           <div className="demo-cta__actions">
             <button className="btn btn--primary btn--big" onClick={criarConta}>
