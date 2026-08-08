@@ -18,6 +18,7 @@
 // tinha dados reais guardados no aparelho não perde nada.
 
 import { clubs, teams, competitions, players, matches, squad, events } from './data/repository.js';
+import { garantirDono, DONO_DEMO } from './data/owner.js';
 import { matchCreated } from '../domain/actions.js';
 import { LOCATION, MATCH_TIMING } from '../domain/constants.js';
 
@@ -75,6 +76,10 @@ function marcar(ligado) {
  */
 export async function iniciarDemo() {
   await limparDemo();
+  // A experiência é um dono como outro qualquer: se o aparelho ainda tinha a
+  // equipa de alguém que saiu da conta, ela sai daqui antes de a demonstração
+  // começar. Misturar as duas era o erro.
+  const { trocou, perdidas } = await garantirDono(DONO_DEMO);
   marcar(true);
 
   const clube = await clubs.create({
@@ -147,7 +152,7 @@ export async function iniciarDemo() {
     })
   );
 
-  return jogo.id;
+  return { matchId: jogo.id, limpou: trocou, perdidas };
 }
 
 /* --------------------------------------------------------------- limpar */
