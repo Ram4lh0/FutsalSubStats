@@ -9,6 +9,7 @@ import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { clubs } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
+import { rotas } from '@/lib/routes.js';
 
 
 const VAZIO = {
@@ -56,7 +57,7 @@ export default function ClubForm({ clubId }) {
       const club = clubId ? await clubs.update(clubId, payload) : await clubs.create(payload);
       await sync.saveNow(userId, user?.email);
       toast('Clube guardado e sincronizado.', 'ok');
-      router.push(clubId ? `/clubs/${club.id}` : `/clubs/${club.id}/roster`);
+      router.push(rotas.clube(club.id));
     } catch (err) {
       toast(`Clube guardado neste dispositivo, mas ainda não subiu: ${err.message}`, 'error');
     } finally {
@@ -72,7 +73,7 @@ export default function ClubForm({ clubId }) {
     if (!ok) return;
     await clubs.archive(clubId);
     toast('Clube apagado.', 'ok');
-    router.push('/dashboard');
+    router.push(rotas.dashboard());
   }
 
   if (!pronto) return <p className="muted">A carregar…</p>;
@@ -81,7 +82,7 @@ export default function ClubForm({ clubId }) {
     <>
       <PageHead
         title={clubId ? 'Editar clube' : 'Criar clube'}
-        backTo={clubId ? `/clubs/${clubId}` : '/dashboard'}
+        backTo={clubId ? rotas.clube(clubId) : rotas.dashboard()}
       />
       <form className="card form" onSubmit={guardar}>
         <div className="form__row">

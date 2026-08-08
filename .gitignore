@@ -1,5 +1,7 @@
 node_modules/
 .next/
+# A pasta empacotada nasce do `next build`; não vai para o repositório.
+out/
 .env.local
 .env.vercel
 

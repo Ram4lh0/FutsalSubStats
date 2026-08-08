@@ -35,10 +35,10 @@ export default function MatchList({ entries, competitions = [], backPath }) {
           const r = matchResult(state);
           const destino =
             state.status === MATCH_STATUS.FINISHED
-              ? `/matches/${match.id}/summary${volta}`
+              ? comOrigem(rotas.jogoResumo(match.id), { atras: backPath })
               : state.status === MATCH_STATUS.DRAFT || state.status === MATCH_STATUS.READY
-                ? `/matches/${match.id}/setup`
-                : `/matches/${match.id}/live`;
+                ? rotas.jogoPreparar(match.id)
+                : rotas.jogoAoVivo(match.id);
           return (
             // A linha inteira abre o jogo: um alvo grande é mais fácil de
             // acertar com o polegar do que um botão ao fundo da linha.

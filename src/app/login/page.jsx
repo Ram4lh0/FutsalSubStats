@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth.jsx';
 import { useUI } from '@/lib/ui.jsx';
+import { rotas } from '@/lib/routes.js';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function LoginPage() {
   // Já com sessão (ou sem servidor configurado), não há nada a fazer aqui.
   useEffect(() => {
     if (!ready) return;
-    if (!remote || session) router.replace('/dashboard');
+    if (!remote || session) router.replace(rotas.dashboard());
   }, [ready, remote, session, router]);
 
   async function submeter(e) {
@@ -40,7 +41,7 @@ export default function LoginPage() {
     if (modo === 'criar') {
       toast('Conta criada. Confirme o email se lhe for pedido.', 'ok');
     }
-    router.replace('/dashboard');
+    router.replace(rotas.dashboard());
   }
 
   return (

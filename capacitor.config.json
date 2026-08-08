@@ -1,12 +1,13 @@
 {
   "appId": "com.ram4lh0.futsalsubstats",
   "appName": "FutsalSubStats",
-  "webDir": "public",
-  "server": {
-    "url": "https://futsal-lake-five.vercel.app",
-    "cleartext": false
-  },
+  "webDir": "out",
   "ios": {
-    "contentInset": "automatic"
+    "contentInset": "automatic",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
   }
 }

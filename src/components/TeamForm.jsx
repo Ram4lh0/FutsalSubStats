@@ -12,6 +12,7 @@ import { Field } from './bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { clubs, teams } from '@/lib/data/repository.js';
 import { MATCH_TIMING, MATCH_TIMING_LABEL, timingOf } from '@/domain/constants.js';
+import { rotas } from '@/lib/routes.js';
 
 const VAZIO = { name: '', shortName: '', timing: MATCH_TIMING.UNTIMED };
 
@@ -48,7 +49,7 @@ export default function TeamForm({ clubId, teamId }) {
     };
     const team = teamId ? await teams.update(teamId, payload) : await teams.create(clubId, payload);
     toast('Escalão guardado.', 'ok');
-    router.push(teamId ? `/clubs/${clubId}/teams/${team.id}` : `/clubs/${clubId}`);
+    router.push(teamId ? rotas.escalao(clubId, team.id) : rotas.clube(clubId));
   }
 
   async function eliminar() {
@@ -59,7 +60,7 @@ export default function TeamForm({ clubId, teamId }) {
     if (!ok) return;
     await teams.remove(teamId);
     toast('Escalão apagado.', 'ok');
-    router.push(`/clubs/${clubId}`);
+    router.push(rotas.clube(clubId));
   }
 
   if (!pronto) return <p className="muted">A carregar…</p>;
@@ -69,7 +70,7 @@ export default function TeamForm({ clubId, teamId }) {
       <PageHead
         title={teamId ? 'Editar escalão' : 'Criar escalão'}
         subtitle={club?.name}
-        backTo={teamId ? `/clubs/${clubId}/teams/${teamId}` : `/clubs/${clubId}`}
+        backTo={teamId ? rotas.escalao(clubId, teamId) : rotas.clube(clubId)}
       />
       <form className="card form" onSubmit={guardar}>
         <div className="form__row">

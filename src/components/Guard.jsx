@@ -9,13 +9,14 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth.jsx';
+import { rotas } from '@/lib/routes.js';
 
 export default function Guard({ children }) {
   const router = useRouter();
   const { ready, session, remote } = useAuth();
 
   useEffect(() => {
-    if (ready && remote && !session) router.replace('/login');
+    if (ready && remote && !session) router.replace(rotas.login());
   }, [ready, remote, session, router]);
 
   if (!ready) return <p className="muted" style={{ padding: 20 }}>A carregar…</p>;

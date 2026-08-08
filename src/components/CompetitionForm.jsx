@@ -8,6 +8,7 @@ import PageHead from './PageHead.jsx';
 import { Field } from './bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { teams, competitions } from '@/lib/data/repository.js';
+import { rotas } from '@/lib/routes.js';
 
 const VAZIO = { name: '', shortName: '' };
 
@@ -17,7 +18,7 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
   const [team, setTeam] = useState(null);
   const [form, setForm] = useState(VAZIO);
   const [pronto, setPronto] = useState(!competitionId);
-  const base = `/clubs/${clubId}/teams/${teamId}`;
+  const base = rotas.escalao(clubId, teamId);
 
   useEffect(() => {
     (async () => {
@@ -42,7 +43,7 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
     if (competitionId) await competitions.update(competitionId, payload);
     else await competitions.create(teamId, payload);
     toast('Competição guardada.', 'ok');
-    router.push(`${base}/competitions`);
+    router.push(rotas.competicoes(clubId, teamId));
   }
 
   async function eliminar() {
@@ -53,7 +54,7 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
     if (!ok) return;
     await competitions.remove(competitionId);
     toast('Competição apagada.', 'ok');
-    router.push(`${base}/competitions`);
+    router.push(rotas.competicoes(clubId, teamId));
   }
 
   if (!pronto) return <p className="muted">A carregar…</p>;
@@ -63,7 +64,7 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
       <PageHead
         title={competitionId ? 'Editar competição' : 'Criar competição'}
         subtitle={team?.name}
-        backTo={`${base}/competitions`}
+        backTo={rotas.competicoes(clubId, teamId)}
       />
       <form className="card form" onSubmit={guardar}>
         <div className="form__row">

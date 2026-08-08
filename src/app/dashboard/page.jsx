@@ -22,6 +22,7 @@ import { downloadJson, pickFile } from '@/lib/data/exporter.js';
 import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
 import { dayLabel } from '@/lib/format.js';
+import { rotas } from '@/lib/routes.js';
 
 export default function DashboardPage() {
   return (
@@ -133,7 +134,7 @@ function Dashboard() {
             <button className="btn btn--ghost" onClick={limparDispositivo}>
               Limpar este dispositivo
             </button>
-            <button className="btn btn--primary" onClick={() => router.push('/clubs/new')}>
+            <button className="btn btn--primary" onClick={() => router.push(rotas.clubeNovo())}>
               Criar clube
             </button>
           </>
@@ -148,7 +149,7 @@ function Dashboard() {
           </div>
           <button
             className="btn btn--primary"
-            onClick={() => router.push(`/matches/${live.id}/live`)}
+            onClick={() => router.push(rotas.jogoAoVivo(live.id))}
           >
             Retomar jogo
           </button>
@@ -160,7 +161,7 @@ function Dashboard() {
       ) : !cartoes.length ? (
         <div className="empty">
           <p>Ainda não existe nenhum clube.</p>
-          <button className="btn btn--primary" onClick={() => router.push('/clubs/new')}>
+          <button className="btn btn--primary" onClick={() => router.push(rotas.clubeNovo())}>
             Criar o primeiro clube
           </button>
         </div>
@@ -176,7 +177,7 @@ function Dashboard() {
                 className="card__edit"
                 title="Editar clube"
                 aria-label={`Editar ${club.name}`}
-                onClick={() => router.push(`/clubs/${club.id}/edit`)}
+                onClick={() => router.push(rotas.clubeEditar(club.id))}
               >
                 Editar
               </button>
@@ -211,7 +212,7 @@ function Dashboard() {
                 </div>
               </dl>
               <div className="club-card__actions">
-                <button className="btn btn--primary" onClick={() => router.push(`/clubs/${club.id}`)}>
+                <button className="btn btn--primary" onClick={() => router.push(rotas.clube(club.id))}>
                   Abrir clube
                 </button>
               </div>

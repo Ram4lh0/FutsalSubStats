@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import * as sync from '@/lib/data/sync.js';
 import { markAllPending } from '@/lib/data/repository.js';
+import { rotas } from '@/lib/routes.js';
 
 export default function AppBar() {
   const router = useRouter();
@@ -75,7 +76,7 @@ export default function AppBar() {
 
   return (
     <header className="appbar">
-      <button className="appbar__brand" onClick={() => router.push('/dashboard')}>
+      <button className="appbar__brand" onClick={() => router.push(rotas.dashboard())}>
         ⚽ <span>Futsal ao Vivo</span>
       </button>
       <span className="appbar__spacer" />
@@ -94,7 +95,7 @@ export default function AppBar() {
             className="btn btn--ghost btn--tiny"
             onClick={async () => {
               await signOut();
-              router.push('/login');
+              router.push(rotas.login());
             }}
           >
             Sair
