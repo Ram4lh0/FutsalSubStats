@@ -19,6 +19,7 @@ import {
 } from '@/lib/data/repository.js';
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
 import { rotas } from '@/lib/routes.js';
+import useSoLeitura from '@/lib/useSoLeitura.js';
 
 // Quem exige a conta iniciada é agora o `Pagina`, que envolve todas as páginas.
 export default function TeamShell({ clubId, teamId, children }) {
@@ -32,6 +33,7 @@ export default function TeamShell({ clubId, teamId, children }) {
 function Shell({ clubId, teamId, children }) {
   const router = useRouter();
   const [dados, setDados] = useState(null);
+  const soLeitura = useSoLeitura();
 
   const carregar = useCallback(async () => {
     const team = await teams.get(teamId);
@@ -80,17 +82,22 @@ function Shell({ clubId, teamId, children }) {
           .join(' · ')}
         backTo={rotas.clube(clubId)}
         actions={
-          <>
-            <button
-              className="btn btn--ghost"
-              onClick={() => router.push(rotas.escalaoEditar(clubId, teamId))}
-            >
-              Editar escalão
-            </button>
-            <button className="btn btn--primary" onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}>
-              Novo jogo
-            </button>
-          </>
+          soLeitura ? null : (
+            <>
+              <button
+                className="btn btn--ghost"
+                onClick={() => router.push(rotas.escalaoEditar(clubId, teamId))}
+              >
+                Editar escalão
+              </button>
+              <button
+                className="btn btn--primary"
+                onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}
+              >
+                Novo jogo
+              </button>
+            </>
+          )
         }
       />
       <Tabs items={abas} />

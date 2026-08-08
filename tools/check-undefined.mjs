@@ -119,6 +119,16 @@ for (const f of alvos) {
         if (no.param) nomesDe(no.param).forEach((n) => declarados.add(n)); break;
       case 'LabeledStatement':
         declarados.add(no.label.name); break;
+      // `<Empty>` é uma referência a uma variável tanto como `Empty(...)`, mas o
+      // analisador dá-lhe outro tipo de nó — e por isso escapava. Só contam os
+      // que começam por maiúscula: `<div>` é uma etiqueta de HTML, não um nome.
+      case 'JSXIdentifier': {
+        if (!pai || (pai.type !== 'JSXOpeningElement' && pai.type !== 'JSXClosingElement')) return;
+        if (!/^[A-Z]/.test(no.name)) return;
+        if (!usados.has(no.name)) usados.set(no.name, no.loc?.start.line ?? 0);
+        break;
+      }
+
       case 'Identifier': {
         if (!pai) return;
         // Nomes que não são referências a variáveis: o que vem depois de um

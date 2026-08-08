@@ -16,6 +16,7 @@ import { fmt } from '@/domain/clock.js';
 import { FOOT, FOOT_LABEL, normalizePosition } from '@/domain/constants.js';
 import { dayLabel, positionLabel } from '@/lib/format.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
+import useSoLeitura from '@/lib/useSoLeitura.js';
 
 const VAZIO = {
   matches: 0, courtMs: 0, goals: 0, assists: 0, goalShare: 0, concededShare: 0,
@@ -34,6 +35,7 @@ function Ficha() {
   const { clubId, teamId, playerId } = useRouteParams();
   const router = useRouter();
   const [dados, setDados] = useState(null);
+  const soLeitura = useSoLeitura();
 
   useEffect(() => {
     (async () => {
@@ -94,12 +96,14 @@ function Ficha() {
         ].toLowerCase()} · ${player.isActive ? 'Ativo' : 'Inativo'}`}
         backTo={rotas.plantel(clubId, teamId)}
         actions={
-          <button
-            className="btn btn--ghost"
-            onClick={() => router.push(rotas.jogadorEditar(clubId, teamId, playerId))}
-          >
-            Editar
-          </button>
+          soLeitura ? null : (
+            <button
+              className="btn btn--ghost"
+              onClick={() => router.push(rotas.jogadorEditar(clubId, teamId, playerId))}
+            >
+              Editar
+            </button>
+          )
         }
       />
 

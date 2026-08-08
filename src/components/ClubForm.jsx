@@ -5,11 +5,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHead from './PageHead.jsx';
+import { Empty } from './bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { clubs } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { rotas } from '@/lib/routes.js';
+import useSoLeitura from '@/lib/useSoLeitura.js';
 
 
 const VAZIO = {
@@ -22,6 +24,7 @@ const VAZIO = {
 
 export default function ClubForm({ clubId }) {
   const router = useRouter();
+  const soLeitura = useSoLeitura();
   const { toast, confirmar } = useUI();
   const { userId, user } = useAuth();
   const [form, setForm] = useState(VAZIO);
@@ -77,6 +80,29 @@ export default function ClubForm({ clubId }) {
   }
 
   if (!pronto) return <p className="muted">A carregar…</p>;
+
+  // Esconder o botão não chega: quem escrever o endereço à mão chega aqui à
+  // mesma. A experiência é para ver como a app funciona, não para montar uma
+  // equipa que se vai perder daqui a cinco minutos.
+  if (soLeitura) {
+    return (
+      <>
+        <PageHead title="Clube" backTo={rotas.dashboard()} />
+        <Empty
+          action={
+            <button className="btn btn--primary" onClick={() => router.push(rotas.login())}>
+              Criar conta
+            </button>
+          }
+        >
+          Isto faz parte do jogo de experiência, e por isso não se altera. Com conta, a equipa é sua
+          e muda-se à vontade.
+        </Empty>
+      </>
+    );
+  }
+
+
 
   return (
     <>

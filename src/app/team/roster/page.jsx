@@ -23,6 +23,7 @@ import {
 } from '@/domain/constants.js';
 import { positionLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
+import useSoLeitura from '@/lib/useSoLeitura.js';
 
 export default function RosterPage() {
   return (
@@ -43,6 +44,7 @@ function Conteudo() {
 
 function Roster({ team, entries, roster, clubId, teamId }) {
   const router = useRouter();
+  const soLeitura = useSoLeitura();
   const { toast } = useUI();
   const base = rotas.escalao(clubId, teamId);
   const [filtros, setFiltros] = useState({
@@ -149,16 +151,24 @@ function Roster({ team, entries, roster, clubId, teamId }) {
         >
           Exportar CSV
         </button>
-        <button className="btn btn--primary" onClick={() => router.push(rotas.jogadorNovo(clubId, teamId))}>
-          Criar jogador
-        </button>
+        {soLeitura ? null : (
+          <button
+            className="btn btn--primary"
+            onClick={() => router.push(rotas.jogadorNovo(clubId, teamId))}
+          >
+            Criar jogador
+          </button>
+        )}
       </div>
 
       {!linhas.length ? (
         <Empty
           action={
-            roster.length ? null : (
-              <button className="btn btn--primary" onClick={() => router.push(rotas.jogadorNovo(clubId, teamId))}>
+            roster.length || soLeitura ? null : (
+              <button
+                className="btn btn--primary"
+                onClick={() => router.push(rotas.jogadorNovo(clubId, teamId))}
+              >
                 Criar jogador
               </button>
             )
@@ -205,9 +215,11 @@ function Roster({ team, entries, roster, clubId, teamId }) {
                     >
                       Abrir
                     </button>
-                    <button className="btn btn--tiny btn--ghost" onClick={() => alternarAtivo(p)}>
-                      {p.isActive ? 'Desativar' : 'Ativar'}
-                    </button>
+                    {soLeitura ? null : (
+                      <button className="btn btn--tiny btn--ghost" onClick={() => alternarAtivo(p)}>
+                        {p.isActive ? 'Desativar' : 'Ativar'}
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
