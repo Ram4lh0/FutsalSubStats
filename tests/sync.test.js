@@ -410,3 +410,65 @@ test('a demonstração não sobe para o servidor', async () => {
   assert.equal(servidor.tabelas.clubs.length, 0);
   assert.equal(servidor.tabelas.match_events.length, 0);
 });
+
+test('um jogador antigo e já sincronizado não trava o envio ao ser arrastado como pai', async () => {
+  // O caso que voltou a aparecer no telemóvel: o jogador não estava pendente
+  // (já tinha subido, há meses, antes dos escalões existirem), mas foi enviado
+  // à mesma por ser pai de uma convocatória pendente. Como não estava pendente,
+  // a limpeza de sobras não lhe tocava — e o servidor recusava-o.
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao, jogador, jogo } = await cenario();
+
+  // Estado de antes: jogador sem escalão E já sincronizado.
+  await db.put(db.STORES.players, {
+    ...(await db.get(db.STORES.players, jogador.id)),
+    teamId: undefined,
+    dirty: false,
+  });
+  // A convocatória, essa, está por enviar.
+  const convocado = (await squad.listByMatch(jogo.id))[0];
+  await db.put(db.STORES.matchSquad, { ...convocado, dirty: true });
+
+  const { pushed } = await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.ok(pushed > 0, 'o envio não encrava');
+  assert.equal(servidor.tabelas.players.length, 1);
+  assert.equal(
+    servidor.tabelas.players[0].team_id,
+    escalao.id,
+    'adotado pelo escalão do clube antes de subir'
+  );
+  assert.equal(servidor.tabelas.match_squad.length, 1, 'e a convocatória sobe com ele');
+});
+
+test('sem escalão onde encaixar, o jogo inteiro fica para trás em vez de subir partido', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const clube = await clubs.create({ name: 'Clube sem escalões' });
+
+  // Um jogador e um jogo do modelo antigo, num clube que não tem escalão nenhum.
+  const orfao = { id: '11111111-2222-4333-8444-555555555555', clubId: clube.id, name: 'Antigo', shirtNumber: 3, isActive: true, dirty: false };
+  const jogoOrfao = { id: '11111111-2222-4333-8444-666666666666', clubId: clube.id, opponentName: 'X', status: 'DRAFT', dirty: false };
+  await db.put(db.STORES.players, orfao);
+  await db.put(db.STORES.matches, jogoOrfao);
+  await db.put(db.STORES.matchSquad, {
+    id: '11111111-2222-4333-8444-777777777777',
+    matchId: jogoOrfao.id,
+    playerId: orfao.id,
+    playerNameSnapshot: 'Antigo',
+    shirtNumberSnapshot: 3,
+    dirty: true,
+  });
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(servidor.tabelas.players.length, 0, 'o jogador sem escalão não sobe');
+  assert.equal(servidor.tabelas.matches.length, 0, 'nem o jogo dele');
+  assert.equal(
+    servidor.tabelas.match_squad.length,
+    0,
+    'nem a convocatória, que ficaria a apontar para o vazio'
+  );
+  assert.equal(servidor.tabelas.clubs.length, 1, 'mas o resto da fila passa');
+});

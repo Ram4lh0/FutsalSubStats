@@ -115,21 +115,26 @@ async function sanearOrfaos() {
   }
 
   let adotados = 0;
-  let deLado = 0;
+  const orfaos = { players: new Set(), matches: new Set() };
+
+  // TODAS as linhas, não só as pendentes. Um jogador antigo pode estar limpo e
+  // ser enviado à mesma, por ser pai de uma convocatória que está pendente — e
+  // era exactamente por aí que este erro voltava.
   for (const store of [db.STORES.players, db.STORES.matches]) {
-    for (const linha of await dirtyRows(store)) {
+    for (const linha of await db.all(store)) {
       if (linha.teamId) continue;
       const candidatos = porClube.get(linha.clubId) || [];
       if (candidatos.length === 1) {
-        await db.put(store, { ...linha, teamId: candidatos[0].id });
+        await db.put(store, { ...linha, teamId: candidatos[0].id, dirty: true });
         adotados += 1;
       } else {
+        // Sem escalão onde encaixar: fica guardada no dispositivo, mas não sobe.
         await db.put(store, { ...linha, dirty: false });
-        deLado += 1;
+        orfaos[store].add(linha.id);
       }
     }
   }
-  return { adotados, deLado };
+  return { adotados, orfaos };
 }
 
 /**
@@ -142,10 +147,11 @@ export async function push(userId, email) {
   if (!sb || !userId) return { pushed: 0 };
   let total = 0;
 
-  const orfaos = await sanearOrfaos();
-  if (orfaos.adotados || orfaos.deLado) {
+  const { adotados, orfaos } = await sanearOrfaos();
+  if (adotados || orfaos.players.size || orfaos.matches.size) {
     console.warn(
-      `sobras do modelo antigo: ${orfaos.adotados} adotadas por um escalão, ${orfaos.deLado} postas de lado.`
+      `sobras do modelo antigo: ${adotados} adotadas por um escalão, ` +
+        `${orfaos.players.size + orfaos.matches.size} sem escalão onde encaixar.`
     );
   }
 
@@ -166,19 +172,29 @@ export async function push(userId, email) {
   // e o jogo novo chegava ao servidor sem clube nenhum onde assentar.
   const jogadoresSujos = await dirtyRows(db.STORES.players);
   const jogosSujos = await dirtyRows(db.STORES.matches);
-  const convocadosSujos = await dirtyRows(db.STORES.matchSquad);
   const eventos = (await db.all(db.STORES.matchEvents))
     .filter((e) => !e.syncedAt)
     .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
+
+  // Uma convocatória que aponte para um jogador que não pode subir também não
+  // sobe: chegaria ao servidor sem o jogador a que se refere. O jogo fica para
+  // trás inteiro, em vez de ir pela metade.
+  const convocadosSujos = (await dirtyRows(db.STORES.matchSquad)).filter(
+    (c) => !orfaos.players.has(c.playerId) && !orfaos.matches.has(c.matchId)
+  );
 
   const jogosNecessarios = new Set([
     ...convocadosSujos.map((s) => s.matchId),
     ...eventos.map((e) => e.matchId),
   ]);
-  const jogos = await comPais(db.STORES.matches, jogosSujos, jogosNecessarios);
+  const jogos = (await comPais(db.STORES.matches, jogosSujos, jogosNecessarios)).filter(
+    (m) => m.teamId && !orfaos.matches.has(m.id)
+  );
 
   const jogadoresNecessarios = new Set(convocadosSujos.map((s) => s.playerId));
-  const jogadores = await comPais(db.STORES.players, jogadoresSujos, jogadoresNecessarios);
+  const jogadores = (await comPais(db.STORES.players, jogadoresSujos, jogadoresNecessarios)).filter(
+    (p) => p.teamId && !orfaos.players.has(p.id)
+  );
 
   // A competição é pai do jogo, e o escalão é pai de tudo o resto.
   const competicoesNecessarias = new Set(jogos.map((m) => m.competitionId).filter(Boolean));
@@ -226,8 +242,11 @@ export async function push(userId, email) {
   }
 
   // Eventos: um a um, pela função que ignora repetições. Reenviar a fila inteira
-  // depois de uma falha a meio não duplica nada.
+  // depois de uma falha a meio não duplica nada. Os de jogos que ficaram para
+  // trás esperam pela sua vez — chegariam a um jogo que o servidor não tem.
+  const jogosEnviaveis = new Set(jogos.map((m) => m.id));
   for (const ev of eventos) {
+    if (!jogosEnviaveis.has(ev.matchId)) continue;
     const { error } = await sb.rpc('append_match_event', { payload: eventMapper.toPayload(ev) });
     if (error) throw etiqueta(error, 'match_events');
     if (ev.undoneAt) {
