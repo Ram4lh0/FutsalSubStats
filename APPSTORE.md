@@ -167,6 +167,28 @@ código.
 - `append_match_event` passou a ter execução explicitamente negada a visitantes
   anónimos, em vez de depender do que estivesse por omissão.
 
+### Avisos do `npm audit` que ficam por fechar, e porquê
+
+Depois de correr `npm audit fix` (sem `--force`) sobram seis avisos. Nenhum
+chega ao aparelho de quem usa a app, e a decisão de os deixar é deliberada:
+
+| Pacote | Onde vive | Porque não é explorável aqui |
+|---|---|---|
+| `postcss` | compila o CSS durante o build | As falhas exigem CSS controlado por um atacante. O CSS é o do projeto. |
+| `sharp` | otimizador de imagens do Next | Não é usado: `images: { unoptimized: true }` com exportação estática. |
+| `uuid` (via `@capacitor/cli`) | gera o projeto iOS | Só corre na máquina de quem compila. |
+
+O que sai do `npm run build` são ficheiros HTML, CSS e JavaScript. Nenhuma
+destas bibliotecas viaja com eles: o que corre no browser é o Next em execução,
+o React e o cliente do Supabase — e nenhum deles tem avisos.
+
+**Não usar `npm audit fix --force`.** Instalaria o `next@16` (mudança de versão
+maior) e baixaria o `@capacitor/cli`. Já uma vez o `--force` baixou o Next 15
+para a versão 9 e partiu o projeto todo.
+
+A subida para o Next 16 é uma tarefa própria, para fazer com tempo de correr
+tudo outra vez — não a poucos dias de submeter.
+
 ---
 
 ## 7. O que ainda pesa contra
