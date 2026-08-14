@@ -13,10 +13,11 @@ import { Empty } from '@/components/bits.jsx';
 import { clubs, teams, players, loadTeamMatchStates } from '@/lib/data/repository.js';
 import { clubAggregate, matchStatsTable } from '@/domain/stats.js';
 import { fmt } from '@/domain/clock.js';
-import { FOOT, FOOT_LABEL, normalizePosition } from '@/domain/constants.js';
-import { dayLabel, positionLabel } from '@/lib/format.js';
+import { FOOT, normalizePosition } from '@/domain/constants.js';
+import { dayLabel, positionLabel, footLabel } from '@/lib/format.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import { useT } from '@/lib/i18n/index.js';
 
 const VAZIO = {
   matches: 0, courtMs: 0, goals: 0, assists: 0, goalShare: 0, concededShare: 0,
@@ -34,6 +35,7 @@ export default function PlayerPage() {
 function Ficha() {
   const { clubId, teamId, playerId } = useRouteParams();
   const router = useRouter();
+  const t = useT();
   const [dados, setDados] = useState(null);
   const soLeitura = useSoLeitura();
 
@@ -64,8 +66,8 @@ function Ficha() {
     })();
   }, [clubId, teamId, playerId]);
 
-  if (!dados) return <p className="muted">A carregar…</p>;
-  if (!dados.player) return <Empty>Jogador não encontrado.</Empty>;
+  if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
+  if (!dados.player) return <Empty>{t('ficha.naoEncontrado')}</Empty>;
 
   const { player, club, team, meus, agg } = dados;
   const guardaRedes = normalizePosition(player.preferredPosition) === 'GOALKEEPER' || agg.conceded > 0;
@@ -73,27 +75,32 @@ function Ficha() {
   // Uma linha só, como na tabela geral: as mesmas categorias, sem repetir o nome
   // e o número que já estão no cabeçalho da página.
   const resumo = [
-    ['Jogos', agg.matches],
-    ['Golos', agg.goals],
-    ['Assist.', agg.assists],
-    ['Part. golos', agg.goalShare],
-    ['Part. sofridos', agg.concededShare],
-    ...(guardaRedes ? [['Sofridos', agg.conceded]] : []),
-    ['Faltas', agg.fouls],
-    ['Sofridas', agg.foulsSuffered],
-    ['Amarelos', agg.yellows],
-    ['Vermelhos', agg.reds],
-    ['Tempo de jogo', fmt(agg.courtMs)],
-    ['Média/jogo', fmt(agg.avgCourtPerMatchMs)],
+    [t('stats.jogos'), agg.matches],
+    [t('stats.golos'), agg.goals],
+    [t('stats.assistencias'), agg.assists],
+    [t('ficha.partGolos'), agg.goalShare],
+    [t('ficha.partSofridos'), agg.concededShare],
+    ...(guardaRedes ? [[t('stats.sofridos'), agg.conceded]] : []),
+    [t('stats.faltas'), agg.fouls],
+    [t('stats.faltasSofridas'), agg.foulsSuffered],
+    [t('stats.amarelos'), agg.yellows],
+    [t('stats.vermelhos'), agg.reds],
+    [t('ficha.tempoDeJogo'), fmt(agg.courtMs)],
+    [t('stats.mediaPorJogo'), fmt(agg.avgCourtPerMatchMs)],
   ];
 
   return (
     <>
       <PageHead
         title={`#${player.shirtNumber} ${player.name}`}
-        subtitle={`${[club?.name, team?.name].filter(Boolean).join(' · ')} · ${positionLabel(player.preferredPosition)} · pé ${FOOT_LABEL[
-          player.strongFoot || FOOT.UNKNOWN
-        ].toLowerCase()} · ${player.isActive ? 'Ativo' : 'Inativo'}`}
+        subtitle={t('ficha.subtitulo', {
+          clube: [club?.name, team?.name].filter(Boolean).join(' · '),
+          posicao: positionLabel(player.preferredPosition),
+          pe: footLabel(player.strongFoot || FOOT.UNKNOWN).toLowerCase(),
+          estado: player.isActive
+            ? t('plantel.etiquetaAtivo')
+            : t('plantel.etiquetaInativo'),
+        })}
         backTo={rotas.plantel(clubId, teamId)}
         actions={
           soLeitura ? null : (
@@ -101,7 +108,7 @@ function Ficha() {
               className="btn btn--ghost"
               onClick={() => router.push(rotas.jogadorEditar(clubId, teamId, playerId))}
             >
-              Editar
+              {t('comum.editar')}
             </button>
           )
         }
@@ -128,24 +135,34 @@ function Ficha() {
         </tbody>
       </DataTable>
 
-      <h2 className="section">Histórico de jogos</h2>
+      <h2 className="section">{t('ficha.historico')}</h2>
       {!meus.length ? (
-        <Empty>Este jogador ainda não foi convocado.</Empty>
+        <Empty>{t('ficha.semConvocatorias')}</Empty>
       ) : (
         <DataTable>
           <thead>
             <tr>
-              <th>Data</th>
-              <th>Adversário</th>
-              <th className="num">Resultado</th>
-              <th className="num" title="Golos">G</th>
-              <th className="num" title="Assistências">A</th>
+              <th>{t('lista.data')}</th>
+              <th>{t('lista.adversario')}</th>
+              <th className="num">{t('lista.resultado')}</th>
+              <th className="num" title={t('stats.golos')}>
+                {t('ficha.golosCurto')}
+              </th>
+              <th className="num" title={t('ficha.assistencias')}>
+                {t('ficha.assistCurto')}
+              </th>
               {guardaRedes ? (
-                <th className="num" title="Golos sofridos à baliza">GS</th>
+                <th className="num" title={t('stats.sofridosTitulo')}>
+                  {t('ficha.sofridosCurto')}
+                </th>
               ) : null}
-              <th className="num" title="Cartões amarelos">Am</th>
-              <th className="num" title="Cartões vermelhos">Vm</th>
-              <th className="num">Em campo</th>
+              <th className="num" title={t('ficha.cartoesAmarelos')}>
+                {t('ficha.amarelosCurto')}
+              </th>
+              <th className="num" title={t('ficha.cartoesVermelhos')}>
+                {t('ficha.vermelhosCurto')}
+              </th>
+              <th className="num">{t('ficha.emCampo')}</th>
               <th />
             </tr>
           </thead>
@@ -174,7 +191,7 @@ function Ficha() {
                       )
                     }
                   >
-                    Ver jogo
+                    {t('ficha.verJogo')}
                   </button>
                 </td>
               </tr>

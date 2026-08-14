@@ -15,15 +15,13 @@ import {
   teams,
   loadClubMatchStates,
   findLiveMatch,
-  dump,
-  restore,
 } from '@/lib/data/repository.js';
-import { downloadJson, pickFile } from '@/lib/data/exporter.js';
 import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
-import { dayLabel } from '@/lib/format.js';
+import { ultimoJogoLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function DashboardPage() {
   return (
@@ -35,6 +33,7 @@ export default function DashboardPage() {
 
 function Dashboard() {
   const router = useRouter();
+  const t = useT();
   const { toast, confirmar } = useUI();
   const { userId, user } = useAuth();
   const [cartoes, setCartoes] = useState(null);
@@ -67,42 +66,6 @@ function Dashboard() {
     return () => window.removeEventListener(sync.DATA_UPDATED_EVENT, carregar);
   }, [carregar]);
 
-  async function backup() {
-    downloadJson(`backup-futsal-${new Date().toISOString().slice(0, 10)}.json`, await dump());
-    toast('Backup transferido.', 'ok');
-  }
-
-  /**
-   * Trazer para esta conta um ficheiro exportado noutra (ou noutro aparelho).
-   *
-   * É o caminho oficial para mudar de conta: a base deste aparelho pertence a
-   * quem está lá dentro, por isso passar dados de uma conta para outra faz-se
-   * por ficheiro, não deixando os dados ficarem para trás no browser.
-   */
-  async function importar() {
-    const raw = await pickFile('application/json');
-    if (!raw) return;
-    const ok = await confirmar(
-      'Importar substitui todos os dados desta conta neste dispositivo pelos do ficheiro. Continuar?',
-      { okLabel: 'Importar' }
-    );
-    if (!ok) return;
-    try {
-      await restore(JSON.parse(raw));
-      carregar();
-      await sync.pendingCount();
-      const enviados = await sync.flush(userId, user?.email);
-      toast(
-        enviados
-          ? 'Dados importados e sincronizados.'
-          : 'Dados importados. A sincronização continua em segundo plano.',
-        'ok'
-      );
-    } catch (e) {
-      toast(`Falha ao importar: ${e.message}`, 'error');
-    }
-  }
-
   /**
    * Deitar fora o que está guardado no browser e voltar a descarregar do
    * servidor. Serve para sobras de versões antigas da app — linhas com uma forma
@@ -113,39 +76,40 @@ function Dashboard() {
     const porEnviar = await sync.pendingCount();
     const ok = await confirmar(
       porEnviar
-        ? `Há ${porEnviar} ${porEnviar === 1 ? 'alteração' : 'alterações'} por enviar. Limpar este dispositivo deita-as fora e volta a descarregar tudo o que está no servidor. O que já foi sincronizado não se perde.`
-        : 'Apaga tudo o que está guardado neste browser e volta a descarregar do servidor. O que já foi sincronizado não se perde — nem é tocado nos outros dispositivos.',
-      { okLabel: 'Limpar este dispositivo' }
+        ? t('painel.confirmaLimparComPendentes', {
+            n: porEnviar,
+            alteracoes:
+              porEnviar === 1 ? t('painel.alteracao') : t('painel.alteracoes'),
+          })
+        : t('painel.confirmaLimpar'),
+      { okLabel: t('painel.limparDispositivo') }
     );
     if (!ok) return;
     try {
       await sync.resetLocal(userId);
       await carregar();
-      toast('Dispositivo limpo e dados descarregados de novo.', 'ok');
+      toast(t('painel.limpo'), 'ok');
     } catch (e) {
-      toast(`Falha a descarregar: ${e.message}`, 'error');
+      toast(t('painel.limparFalhou', { erro: e.message }), 'error');
     }
   }
 
   return (
     <>
       <PageHead
-        title="Os meus clubes"
-        subtitle="Escolha um clube para gerir o plantel e os jogos."
+        title={t('painel.titulo')}
+        subtitle={t('painel.subtitulo')}
         actions={
           soLeitura ? null : (
             <>
-              <button className="btn btn--ghost" onClick={backup}>
-                Backup
-              </button>
-              <button className="btn btn--ghost" onClick={importar}>
-                Importar
-              </button>
+              {/* O backup e o restauro passaram para as Definições, e o plantel
+                  passou a importar-se dentro de cada escalão. Aqui em cima não
+                  havia forma de dizer para que escalão iam os jogadores. */}
               <button className="btn btn--ghost" onClick={limparDispositivo}>
-                Limpar este dispositivo
+                {t('painel.limparDispositivo')}
               </button>
               <button className="btn btn--primary" onClick={() => router.push(rotas.clubeNovo())}>
-                Criar clube
+                {t('painel.criarClube')}
               </button>
             </>
           )
@@ -155,25 +119,25 @@ function Dashboard() {
       {live ? (
         <div className="banner banner--live">
           <div>
-            <strong>Existe um jogo em curso</strong>
+            <strong>{t('painel.jogoEmCurso')}</strong>
             <p>vs {live.opponentName}</p>
           </div>
           <button
             className="btn btn--primary"
             onClick={() => router.push(rotas.jogoAoVivo(live.id))}
           >
-            Retomar jogo
+            {t('painel.retomar')}
           </button>
         </div>
       ) : null}
 
       {cartoes === null ? (
-        <p className="muted">A carregar…</p>
+        <p className="muted">{t('comum.aCarregar')}</p>
       ) : !cartoes.length ? (
         <div className="empty">
-          <p>Ainda não existe nenhum clube.</p>
+          <p>{t('painel.semClubes')}</p>
           <button className="btn btn--primary" onClick={() => router.push(rotas.clubeNovo())}>
-            Criar o primeiro clube
+            {t('painel.primeiroClube')}
           </button>
         </div>
       ) : (
@@ -187,11 +151,11 @@ function Dashboard() {
               {soLeitura ? null : (
                 <button
                   className="card__edit"
-                  title="Editar clube"
-                  aria-label={`Editar ${club.name}`}
+                  title={t('clube.editarTitulo')}
+                  aria-label={t('clube.editarNome', { nome: club.name })}
                   onClick={() => router.push(rotas.clubeEditar(club.id))}
                 >
-                  Editar
+                  {t('comum.editar')}
                 </button>
               )}
               <header className="club-card__head">
@@ -208,25 +172,25 @@ function Dashboard() {
               </header>
               <dl className="club-card__stats">
                 <div>
-                  <dt>Escalões</dt>
+                  <dt>{t('painel.escaloes')}</dt>
                   <dd>{escaloes}</dd>
                 </div>
                 <div>
-                  <dt>Jogadores ativos</dt>
+                  <dt>{t('painel.jogadoresAtivos')}</dt>
                   <dd>{ativos}</dd>
                 </div>
                 <div>
-                  <dt>Jogos registados</dt>
+                  <dt>{t('painel.jogosRegistados')}</dt>
                   <dd>{jogos}</dd>
                 </div>
                 <div>
-                  <dt>Último jogo</dt>
-                  <dd className="small">{ultimoLabel(ultimo)}</dd>
+                  <dt>{t('painel.ultimoJogo')}</dt>
+                  <dd className="small">{ultimoJogoLabel(ultimo, ultimo && matchResult(ultimo.state))}</dd>
                 </div>
               </dl>
               <div className="club-card__actions">
                 <button className="btn btn--primary" onClick={() => router.push(rotas.clube(club.id))}>
-                  Abrir clube
+                  {t('painel.abrirClube')}
                 </button>
               </div>
             </article>
@@ -235,13 +199,6 @@ function Dashboard() {
       )}
     </>
   );
-}
-
-function ultimoLabel(ultimo) {
-  if (!ultimo) return 'Sem jogos registados';
-  const r = matchResult(ultimo.state);
-  const palavra = r === 'W' ? 'Vitória' : r === 'L' ? 'Derrota' : 'Empate';
-  return `${palavra} ${ultimo.state.teamScore}–${ultimo.state.opponentScore} · ${dayLabel(ultimo.match.scheduledAt)}`;
 }
 
 function iniciais(nome) {

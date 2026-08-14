@@ -6,6 +6,7 @@
 // voltar à lista de clubes, e a casinha diz isso sem precisar de texto.
 
 import { useRouter } from 'next/navigation';
+import { useT } from '@/lib/i18n/index.js';
 
 const HOME_ICON = (
   <svg
@@ -25,6 +26,7 @@ const HOME_ICON = (
 
 export default function PageHead({ title, subtitle, backTo, homeTo, actions }) {
   const router = useRouter();
+  const t = useT();
   return (
     <header className="page__head">
       <div className="page__headmain">
@@ -32,8 +34,8 @@ export default function PageHead({ title, subtitle, backTo, homeTo, actions }) {
           <button
             className="btn btn--ghost btn--icon btn--home"
             onClick={() => router.push(homeTo)}
-            title="Os meus clubes"
-            aria-label="Os meus clubes"
+            title={t('comum.osMeusClubes')}
+            aria-label={t('comum.osMeusClubes')}
           >
             {HOME_ICON}
           </button>

@@ -20,10 +20,13 @@ import * as sync from '@/lib/data/sync.js';
 import { markAllPending } from '@/lib/data/repository.js';
 import { rotas } from '@/lib/routes.js';
 import { emDemo, limparDemo } from '@/lib/demo.js';
+import { useT } from '@/lib/i18n/index.js';
+import { syncLabel } from '@/lib/format.js';
 
 export default function AppBar() {
   const router = useRouter();
   const ui = useUI();
+  const t = useT();
   const { user, userId, remote, signOut } = useAuth();
   const [estado, setEstado] = useState({ status: sync.SYNC.LOCAL, pending: 0, online: true });
   // Lido depois de montar: no servidor não há sessionStorage, e o estado tem de
@@ -44,19 +47,16 @@ export default function AppBar() {
   function detalhes() {
     if (!falhou) return;
     ui.open((close) => (
-      <Dialog title="Erro de sincronização" onClose={() => close(null)}>
-        <p className="modal__text">
-          Os dados estão guardados neste dispositivo — nada se perdeu. O que falhou foi o envio para
-          o servidor.
-        </p>
+      <Dialog title={t('sinc.erroTitulo')} onClose={() => close(null)}>
+        <p className="modal__text">{t('sinc.erroTexto')}</p>
         <pre className="error">
-          {estado.error?.message || 'Sem detalhes.'}
+          {estado.error?.message || t('comum.semDetalhes')}
           {estado.error?.detalhe ? `\n\n${estado.error.detalhe}` : ''}
-          {estado.error?.codigo ? `\n\ncódigo ${estado.error.codigo}` : ''}
+          {estado.error?.codigo ? `\n\n${t('comum.codigo', { codigo: estado.error.codigo })}` : ''}
         </pre>
         <footer className="modal__actions">
           <button className="btn btn--ghost" onClick={() => close(null)}>
-            Fechar
+            {t('comum.fechar')}
           </button>
           <button
             className="btn btn--ghost"
@@ -68,7 +68,7 @@ export default function AppBar() {
               sync.flush(userId, user?.email);
             }}
           >
-            Reenviar tudo
+            {t('sinc.reenviarTudo')}
           </button>
           <button
             className="btn btn--primary"
@@ -77,7 +77,7 @@ export default function AppBar() {
               sync.flush(userId, user?.email);
             }}
           >
-            Tentar de novo
+            {t('sinc.tentarDeNovo')}
           </button>
         </footer>
       </Dialog>
@@ -87,13 +87,13 @@ export default function AppBar() {
   return (
     <header className="appbar">
       <button className="appbar__brand" onClick={() => router.push(rotas.dashboard())}>
-        ⚽ <span>Futsal ao Vivo</span>
+        ⚽ <span>{t('barra.marca')}</span>
       </button>
       <span className="appbar__spacer" />
       <div className="appbar__right">
         {demo ? (
           <>
-            <span className="sync sync--demo">DEMONSTRAÇÃO</span>
+            <span className="sync sync--demo">{t('barra.demonstracao')}</span>
             <button
               className="btn btn--primary btn--tiny"
               onClick={async () => {
@@ -101,7 +101,7 @@ export default function AppBar() {
                 router.replace(rotas.login());
               }}
             >
-              Criar conta
+              {t('barra.criarConta')}
             </button>
           </>
         ) : null}
@@ -109,24 +109,24 @@ export default function AppBar() {
           <button
             className={`sync ${classe}`}
             onClick={detalhes}
-            title={falhou ? 'Ver o que falhou' : ''}
+            title={falhou ? t('barra.verFalha') : ''}
             style={{ cursor: falhou ? 'pointer' : 'default' }}
           >
-            {estado.status}
+            {syncLabel(estado.status)}
             {estado.pending ? ` (${estado.pending})` : ''}
           </button>
         )}
-        {/* A conta tem página própria: é onde se transfere uma cópia dos dados e
-            onde se apaga tudo. O logout fica aqui à mão, que é o que se usa
-            todos os dias. */}
+        {/* As definições têm página própria: é onde se escolhe o idioma, se
+            transfere uma cópia dos dados e se apaga tudo. O logout fica aqui à
+            mão, que é o que se usa todos os dias. */}
         {remote && user ? (
           <>
             <button
               className="btn btn--ghost btn--tiny"
               onClick={() => router.push(rotas.conta())}
-              title={user.email || 'A minha conta'}
+              title={user.email || t('barra.definicoes')}
             >
-              Conta
+              {t('barra.definicoes')}
             </button>
             <button
               className="btn btn--ghost btn--tiny"
@@ -135,7 +135,7 @@ export default function AppBar() {
                 router.push(rotas.login());
               }}
             >
-              Logout
+              {t('barra.logout')}
             </button>
           </>
         ) : null}

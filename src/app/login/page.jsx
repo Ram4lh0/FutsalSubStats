@@ -11,9 +11,11 @@ import { useAuth } from '@/lib/auth.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { iniciarDemo, limparDemo } from '@/lib/demo.js';
 import { rotas } from '@/lib/routes.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useT();
   const { signIn, signUp, session, ready, remote } = useAuth();
   const { toast } = useUI();
   const [modo, setModo] = useState('entrar');
@@ -44,8 +46,8 @@ export default function LoginPage() {
       if (limpou) {
         toast(
           perdidas
-            ? `Os dados da conta anterior saíram deste aparelho — ${perdidas} por enviar ficaram para trás. Estão na conta se já tinham subido.`
-            : 'Os dados da conta anterior saíram deste aparelho. Continuam guardados na conta.',
+            ? t('login.donoTrocouComPerdas', { n: perdidas })
+            : t('login.donoTrocou'),
           'ok',
           7000
         );
@@ -53,13 +55,13 @@ export default function LoginPage() {
       router.push(rotas.jogoPreparar(matchId));
     } catch (e) {
       setAMontar(false);
-      toast(`Não foi possível preparar o jogo de experiência: ${e.message}`, 'error');
+      toast(t('login.demoFalhou', { erro: e.message }), 'error');
     }
   }
 
   async function submeter(e) {
     e.preventDefault();
-    if (!email.trim() || !password) return toast('Preencha o email e a palavra-passe.', 'error');
+    if (!email.trim() || !password) return toast(t('login.faltaPreencher'), 'error');
     setAEnviar(true);
     const { error } =
       modo === 'entrar'
@@ -69,7 +71,7 @@ export default function LoginPage() {
 
     if (error) return toast(error, 'error');
     if (modo === 'criar') {
-      toast('Conta criada. Confirme o email se lhe for pedido.', 'ok');
+      toast(t('login.contaCriada'), 'ok');
     }
     router.replace(rotas.dashboard());
   }
@@ -77,26 +79,26 @@ export default function LoginPage() {
   return (
     <div className="auth">
       <form className="auth__card card" onSubmit={submeter}>
-        <h1 className="page__title">{modo === 'entrar' ? 'Entrar' : 'Criar conta'}</h1>
-        <p className="page__sub">
-          Os jogos ficam guardados na sua conta e aparecem em qualquer dispositivo.
-        </p>
+        <h1 className="page__title">
+          {modo === 'entrar' ? t('login.entrar') : t('login.criarConta')}
+        </h1>
+        <p className="page__sub">{t('login.subtitulo')}</p>
 
         {modo === 'criar' ? (
           <label className="field">
-            <span className="field__label">Nome</span>
+            <span className="field__label">{t('login.nome')}</span>
             <input
               className="input"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              placeholder="Como quer ser tratado"
+              placeholder={t('login.nomePlaceholder')}
               autoComplete="name"
             />
           </label>
         ) : null}
 
         <label className="field">
-          <span className="field__label">Email</span>
+          <span className="field__label">{t('login.email')}</span>
           <input
             className="input"
             type="email"
@@ -108,7 +110,7 @@ export default function LoginPage() {
         </label>
 
         <label className="field">
-          <span className="field__label">Palavra-passe</span>
+          <span className="field__label">{t('login.password')}</span>
           <input
             className="input"
             type="password"
@@ -117,7 +119,7 @@ export default function LoginPage() {
             autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'}
           />
           {modo === 'criar' ? (
-            <span className="field__hint">Pelo menos 6 caracteres.</span>
+            <span className="field__hint">{t('login.passwordDica')}</span>
           ) : null}
         </label>
 
@@ -127,35 +129,37 @@ export default function LoginPage() {
             type="button"
             onClick={() => setModo(modo === 'entrar' ? 'criar' : 'entrar')}
           >
-            {modo === 'entrar' ? 'Criar conta' : 'Já tenho conta'}
+            {modo === 'entrar' ? t('login.criarConta') : t('login.jaTenhoConta')}
           </button>
           <button className="btn btn--primary" type="submit" disabled={aEnviar}>
-            {aEnviar ? 'A ligar…' : modo === 'entrar' ? 'Entrar' : 'Criar conta'}
+            {aEnviar
+              ? t('login.aLigar')
+              : modo === 'entrar'
+                ? t('login.entrar')
+                : t('login.criarConta')}
           </button>
         </div>
 
         {/* Experimentar antes de decidir. O jogo é o mesmo código do jogo a
             sério — só a equipa é que é inventada. */}
         <div className="auth__demo">
-          <span className="auth__ou">ou</span>
+          <span className="auth__ou">{t('login.ou')}</span>
           <button className="btn btn--block" type="button" onClick={experimentar} disabled={aMontar}>
-            {aMontar ? 'A preparar…' : 'Experimentar sem criar conta'}
+            {aMontar ? t('login.aPreparar') : t('login.experimentar')}
           </button>
-          <span className="field__hint">
-            Um jogo completo com uma equipa fictícia, para ver como funciona.
-          </span>
+          <span className="field__hint">{t('login.experimentarDica')}</span>
         </div>
 
         {/* A política tem de estar à mão ANTES de alguém criar conta, não
             escondida lá dentro depois de já ter dado os dados. */}
         <p className="muted small">
-          {modo === 'criar' ? 'Ao criar conta aceita a ' : 'Consulte a '}
+          {modo === 'criar' ? t('login.aceitaPolitica') : t('login.consultePolitica')}
           <a
             className="link"
             onClick={() => router.push(rotas.privacidade())}
             style={{ cursor: 'pointer' }}
           >
-            política de privacidade
+            {t('login.politica')}
           </a>
           .
         </p>

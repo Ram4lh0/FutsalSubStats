@@ -19,8 +19,15 @@ import { matchSummaryCsv, download, slug } from '@/lib/data/exporter.js';
 import { matchStatsTable, matchResult, powerPlayTotals } from '@/domain/stats.js';
 import { foulsTotal, foulsInPeriod } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
-import { MATCH_STATUS, POSITION_LABEL, HOME_AWAY_LABEL } from '@/domain/constants.js';
-import { clubShort, opponentShort, dateLabel } from '@/lib/format.js';
+import { MATCH_STATUS } from '@/domain/constants.js';
+import {
+  clubShort,
+  opponentShort,
+  dateLabel,
+  positionLabel,
+  homeAwayLabel,
+} from '@/lib/format.js';
+import { useT } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import { emDemo, limparDemo } from '@/lib/demo.js';
 
@@ -35,6 +42,7 @@ export default function SummaryPage() {
 function Resumo() {
   const { matchId, back } = useRouteParams();
   const router = useRouter();
+  const t = useT();
   const ui = useUI();
   const { userId, user } = useAuth();
   const [dados, setDados] = useState(null);
@@ -57,8 +65,8 @@ function Resumo() {
     carregar();
   }, [carregar]);
 
-  if (!dados) return <p className="muted">A carregar…</p>;
-  if (dados.vazio) return <Empty>Jogo não encontrado.</Empty>;
+  if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
+  if (dados.vazio) return <Empty>{t('jogo.naoEncontrado')}</Empty>;
 
   const { match, state, club, team, competition } = dados;
   const pp = powerPlayTotals(state, state.elapsedMatchMs);
@@ -69,21 +77,27 @@ function Resumo() {
   /** Quando é que se jogou com guarda-redes avançado, e por quanto tempo. */
   function verPowerPlays() {
     ui.open((close) => (
-      <Dialog title="Períodos em 5v4" onClose={() => close(null)}>
+      <Dialog title={t('resumo.periodos5v4')} onClose={() => close(null)}>
         <ul className="stintlist">
           {pp.periodos.map((x) => (
             <li key={x.numero}>
-              <strong>{x.numero}.º período</strong>
-              {` — ${x.startPeriod}.ª parte — ${fmt(x.startMatchMs)} a ${
-                x.open ? 'fim do jogo' : fmt(x.endMatchMs)
-              } — `}
+              <strong>{t('resumo.periodoNumero', { n: x.numero })}</strong>
+              {t('resumo.linha5v4', {
+                parte: x.startPeriod,
+                inicio: fmt(x.startMatchMs),
+                fim: x.open ? t('resumo.fimDoJogo') : fmt(x.endMatchMs),
+              })}
               <span className="mono">{fmt(x.durationMs)}</span>
-              {x.manual ? <span className="muted"> · marcado à mão</span> : null}
+              {x.manual ? <span className="muted"> · {t('resumo.marcadoAMao')}</span> : null}
             </li>
           ))}
         </ul>
         <p className="muted">
-          Total {fmt(pp.totalMs)} em {pp.count} {pp.count === 1 ? 'período' : 'períodos'}.
+          {t('resumo.total5v4', {
+            tempo: fmt(pp.totalMs),
+            n: pp.count,
+            periodos: pp.count === 1 ? t('resumo.periodo') : t('resumo.periodos'),
+          })}
         </p>
       </Dialog>
     ));
@@ -139,13 +153,13 @@ function Resumo() {
                 } — `}
                 <span className="mono">{fmt(x.durationMs)}</span>
                 {x.startingPosition ? (
-                  <span className="muted"> · {POSITION_LABEL[x.startingPosition]}</span>
+                  <span className="muted"> · {positionLabel(x.startingPosition)}</span>
                 ) : null}
               </li>
             ))}
           </ul>
         ) : (
-          <p className="muted">Não entrou em campo.</p>
+          <p className="muted">{t('resumo.naoEntrou')}</p>
         )}
       </Dialog>
     ));
@@ -158,22 +172,15 @@ function Resumo() {
           ao lado — prender alguém num ecrã é a melhor forma de o perder. */}
       {demo ? (
         <div className="card demo-cta">
-          <h2 className="page__title">Foi isto que a app fez</h2>
-          <p>
-            Todos estes números saíram do jogo que acabou de apontar: quanto tempo cada jogador
-            esteve em campo, quantas vezes entrou, quem marcou e quando. Numa época inteira, é este
-            histórico que responde a quem jogou a menos.
-          </p>
-          <p className="muted">
-            Este jogo era de treino, com uma equipa inventada, e desaparece quando sair. Com conta,
-            todos os teus jogos ficam guardados e tens acesso às estatísticas da tua equipa.
-          </p>
+          <h2 className="page__title">{t('resumo.demoTitulo')}</h2>
+          <p>{t('resumo.demoTexto')}</p>
+          <p className="muted">{t('resumo.demoTexto2')}</p>
           <div className="demo-cta__actions">
             <button className="btn btn--primary btn--big" onClick={criarConta}>
-              Criar conta e guardar os meus jogos
+              {t('resumo.demoCriarConta')}
             </button>
             <button className="btn btn--ghost" onClick={sairDaDemo}>
-              Agora não
+              {t('resumo.demoAgoraNao')}
             </button>
           </div>
         </div>
@@ -182,9 +189,9 @@ function Resumo() {
       <PageHead
         title={`${clubShort(club)} ${state.teamScore} — ${state.opponentScore} ${opponentShort(match)}`}
         subtitle={[
-          `vs ${match.opponentName}`,
+          t('jogo.vs', { adversario: match.opponentName }),
           dateLabel(match.scheduledAt),
-          HOME_AWAY_LABEL[match.homeOrAway],
+          homeAwayLabel(match.homeOrAway),
           team?.name,
           competition?.name,
         ]
@@ -208,13 +215,13 @@ function Resumo() {
                 )
               }
             >
-              Exportar CSV
+              {t('prep.exportarCsv')}
             </button>
             <button className="btn btn--ghost" onClick={corrigirResultado}>
-              Corrigir resultado
+              {t('resumo.corrigirResultado')}
             </button>
             <button className="btn btn--ghost" onClick={editarNotas}>
-              Notas
+              {t('resumo.notas')}
             </button>
             <button
               className="btn btn--ghost"
@@ -224,14 +231,14 @@ function Resumo() {
                 )
               }
             >
-              Histórico
+              {t('resumo.historico')}
             </button>
             {state.status !== MATCH_STATUS.FINISHED ? (
               <button
                 className="btn btn--primary"
                 onClick={() => router.push(rotas.jogoAoVivo(matchId))}
               >
-                Voltar ao jogo
+                {t('resumo.voltarAoJogo')}
               </button>
             ) : null}
           </>
@@ -240,39 +247,54 @@ function Resumo() {
 
       <div className="grid grid--stats">
         <StatCard
-          label="Resultado"
+          label={t('resumo.resultado')}
           value={`${state.teamScore} — ${state.opponentScore}`}
-          hint={r === 'W' ? 'Vitória' : r === 'L' ? 'Derrota' : r === 'D' ? 'Empate' : 'Em curso'}
+          hint={
+            r === 'W'
+              ? t('resultado.vitoria')
+              : r === 'L'
+                ? t('resultado.derrota')
+                : r === 'D'
+                  ? t('resultado.empate')
+                  : t('resumo.emCurso')
+          }
           kind={r === 'W' ? 'win' : r === 'L' ? 'loss' : r === 'D' ? 'draw' : null}
         />
         <StatCard
-          label="Ao intervalo"
+          label={t('resumo.aoIntervalo')}
           value={
             state.halftimeTeamScore == null
               ? '—'
               : `${state.halftimeTeamScore} — ${state.halftimeOpponentScore}`
           }
         />
-        <StatCard label="Duração efetiva" value={fmt(state.elapsedMatchMs)} />
+        <StatCard label={t('resumo.duracaoEfetiva')} value={fmt(state.elapsedMatchMs)} />
         <StatCard
-          label="Faltas"
+          label={t('resumo.faltas')}
           value={foulsTotal(state, 'US')}
-          hint={`${foulsInPeriod(state, 'US', 1)} na 1.ª · ${foulsInPeriod(state, 'US', 2)} na 2.ª`}
+          hint={t('resumo.faltasDetalhe', {
+            p1: foulsInPeriod(state, 'US', 1),
+            p2: foulsInPeriod(state, 'US', 2),
+          })}
         />
-        <StatCard label="Convocados" value={Object.keys(state.players).length} />
+        <StatCard label={t('resumo.convocados')} value={Object.keys(state.players).length} />
         {/* 5v4: só aparece se tiver havido. Num jogo em que nunca se jogou com
             guarda-redes avançado, um cartão a zeros era ruído. */}
         {pp.count ? (
           <StatCard
-            label="Tempo em 5v4"
+            label={t('resumo.tempo5v4')}
             value={fmt(pp.totalMs)}
-            hint={pp.count === 1 ? '1 período · ver quando' : `${pp.count} períodos · ver quando`}
+            hint={
+              pp.count === 1
+                ? t('resumo.umPeriodoVer')
+                : t('resumo.variosPeriodosVer', { n: pp.count })
+            }
             onClick={verPowerPlays}
           />
         ) : null}
       </div>
 
-      <h2 className="section">Golos</h2>
+      <h2 className="section">{t('resumo.golos')}</h2>
       <div className="card">
         <GoalsByHalf
           state={state}
@@ -280,28 +302,28 @@ function Resumo() {
           opponentName={opponentShort(match)}
           onEdit={editarGolo}
           emptyText={
-            state.status === MATCH_STATUS.FINISHED ? 'Não houve golos.' : 'Ainda não houve golos.'
+            state.status === MATCH_STATUS.FINISHED ? t('resumo.semGolos') : t('golos.semGolos')
           }
         />
       </div>
 
-      <h2 className="section">Jogadores</h2>
+      <h2 className="section">{t('resumo.jogadores')}</h2>
       <DataTable players>
         <thead>
           <tr>
-            <th>Nº</th>
-            <th>Jogador</th>
-            <th className="num" title="Golos">G</th>
-            <th className="num" title="Assistências">A</th>
-            <th className="num" title="Golos sofridos à baliza">GS</th>
-            <th className="num" title="Faltas cometidas">F</th>
-            <th className="num" title="Faltas sofridas">FS</th>
-            <th className="num" title="Cartões amarelos">Am</th>
-            <th className="num" title="Cartões vermelhos">Vm</th>
-            <th className="num">Em campo</th>
-            <th className="num">Entradas</th>
-            <th className="num" title="Golos da equipa com este jogador em campo">Part. G</th>
-            <th className="num" title="Golos sofridos com este jogador em campo">Part. GS</th>
+            <th>{t('stats.numero')}</th>
+            <th>{t('stats.jogador')}</th>
+            <th className="num" title={t('stats.golos')}>{t('ficha.golosCurto')}</th>
+            <th className="num" title={t('ficha.assistencias')}>{t('ficha.assistCurto')}</th>
+            <th className="num" title={t('stats.sofridosTitulo')}>{t('ficha.sofridosCurto')}</th>
+            <th className="num" title={t('intervalo.faltasCometidas')}>{t('intervalo.faltasCurto')}</th>
+            <th className="num" title={t('intervalo.faltasSofridas')}>{t('intervalo.faltasSofridasCurto')}</th>
+            <th className="num" title={t('ficha.cartoesAmarelos')}>{t('ficha.amarelosCurto')}</th>
+            <th className="num" title={t('ficha.cartoesVermelhos')}>{t('ficha.vermelhosCurto')}</th>
+            <th className="num">{t('ficha.emCampo')}</th>
+            <th className="num">{t('intervalo.entradas')}</th>
+            <th className="num" title={t('stats.partGTitulo')}>{t('stats.partG')}</th>
+            <th className="num" title={t('stats.partGSTitulo')}>{t('stats.partGS')}</th>
             <th />
           </tr>
         </thead>
@@ -311,7 +333,7 @@ function Resumo() {
               <td className="num mono">{s.number}</td>
               <td>
                 {s.name}
-                {s.expelled ? <Badge kind="danger">Expulso</Badge> : null}
+                {s.expelled ? <Badge kind="danger">{t('resumo.expulso')}</Badge> : null}
               </td>
               <td className="num mono">{s.goals}</td>
               <td className="num mono">{s.assists}</td>
@@ -326,7 +348,7 @@ function Resumo() {
               <td className="num mono">{s.concededShare}</td>
               <td className="right">
                 <button className="btn btn--tiny btn--ghost" onClick={() => verPeriodos(s)}>
-                  Períodos
+                  {t('resumo.verPeriodos')}
                 </button>
               </td>
             </tr>
@@ -336,7 +358,7 @@ function Resumo() {
 
       {match.notes ? (
         <>
-          <h2 className="section">Notas</h2>
+          <h2 className="section">{t('resumo.notas')}</h2>
           <p className="card notes">{match.notes}</p>
         </>
       ) : null}
@@ -345,12 +367,13 @@ function Resumo() {
 }
 
 function NotasDialog({ notas, onClose, onSave }) {
+  const t = useT();
   const [valor, setValor] = useState(notas);
   return (
-    <Dialog title="Notas do jogo" onClose={onClose}>
+    <Dialog title={t('resumo.notasDoJogo')} onClose={onClose}>
       <div className="form">
         <label className="field">
-          <span className="field__label">Notas</span>
+          <span className="field__label">{t('resumo.notas')}</span>
           <textarea
             className="input input--area"
             rows={5}
@@ -361,10 +384,10 @@ function NotasDialog({ notas, onClose, onSave }) {
       </div>
       <footer className="modal__actions">
         <button className="btn btn--ghost" onClick={onClose}>
-          Cancelar
+          {t('comum.cancelar')}
         </button>
         <button className="btn btn--primary" onClick={() => onSave(valor)}>
-          Guardar
+          {t('comum.guardar')}
         </button>
       </footer>
     </Dialog>

@@ -5,13 +5,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHead from './PageHead.jsx';
-import { Empty } from './bits.jsx';
+import { SoLeitura } from './bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { clubs } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import { useT } from '@/lib/i18n/index.js';
 
 
 const VAZIO = {
@@ -24,6 +25,7 @@ const VAZIO = {
 
 export default function ClubForm({ clubId }) {
   const router = useRouter();
+  const t = useT();
   const soLeitura = useSoLeitura();
   const { toast, confirmar } = useUI();
   const { userId, user } = useAuth();
@@ -47,7 +49,7 @@ export default function ClubForm({ clubId }) {
   async function guardar(e) {
     e.preventDefault();
     if (aGuardar) return;
-    if (!(form.name || '').trim()) return toast('O nome do clube é obrigatório.', 'error');
+    if (!(form.name || '').trim()) return toast(t('clube.precisaNome'), 'error');
     setAGuardar(true);
     const payload = {
       name: (form.name || '').trim(),
@@ -59,85 +61,66 @@ export default function ClubForm({ clubId }) {
     try {
       const club = clubId ? await clubs.update(clubId, payload) : await clubs.create(payload);
       await sync.saveNow(userId, user?.email);
-      toast('Clube guardado e sincronizado.', 'ok');
+      toast(t('clube.guardado'), 'ok');
       router.push(rotas.clube(club.id));
     } catch (err) {
-      toast(`Clube guardado neste dispositivo, mas ainda não subiu: ${err.message}`, 'error');
+      toast(t('clube.guardadoLocal', { erro: err.message }), 'error');
     } finally {
       setAGuardar(false);
     }
   }
 
   async function eliminar() {
-    const ok = await confirmar(
-      `Apagar "${form.name}" elimina os escalões, os planteis, os jogos e todos os eventos. Esta ação não pode ser anulada.`,
-      { okLabel: 'Apagar clube' }
-    );
+    const ok = await confirmar(t('clube.confirmaApagar', { nome: form.name }), {
+      okLabel: t('clube.apagarBotao'),
+    });
     if (!ok) return;
     await clubs.archive(clubId);
-    toast('Clube apagado.', 'ok');
+    toast(t('clube.apagado'), 'ok');
     router.push(rotas.dashboard());
   }
 
-  if (!pronto) return <p className="muted">A carregar…</p>;
+  if (!pronto) return <p className="muted">{t('comum.aCarregar')}</p>;
 
-  // Esconder o botão não chega: quem escrever o endereço à mão chega aqui à
-  // mesma. A experiência é para ver como a app funciona, não para montar uma
-  // equipa que se vai perder daqui a cinco minutos.
-  if (soLeitura) {
-    return (
-      <>
-        <PageHead title="Clube" backTo={rotas.dashboard()} />
-        <Empty
-          action={
-            <button className="btn btn--primary" onClick={() => router.push(rotas.login())}>
-              Criar conta
-            </button>
-          }
-        >
-          Isto faz parte do jogo de experiência, e por isso não se altera. Com conta, a equipa é sua
-          e muda-se à vontade.
-        </Empty>
-      </>
-    );
-  }
-
-
+  if (soLeitura) return <SoLeitura titulo={t('clube.titulo')} />;
 
   return (
     <>
       <PageHead
-        title={clubId ? 'Editar clube' : 'Criar clube'}
+        title={clubId ? t('clube.editarTitulo') : t('clube.criarTitulo')}
         backTo={clubId ? rotas.clube(clubId) : rotas.dashboard()}
       />
       <form className="card form" onSubmit={guardar}>
         <div className="form__row">
           <label className="field">
-            <span className="field__label">Nome do clube</span>
-            <input className="input" placeholder="Nome do clube" {...campo('name')} />
+            <span className="field__label">{t('clube.nome')}</span>
+            <input className="input" placeholder={t('clube.nome')} {...campo('name')} />
           </label>
           <label className="field">
-            <span className="field__label">Apelido (opcional)</span>
-            <input className="input" placeholder="Ex.: JUN" maxLength={12} {...campo('shortName')} />
-            <span className="field__hint">
-              Nome curto usado no marcador durante o jogo e nos resumos.
-            </span>
+            <span className="field__label">{t('clube.apelido')}</span>
+            <input
+              className="input"
+              placeholder={t('clube.apelidoPlaceholder')}
+              maxLength={12}
+              {...campo('shortName')}
+            />
+            <span className="field__hint">{t('clube.apelidoDica')}</span>
           </label>
         </div>
 
         <label className="field">
-          <span className="field__label">Época atual (opcional)</span>
+          <span className="field__label">{t('clube.epocaAtual')}</span>
           <input className="input" placeholder="2025/26" {...campo('currentSeason')} />
-          <span className="field__hint">Vale para todos os escalões deste clube.</span>
+          <span className="field__hint">{t('clube.epocaDica')}</span>
         </label>
 
         <div className="form__row">
           <label className="field">
-            <span className="field__label">Cor principal</span>
+            <span className="field__label">{t('clube.corPrincipal')}</span>
             <input className="input input--color" type="color" {...campo('primaryColor')} />
           </label>
           <label className="field">
-            <span className="field__label">Cor secundária</span>
+            <span className="field__label">{t('clube.corSecundaria')}</span>
             <input className="input input--color" type="color" {...campo('secondaryColor')} />
           </label>
         </div>
@@ -145,15 +128,15 @@ export default function ClubForm({ clubId }) {
         <div className="form__actions">
           {clubId ? (
             <button className="btn btn--danger btn--ghost" type="button" onClick={eliminar}>
-              Eliminar clube
+              {t('clube.eliminar')}
             </button>
           ) : null}
           <span className="toolbar__spacer" />
           <button className="btn btn--ghost" type="button" onClick={() => router.back()}>
-            Cancelar
+            {t('comum.cancelar')}
           </button>
           <button className="btn btn--primary" type="submit" disabled={aGuardar}>
-            {aGuardar ? 'A guardar…' : 'Guardar'}
+            {aGuardar ? t('comum.aGuardar') : t('comum.guardar')}
           </button>
         </div>
       </form>

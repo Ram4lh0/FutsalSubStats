@@ -12,6 +12,7 @@ import { StatCard, Empty } from '@/components/bits.jsx';
 import { clubAggregate } from '@/domain/stats.js';
 import { fmt } from '@/domain/clock.js';
 import { rotas } from '@/lib/routes.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function TeamStatsPage() {
   return (
@@ -32,6 +33,7 @@ function Conteudo() {
 
 function Stats({ entries, roster, clubId, teamId }) {
   const router = useRouter();
+  const t = useT();
   const agg = useMemo(() => clubAggregate(entries, roster), [entries, roster]);
   const linhas = useMemo(
     () => Object.values(agg.perPlayer).sort((a, b) => b.courtMs - a.courtMs || a.number - b.number),
@@ -41,37 +43,47 @@ function Stats({ entries, roster, clubId, teamId }) {
   return (
     <>
       <div className="grid grid--stats">
-        <StatCard label="Jogos" value={agg.matches} hint={`${agg.finished} terminados`} />
-        <StatCard label="V / E / D" value={`${agg.wins} / ${agg.draws} / ${agg.losses}`} />
-        <StatCard label="Golos marcados" value={agg.goalsFor} />
-        <StatCard label="Golos sofridos" value={agg.goalsAgainst} />
-        <StatCard label="Diferença" value={agg.goalsFor - agg.goalsAgainst} />
+        <StatCard
+          label={t('stats.jogos')}
+          value={agg.matches}
+          hint={t('stats.terminados', { n: agg.finished })}
+        />
+        <StatCard label={t('stats.ved')} value={`${agg.wins} / ${agg.draws} / ${agg.losses}`} />
+        <StatCard label={t('stats.golosMarcados')} value={agg.goalsFor} />
+        <StatCard label={t('stats.golosSofridos')} value={agg.goalsAgainst} />
+        <StatCard label={t('stats.diferenca')} value={agg.goalsFor - agg.goalsAgainst} />
       </div>
 
       {!linhas.length ? (
-        <Empty>Ainda não há jogadores neste escalão.</Empty>
+        <Empty>{t('stats.semJogadores')}</Empty>
       ) : (
         <>
-          <h2 className="section">Por jogador</h2>
+          <h2 className="section">{t('stats.porJogador')}</h2>
           <DataTable players>
             <thead>
               <tr>
-                <th>Nº</th>
-                <th>Jogador</th>
-                <th className="num">Jogos</th>
-                <th className="num">Golos</th>
-                <th className="num">Assist.</th>
+                <th>{t('stats.numero')}</th>
+                <th>{t('stats.jogador')}</th>
+                <th className="num">{t('stats.jogos')}</th>
+                <th className="num">{t('stats.golos')}</th>
+                <th className="num">{t('stats.assistencias')}</th>
                 {/* Participações: golos da equipa com este jogador em campo. Não é
                     mérito individual — é quanto a equipa produz com ele lá dentro. */}
-                <th className="num" title="Golos da equipa com este jogador em campo">Part. G</th>
-                <th className="num" title="Golos sofridos com este jogador em campo">Part. GS</th>
-                <th className="num" title="Golos sofridos à baliza">Sofridos</th>
-                <th className="num">Faltas</th>
-                <th className="num">Sofridas</th>
-                <th className="num">Amarelos</th>
-                <th className="num">Vermelhos</th>
-                <th className="num">Tempo total</th>
-                <th className="num">Média/jogo</th>
+                <th className="num" title={t('stats.partGTitulo')}>
+                  {t('stats.partG')}
+                </th>
+                <th className="num" title={t('stats.partGSTitulo')}>
+                  {t('stats.partGS')}
+                </th>
+                <th className="num" title={t('stats.sofridosTitulo')}>
+                  {t('stats.sofridos')}
+                </th>
+                <th className="num">{t('stats.faltas')}</th>
+                <th className="num">{t('stats.faltasSofridas')}</th>
+                <th className="num">{t('stats.amarelos')}</th>
+                <th className="num">{t('stats.vermelhos')}</th>
+                <th className="num">{t('stats.tempoTotal')}</th>
+                <th className="num">{t('stats.mediaPorJogo')}</th>
               </tr>
             </thead>
             <tbody>
@@ -83,8 +95,8 @@ function Stats({ entries, roster, clubId, teamId }) {
                       <span className="cellwho__name">{p.name}</span>
                       <button
                         className="btn btn--tiny btn--plus"
-                        title="Ver ficha do jogador"
-                        aria-label={`Ver ficha de ${p.name}`}
+                        title={t('stats.verFicha')}
+                        aria-label={t('stats.verFichaDe', { nome: p.name })}
                         onClick={() =>
                           router.push(rotas.jogador(clubId, teamId, p.playerId))
                         }

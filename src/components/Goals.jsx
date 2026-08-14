@@ -6,11 +6,13 @@
 // quando, e com quem à baliza quando se sofreu.
 
 import { fmt } from '@/domain/clock.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export function GoalsTimeline({ state, ourName, opponentName, onEdit, emptyText }) {
+  const t = useT();
   const golos = [...(state.goals || [])].sort((a, b) => a.matchElapsedMs - b.matchElapsedMs);
   // Com o jogo a decorrer ainda pode haver golos; terminado, já não há.
-  if (!golos.length) return <p className="muted">{emptyText || 'Ainda não houve golos.'}</p>;
+  if (!golos.length) return <p className="muted">{emptyText || t('golos.semGolos')}</p>;
 
   const nome = (id) => (id ? state.players[id]?.name || '' : '');
 
@@ -19,11 +21,11 @@ export function GoalsTimeline({ state, ourName, opponentName, onEdit, emptyText 
       {golos.map((g) => {
         const nosso = g.team === 'US';
         const quem = g.ownGoal
-          ? 'Autogolo do adversário'
+          ? t('golos.autogolo')
           : nosso
-            ? nome(g.scorerId) || 'Marcador por registar'
+            ? nome(g.scorerId) || t('golos.marcadorPorRegistar')
             : nome(g.goalkeeperId)
-              ? `Sofrido com ${nome(g.goalkeeperId)} à baliza`
+              ? t('golos.sofridoCom', { nome: nome(g.goalkeeperId) })
               : '';
         // Nos nossos golos edita-se marcador e assistência; nos sofridos, o
         // guarda-redes que estava à baliza.
@@ -42,13 +44,15 @@ export function GoalsTimeline({ state, ourName, opponentName, onEdit, emptyText 
               <strong>{nosso ? ourName : opponentName}</strong>
               {quem ? <span className="goalline__detail">{quem}</span> : null}
               {nosso && g.assistId ? (
-                <span className="goalline__detail">assist. {nome(g.assistId)}</span>
+                <span className="goalline__detail">
+                  {t('golos.assist', { nome: nome(g.assistId) })}
+                </span>
               ) : null}
             </span>
             {editavel ? (
-              <span className="goalline__edit">Editar</span>
+              <span className="goalline__edit">{t('golos.editar')}</span>
             ) : (
-              <span className="goalline__period">{g.period}.ª</span>
+              <span className="goalline__period">{t('golos.parteCurta', { n: g.period })}</span>
             )}
           </Tag>
         );
@@ -62,13 +66,14 @@ export function GoalsTimeline({ state, ourName, opponentName, onEdit, emptyText 
  * "sofremos dois na segunda" — e não numa lista corrida de princípio ao fim.
  */
 export function GoalsByHalf({ state, ...props }) {
+  const t = useT();
   const todos = state.goals || [];
   return (
     <div className="goalhalves">
       {[1, 2].map((period) => (
         <section key={period} className="goalhalves__col">
           <h3 className="goalhalves__title">
-            {period === 1 ? 'Primeira parte' : 'Segunda parte'}
+            {period === 1 ? t('golos.primeiraParte') : t('golos.segundaParte')}
           </h3>
           <GoalsTimeline
             {...props}

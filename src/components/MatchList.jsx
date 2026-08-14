@@ -9,26 +9,27 @@
 import { useRouter } from 'next/navigation';
 import DataTable from './DataTable.jsx';
 import { StatusBadge } from './bits.jsx';
-import { dayLabel } from '@/lib/format.js';
+import { dayLabel, homeAwayLabel } from '@/lib/format.js';
 import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function MatchList({ entries, competitions = [], backPath }) {
   const router = useRouter();
-  const volta = backPath ? `?back=${encodeURIComponent(backPath)}` : '';
+  const t = useT();
   const nomeDaProva = (id) => competitions.find((c) => c.id === id)?.name || '—';
 
   return (
     <DataTable>
       <thead>
         <tr>
-          <th>Data</th>
-          <th>Adversário</th>
-          <th>Local</th>
-          <th>Competição</th>
-          <th className="num">Resultado</th>
-          <th>Estado</th>
+          <th>{t('lista.data')}</th>
+          <th>{t('lista.adversario')}</th>
+          <th>{t('lista.local')}</th>
+          <th>{t('lista.competicao')}</th>
+          <th className="num">{t('lista.resultado')}</th>
+          <th>{t('lista.estado')}</th>
         </tr>
       </thead>
       <tbody>
@@ -50,7 +51,7 @@ export default function MatchList({ entries, competitions = [], backPath }) {
             >
               <td className="mono">{dayLabel(match.scheduledAt)}</td>
               <td>{match.opponentName}</td>
-              <td>{match.homeOrAway === 'HOME' ? 'Casa' : 'Fora'}</td>
+              <td>{homeAwayLabel(match.homeOrAway)}</td>
               <td className="muted">{nomeDaProva(match.competitionId)}</td>
               <td className="num mono">
                 <span className={r === 'W' ? 'res res--w' : r === 'L' ? 'res res--l' : r ? 'res res--d' : ''}>

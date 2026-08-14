@@ -17,9 +17,11 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth.jsx';
 import { emDemo } from '@/lib/demo.js';
 import { rotas } from '@/lib/routes.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function Guard({ children }) {
   const router = useRouter();
+  const t = useT();
   const { ready, session, remote } = useAuth();
   const demo = emDemo();
 
@@ -27,7 +29,12 @@ export default function Guard({ children }) {
     if (ready && remote && !session && !demo) router.replace(rotas.login());
   }, [ready, remote, session, demo, router]);
 
-  if (!ready) return <p className="muted" style={{ padding: 20 }}>A carregar…</p>;
+  if (!ready)
+    return (
+      <p className="muted" style={{ padding: 20 }}>
+        {t('comum.aCarregar')}
+      </p>
+    );
   if (remote && !session && !demo) return null;
   return children;
 }

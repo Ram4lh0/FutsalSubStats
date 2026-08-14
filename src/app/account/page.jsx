@@ -1,6 +1,11 @@
 'use client';
 
-// A conta: quem está a usar a app, e a porta de saída.
+// As definições: o idioma, o estado da sincronização, os dados e a porta de saída.
+//
+// Era a página "A minha conta". Passou a "Definições" quando o idioma precisou
+// de um sítio para viver, e o endereço ficou `/account` de propósito: mudá-lo
+// partia os atalhos de quem já tem a app instalada, e o endereço não é o que as
+// pessoas leem.
 //
 // A eliminação vive aqui e não escondida numas definições quaisquer, porque tem
 // de ser encontrável — é o que a Apple exige e é o que está certo. Mas encontrar
@@ -16,21 +21,26 @@ import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import * as db from '@/lib/data/local.js';
 import * as sync from '@/lib/data/sync.js';
-import { clubs, dump, markAllPending } from '@/lib/data/repository.js';
-import { downloadJson } from '@/lib/data/exporter.js';
+import { clubs, dump, restore, markAllPending } from '@/lib/data/repository.js';
+import { downloadJson, pickFile } from '@/lib/data/exporter.js';
 import { rotas } from '@/lib/routes.js';
 import { esquecerDono } from '@/lib/data/owner.js';
+import { useT, useIdioma, useLocale, definirIdioma, IDIOMAS } from '@/lib/i18n/index.js';
+import { syncLabel } from '@/lib/format.js';
 
 export default function AccountPage() {
   return (
     <Pagina>
-      <Conta />
+      <Definicoes />
     </Pagina>
   );
 }
 
-function Conta() {
+function Definicoes() {
   const router = useRouter();
+  const t = useT();
+  const idioma = useIdioma();
+  const locale = useLocale();
   const { toast, confirmar } = useUI();
   const { user, userId, deleteAccount, signOut } = useAuth();
   const [confirmacao, setConfirmacao] = useState('');
@@ -46,7 +56,7 @@ function Conta() {
   async function reenviarTudo() {
     await markAllPending();
     await sync.flush(userId, user?.email);
-    toast('A reenviar tudo.', 'ok');
+    toast(t('sinc.aReenviar'), 'ok');
   }
 
   const email = user?.email || '';
@@ -54,7 +64,33 @@ function Conta() {
 
   async function guardarCopia() {
     downloadJson(`backup-futsal-${new Date().toISOString().slice(0, 10)}.json`, await dump());
-    toast('Cópia transferida.', 'ok');
+    toast(t('definicoes.copiaTransferida'), 'ok');
+  }
+
+  /**
+   * Trazer para esta conta um ficheiro exportado noutra (ou noutro aparelho).
+   *
+   * É o caminho oficial para mudar de conta: a base deste aparelho pertence a
+   * quem está lá dentro, por isso passar dados de uma conta para outra faz-se
+   * por ficheiro. Vive aqui, ao lado do "transferir", porque as duas metades da
+   * mesma operação separadas por três ecrãs não se encontram.
+   *
+   * Não confundir com o CSV do plantel, que é outra coisa e vive dentro do
+   * escalão: este leva os jogos e o histórico, aquele leva só os nomes.
+   */
+  async function restaurarCopia() {
+    const raw = await pickFile('application/json');
+    if (!raw) return;
+    const ok = await confirmar(t('copia.confirmaRestaurar'), { okLabel: t('copia.restaurar') });
+    if (!ok) return;
+    try {
+      await restore(JSON.parse(raw));
+      await sync.pendingCount();
+      const enviados = await sync.flush(userId, user?.email);
+      toast(enviados ? t('copia.restaurada') : t('copia.restauradaPorSincronizar'), 'ok');
+    } catch (e) {
+      toast(t('copia.falhou', { erro: e.message }), 'error');
+    }
   }
 
   async function apagar() {
@@ -63,9 +99,12 @@ function Conta() {
     const lista = await clubs.list();
     const ok = await confirmar(
       lista.length
-        ? `Vai apagar ${lista.length} ${lista.length === 1 ? 'clube' : 'clubes'} com tudo o que têm dentro: escalões, planteis, jogos e o histórico de cada um. Não há como recuperar.`
-        : 'Vai apagar a conta e tudo o que lhe pertence. Não há como recuperar.',
-      { okLabel: 'Apagar definitivamente' }
+        ? t('definicoes.confirmaComClubes', {
+            n: lista.length,
+            clubes: lista.length === 1 ? t('definicoes.clube') : t('definicoes.clubes'),
+          })
+        : t('definicoes.confirmaSemClubes'),
+      { okLabel: t('definicoes.apagarDefinitivamente') }
     );
     if (!ok) return;
 
@@ -80,10 +119,10 @@ function Conta() {
       // aparelho deixa de ter dono — o próximo a entrar começa do zero.
       await db.clearAll();
       esquecerDono();
-      toast('Conta apagada.', 'ok');
+      toast(t('definicoes.contaApagada'), 'ok');
       router.replace(rotas.login());
     } catch (e) {
-      toast(`Não foi possível apagar: ${e.message}`, 'error');
+      toast(t('definicoes.apagarFalhou', { erro: e.message }), 'error');
     } finally {
       setAApagar(false);
     }
@@ -92,7 +131,7 @@ function Conta() {
   return (
     <>
       <PageHead
-        title="A minha conta"
+        title={t('definicoes.titulo')}
         subtitle={email}
         backTo={rotas.dashboard()}
         actions={
@@ -103,31 +142,52 @@ function Conta() {
               router.push(rotas.login());
             }}
           >
-            Logout
+            {t('barra.logout')}
           </button>
         }
       />
+
+      {/* O idioma fica em primeiro lugar de propósito: quem abre esta página sem
+          perceber a língua em que ela está precisa de encontrar isto sem ler
+          nada. Os nomes dos idiomas estão sempre no próprio idioma — "English",
+          nunca "Inglês" — que é o que permite reconhecê-los a quem está perdido. */}
+      <div className="card">
+        <h2 className="section section--tight">{t('definicoes.idioma')}</h2>
+        <div className="form__actions form__actions--left">
+          {IDIOMAS.map((i) => (
+            <button
+              key={i.codigo}
+              className={`btn ${i.codigo === idioma ? 'btn--primary' : 'btn--ghost'}`}
+              aria-pressed={i.codigo === idioma}
+              onClick={() => definirIdioma(i.codigo)}
+            >
+              {i.nome}
+            </button>
+          ))}
+        </div>
+        <p className="muted small">{t('definicoes.idiomaDica')}</p>
+      </div>
 
       {/* O estado da sincronização vive aqui, e não na barra de topo: lá em cima
           só aparece quando corre mal. Quem quiser confirmar que está tudo em
           ordem vem cá ver — é uma pergunta que se faz de vez em quando, não a
           toda a hora. */}
       <div className="card">
-        <h2 className="section section--tight">Sincronização</h2>
+        <h2 className="section section--tight">{t('definicoes.sincronizacao')}</h2>
         <dl className="club-card__stats">
           <div>
-            <dt>Estado</dt>
-            <dd className="small">{estado.status}</dd>
+            <dt>{t('definicoes.estado')}</dt>
+            <dd className="small">{syncLabel(estado.status)}</dd>
           </div>
           <div>
-            <dt>Por enviar</dt>
+            <dt>{t('definicoes.porEnviar')}</dt>
             <dd>{estado.pending || 0}</dd>
           </div>
           <div>
-            <dt>Última vez</dt>
+            <dt>{t('definicoes.ultimaVez')}</dt>
             <dd className="small">
               {estado.lastSyncAt
-                ? new Date(estado.lastSyncAt).toLocaleTimeString('pt-PT', {
+                ? new Date(estado.lastSyncAt).toLocaleTimeString(locale, {
                     hour: '2-digit',
                     minute: '2-digit',
                   })
@@ -138,52 +198,49 @@ function Conta() {
         {estado.error ? (
           <pre className="error">
             {estado.error.message}
-            {estado.error.codigo ? `\n\ncódigo ${estado.error.codigo}` : ''}
+            {estado.error.codigo ? `\n\n${t('comum.codigo', { codigo: estado.error.codigo })}` : ''}
           </pre>
         ) : null}
         <div className="form__actions">
           <button className="btn btn--ghost" onClick={reenviarTudo}>
-            Reenviar tudo
+            {t('sinc.reenviarTudo')}
           </button>
           <span className="toolbar__spacer" />
           <button className="btn btn--ghost" onClick={() => sync.flush(userId, user?.email)}>
-            Sincronizar agora
+            {t('sinc.agora')}
           </button>
         </div>
       </div>
 
       <div className="card">
-        <h2 className="section">Os teus dados</h2>
-        <p className="muted">
-          Os jogos, os planteis e as estatísticas ficam guardados neste aparelho e sincronizados com
-          a tua conta. Podes levá-los contigo a qualquer momento.
-        </p>
-        <div className="form__actions">
+        <h2 className="section">{t('copia.titulo')}</h2>
+        <p className="muted">{t('copia.texto')}</p>
+        <div className="form__actions form__actions--left">
           <button className="btn btn--ghost" onClick={guardarCopia}>
-            Transferir uma cópia
+            {t('copia.transferir')}
           </button>
-          <button className="btn btn--ghost" onClick={() => router.push(rotas.privacidade())}>
-            Política de privacidade
+          <button className="btn btn--ghost" onClick={restaurarCopia}>
+            {t('copia.restaurar')}
           </button>
         </div>
       </div>
 
-      <h2 className="section">Apagar a conta</h2>
-      <div className="card card--danger">
-        <p>
-          Apagar a conta remove <strong>tudo</strong>: os clubes, os escalões, os planteis, os jogos
-          e o histórico de cada um, aqui e no servidor. Não fica nenhuma cópia e não há forma de
-          recuperar.
-        </p>
-        <p className="muted">
-          Se houver alguma coisa que queiras guardar, transfere primeiro uma cópia com o botão aqui
-          em cima.
-        </p>
+      <div className="card">
+        <h2 className="section">{t('definicoes.osTeusDados')}</h2>
+        <p className="muted">{t('definicoes.osTeusDadosTexto')}</p>
+        <div className="form__actions form__actions--left">
+          <button className="btn btn--ghost" onClick={() => router.push(rotas.privacidade())}>
+            {t('definicoes.politica')}
+          </button>
+        </div>
+      </div>
 
-        <Field
-          label="Para confirmar, escreve o teu email"
-          hint="É de propósito: não se apaga uma época inteira por engano."
-        >
+      <h2 className="section">{t('definicoes.apagarConta')}</h2>
+      <div className="card card--danger">
+        <p>{t('definicoes.apagarContaTexto')}</p>
+        <p className="muted">{t('definicoes.apagarContaAviso')}</p>
+
+        <Field label={t('definicoes.escreveEmail')} hint={t('definicoes.escreveEmailDica')}>
           <input
             className="input"
             value={confirmacao}
@@ -195,12 +252,8 @@ function Conta() {
 
         <div className="form__actions">
           <span className="toolbar__spacer" />
-          <button
-            className="btn btn--danger"
-            disabled={!podeApagar || aApagar}
-            onClick={apagar}
-          >
-            {aApagar ? 'A apagar…' : 'Apagar a conta e tudo o que tem'}
+          <button className="btn btn--danger" disabled={!podeApagar || aApagar} onClick={apagar}>
+            {aApagar ? t('definicoes.aApagar') : t('definicoes.apagarBotao')}
           </button>
         </div>
       </div>

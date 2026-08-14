@@ -16,10 +16,11 @@ import { Empty } from '@/components/bits.jsx';
 import { clubs, teams, players, loadTeamMatchStates } from '@/lib/data/repository.js';
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
 import { matchResult } from '@/domain/stats.js';
-import { MATCH_STATUS, MATCH_TIMING_SHORT, timingOf } from '@/domain/constants.js';
-import { dayLabel } from '@/lib/format.js';
+import { MATCH_STATUS, timingOf } from '@/domain/constants.js';
+import { timingShort, ultimoJogoLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function ClubPage() {
   return (
@@ -32,6 +33,7 @@ export default function ClubPage() {
 function Escaloes() {
   const { clubId } = useRouteParams();
   const router = useRouter();
+  const t = useT();
   const [dados, setDados] = useState(null);
   const soLeitura = useSoLeitura();
 
@@ -63,8 +65,8 @@ function Escaloes() {
     return () => window.removeEventListener(DATA_UPDATED_EVENT, aoAtualizar);
   }, [carregar]);
 
-  if (!dados) return <p className="muted">A carregar…</p>;
-  if (!dados.club) return <Empty>Clube não encontrado.</Empty>;
+  if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
+  if (!dados.club) return <Empty>{t('clube.naoEncontrado')}</Empty>;
 
   const { club, cartoes } = dados;
 
@@ -72,7 +74,11 @@ function Escaloes() {
     <>
       <PageHead
         title={club.name}
-        subtitle={club.currentSeason ? `Época ${club.currentSeason}` : 'Escalões deste clube'}
+        subtitle={
+          club.currentSeason
+            ? t('escalao.epoca', { epoca: club.currentSeason })
+            : t('clube.escaloesDoClube')
+        }
         backTo={rotas.dashboard()}
         actions={
           soLeitura ? null : (
@@ -81,13 +87,13 @@ function Escaloes() {
                 className="btn btn--ghost"
                 onClick={() => router.push(rotas.clubeEditar(clubId))}
               >
-                Editar clube
+                {t('clube.editarTitulo')}
               </button>
               <button
                 className="btn btn--primary"
                 onClick={() => router.push(rotas.escalaoNovo(clubId))}
               >
-                Criar escalão
+                {t('clube.criarEscalao')}
               </button>
             </>
           )
@@ -101,12 +107,11 @@ function Escaloes() {
               className="btn btn--primary"
               onClick={() => router.push(rotas.escalaoNovo(clubId))}
             >
-              Criar o primeiro escalão
+              {t('clube.primeiroEscalao')}
             </button>
           }
         >
-          Este clube ainda não tem escalões. É no escalão que vivem o plantel, os jogos e as
-          estatísticas.
+          {t('clube.semEscaloes')}
         </Empty>
       ) : (
         <div className="grid grid--cards">
@@ -119,11 +124,11 @@ function Escaloes() {
               {soLeitura ? null : (
                 <button
                   className="card__edit"
-                  title="Editar escalão"
-                  aria-label={`Editar ${team.name}`}
+                  title={t('clube.editarEscalao')}
+                  aria-label={t('clube.editarNome', { nome: team.name })}
                   onClick={() => router.push(rotas.escalaoEditar(clubId, team.id))}
                 >
-                  Editar
+                  {t('comum.editar')}
                 </button>
               )}
               <header className="club-card__head">
@@ -135,21 +140,23 @@ function Escaloes() {
                 </div>
                 <div>
                   <h2>{team.name}</h2>
-                  <p className="muted">{MATCH_TIMING_SHORT[timingOf(team)]}</p>
+                  <p className="muted">{timingShort(timingOf(team))}</p>
                 </div>
               </header>
               <dl className="club-card__stats">
                 <div>
-                  <dt>Jogadores ativos</dt>
+                  <dt>{t('painel.jogadoresAtivos')}</dt>
                   <dd>{ativos}</dd>
                 </div>
                 <div>
-                  <dt>Jogos registados</dt>
+                  <dt>{t('painel.jogosRegistados')}</dt>
                   <dd>{jogos}</dd>
                 </div>
                 <div>
-                  <dt>Último jogo</dt>
-                  <dd className="small">{ultimoLabel(ultimo)}</dd>
+                  <dt>{t('painel.ultimoJogo')}</dt>
+                  <dd className="small">
+                    {ultimoJogoLabel(ultimo, ultimo && matchResult(ultimo.state))}
+                  </dd>
                 </div>
               </dl>
               <div className="club-card__actions">
@@ -157,13 +164,13 @@ function Escaloes() {
                   className="btn btn--ghost"
                   onClick={() => router.push(rotas.plantel(clubId, team.id))}
                 >
-                  Plantel
+                  {t('escalao.plantel')}
                 </button>
                 <button
                   className="btn btn--primary"
                   onClick={() => router.push(rotas.escalao(clubId, team.id))}
                 >
-                  Abrir escalão
+                  {t('clube.abrirEscalao')}
                 </button>
               </div>
             </article>
@@ -172,13 +179,6 @@ function Escaloes() {
       )}
     </>
   );
-}
-
-function ultimoLabel(ultimo) {
-  if (!ultimo) return 'Sem jogos registados';
-  const r = matchResult(ultimo.state);
-  const palavra = r === 'W' ? 'Vitória' : r === 'L' ? 'Derrota' : 'Empate';
-  return `${palavra} ${ultimo.state.teamScore}–${ultimo.state.opponentScore} · ${dayLabel(ultimo.match.scheduledAt)}`;
 }
 
 function iniciais(nome) {

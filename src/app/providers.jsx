@@ -4,13 +4,14 @@
 // para o servidor. A sincronização vive aqui em cima para continuar a correr
 // enquanto se navega entre ecrãs.
 
-import { useEffect } from 'react';
+import { Fragment, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth.jsx';
 import { UIProvider } from '@/lib/ui.jsx';
 import { supabase } from '@/lib/supabase/client.js';
 import * as sync from '@/lib/data/sync.js';
 import { garantirDono } from '@/lib/data/owner.js';
+import { useIdioma, useLocale } from '@/lib/i18n/index.js';
 
 export default function Providers({ children }) {
   return (
@@ -18,10 +19,38 @@ export default function Providers({ children }) {
       <UIProvider>
         <SyncBridge />
         <LiveChrome />
-        {children}
+        <Idioma>{children}</Idioma>
       </UIProvider>
     </AuthProvider>
   );
+}
+
+/**
+ * Faz a app inteira voltar a desenhar-se quando o idioma muda.
+ *
+ * O `key` é o truque todo. Sem ele, só os componentes que chamam `useT()` é que
+ * se redesenhavam — e há muitos que mostram texto traduzido através de funções
+ * como `positionLabel()` sem nunca tocarem no hook. Ficavam em português no meio
+ * de um ecrã em espanhol, e o utilizador só via a app corrigir-se aos poucos à
+ * medida que navegava.
+ *
+ * Mudar o `key` deita a árvore fora e monta-a de novo, o que garante que não
+ * fica um único texto para trás. Custa o estado dos formulários abertos, mas
+ * trocar de idioma é uma ação deliberada, feita nas definições, onde não há
+ * nada a meio.
+ *
+ * O `lang` do documento acompanha, porque é o que diz ao leitor de ecrã em que
+ * língua há-de pronunciar o que está escrito.
+ */
+function Idioma({ children }) {
+  const idioma = useIdioma();
+  const locale = useLocale();
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
+
+  return <Fragment key={idioma}>{children}</Fragment>;
 }
 
 /**

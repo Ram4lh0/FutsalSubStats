@@ -1,6 +1,18 @@
 // domain/constants.js
 // Enums e etiquetas. Espelham exactamente os tipos SQL de supabase/migrations/0001_init.sql.
-// Ao migrar para Next.js este ficheiro passa tal e qual para src/domain/constants.ts.
+//
+// As **etiquetas** deixaram de viver aqui. Estavam em mapas como `POSITION_LABEL`
+// com o português escrito à mão, e isso deixou de fazer sentido quando a app
+// passou a falar três línguas: um valor guardado na base de dados não pode saber
+// em que idioma alguém está a olhar para ele.
+//
+// Agora este ficheiro só tem os **valores** — `GOALKEEPER`, `TEAM_GOAL_ADDED` —,
+// que são os mesmos em qualquer língua. O texto está em `lib/i18n/`, com a chave
+// igual ao valor, e chega ao ecrã pelas funções de `lib/format.js`
+// (`positionLabel`, `eventLabel`, `statusLabel`, …).
+//
+// Uma posição nova é, portanto, uma linha aqui e uma linha em cada dicionário —
+// e o `npm run check` acusa se faltar alguma.
 
 /** Posições ocupáveis em campo. */
 export const POSITIONS = ['GOALKEEPER', 'FIXO', 'LEFT_WINGER', 'RIGHT_WINGER', 'PIVOT'];
@@ -8,26 +20,7 @@ export const POSITIONS = ['GOALKEEPER', 'FIXO', 'LEFT_WINGER', 'RIGHT_WINGER', '
 /** Posições preferenciais do plantel: as de campo mais universal. */
 export const POSITIONS_ALL = [...POSITIONS, 'UNIVERSAL'];
 
-export const POSITION_LABEL = {
-  GOALKEEPER: 'Guarda-redes',
-  FIXO: 'Fixo',
-  LEFT_WINGER: 'Ala esquerdo',
-  RIGHT_WINGER: 'Ala direito',
-  PIVOT: 'Pivot',
-  UNIVERSAL: 'Universal',
-  // Registos antigos ficaram com UNDEFINED; lê-se como universal.
-  UNDEFINED: 'Universal',
-};
 
-export const POSITION_SHORT = {
-  GOALKEEPER: 'GR',
-  FIXO: 'FIXO',
-  LEFT_WINGER: 'ALA E',
-  RIGHT_WINGER: 'ALA D',
-  PIVOT: 'PIVOT',
-  UNIVERSAL: 'UNI',
-  UNDEFINED: 'UNI',
-};
 
 /** UNDEFINED é o antigo nome de UNIVERSAL — normaliza para comparações. */
 export function normalizePosition(pos) {
@@ -35,12 +28,6 @@ export function normalizePosition(pos) {
 }
 
 export const FOOT = { RIGHT: 'RIGHT', LEFT: 'LEFT', BOTH: 'BOTH', UNKNOWN: 'UNKNOWN' };
-export const FOOT_LABEL = {
-  RIGHT: 'Direito',
-  LEFT: 'Esquerdo',
-  BOTH: 'Ambos',
-  UNKNOWN: 'Não definido',
-};
 export const FOOT_ALL = [FOOT.RIGHT, FOOT.LEFT, FOOT.BOTH, FOOT.UNKNOWN];
 
 export const MATCH_STATUS = {
@@ -54,16 +41,6 @@ export const MATCH_STATUS = {
   FINISHED: 'FINISHED',
 };
 
-export const MATCH_STATUS_LABEL = {
-  DRAFT: 'Preparação',
-  READY: 'Pronto',
-  FIRST_HALF_RUNNING: '1.ª parte',
-  FIRST_HALF_PAUSED: '1.ª parte (parado)',
-  HALFTIME: 'Intervalo',
-  SECOND_HALF_RUNNING: '2.ª parte',
-  SECOND_HALF_PAUSED: '2.ª parte (parado)',
-  FINISHED: 'Terminado',
-};
 
 export const LIVE_STATUSES = [
   'FIRST_HALF_RUNNING',
@@ -120,41 +97,6 @@ export const EVENT = {
   OPPONENT_EXPULSION_REMOVED: 'OPPONENT_EXPULSION_REMOVED',
 };
 
-export const EVENT_LABEL = {
-  MATCH_CREATED: 'Jogo criado',
-  SQUAD_UPDATED: 'Convocatória alterada',
-  FIRST_HALF_STARTED: 'Início da 1.ª parte',
-  CLOCK_PAUSED: 'Tempo parado',
-  CLOCK_RESUMED: 'Tempo retomado',
-  FIRST_HALF_FINISHED: 'Fim da 1.ª parte',
-  SECOND_HALF_LINEUP_SET: 'Formação da 2.ª parte definida',
-  SECOND_HALF_STARTED: 'Início da 2.ª parte',
-  SUBSTITUTION: 'Substituição',
-  POSITION_CHANGED: 'Alteração de posição',
-  PLAYER_EXPELLED: 'Expulsão',
-  PLAYER_REPLACED_AFTER_EXPULSION: 'Reposição após expulsão',
-  PENALTY_STARTED: 'Início da sanção',
-  PENALTY_ENDED: 'Fim antecipado da sanção',
-  YELLOW_CARD: 'Cartão amarelo',
-  RED_CARD: 'Cartão vermelho',
-  TEAM_FOUL_ADDED: 'Falta da equipa',
-  TEAM_FOUL_REMOVED: 'Falta da equipa anulada',
-  OPPONENT_FOUL_ADDED: 'Falta do adversário',
-  OPPONENT_FOUL_REMOVED: 'Falta do adversário anulada',
-  FOUL_ATTRIBUTED: 'Falta atribuída',
-  TEAM_GOAL_ADDED: 'Golo da equipa',
-  TEAM_GOAL_REMOVED: 'Golo da equipa anulado',
-  OPPONENT_GOAL_ADDED: 'Golo do adversário',
-  OPPONENT_GOAL_REMOVED: 'Golo do adversário anulado',
-  GOAL_ATTRIBUTED: 'Golo atribuído',
-  MATCH_FINISHED: 'Jogo terminado',
-  EVENT_UNDONE: 'Ação desfeita',
-  MATCH_CORRECTED: 'Correção',
-  POWER_PLAY_STARTED: 'Início do 5v4',
-  POWER_PLAY_ENDED: 'Fim do 5v4',
-  OPPONENT_EXPULSION_ADDED: 'Expulsão do adversário',
-  OPPONENT_EXPULSION_REMOVED: 'Expulsão do adversário retirada',
-};
 
 // Só estes eventos podem ser desfeitos pelo botão DESFAZER.
 // Eventos de relógio e de transição de parte alteram o estado temporal e exigem correção manual.
@@ -182,7 +124,6 @@ export const UNDOABLE_EVENTS = new Set([
 ]);
 
 export const CARD = { YELLOW: 'YELLOW', RED: 'RED' };
-export const CARD_LABEL = { YELLOW: 'Amarelo', RED: 'Vermelho' };
 
 export const STINT_END_REASON = {
   SUBSTITUTED: 'SUBSTITUTED',
@@ -200,12 +141,7 @@ export const STINT_END_REASON = {
  */
 export const MATCH_TIMING = { TIMED: 'TIMED', UNTIMED: 'UNTIMED' };
 
-export const MATCH_TIMING_LABEL = {
-  TIMED: 'Cronometrado (20 min por parte)',
-  UNTIMED: 'Corrido (30 min por parte)',
-};
 
-export const MATCH_TIMING_SHORT = { TIMED: 'Cronometrado', UNTIMED: 'Corrido' };
 
 export const TIMING_CONFIG = {
   TIMED: { periodDurationMs: 20 * 60 * 1000, penaltyDurationMs: 2 * 60 * 1000 },
@@ -242,4 +178,3 @@ export const MAX_ON_COURT = 5;
 export const DEFAULT_PERIOD_MS = 20 * 60 * 1000;
 
 export const HOME_AWAY = { HOME: 'HOME', AWAY: 'AWAY' };
-export const HOME_AWAY_LABEL = { HOME: 'Casa', AWAY: 'Fora' };

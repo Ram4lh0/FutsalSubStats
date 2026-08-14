@@ -87,5 +87,41 @@ for (const f of ficheiros(SRC)) {
   }
 }
 
+/* ------------------------------------------ o alias `@/` fora do Next.js */
+
+// O `@/` é uma invenção do `jsconfig.json`: o Next resolve-o, o Node não.
+//
+// Isso nunca importou enquanto o domínio e a camada de dados só usavam caminhos
+// relativos. Ao traduzir a app, um `import { t } from '@/lib/i18n/index.js'`
+// entrou no `repository.js` — e a suite inteira deixou de arrancar com
+// "Cannot find package '@/lib'". O build continuava a passar, porque o Next
+// resolve na mesma; só os testes é que caíam.
+//
+// A regra: os `.js` de `src/domain/` e `src/lib/` só usam caminhos relativos.
+// São os que os testes carregam.
+//
+// Os `.jsx` ficam de fora de propósito, mesmo estando nas mesmas pastas: o Node
+// não sabe ler JSX, por isso um teste nunca os importa e o alias não faz mal
+// nenhum ali. As páginas e os componentes também não entram — nada em `app/` ou
+// `components/` chega ao Node.
+const SEM_ALIAS = ['src/domain', 'src/lib'];
+
+for (const f of ficheiros(join(RAIZ, 'src'))) {
+  const rel = relative(RAIZ, f).replace(/\\/g, '/');
+  if (!rel.endsWith('.js')) continue;
+  if (!SEM_ALIAS.some((dir) => rel.startsWith(dir))) continue;
+  const src = readFileSync(f, 'utf8');
+  const re = /^\s*import[^'"]*['"](@\/[^'"]+)['"]/gm;
+  let m;
+  while ((m = re.exec(src))) {
+    const linha = src.slice(0, m.index).split('\n').length;
+    console.log(
+      `${rel}:${linha}  usa o alias "${m[1]}" — o Node dos testes não o resolve, ` +
+        `use um caminho relativo`
+    );
+    problemas++;
+  }
+}
+
 console.log(problemas ? `\n${problemas} problema(s).` : 'Todos os imports resolvem.');
 process.exit(problemas ? 1 : 0);

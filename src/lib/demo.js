@@ -19,6 +19,7 @@
 
 import { clubs, teams, competitions, players, matches, squad, events } from './data/repository.js';
 import { garantirDono, DONO_DEMO } from './data/owner.js';
+import { t } from './i18n/index.js';
 import { matchCreated } from '../domain/actions.js';
 import { LOCATION, MATCH_TIMING } from '../domain/constants.js';
 
@@ -84,7 +85,7 @@ export async function iniciarDemo() {
 
   const clube = await clubs.create({
     id: DEMO.clube,
-    name: 'FC Demonstração',
+    name: t('demo.clube'),
     shortName: 'DEMO',
     currentSeason: '2026/27',
     primaryColor: '#22c55e',
@@ -92,14 +93,14 @@ export async function iniciarDemo() {
 
   const escalao = await teams.create(clube.id, {
     id: DEMO.escalao,
-    name: 'Séniores',
+    name: t('demo.escalao'),
     shortName: 'SEN',
     timing: MATCH_TIMING.TIMED,
   });
 
   const prova = await competitions.create(escalao.id, {
     id: DEMO.competicao,
-    name: 'Jogo de experiência',
+    name: t('demo.competicao'),
   });
 
   const plantel = [];
@@ -115,7 +116,7 @@ export async function iniciarDemo() {
 
   const jogo = await matches.create(escalao.id, {
     id: DEMO.jogo,
-    opponentName: 'AD Vizinhança',
+    opponentName: t('demo.adversario'),
     opponentShortName: 'ADV',
     competitionId: prova.id,
     timing: MATCH_TIMING.TIMED,

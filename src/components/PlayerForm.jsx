@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHead from './PageHead.jsx';
-import { Empty } from './bits.jsx';
+import { SoLeitura } from './bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { clubs, teams, players } from '@/lib/data/repository.js';
@@ -16,17 +16,13 @@ import * as sync from '@/lib/data/sync.js';
 import { validatePlayer } from '@/domain/validation.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
-import {
-  POSITIONS_ALL,
-  POSITION_LABEL,
-  normalizePosition,
-  FOOT,
-  FOOT_ALL,
-  FOOT_LABEL,
-} from '@/domain/constants.js';
+import { useT } from '@/lib/i18n/index.js';
+import { positionLabel, footLabel, mensagemErro } from '@/lib/format.js';
+import { POSITIONS_ALL, normalizePosition, FOOT, FOOT_ALL } from '@/domain/constants.js';
 
 export default function PlayerForm({ clubId, teamId, playerId }) {
   const router = useRouter();
+  const t = useT();
   const soLeitura = useSoLeitura();
   const { toast } = useUI();
   const { userId, user } = useAuth();
@@ -74,61 +70,40 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
     e.preventDefault();
     if (aGuardar) return;
     const erro = validatePlayer(form, roster, playerId || null);
-    if (erro) return toast(erro, 'error');
+    if (erro) return toast(mensagemErro(erro), 'error');
     setAGuardar(true);
     try {
       if (playerId) await players.update(playerId, form);
       else await players.create(teamId, form);
       await sync.saveNow(userId, user?.email);
-      toast('Jogador guardado e sincronizado.', 'ok');
+      toast(t('jogador.guardado'), 'ok');
       router.push(rotas.plantel(clubId, teamId));
     } catch (err) {
-      toast(`Jogador guardado neste dispositivo, mas ainda não subiu: ${err.message}`, 'error');
+      toast(t('jogador.guardadoLocal', { erro: err.message }), 'error');
     } finally {
       setAGuardar(false);
     }
   }
 
-  if (!pronto) return <p className="muted">A carregar…</p>;
+  if (!pronto) return <p className="muted">{t('comum.aCarregar')}</p>;
 
-  // Esconder o botão não chega: quem escrever o endereço à mão chega aqui à
-  // mesma. A experiência é para ver como a app funciona, não para montar uma
-  // equipa que se vai perder daqui a cinco minutos.
-  if (soLeitura) {
-    return (
-      <>
-        <PageHead title="Jogador" backTo={rotas.dashboard()} />
-        <Empty
-          action={
-            <button className="btn btn--primary" onClick={() => router.push(rotas.login())}>
-              Criar conta
-            </button>
-          }
-        >
-          Isto faz parte do jogo de experiência, e por isso não se altera. Com conta, a equipa é sua
-          e muda-se à vontade.
-        </Empty>
-      </>
-    );
-  }
-
-
+  if (soLeitura) return <SoLeitura titulo={t('jogador.titulo')} />;
 
   return (
     <>
       <PageHead
-        title={playerId ? `Editar ${form.name}` : 'Novo jogador'}
+        title={playerId ? t('jogador.editar', { nome: form.name }) : t('jogador.novo')}
         subtitle={[club?.name, team?.name].filter(Boolean).join(' · ')}
         backTo={rotas.plantel(clubId, teamId)}
       />
       <form className="card form" onSubmit={guardar}>
         <div className="form__row">
           <label className="field">
-            <span className="field__label">Nome</span>
-            <input className="input" placeholder="Nome" {...campo('name')} />
+            <span className="field__label">{t('jogador.nome')}</span>
+            <input className="input" placeholder={t('jogador.nome')} {...campo('name')} />
           </label>
           <label className="field field--narrow">
-            <span className="field__label">Número</span>
+            <span className="field__label">{t('jogador.numero')}</span>
             <input
               className="input"
               type="number"
@@ -142,21 +117,21 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
 
         <div className="form__row">
           <label className="field">
-            <span className="field__label">Posição preferencial</span>
+            <span className="field__label">{t('jogador.posicaoPreferencial')}</span>
             <select className="input" {...campo('preferredPosition')}>
               {POSITIONS_ALL.map((p) => (
                 <option key={p} value={p}>
-                  {POSITION_LABEL[p]}
+                  {positionLabel(p)}
                 </option>
               ))}
             </select>
           </label>
           <label className="field">
-            <span className="field__label">Pé forte</span>
+            <span className="field__label">{t('jogador.peForte')}</span>
             <select className="input" {...campo('strongFoot')}>
               {FOOT_ALL.map((f) => (
                 <option key={f} value={f}>
-                  {FOOT_LABEL[f]}
+                  {footLabel(f)}
                 </option>
               ))}
             </select>
@@ -169,7 +144,7 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
             checked={form.isActive}
             onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
           />
-          <span>Jogador ativo</span>
+          <span>{t('jogador.ativo')}</span>
         </label>
 
         <div className="form__actions">
@@ -178,10 +153,10 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
             type="button"
             onClick={() => router.push(rotas.plantel(clubId, teamId))}
           >
-            Cancelar
+            {t('comum.cancelar')}
           </button>
           <button className="btn btn--primary" type="submit" disabled={aGuardar}>
-            {aGuardar ? 'A guardar…' : 'Guardar'}
+            {aGuardar ? t('comum.aGuardar') : t('comum.guardar')}
           </button>
         </div>
       </form>

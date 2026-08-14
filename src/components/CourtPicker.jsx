@@ -8,13 +8,16 @@
 // para toda a aplicação — quem aprendeu a substituir já sabe montar o cinco.
 
 import { useState } from 'react';
-import { POSITIONS, POSITION_SHORT } from '@/domain/constants.js';
+import { POSITIONS } from '@/domain/constants.js';
+import { positionShort } from '@/lib/format.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export function countFilled(lineup) {
   return Object.values(lineup).filter(Boolean).length;
 }
 
 export default function CourtPicker({ candidates, lineup, onChange }) {
+  const t = useT();
   const [sel, setSel] = useState(null); // { kind: 'bench', playerId } | { kind: 'slot', pos }
 
   const usados = new Set(Object.values(lineup).filter(Boolean));
@@ -63,12 +66,12 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
 
   const dica =
     sel?.kind === 'bench'
-      ? 'Agora toque na posição onde quer colocá-lo.'
+      ? t('campo.dicaBanco')
       : sel?.kind === 'slot'
         ? lineup[sel.pos]
-          ? 'Toque noutra posição para trocar, ou num jogador do banco para o substituir.'
-          : 'Toque num jogador do banco para ocupar esta posição.'
-        : 'Toque num jogador do banco ou numa posição do campo para começar.';
+          ? t('campo.dicaSlotCheio')
+          : t('campo.dicaSlotVazio')
+        : t('campo.dicaInicial');
 
   return (
     <div className="courtpick">
@@ -94,7 +97,7 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
                 .join(' ')}
               onClick={() => tocarPosicao(pos)}
             >
-              <span className="slot__pos">{POSITION_SHORT[pos]}</span>
+              <span className="slot__pos">{positionShort(pos)}</span>
               {p ? (
                 <span className="slot__player">
                   <strong>{p.number}</strong>
@@ -102,13 +105,13 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
                 </span>
               ) : (
                 <span className="slot__empty">
-                  {sel?.kind === 'bench' ? 'Colocar aqui' : 'Tocar para escolher'}
+                  {sel?.kind === 'bench' ? t('campo.colocarAqui') : t('campo.tocarParaEscolher')}
                 </span>
               )}
               {p ? (
                 <span
                   className="slot__clear"
-                  title="Retirar do cinco"
+                  title={t('campo.retirarDoCinco')}
                   onClick={(e) => {
                     e.stopPropagation();
                     const proximo = { ...lineup };
@@ -126,7 +129,7 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
       </div>
 
       <div className="courtpick__bench">
-        <h3 className="section section--tight">Banco ({banco.length})</h3>
+        <h3 className="section section--tight">{t('campo.banco', { n: banco.length })}</h3>
         <div className="chiprow">
           {banco.length ? (
             banco.map((p) => (
@@ -146,7 +149,7 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
               </button>
             ))
           ) : (
-            <span className="muted">Todos os convocados estão em campo.</span>
+            <span className="muted">{t('campo.todosEmCampo')}</span>
           )}
         </div>
         <p className="courtpick__hint">{dica}</p>

@@ -1,6 +1,7 @@
 // lib/squad.js — regras da convocatória que a interface precisa de confirmar.
 
-import { MAX_ON_COURT } from '@/domain/constants.js';
+import { MAX_ON_COURT } from '../domain/constants.js';
+import { t } from './i18n/index.js';
 
 /**
  * Jogar com menos de cinco convocados é possível (falta de gente, jogo-treino),
@@ -8,8 +9,8 @@ import { MAX_ON_COURT } from '@/domain/constants.js';
  */
 export async function confirmarPoucosConvocados(confirmar, total) {
   if (total >= MAX_ON_COURT) return true;
-  return confirmar(
-    `Só ${total} convocados: o jogo vai começar com menos de ${MAX_ON_COURT} em campo e sem suplentes. Tem a certeza?`,
-    { okLabel: 'Continuar assim', danger: false }
-  );
+  return confirmar(t('prep.poucosConvocados', { n: total, max: MAX_ON_COURT }), {
+    okLabel: t('prep.continuarAssim'),
+    danger: false,
+  });
 }

@@ -138,6 +138,11 @@ ul { padding: 0; list-style: none; }
    ninguém chegar aqui a pensar que está noutro sítio qualquer. */
 .card--danger { border-color: rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.06); }
 .card--danger p { margin-bottom: 10px; }
+/* Cartão dentro de outro — usado para a caixa do ficheiro de exemplo dentro da
+   janela de importação. Mais discreto e mais apertado, para se ler como um à
+   parte e não como uma segunda secção. */
+.card--inset { padding: 12px 14px; margin: 14px 0; background: rgba(148, 163, 184, 0.06); }
+.card--inset p { margin-bottom: 8px; }
 /* Texto corrido para ler, não para consultar: linha curta e espaço entre
    parágrafos. É o que separa uma política de privacidade legível de um muro. */
 .prose { max-width: 68ch; line-height: 1.6; }
@@ -320,7 +325,10 @@ ul { padding: 0; list-style: none; }
 
 .form { display: flex; flex-direction: column; gap: 14px; }
 .form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.form__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+/* Envolve para a linha seguinte: em espanhol e inglês os botões são mais
+   compridos do que em português, e num iPhone estreito três seguidos deixavam
+   de caber. */
+.form__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 6px; }
 .form__actions--left { justify-content: flex-start; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field--narrow { max-width: 140px; }
