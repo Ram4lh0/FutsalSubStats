@@ -7,9 +7,11 @@
 // pedaços ligados por callbacks.
 
 import { Dialog } from '@/lib/ui.jsx';
-import { POSITIONS, POSITION_LABEL, PLAYER_MATCH_STATUS } from '@/domain/constants.js';
+import { POSITIONS, PLAYER_MATCH_STATUS } from '@/domain/constants.js';
 import { fmt } from '@/domain/clock.js';
 import { playerMatchStats } from '@/domain/stats.js';
+import { positionLabel } from '@/lib/format.js';
+import { t } from '@/lib/i18n/index.js';
 
 /**
  * Escolher um jogador. Só quem está em campo: um golo, uma assistência ou uma
@@ -17,7 +19,7 @@ import { playerMatchStats } from '@/domain/stats.js';
  *
  * Resolve com o id, `null` se escolher "nenhum", ou `undefined` se fechar.
  */
-export function pickPlayer(ui, state, title, { exclude, allowNone = false, noneLabel = 'Nenhum', extra = [] } = {}) {
+export function pickPlayer(ui, state, title, { exclude, allowNone = false, noneLabel, extra = [] } = {}) {
   const opcoes = Object.values(state.players)
     .filter((p) => p.playerId !== exclude && p.status === PLAYER_MATCH_STATUS.ON_COURT)
     .sort((a, b) => a.number - b.number);
@@ -29,7 +31,7 @@ export function pickPlayer(ui, state, title, { exclude, allowNone = false, noneL
           <button key={p.playerId} className="picklist__item" onClick={() => close(p.playerId)}>
             <span className="picklist__num">#{p.number}</span>
             <span className="picklist__name">{p.name}</span>
-            <span className="picklist__pos">{POSITION_LABEL[p.position] || ''}</span>
+            <span className="picklist__pos">{p.position ? positionLabel(p.position) : ''}</span>
           </button>
         ))}
         {extra.map((o) => (
@@ -43,7 +45,7 @@ export function pickPlayer(ui, state, title, { exclude, allowNone = false, noneL
         ))}
         {allowNone ? (
           <button className="picklist__item picklist__item--clear" onClick={() => close(null)}>
-            {noneLabel}
+            {noneLabel || t('dialogo.nenhum')}
           </button>
         ) : null}
       </div>
@@ -54,16 +56,14 @@ export function pickPlayer(ui, state, title, { exclude, allowNone = false, noneL
 /** Da sexta falta em diante, cada uma dá livre de 10 metros ao adversário. */
 export function tenMetreAlert(ui, { beneficia, faltou, n }) {
   return ui.open((close) => (
-    <Dialog title={`Livre de 10m para o ${beneficia}`} onClose={() => close(null)}>
+    <Dialog title={t('dialogo.livre10', { equipa: beneficia })} onClose={() => close(null)}>
       <div className="tenm">
-        <p className="tenm__count">
-          {n}.ª falta de {faltou}
-        </p>
-        <p className="modal__text">Livre de 10m.</p>
+        <p className="tenm__count">{t('dialogo.faltaN', { n, equipa: faltou })}</p>
+        <p className="modal__text">{t('dialogo.livre10Texto')}</p>
       </div>
       <footer className="modal__actions">
         <button className="btn btn--primary" onClick={() => close(null)}>
-          Entendido
+          {t('dialogo.entendido')}
         </button>
       </footer>
     </Dialog>
@@ -76,7 +76,7 @@ export function pickReplacement(ui, state, position) {
     (p) => p.status === PLAYER_MATCH_STATUS.ON_BENCH
   );
   return ui.open((close) => (
-    <Dialog title={`Colocar em ${POSITION_LABEL[position]}`} onClose={() => close(null)}>
+    <Dialog title={t('dialogo.colocarEm', { posicao: positionLabel(position) })} onClose={() => close(null)}>
       <div className="picklist">
         {opcoes.map((p) => (
           <button key={p.playerId} className="picklist__item" onClick={() => close(p.playerId)}>
@@ -92,16 +92,16 @@ export function pickReplacement(ui, state, position) {
 export function positionMenu(ui, state, p) {
   const posicoes = POSITIONS.filter((pos) => pos !== p.position);
   return ui.open((close) => (
-    <Dialog title={`Posição de #${p.number} ${p.name}`} onClose={() => close(null)}>
+    <Dialog title={t('dialogo.posicaoDe', { numero: p.number, nome: p.name })} onClose={() => close(null)}>
       <div className="menu">
         {posicoes.map((pos) => {
           const ocupante = state.players[state.court[pos]];
           return (
             <button key={pos} className="menu__item" onClick={() => close(pos)}>
-              {POSITION_LABEL[pos]}
+              {positionLabel(pos)}
               {ocupante ? (
                 <span className="menu__hint">
-                  troca com #{ocupante.number} {ocupante.name}
+                  {t('dialogo.trocaCom', { numero: ocupante.number, nome: ocupante.name })}
                 </span>
               ) : null}
             </button>
@@ -125,28 +125,30 @@ export function stintsDialog(ui, state, p, clockMs) {
   return ui.open((close) => (
     <Dialog title={`#${p.number} ${p.name}`} onClose={() => close(null)}>
       <div className="grid grid--stats">
-        {mini('Em campo', fmt(s.courtMs))}
-        {mini('Entradas', s.entries)}
-        {mini('Part. golos', s.goalShare)}
-        {mini('Part. sofridos', s.concededShare)}
+        {mini(t('ficha.emCampo'), fmt(s.courtMs))}
+        {mini(t('intervalo.entradas'), s.entries)}
+        {mini(t('ficha.partGolos'), s.goalShare)}
+        {mini(t('ficha.partSofridos'), s.concededShare)}
       </div>
       {s.stints.length ? (
         <ul className="stintlist">
           {s.stints.map((x) => (
             <li key={x.stintNumber}>
-              <strong>Entrada {x.stintNumber}</strong>
-              {` — ${x.startPeriod}.ª parte — ${fmt(x.startMatchMs)} a ${
-                x.open ? 'agora' : fmt(x.endMatchMs)
-              } — `}
+              <strong>{t('dialogo.entrada', { n: x.stintNumber })}</strong>
+              {t('dialogo.periodoLinha', {
+                parte: x.startPeriod,
+                inicio: fmt(x.startMatchMs),
+                fim: x.open ? t('dialogo.agora') : fmt(x.endMatchMs),
+              })}
               <span className="mono">{fmt(x.durationMs)}</span>
               {x.startingPosition ? (
-                <span className="muted"> · {POSITION_LABEL[x.startingPosition]}</span>
+                <span className="muted"> · {positionLabel(x.startingPosition)}</span>
               ) : null}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="muted">Ainda não entrou em campo.</p>
+        <p className="muted">{t('dialogo.aindaNaoEntrou')}</p>
       )}
     </Dialog>
   ));

@@ -4,6 +4,9 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { statusLabel, statusKind } from '@/lib/format.js';
+import { useT } from '@/lib/i18n/index.js';
+import { rotas } from '@/lib/routes.js';
+import PageHead from './PageHead.jsx';
 
 export function Empty({ children, action }) {
   return (
@@ -49,6 +52,35 @@ export function Field({ label, hint, children }) {
       {children}
       {hint ? <span className="field__hint">{hint}</span> : null}
     </label>
+  );
+}
+
+/**
+ * O que se mostra a quem tenta editar durante o jogo de experiência.
+ *
+ * Estava escrito por extenso em quatro formulários — clube, escalão, competição
+ * e jogador — palavra por palavra igual. Com três idiomas isso passaria a doze
+ * cópias do mesmo parágrafo, e bastava uma ficar para trás.
+ *
+ * Esconder o botão de editar não chega: quem escrever o endereço à mão chega ao
+ * formulário à mesma. É aqui que se trava.
+ */
+export function SoLeitura({ titulo }) {
+  const router = useRouter();
+  const t = useT();
+  return (
+    <>
+      <PageHead title={titulo} backTo={rotas.dashboard()} />
+      <Empty
+        action={
+          <button className="btn btn--primary" onClick={() => router.push(rotas.login())}>
+            {t('soLeitura.criarConta')}
+          </button>
+        }
+      >
+        {t('soLeitura.texto')}
+      </Empty>
+    </>
   );
 }
 

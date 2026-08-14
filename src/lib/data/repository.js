@@ -18,6 +18,7 @@ import { notifyLocalChange } from './sync.js';
 import { uid } from '../../domain/actions.js';
 import { buildMatchState } from '../../domain/reducer.js';
 import { LOCATION, EVENT, MATCH_TIMING, timingOf, timingConfig } from '../../domain/constants.js';
+import { t } from '../i18n/index.js';
 
 const now = () => Date.now();
 // Tudo o que se escreve nasce por enviar. O `dirty` só cai quando o servidor
@@ -221,8 +222,75 @@ export const players = {
   /** Só permitido a jogadores sem histórico (regra 3.1). */
   async remove(id) {
     const used = (await db.all(db.STORES.matchSquad)).some((s) => s.playerId === id);
-    if (used) throw new Error('Este jogador tem jogos registados. Desative-o em vez de o apagar.');
+    if (used) throw new Error(t('plantelCsv.temHistorico'));
     await db.del(db.STORES.players, id);
+  },
+
+  /**
+   * Põe o plantel do escalão igual ao que veio no ficheiro.
+   *
+   * "Substituir" é o que se pede, mas não pode ser um apagar e voltar a criar:
+   * um jogador que já foi convocado tem jogos ligados a si, e apagá-lo
+   * reescreveria a ficha desses jogos — a base de dados recusa-o, e ainda bem.
+   *
+   * Por isso a substituição faz-se em três movimentos, com o número de camisola
+   * a servir de identidade:
+   *
+   *   · está no ficheiro e já cá estava  → é atualizado, e mantém o histórico
+   *   · está no ficheiro e é novo        → é criado
+   *   · não está no ficheiro             → sai do plantel: apagado se nunca foi
+   *                                        convocado, desativado se já foi
+   *
+   * O terceiro caso é o que interessa explicar a quem usa: o jogador desaparece
+   * das listas e das convocatórias, mas os jogos em que participou continuam
+   * certos. Um plantel não é uma folha em branco — tem passado.
+   *
+   * @returns {{ criados:number, atualizados:number, apagados:number, desativados:number }}
+   */
+  async replaceRoster(teamId, jogadores) {
+    const atuais = await players.listByTeam(teamId);
+    const convocados = new Set((await db.all(db.STORES.matchSquad)).map((s) => s.playerId));
+    const porNumero = new Map(atuais.map((p) => [Number(p.shirtNumber), p]));
+    const numerosDoFicheiro = new Set(jogadores.map((j) => Number(j.shirtNumber)));
+
+    let criados = 0;
+    let atualizados = 0;
+    let apagados = 0;
+    let desativados = 0;
+
+    for (const j of jogadores) {
+      const existente = porNumero.get(Number(j.shirtNumber));
+      if (existente) {
+        await players.update(existente.id, {
+          name: j.name,
+          preferredPosition: j.preferredPosition,
+          strongFoot: j.strongFoot,
+          isActive: j.isActive,
+        });
+        atualizados += 1;
+      } else {
+        const novo = await players.create(teamId, j);
+        // `create` força `isActive: true`; o ficheiro pode trazer um inativo.
+        if (!j.isActive) await players.update(novo.id, { isActive: false });
+        criados += 1;
+      }
+    }
+
+    for (const p of atuais) {
+      if (numerosDoFicheiro.has(Number(p.shirtNumber))) continue;
+      if (convocados.has(p.id)) {
+        if (p.isActive) {
+          await players.update(p.id, { isActive: false });
+          desativados += 1;
+        }
+      } else {
+        await db.del(db.STORES.players, p.id);
+        apagados += 1;
+      }
+    }
+
+    notifyLocalChange();
+    return { criados, atualizados, apagados, desativados };
   },
 };
 
@@ -407,7 +475,7 @@ export async function dump() {
 }
 
 export async function restore(payload, { replace = true } = {}) {
-  if (!payload || !payload.data) throw new Error('Ficheiro de backup inválido.');
+  if (!payload || !payload.data) throw new Error(t('auth.backupInvalido'));
   if (replace) await db.clearAll();
   for (const [key, store] of Object.entries(db.STORES)) {
     const rows = payload.data[key] || [];

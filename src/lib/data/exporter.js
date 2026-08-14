@@ -4,13 +4,17 @@
 import { fmt } from '../../domain/clock.js';
 import { matchStatsTable, powerPlayTotals } from '../../domain/stats.js';
 import { foulsTotal, foulsInPeriod } from '../../domain/reducer.js';
+// Nada vem já de `constants.js`: as etiquetas que este ficheiro usava — posições,
+// estados, eventos — passaram para os dicionários, e chegam aqui pelas funções
+// de `format.js`. O CSV sai no idioma em que a app está a ser vista.
 import {
-  POSITION_LABEL,
-  MATCH_STATUS_LABEL,
-  HOME_AWAY_LABEL,
-  EVENT_LABEL,
-  FOOT_LABEL,
-} from '../../domain/constants.js';
+  positionLabel,
+  footLabel,
+  homeAwayLabel,
+  statusLabel,
+  eventLabel,
+} from '../format.js';
+import { t, localeAtual } from '../i18n/index.js';
 
 function csvEscape(v) {
   const s = v == null ? '' : String(v);
@@ -26,35 +30,53 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
   const table = matchStatsTable(state, Date.now());
   const pp = powerPlayTotals(state, state.elapsedMatchMs);
   const rows = [
-    ['Clube', club?.name || ''],
-    ['Adversário', match.opponentName],
-    ['Data', new Date(match.scheduledAt).toLocaleString('pt-PT')],
-    ['Escalão', team?.name || ''],
-    ['Competição', competition?.name || ''],
-    ['Local', HOME_AWAY_LABEL[match.homeOrAway] || ''],
-    ['Estado', MATCH_STATUS_LABEL[state.status]],
-    ['Resultado', `${state.teamScore}-${state.opponentScore}`],
+    [t('csv.clube'), club?.name || ''],
+    [t('prep.adversario'), match.opponentName],
+    [t('csv.data'), new Date(match.scheduledAt).toLocaleString(localeAtual())],
+    [t('escalao.titulo'), team?.name || ''],
+    [t('prep.competicao'), competition?.name || ''],
+    [t('lista.local'), homeAwayLabel(match.homeOrAway)],
+    [t('csv.estado'), statusLabel(state.status)],
+    [t('csv.resultado'), `${state.teamScore}-${state.opponentScore}`],
     [
-      'Ao intervalo',
+      t('resumo.aoIntervalo'),
       state.halftimeTeamScore == null
         ? ''
         : `${state.halftimeTeamScore}-${state.halftimeOpponentScore}`,
     ],
-    ['Duração efetiva', fmt(state.elapsedMatchMs)],
-    ['Faltas (nós)', foulsTotal(state, 'US')],
-    ['Faltas 1.ª parte', foulsInPeriod(state, 'US', 1)],
-    ['Faltas 2.ª parte', foulsInPeriod(state, 'US', 2)],
-    ['Faltas (adversário)', foulsTotal(state, 'THEM')],
-    ['Tempo em 5v4', fmt(pp.totalMs)],
-    ['Períodos em 5v4', pp.count],
+    [t('resumo.duracaoEfetiva'), fmt(state.elapsedMatchMs)],
+    [t('csv.faltasNos'), foulsTotal(state, 'US')],
+    [t('csv.faltasPrimeira'), foulsInPeriod(state, 'US', 1)],
+    [t('csv.faltasSegunda'), foulsInPeriod(state, 'US', 2)],
+    [t('csv.faltasDeles'), foulsTotal(state, 'THEM')],
+    [t('resumo.tempo5v4'), fmt(pp.totalMs)],
+    [t('resumo.periodos5v4'), pp.count],
     ...pp.periodos.map((x) => [
-      `5v4 #${x.numero}`,
-      `${x.startPeriod}.ª parte · ${fmt(x.startMatchMs)}–${
-        x.endMatchMs == null ? 'fim' : fmt(x.endMatchMs)
-      } · ${fmt(x.durationMs)}`,
+      t('csv.periodo5v4', { n: x.numero }),
+      t('csv.detalhe5v4', {
+        parte: x.startPeriod,
+        inicio: fmt(x.startMatchMs),
+        fim: x.endMatchMs == null ? t('csv.fim') : fmt(x.endMatchMs),
+        duracao: fmt(x.durationMs),
+      }),
     ]),
     [],
-    ['Nº', 'Jogador', 'Golos', 'Assistências', 'Golos sofridos', 'Faltas', 'Faltas sofridas', 'Amarelos', 'Vermelhos', 'Em campo', 'Entradas', 'Part. golos', 'Part. sofridos', 'Estado'],
+    [
+      t('stats.numero'),
+      t('stats.jogador'),
+      t('stats.golos'),
+      t('ficha.assistencias'),
+      t('csv.golosSofridos'),
+      t('stats.faltas'),
+      t('stats.faltasSofridas'),
+      t('stats.amarelos'),
+      t('stats.vermelhos'),
+      t('ficha.emCampo'),
+      t('intervalo.entradas'),
+      t('ficha.partGolos'),
+      t('ficha.partSofridos'),
+      t('csv.estado'),
+    ],
   ];
   for (const p of table) {
     rows.push([
@@ -71,27 +93,45 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
       p.entries,
       p.goalShare,
       p.concededShare,
-      p.expelled ? 'Expulso' : '',
+      p.expelled ? t('resumo.expulso') : '',
     ]);
   }
   rows.push([]);
-  rows.push(['Golo', 'Equipa', 'Parte', 'Minuto', 'Marcador', 'Assistência', 'Autogolo', 'Guarda-redes']);
+  rows.push([
+    t('csv.golo'),
+    t('csv.equipa'),
+    t('csv.parte'),
+    t('csv.minuto'),
+    t('csv.marcador'),
+    t('csv.assistencia'),
+    t('csv.autogolo'),
+    t('csv.guardaRedes'),
+  ]);
   (state.goals || []).forEach((g, i) => {
     const nm = (id) => (id ? state.players[id]?.name || '' : '');
     rows.push([
       i + 1,
-      g.team === 'US' ? club?.name || 'Nós' : match.opponentName,
+      g.team === 'US' ? club?.name || t('nome.nos') : match.opponentName,
       g.period,
       fmt(g.matchElapsedMs),
       nm(g.scorerId),
       nm(g.assistId),
-      g.ownGoal ? 'sim' : '',
+      g.ownGoal ? t('csv.sim') : '',
       nm(g.goalkeeperId),
     ]);
   });
 
   rows.push([]);
-  rows.push(['Jogador', 'Entrada', 'Parte', 'Início', 'Fim', 'Duração', 'Posição', 'Motivo de fim']);
+  rows.push([
+    t('stats.jogador'),
+    t('csv.entrada'),
+    t('csv.parte'),
+    t('csv.inicio'),
+    t('csv.fimColuna'),
+    t('csv.duracao'),
+    t('plantel.posicao'),
+    t('csv.motivoFim'),
+  ]);
   for (const p of table) {
     for (const s of p.stints) {
       rows.push([
@@ -101,7 +141,7 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
         fmt(s.startMatchMs),
         s.endMatchMs == null ? '—' : fmt(s.endMatchMs),
         fmt(s.durationMs),
-        POSITION_LABEL[s.startingPosition] || '',
+        s.startingPosition ? positionLabel(s.startingPosition) : '',
         s.endingReason || '',
       ]);
     }
@@ -110,43 +150,40 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
 }
 
 export function matchEventsCsv({ match, state }) {
-  const rows = [['#', 'Evento', 'Parte', 'Tempo de jogo', 'Tempo da parte', 'Detalhe', 'Anulado']];
+  const rows = [
+    [
+      '#',
+      t('historico.acao'),
+      t('csv.parte'),
+      t('novo.tempoDeJogo'),
+      t('historico.tempo'),
+      t('historico.detalhe'),
+      t('historico.anulado'),
+    ],
+  ];
   for (const e of state.allEvents) {
     const name = (id) => state.players[id]?.name || '';
     const detail = [
-      e.playerOutId ? `Sai ${name(e.playerOutId)}` : '',
-      e.playerInId ? `Entra ${name(e.playerInId)}` : '',
+      e.playerOutId ? t('historico.sai', { nome: name(e.playerOutId) }) : '',
+      e.playerInId ? t('historico.entra', { nome: name(e.playerInId) }) : '',
       e.playerId ? name(e.playerId) : '',
-      e.position ? POSITION_LABEL[e.position] : '',
+      e.position ? positionLabel(e.position) : '',
     ]
       .filter(Boolean)
       .join(' · ');
     rows.push([
       e.seq,
-      EVENT_LABEL[e.eventType] || e.eventType,
+      eventLabel(e.eventType) || e.eventType,
       e.period,
       fmt(e.matchElapsedMs),
       fmt(e.periodElapsedMs),
       detail,
-      e.undoneAt ? 'sim' : '',
+      e.undoneAt ? t('csv.sim') : '',
     ]);
   }
   return toCsv(rows);
 }
 
-export function rosterCsv(club, players) {
-  const rows = [['Nº', 'Nome', 'Posição preferencial', 'Pé forte', 'Estado']];
-  for (const p of players) {
-    rows.push([
-      p.shirtNumber,
-      p.name,
-      POSITION_LABEL[p.preferredPosition] || '',
-      FOOT_LABEL[p.strongFoot || 'UNKNOWN'],
-      p.isActive ? 'Ativo' : 'Inativo',
-    ]);
-  }
-  return toCsv(rows);
-}
 
 export function download(filename, content, mime = 'text/plain;charset=utf-8') {
   const blob = new Blob([content], { type: mime });

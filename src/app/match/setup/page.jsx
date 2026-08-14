@@ -19,17 +19,10 @@ import { clubs, teams, competitions, players, matches, squad, events, loadMatch 
 import * as sync from '@/lib/data/sync.js';
 import { startFirstHalf } from '@/domain/actions.js';
 import { canStartFirstHalf, validateLineup, validateSquadSelection } from '@/domain/validation.js';
-import {
-  MAX_SQUAD,
-  LOCATION,
-  MATCH_STATUS,
-  HOME_AWAY_LABEL,
-  MATCH_TIMING,
-  MATCH_TIMING_LABEL,
-  timingOf,
-} from '@/domain/constants.js';
-import { positionLabel } from '@/lib/format.js';
+import { MAX_SQUAD, LOCATION, MATCH_STATUS, MATCH_TIMING, timingOf } from '@/domain/constants.js';
+import { positionLabel, mensagemErro, homeAwayLabel, timingLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function SetupPage() {
   return (
@@ -42,6 +35,7 @@ export default function SetupPage() {
 function Preparacao() {
   const { matchId } = useRouteParams();
   const router = useRouter();
+  const t = useT();
   const { toast, confirmar } = useUI();
   const { userId, user } = useAuth();
 
@@ -90,9 +84,9 @@ function Preparacao() {
     })();
   }, [matchId, router]);
 
-  if (!dados) return <p className="muted">A carregar…</p>;
-  if (dados.vazio) return <Empty>Jogo não encontrado.</Empty>;
-  if (!form) return <p className="muted">A carregar…</p>;
+  if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
+  if (dados.vazio) return <Empty>{t('jogo.naoEncontrado')}</Empty>;
+  if (!form) return <p className="muted">{t('comum.aCarregar')}</p>;
 
   const { match, state, club, team, roster, provas } = dados;
   // Um jogador inativo que já esteja convocado continua a aparecer: tirá-lo da
@@ -123,7 +117,7 @@ function Preparacao() {
         return atual.filter((x) => x !== p.id);
       }
       if (atual.length >= MAX_SQUAD) {
-        toast(`Máximo de ${MAX_SQUAD} convocados.`, 'error');
+        toast(t('validacao.muitosConvocados', { n: MAX_SQUAD }), 'error');
         return atual;
       }
       return [...atual, p.id];
@@ -143,9 +137,9 @@ function Preparacao() {
           notes: form.notes,
       });
       await sync.saveNow(userId, user?.email);
-      toast('Dados atualizados e sincronizados.', 'ok');
+      toast(t('prep.dadosGuardados'), 'ok');
     } catch (err) {
-      toast(`Dados guardados neste dispositivo, mas ainda não subiram: ${err.message}`, 'error');
+      toast(t('prep.dadosGuardadosLocal', { erro: err.message }), 'error');
     } finally {
       setAGuardar(false);
     }
@@ -154,13 +148,13 @@ function Preparacao() {
   async function persistir({ silencioso = false } = {}) {
     const e1 = validateSquadSelection(escolhidos);
     if (e1) {
-      toast(e1, 'error');
+      toast(mensagemErro(e1), 'error');
       return false;
     }
     if (!(await confirmarPoucosConvocados(confirmar, escolhidos.length))) return false;
     const e2 = validateLineup(lineup, escolhidos);
     if (e2) {
-      toast(e2, 'error');
+      toast(mensagemErro(e2), 'error');
       return false;
     }
     const inverso = {};
@@ -179,7 +173,7 @@ function Preparacao() {
         }))
     );
     await sync.saveNow(userId, user?.email);
-    if (!silencioso) toast('Preparação guardada e sincronizada.', 'ok');
+    if (!silencioso) toast(t('prep.guardada'), 'ok');
     return true;
   }
 
@@ -187,7 +181,7 @@ function Preparacao() {
     if (!(await persistir({ silencioso: true }))) return;
     const fresco = await loadMatch(matchId);
     const erro = canStartFirstHalf(fresco.state);
-    if (erro) return toast(erro, 'error');
+    if (erro) return toast(mensagemErro(erro), 'error');
     await events.append(startFirstHalf(fresco.state, Date.now()));
     await sync.saveNow(userId, user?.email);
     router.push(rotas.jogoAoVivo(matchId));
@@ -198,40 +192,40 @@ function Preparacao() {
   return (
     <>
       <PageHead
-        title={`vs ${match.opponentName}`}
-        subtitle={`${[club?.name, team?.name].filter(Boolean).join(' · ')} · ${
-          HOME_AWAY_LABEL[match.homeOrAway]
-        }`}
+        title={t('jogo.vs', { adversario: match.opponentName })}
+        subtitle={`${[club?.name, team?.name].filter(Boolean).join(' · ')} · ${homeAwayLabel(
+          match.homeOrAway
+        )}`}
         backTo={rotas.jogos(match.clubId, match.teamId)}
         actions={<StatusBadge status={state.status} />}
       />
 
       <details className="card collapse">
-        <summary>Dados do jogo</summary>
+        <summary>{t('prep.dadosDoJogo')}</summary>
         <div className="form">
           <div className="form__row">
-            <Field label="Adversário">
+            <Field label={t('prep.adversario')}>
               <input className="input" {...campo('opponentName')} />
             </Field>
-            <Field label="Abreviatura (opcional)">
+            <Field label={t('prep.abreviatura')}>
               <input className="input" maxLength={12} {...campo('opponentShortName')} />
             </Field>
           </div>
           <div className="form__row">
-            <Field label="Data e hora">
+            <Field label={t('prep.dataHora')}>
               <input className="input" type="datetime-local" {...campo('scheduledAt')} />
             </Field>
-            <Field label="Casa ou fora">
+            <Field label={t('prep.casaOuFora')}>
               <select className="input" {...campo('homeOrAway')}>
-                <option value="HOME">Casa</option>
-                <option value="AWAY">Fora</option>
+                <option value="HOME">{t('local.HOME')}</option>
+                <option value="AWAY">{t('local.AWAY')}</option>
               </select>
             </Field>
           </div>
           <div className="form__row">
-            <Field label="Competição">
+            <Field label={t('prep.competicao')}>
               <select className="input" {...campo('competitionId')}>
-                <option value="">Sem competição</option>
+                <option value="">{t('prep.semCompeticao')}</option>
                 {provas.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -239,22 +233,22 @@ function Preparacao() {
                 ))}
               </select>
             </Field>
-            <Field label="Tipo de jogo" hint="Vem do escalão; pode ser diferente neste jogo.">
+            <Field label={t('prep.tipoJogo')} hint={t('prep.tipoJogoDica')}>
               <select className="input" {...campo('timing')}>
-                {Object.values(MATCH_TIMING).map((t) => (
-                  <option key={t} value={t}>
-                    {MATCH_TIMING_LABEL[t]}
+                {Object.values(MATCH_TIMING).map((v) => (
+                  <option key={v} value={v}>
+                    {timingLabel(v)}
                   </option>
                 ))}
               </select>
             </Field>
           </div>
-          <Field label="Notas">
+          <Field label={t('prep.notas')}>
             <textarea className="input input--area" rows={2} {...campo('notes')} />
           </Field>
           <div className="form__actions form__actions--left">
             <button className="btn btn--ghost" onClick={guardarDados}>
-              Guardar dados
+              {t('prep.guardarDados')}
             </button>
           </div>
         </div>
@@ -262,7 +256,7 @@ function Preparacao() {
 
       <section className="card">
         <div className="toolbar">
-          <h2 className="section section--tight">Convocados</h2>
+          <h2 className="section section--tight">{t('prep.convocados')}</h2>
           <span className="toolbar__spacer" />
           <span className={`counter ${escolhidos.length >= MAX_SQUAD ? 'is-full' : ''}`}>
             {escolhidos.length}/{MAX_SQUAD}
@@ -285,7 +279,7 @@ function Preparacao() {
       </section>
 
       <section className="card">
-        <h2 className="section section--tight">Cinco inicial</h2>
+        <h2 className="section section--tight">{t('prep.cincoInicial')}</h2>
         <CourtPicker candidates={candidatos} lineup={lineup} onChange={setLineup} />
       </section>
 
@@ -293,29 +287,32 @@ function Preparacao() {
       <div className="setup__spacer" />
       <div className="setup__footer">
         <span className="setup__hint">
-          {escolhidos.length} convocados · {emCampo}/5 em campo · {escolhidos.length - emCampo} no
-          banco
+          {t('prep.rodape', {
+            convocados: escolhidos.length,
+            emCampo,
+            banco: escolhidos.length - emCampo,
+          })}
         </span>
         <div className="setup__buttons">
           <button className="btn btn--ghost" onClick={() => persistir()}>
-            Guardar preparação
+            {t('prep.guardarPreparacao')}
           </button>
           <button
             className="btn btn--danger btn--ghost"
             onClick={async () => {
-              const ok = await confirmar('Apagar este jogo e todos os seus dados?', {
-                okLabel: 'Apagar jogo',
+              const ok = await confirmar(t('prep.confirmaApagarJogo'), {
+                okLabel: t('prep.apagarJogo'),
               });
               if (!ok) return;
               await matches.remove(matchId);
-              toast('Jogo apagado.', 'ok');
+              toast(t('prep.jogoApagado'), 'ok');
               router.push(rotas.jogos(match.clubId, match.teamId));
             }}
           >
-            Apagar jogo
+            {t('prep.apagarJogo')}
           </button>
           <button className="btn btn--primary btn--big" onClick={comecar}>
-            Começar 1.ª parte
+            {t('prep.comecar')}
           </button>
         </div>
       </div>

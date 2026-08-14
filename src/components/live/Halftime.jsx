@@ -13,6 +13,7 @@ import { GoalsTimeline } from '@/components/Goals.jsx';
 import { playerMatchStats } from '@/domain/stats.js';
 import { fmt } from '@/domain/clock.js';
 import { PLAYER_MATCH_STATUS } from '@/domain/constants.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function Halftime({
   state,
@@ -22,6 +23,7 @@ export default function Halftime({
   onCorrectScore,
   onStart,
 }) {
+  const t = useT();
   // Pré-preenche com quem terminou a 1.ª parte, para poupar toques.
   const [lineup, setLineup] = useState(() => {
     const inicial = {};
@@ -55,17 +57,21 @@ export default function Halftime({
     <section className="halftime">
       <div className="halftime__left">
         <div className="halftime__title">
-          <h2 className="section section--tight">Intervalo</h2>
+          <h2 className="section section--tight">{t('intervalo.titulo')}</h2>
           <span className="live__spacer" />
           <button className="btn btn--ghost btn--tiny" onClick={onCorrectScore}>
-            Corrigir resultado
+            {t('intervalo.corrigirResultado')}
           </button>
         </div>
         <p className="halftime__score">
-          {state.teamScore} — {state.opponentScore} · 1.ª parte com {fmt(state.firstHalfMs || 0)}
+          {t('intervalo.placar', {
+            nos: state.teamScore,
+            eles: state.opponentScore,
+            tempo: fmt(state.firstHalfMs || 0),
+          })}
         </p>
 
-        <h3 className="section section--tight">Golos</h3>
+        <h3 className="section section--tight">{t('intervalo.golos')}</h3>
         <GoalsTimeline
           state={state}
           ourName={ourName}
@@ -73,20 +79,34 @@ export default function Halftime({
           onEdit={onEditGoal}
         />
 
-        <h3 className="section">Jogadores</h3>
+        <h3 className="section">{t('intervalo.jogadores')}</h3>
         <DataTable tight>
           <thead>
             <tr>
-              <th>Jogador</th>
-              <th className="num" title="Golos">G</th>
-              <th className="num" title="Assistências">A</th>
-              <th className="num" title="Golos sofridos à baliza">GS</th>
-              <th className="num" title="Faltas cometidas">F</th>
-              <th className="num" title="Faltas sofridas">FS</th>
-              <th className="num" title="Cartões amarelos">Am</th>
-              <th className="num" title="Cartões vermelhos">Vm</th>
-              <th className="num">Em campo</th>
-              <th className="num">Entradas</th>
+              <th>{t('stats.jogador')}</th>
+              <th className="num" title={t('stats.golos')}>
+                {t('ficha.golosCurto')}
+              </th>
+              <th className="num" title={t('ficha.assistencias')}>
+                {t('ficha.assistCurto')}
+              </th>
+              <th className="num" title={t('stats.sofridosTitulo')}>
+                {t('ficha.sofridosCurto')}
+              </th>
+              <th className="num" title={t('intervalo.faltasCometidas')}>
+                {t('intervalo.faltasCurto')}
+              </th>
+              <th className="num" title={t('intervalo.faltasSofridas')}>
+                {t('intervalo.faltasSofridasCurto')}
+              </th>
+              <th className="num" title={t('ficha.cartoesAmarelos')}>
+                {t('ficha.amarelosCurto')}
+              </th>
+              <th className="num" title={t('ficha.cartoesVermelhos')}>
+                {t('ficha.vermelhosCurto')}
+              </th>
+              <th className="num">{t('ficha.emCampo')}</th>
+              <th className="num">{t('intervalo.entradas')}</th>
             </tr>
           </thead>
           <tbody>
@@ -111,16 +131,13 @@ export default function Halftime({
       </div>
 
       <div className="halftime__right">
-        <h2 className="section">Formação da 2.ª parte</h2>
+        <h2 className="section">{t('intervalo.formacao')}</h2>
         <CourtPicker candidates={candidatos} lineup={lineup} onChange={setLineup} />
-        <p className="muted">
-          {countFilled(lineup)}/5 escolhidos. Cada jogador que começa a 2.ª parte inicia uma nova
-          entrada.
-        </p>
+        <p className="muted">{t('intervalo.escolhidos', { n: countFilled(lineup) })}</p>
         <div className="halftime__actions">
           <button className="btn btn--primary floatbtn" onClick={() => onStart(lineup)}>
-            <span>Começar</span>
-            <span>2.ª parte</span>
+            <span>{t('intervalo.comecar')}</span>
+            <span>{t('intervalo.segundaParte')}</span>
           </button>
         </div>
       </div>

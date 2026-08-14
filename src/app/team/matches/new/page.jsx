@@ -16,20 +16,19 @@ import { clubs, teams, competitions, players, matches, squad, events } from '@/l
 import * as sync from '@/lib/data/sync.js';
 import { matchCreated } from '@/domain/actions.js';
 import { validateMatchInfo, validateSquadSelection, validateLineup } from '@/domain/validation.js';
+import { MAX_SQUAD, LOCATION, MATCH_TIMING, timingOf, timingConfig } from '@/domain/constants.js';
 import {
-  MAX_SQUAD,
-  LOCATION,
-  POSITION_LABEL,
-  HOME_AWAY_LABEL,
-  MATCH_TIMING,
-  MATCH_TIMING_LABEL,
-  timingOf,
-  timingConfig,
-} from '@/domain/constants.js';
-import { dateLabel, positionLabel } from '@/lib/format.js';
+  dateLabel,
+  positionLabel,
+  mensagemErro,
+  homeAwayLabel,
+  timingLabel,
+} from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
+import { useT } from '@/lib/i18n/index.js';
 
-const ETAPAS = ['Informação', 'Convocados', 'Cinco inicial', 'Confirmação'];
+// As etapas são chaves, não frases: o nome de cada uma muda com o idioma.
+const ETAPAS = ['novo.etapaInfo', 'novo.etapaConvocados', 'novo.etapaCinco', 'novo.etapaConfirmacao'];
 
 export default function NovoJogoPage() {
   return (
@@ -40,6 +39,7 @@ export default function NovoJogoPage() {
 }
 
 function Assistente() {
+  const t = useT();
   const { clubId, teamId } = useRouteParams();
   const router = useRouter();
   const { toast, confirmar } = useUI();
@@ -163,7 +163,7 @@ function Assistente() {
         return atual.filter((x) => x !== id);
       }
       if (atual.length >= MAX_SQUAD) {
-        toast(`Máximo de ${MAX_SQUAD} convocados.`, 'error');
+        toast(t('validacao.muitosConvocados', { n: MAX_SQUAD }), 'error');
         return atual;
       }
       return [...atual, id];
@@ -216,10 +216,10 @@ function Assistente() {
       );
 
       await sync.saveNow(userId, user?.email);
-      toast('Jogo criado e sincronizado.', 'ok');
+      toast(t('novo.criado'), 'ok');
       router.push(abrir ? rotas.jogoPreparar(jogo.id) : rotas.jogos(clubId, teamId));
     } catch (err) {
-      toast(`Jogo guardado neste dispositivo, mas ainda não subiu: ${err.message}`, 'error');
+      toast(t('novo.criadoLocal', { erro: err.message }), 'error');
     } finally {
       setAGuardar(false);
     }
@@ -245,13 +245,13 @@ function Assistente() {
       <PageHead title="Novo jogo" subtitle={[club?.name, team?.name].filter(Boolean).join(" · ")} backTo={rotas.jogos(clubId, teamId)} />
 
       <ol className="stepper">
-        {ETAPAS.map((label, i) => (
+        {ETAPAS.map((chave, i) => (
           <li
-            key={label}
+            key={chave}
             className={`stepper__item ${i === etapa ? 'is-active' : ''} ${i < etapa ? 'is-done' : ''}`}
           >
             <span className="stepper__n">{i + 1}</span>
-            {label}
+            {t(chave)}
           </li>
         ))}
       </ol>
@@ -260,31 +260,40 @@ function Assistente() {
         {etapa === 0 ? (
           <div className="card form">
             <div className="form__row">
-              <Field label="Adversário">
-                <input className="input" placeholder="Nome do adversário" {...campo('opponentName')} />
+              <Field label={t('prep.adversario')}>
+                <input
+                  className="input"
+                  placeholder={t('novo.nomeAdversario')}
+                  {...campo('opponentName')}
+                />
               </Field>
-              <Field label="Abreviatura (opcional)" hint="Usada no marcador e no resumo.">
-                <input className="input" placeholder="Ex.: BEN" maxLength={12} {...campo('opponentShortName')} />
+              <Field label={t('prep.abreviatura')} hint={t('novo.abreviaturaDica')}>
+                <input
+                  className="input"
+                  placeholder={t('novo.abreviaturaPlaceholder')}
+                  maxLength={12}
+                  {...campo('opponentShortName')}
+                />
               </Field>
             </div>
             <div className="form__row">
-              <Field label="Data e hora">
+              <Field label={t('prep.dataHora')}>
                 <input className="input" type="datetime-local" {...campo('scheduledAt')} />
               </Field>
-              <Field label="Casa ou fora">
+              <Field label={t('prep.casaOuFora')}>
                 <select className="input" {...campo('homeOrAway')}>
-                  <option value="HOME">Casa</option>
-                  <option value="AWAY">Fora</option>
+                  <option value="HOME">{t('local.HOME')}</option>
+                  <option value="AWAY">{t('local.AWAY')}</option>
                 </select>
               </Field>
             </div>
             <div className="form__row">
               <Field
-                label="Competição"
-                hint={provas.length ? 'Todos os jogos pertencem a uma prova.' : 'Crie primeiro uma competição neste escalão.'}
+                label={t('prep.competicao')}
+                hint={provas.length ? t('novo.competicaoDica') : t('novo.semCompeticoes')}
               >
                 <select className="input" {...campo('competitionId')}>
-                  <option value="">Escolher competição…</option>
+                  <option value="">{t('novo.escolherCompeticao')}</option>
                   {provas.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -292,27 +301,26 @@ function Assistente() {
                   ))}
                 </select>
               </Field>
-              <Field label="Tipo de jogo" hint="Vem do escalão; mude se este jogo for diferente.">
+              <Field label={t('prep.tipoJogo')} hint={t('novo.tipoJogoDica')}>
                 <select className="input" {...campo('timing')}>
-                  {Object.values(MATCH_TIMING).map((t) => (
-                    <option key={t} value={t}>
-                      {MATCH_TIMING_LABEL[t]}
+                  {Object.values(MATCH_TIMING).map((v) => (
+                    <option key={v} value={v}>
+                      {timingLabel(v)}
                     </option>
                   ))}
                 </select>
               </Field>
             </div>
-            <Field label="Notas">
+            <Field label={t('prep.notas')}>
               <textarea className="input input--area" rows={3} {...campo('notes')} />
             </Field>
-            {nav('Cancelar', 'Continuar', () => {
+            {nav(t('comum.cancelar'), t('novo.continuar'), () => {
               const erro = validateMatchInfo({
                 opponentName: info.opponentName,
                 periodDurationMs: timingConfig({ timing: info.timing }).periodDurationMs,
               });
-              if (erro) return toast(erro, 'error');
-              if (!info.competitionId)
-                return toast('Escolha a competição deste jogo.', 'error');
+              if (erro) return toast(mensagemErro(erro), 'error');
+              if (!info.competitionId) return toast(t('novo.escolhaCompeticao'), 'error');
               setEtapa(1);
             })}
           </div>
@@ -323,7 +331,7 @@ function Assistente() {
             <div className="toolbar">
               <input
                 className="input input--search"
-                placeholder="Procurar por nome ou número…"
+                placeholder={t('plantel.procurar')}
                 value={procura}
                 onChange={(e) => setProcura(e.target.value)}
               />
@@ -355,9 +363,9 @@ function Assistente() {
                 ))}
             </div>
 
-            {nav('Voltar', 'Continuar', async () => {
+            {nav(t('comum.voltar'), t('novo.continuar'), async () => {
               const erro = validateSquadSelection(escolhidos);
-              if (erro) return toast(erro, 'error');
+              if (erro) return toast(mensagemErro(erro), 'error');
               if (!(await confirmarPoucosConvocados(confirmar, escolhidos.length))) return;
               setEtapa(2);
             })}
@@ -368,12 +376,14 @@ function Assistente() {
           <div className="card">
             <CourtPicker candidates={candidatos} lineup={lineup} onChange={setLineup} />
             <p className="muted">
-              {countFilled(lineup)} de 5 posições preenchidas. Os restantes{' '}
-              {candidatos.length - countFilled(lineup)} convocados começam no banco.
+              {t('novo.posicoesPreenchidas', {
+                n: countFilled(lineup),
+                banco: candidatos.length - countFilled(lineup),
+              })}
             </p>
-            {nav('Voltar', 'Continuar', () => {
+            {nav(t('comum.voltar'), t('novo.continuar'), () => {
               const erro = validateLineup(lineup, escolhidos);
-              if (erro) return toast(erro, 'error');
+              if (erro) return toast(mensagemErro(erro), 'error');
               setEtapa(3);
             })}
           </div>
@@ -406,6 +416,7 @@ function Confirmacao({
   onVoltar,
   onGuardar,
 }) {
+  const t = useT();
   const emCampo = Object.entries(lineup).filter(([, v]) => v);
   const idsEmCampo = new Set(emCampo.map(([, v]) => v));
 
@@ -413,44 +424,44 @@ function Confirmacao({
     <div className="card">
       <dl className="review">
         <div>
-          <dt>Adversário</dt>
+          <dt>{t('prep.adversario')}</dt>
           <dd>{info.opponentName}</dd>
         </div>
         <div>
-          <dt>Data</dt>
+          <dt>{t('novo.data')}</dt>
           <dd>{dateLabel(new Date(info.scheduledAt).getTime())}</dd>
         </div>
         <div>
-          <dt>Local</dt>
-          <dd>{HOME_AWAY_LABEL[info.homeOrAway]}</dd>
+          <dt>{t('lista.local')}</dt>
+          <dd>{homeAwayLabel(info.homeOrAway)}</dd>
         </div>
         <div>
-          <dt>Competição</dt>
+          <dt>{t('prep.competicao')}</dt>
           <dd>{competicaoNome || '—'}</dd>
         </div>
         <div>
-          <dt>Tempo de jogo</dt>
-          <dd>{MATCH_TIMING_LABEL[info.timing] || '—'}</dd>
+          <dt>{t('novo.tempoDeJogo')}</dt>
+          <dd>{timingLabel(info.timing) || '—'}</dd>
         </div>
         <div>
-          <dt>Convocados</dt>
-          <dd>{escolhidos.length} jogadores</dd>
+          <dt>{t('prep.convocados')}</dt>
+          <dd>{t('novo.nJogadores', { n: escolhidos.length })}</dd>
         </div>
       </dl>
 
-      <h3 className="section">Em campo</h3>
+      <h3 className="section">{t('novo.emCampo')}</h3>
       <div className="chiprow">
         {emCampo.map(([pos, pid]) => {
           const p = escolhidos.find((c) => c.id === pid);
           return (
             <span key={pos} className="chip chip--static">
-              <strong>{p.shirtNumber}</strong> {p.name} · {POSITION_LABEL[pos]}
+              <strong>{p.shirtNumber}</strong> {p.name} · {positionLabel(pos)}
             </span>
           );
         })}
       </div>
 
-      <h3 className="section">No banco</h3>
+      <h3 className="section">{t('novo.noBanco')}</h3>
       <div className="chiprow">
         {escolhidos
           .filter((p) => !idsEmCampo.has(p.id))

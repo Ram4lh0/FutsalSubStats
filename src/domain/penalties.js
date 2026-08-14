@@ -81,7 +81,7 @@ export function openPenalties(state, clockMs, defaultDurationMs) {
  * lugares vazios com sanções por cumprir é o que dá a resposta certa — olhar
  * apenas para "há alguma sanção a correr?" trancava os dois.
  *
- * @returns null se pode repor, ou a mensagem a mostrar.
+ * @returns null se pode repor, ou `{ chave }` com o motivo.
  */
 export function canReplaceExpelled(state, clockMs, defaultDurationMs) {
   const open = openPenalties(state, clockMs, defaultDurationMs);
@@ -91,16 +91,16 @@ export function canReplaceExpelled(state, clockMs, defaultDurationMs) {
   if (vazios > open.length) return null;
 
   const pending = open.find((p) => p.status === PENALTY_STATUS.PENDING);
-  if (pending) return 'Comece a contagem da sanção antes de repor um jogador.';
-  if (open.length) return 'A equipa tem de jogar reduzida até a sanção terminar.';
+  if (pending) return { chave: 'validacao.comeceAContagem' };
+  if (open.length) return { chave: 'validacao.jogarReduzida' };
   return null;
 }
 
 export function canStartPenalty(state, playerId) {
   const player = state.players[playerId];
-  if (!player) return 'Jogador não convocado.';
-  if (player.status !== PLAYER_MATCH_STATUS.EXPELLED) return 'Este jogador não está expulso.';
+  if (!player) return { chave: 'validacao.naoConvocado' };
+  if (player.status !== PLAYER_MATCH_STATUS.EXPELLED) return { chave: 'validacao.naoEstaExpulso' };
   if (state.penalties.some((p) => p.playerId === playerId))
-    return 'A contagem deste jogador já foi iniciada.';
+    return { chave: 'validacao.contagemJaIniciada' };
   return null;
 }

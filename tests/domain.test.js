@@ -907,7 +907,7 @@ test('não se começa a 2.ª parte com menos de cinco em campo', () => {
   // Só quatro: falta o pivot.
   const quatro = { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4' };
   st = step(ctx, (s) => A.setSecondHalfLineup(s, quatro, T1), T1);
-  assert.match(V.canStartSecondHalf(st) || '', /5 jogadores em campo/);
+  assert.equal(V.canStartSecondHalf(st)?.chave, 'validacao.coloqueParaSegunda');
 
   const cinco = { ...quatro, PIVOT: 'p5' };
   st = step(ctx, (s) => A.setSecondHalfLineup(s, cinco, T1), T1);
@@ -927,7 +927,10 @@ test('com menos de cinco disponíveis, exige-se o que houver', () => {
     (s) => A.setSecondHalfLineup(s, { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3' }, T1),
     T1
   );
-  assert.match(V.canStartSecondHalf(st) || '', /Só há 4 jogadores disponíveis/);
+  assert.deepEqual(V.canStartSecondHalf(st), {
+    chave: 'validacao.soHaDisponiveis',
+    valores: { n: 4 },
+  });
 
   st = step(
     ctx,
@@ -991,7 +994,7 @@ test('a sanção por cumprir continua na 2.ª parte, e a equipa entra reduzida',
 
   const cinco = { GOALKEEPER: 'p1', FIXO: 'p6', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4', PIVOT: 'p5' };
   st = step(ctx, (s) => A.setSecondHalfLineup(s, cinco, T1), T1);
-  assert.match(V.canStartSecondHalf(st) || '', /sanção por cumprir/);
+  assert.equal(V.canStartSecondHalf(st)?.chave, 'validacao.sancaoPorCumprir');
 
   const quatro = { GOALKEEPER: 'p1', FIXO: 'p6', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4' };
   st = step(ctx, (s) => A.setSecondHalfLineup(s, quatro, T1), T1);

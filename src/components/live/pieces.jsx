@@ -16,13 +16,14 @@ import {
 } from '@/domain/reducer.js';
 import {
   POSITIONS,
-  POSITION_SHORT,
   PLAYER_MATCH_STATUS,
   MAX_ON_COURT,
   FOUL_LIMIT,
   PENALTY_ALERT_MS,
 } from '@/domain/constants.js';
 import { openPenalties, PENALTY_STATUS, canReplaceExpelled } from '@/domain/penalties.js';
+import { positionShort } from '@/lib/format.js';
+import { t } from '@/lib/i18n/index.js';
 
 /* --------------------------------------------------------------- marcador */
 
@@ -118,11 +119,15 @@ export function ClockBox({ state, periodDurationMs, periodLabel, running, now })
       <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(p.periodMs)}</span>
       <span className="clockbox__hint">
         {p.over
-          ? `+${fmt(p.overtimeMs)} além dos ${fmt(p.limitMs)} · total ${fmt(p.matchMs)}`
-          : `Faltam ${fmt(p.remainingMs)} · total ${fmt(p.matchMs)}`}
+          ? t('vivo.alemDe', {
+              extra: fmt(p.overtimeMs),
+              limite: fmt(p.limitMs),
+              total: fmt(p.matchMs),
+            })
+          : t('vivo.faltam', { resta: fmt(p.remainingMs), total: fmt(p.matchMs) })}
       </span>
       <span className={`pill ${running ? 'pill--live' : 'pill--paused'}`}>
-        {running ? 'A CORRER' : 'PARADO'}
+        {running ? t('vivo.aCorrer') : t('vivo.parado')}
       </span>
     </div>
   );
@@ -151,7 +156,7 @@ export function Court({ state, sel, clockMs, penaltyMs, on }) {
         );
       })}
       {emCampo < MAX_ON_COURT ? (
-        <div className="court__warn">{emCampo} em campo — inferioridade numérica</div>
+        <div className="court__warn">{t('vivo.inferioridade', { n: emCampo })}</div>
       ) : null}
     </section>
   );
@@ -171,7 +176,7 @@ function CourtCard({ pos, p, state, sel, clockMs, on }) {
     >
       <div className="pcard__top">
         <span className="pcard__num">{p.number}</span>
-        <span className="pcard__pos">{POSITION_SHORT[pos]}</span>
+        <span className="pcard__pos">{positionShort(pos)}</span>
         {pos === 'GOALKEEPER' ? <PowerPlayChip state={state} on={on} /> : null}
         <CardChips p={p} state={state} />
         <span
@@ -196,10 +201,12 @@ function CourtCard({ pos, p, state, sel, clockMs, on }) {
       </div>
       <div className="pcard__name">{p.name}</div>
       <div className="pcard__times">
-        <span className="pcard__t">Tempo de jogo {fmt(s.courtMs)}</span>
-        <span className="pcard__t pcard__t--hi">Em jogo há {fmt(s.currentStintMs ?? 0)}</span>
+        <span className="pcard__t">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
+        <span className="pcard__t pcard__t--hi">
+          {t('vivo.emJogoHa', { tempo: fmt(s.currentStintMs ?? 0) })}
+        </span>
       </div>
-      {selecionado ? <span className="pcard__flag">A SAIR</span> : null}
+      {selecionado ? <span className="pcard__flag">{t('vivo.aSair')}</span> : null}
     </button>
   );
 }
@@ -216,9 +223,9 @@ function EmptySlot({ pos, sel, trancado, on }) {
       } ${trancado ? 'is-locked' : ''}`}
       onClick={() => on.tapEmpty(pos)}
     >
-      <span className="pcard__pos">{POSITION_SHORT[pos]}</span>
+      <span className="pcard__pos">{positionShort(pos)}</span>
       <span className="pcard__empty">
-        {trancado ? 'Em sanção' : aEntrar ? 'Colocar aqui' : 'Vazio'}
+        {trancado ? t('vivo.emSancao') : aEntrar ? t('vivo.colocarAqui') : t('vivo.vazio')}
       </span>
     </button>
   );
@@ -242,9 +249,9 @@ export function Bench({ state, sel, clockMs, on }) {
   return (
     <section className="bench">
       <div className="bench__head">
-        <h2>Banco ({noBanco})</h2>
+        <h2>{t('vivo.banco', { n: noBanco })}</h2>
         {sel?.kind === 'court' ? (
-          <span className="bench__hint">Toque num jogador para o fazer entrar</span>
+          <span className="bench__hint">{t('vivo.dicaEntrar')}</span>
         ) : null}
       </div>
       <div className="bench__row" style={{ '--bench-cols': String(cols) }}>
@@ -253,7 +260,7 @@ export function Bench({ state, sel, clockMs, on }) {
             <BenchCard key={p.playerId} p={p} state={state} sel={sel} clockMs={clockMs} on={on} />
           ))
         ) : (
-          <span className="muted">Sem jogadores no banco.</span>
+          <span className="muted">{t('vivo.semBanco')}</span>
         )}
       </div>
     </section>
@@ -291,21 +298,27 @@ function BenchCard({ p, state, sel, clockMs, on }) {
           ali ao lado do número e dos cartões não cabia, e saía do cartão. */}
       {expulso ? (
         <div className="pcard__times">
-          <span className="pcard__t">Expulso aos {fmt(p.expelledAtMatchMs)}</span>
-          <span className="badge badge--danger">EXPULSO</span>
+          <span className="pcard__t">
+            {t('vivo.expulsoAos', { tempo: fmt(p.expelledAtMatchMs) })}
+          </span>
+          <span className="badge badge--danger">{t('vivo.expulso')}</span>
         </div>
       ) : (
         <div className="pcard__times">
-          <span className="pcard__t">Tempo de jogo {fmt(s.courtMs)}</span>
+          <span className="pcard__t">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
           {/* Destacado como o "Em jogo há" dos jogadores em campo: é o número que
               decide a próxima substituição — há quanto tempo este descansa. */}
           <span className="pcard__t pcard__t--hi">
-            {s.sinceLeftMs == null ? 'Ainda não entrou' : `Saiu há ${fmt(s.sinceLeftMs)}`}
+            {s.sinceLeftMs == null
+              ? t('vivo.aindaNaoEntrou')
+              : t('vivo.saiuHa', { tempo: fmt(s.sinceLeftMs) })}
           </span>
-          <span className="pcard__t">Entradas {s.entries}</span>
+          <span className="pcard__t">{t('vivo.entradas', { n: s.entries })}</span>
         </div>
       )}
-      {selecionado ? <span className="pcard__flag pcard__flag--in">A ENTRAR</span> : null}
+      {selecionado ? (
+        <span className="pcard__flag pcard__flag--in">{t('vivo.aEntrar')}</span>
+      ) : null}
     </button>
   );
 }
@@ -326,9 +339,9 @@ function PowerPlayChip({ state, on }) {
       title={
         ativo
           ? auto
-            ? 'Guarda-redes avançado: está um jogador de campo à baliza. Toque para desligar.'
-            : 'A contar 5v4. Toque para terminar.'
-          : 'Toque para marcar que o guarda-redes está a jogar como quinto.'
+            ? t('vivo.ppAuto')
+            : t('vivo.ppManual')
+          : t('vivo.ppDesligado')
       }
       onClick={(e) => {
         e.stopPropagation();
@@ -368,11 +381,11 @@ function OpponentExpulsions({ state, on }) {
   const n = state.opponentExpulsions || 0;
   return (
     <div className={`penalty penalty--rival ${n ? 'is-on' : ''}`}>
-      <span className="penalty__who">Expulsos do adversário</span>
+      <span className="penalty__who">{t('vivo.expulsosAdversario')}</span>
       <div className="rivalcount">
         <button
           className="foulbtn"
-          aria-label="Menos uma expulsão do adversário"
+          aria-label={t('vivo.menosExpulsao')}
           disabled={!n}
           onClick={() => on.opponentExpulsion(-1)}
         >
@@ -381,14 +394,14 @@ function OpponentExpulsions({ state, on }) {
         <span className="rivalcount__n">{n}</span>
         <button
           className="foulbtn foulbtn--add"
-          aria-label="Mais uma expulsão do adversário"
+          aria-label={t('vivo.maisExpulsao')}
           onClick={() => on.opponentExpulsion(1)}
         >
           +
         </button>
       </div>
       <span className="penalty__label">
-        {n ? `Jogam com ${MAX_ON_COURT - n}` : 'Jogam com cinco'}
+        {n ? t('vivo.jogamCom', { n: MAX_ON_COURT - n }) : t('vivo.jogamComCinco')}
       </span>
     </div>
   );
@@ -406,12 +419,12 @@ export function Penalties({ state, clockMs, penaltyMs, on }) {
             <span className="penalty__who">
               #{p.number} {p.name}
             </span>
-            <span className="penalty__label">Expulso · sanção por iniciar</span>
+            <span className="penalty__label">{t('vivo.sancaoPorIniciar')}</span>
             <button
               className="btn btn--warn btn--block"
               onClick={() => on.startPenalty(p.playerId)}
             >
-              Começar {Math.round(penaltyMs / 60000)} min
+              {t('vivo.comecarMin', { n: Math.round(penaltyMs / 60000) })}
             </button>
           </div>
         ) : (
@@ -426,7 +439,7 @@ export function Penalties({ state, clockMs, penaltyMs, on }) {
               #{p.number} {p.name}
             </span>
             <span className="penalty__time">{fmt(p.remainingMs)}</span>
-            <span className="penalty__label">até poder repor</span>
+            <span className="penalty__label">{t('vivo.atePoderRepor')}</span>
           </div>
         )
       )}

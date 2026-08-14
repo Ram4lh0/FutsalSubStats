@@ -7,6 +7,7 @@
 // tenta outra vez mais tarde e o treinador nem dá por isso.
 
 import * as db from './local.js';
+import { t } from '../i18n/index.js';
 import {
   clubMapper,
   teamMapper,
@@ -17,12 +18,16 @@ import {
   eventMapper,
 } from './mappers.js';
 
+// Códigos, não frases. Antes o valor era o próprio texto em português, o que
+// funcionava enquanto houve uma língua só — depois seria o estado da
+// sincronização a mudar de valor conforme o idioma do ecrã. Quem mostra isto
+// traduz com `syncLabel()`; aqui só interessa distinguir os cinco casos.
 export const SYNC = {
-  SYNCED: 'SINCRONIZADO',
-  PENDING: 'POR SINCRONIZAR',
-  OFFLINE: 'SEM LIGAÇÃO — DADOS GUARDADOS NO DISPOSITIVO',
-  ERROR: 'ERRO DE SINCRONIZAÇÃO',
-  LOCAL: 'SÓ NESTE DISPOSITIVO',
+  SYNCED: 'SYNCED',
+  PENDING: 'PENDING',
+  OFFLINE: 'OFFLINE',
+  ERROR: 'ERROR',
+  LOCAL: 'LOCAL',
 };
 
 export const DATA_CHANGED_EVENT = 'futsal:data-changed';
@@ -472,7 +477,7 @@ export async function saveNow(userId, email) {
     throw new Error(estado.error?.message || estado.status);
   }
   if (estado.status === SYNC.LOCAL && userId) {
-    throw new Error('A app não está ligada ao servidor.');
+    throw new Error(t('auth.semServidor'));
   }
   return result;
 }

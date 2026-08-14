@@ -9,6 +9,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase, hasRemote } from './supabase/client.js';
 import * as sync from './data/sync.js';
+import { t } from '@/lib/i18n/index.js';
 
 const AuthContext = createContext(null);
 
@@ -47,14 +48,14 @@ export function AuthProvider({ children }) {
 
       async signIn(email, password) {
         const sb = supabase();
-        if (!sb) return { error: 'A app não está ligada a nenhum servidor.' };
+        if (!sb) return { error: t('auth.semServidor') };
         const { error } = await sb.auth.signInWithPassword({ email, password });
         return { error: error ? traduzir(error.message) : null };
       },
 
       async signUp(email, password, name) {
         const sb = supabase();
-        if (!sb) return { error: 'A app não está ligada a nenhum servidor.' };
+        if (!sb) return { error: t('auth.semServidor') };
         const { error } = await sb.auth.signUp({
           email,
           password,
@@ -83,7 +84,7 @@ export function AuthProvider({ children }) {
        */
       async deleteAccount() {
         const sb = supabase();
-        if (!sb) return { error: 'A app não está ligada a nenhum servidor.' };
+        if (!sb) return { error: t('auth.semServidor') };
         const { error } = await sb.rpc('delete_my_account');
         if (error) return { error: traduzir(error.message) };
         await sb.auth.signOut().catch(() => {});
@@ -106,10 +107,10 @@ export function useAuth() {
 /** As mensagens do Supabase vêm em inglês; as que se vêem mais ficam em português. */
 function traduzir(msg = '') {
   const m = msg.toLowerCase();
-  if (m.includes('invalid login')) return 'Email ou palavra-passe errados.';
-  if (m.includes('already registered')) return 'Já existe uma conta com esse email.';
-  if (m.includes('password should be')) return 'A palavra-passe tem de ter pelo menos 6 caracteres.';
-  if (m.includes('email not confirmed')) return 'Confirme o email antes de entrar.';
-  if (m.includes('failed to fetch')) return 'Sem ligação ao servidor.';
+  if (m.includes('invalid login')) return t('auth.credenciaisErradas');
+  if (m.includes('already registered')) return t('auth.jaExisteConta');
+  if (m.includes('password should be')) return t('auth.passwordCurta');
+  if (m.includes('email not confirmed')) return t('auth.confirmeEmail');
+  if (m.includes('failed to fetch')) return t('auth.semLigacao');
   return msg;
 }

@@ -20,6 +20,7 @@ import {
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import { useT } from '@/lib/i18n/index.js';
 
 // Quem exige a conta iniciada é agora o `Pagina`, que envolve todas as páginas.
 export default function TeamShell({ clubId, teamId, children }) {
@@ -32,6 +33,7 @@ export default function TeamShell({ clubId, teamId, children }) {
 
 function Shell({ clubId, teamId, children }) {
   const router = useRouter();
+  const t = useT();
   const [dados, setDados] = useState(null);
   const soLeitura = useSoLeitura();
 
@@ -62,22 +64,25 @@ function Shell({ clubId, teamId, children }) {
     };
   }, [carregar]);
 
-  if (!dados) return <p className="muted">A carregar…</p>;
-  if (!dados.team) return <Empty>Escalão não encontrado.</Empty>;
+  if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
+  if (!dados.team) return <Empty>{t('escalao.naoEncontrado')}</Empty>;
 
   const { club, team } = dados;
   const abas = [
-    { label: 'Plantel', to: rotas.plantel(clubId, teamId) },
-    { label: 'Jogos', to: rotas.jogos(clubId, teamId) },
-    { label: 'Competições', to: rotas.competicoes(clubId, teamId) },
-    { label: 'Estatísticas', to: rotas.escalao(clubId, teamId) },
+    { label: t('escalao.plantel'), to: rotas.plantel(clubId, teamId) },
+    { label: t('escalao.jogos'), to: rotas.jogos(clubId, teamId) },
+    { label: t('escalao.competicoes'), to: rotas.competicoes(clubId, teamId) },
+    { label: t('escalao.estatisticas'), to: rotas.escalao(clubId, teamId) },
   ];
 
   return (
     <>
       <PageHead
         title={team.name}
-        subtitle={[club?.name, club?.currentSeason ? `Época ${club.currentSeason}` : null]
+        subtitle={[
+          club?.name,
+          club?.currentSeason ? t('escalao.epoca', { epoca: club.currentSeason }) : null,
+        ]
           .filter(Boolean)
           .join(' · ')}
         backTo={rotas.clube(clubId)}
@@ -88,13 +93,13 @@ function Shell({ clubId, teamId, children }) {
                 className="btn btn--ghost"
                 onClick={() => router.push(rotas.escalaoEditar(clubId, teamId))}
               >
-                Editar escalão
+                {t('escalao.editar')}
               </button>
               <button
                 className="btn btn--primary"
                 onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}
               >
-                Novo jogo
+                {t('escalao.novoJogo')}
               </button>
             </>
           )

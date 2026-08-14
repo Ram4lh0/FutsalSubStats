@@ -7,6 +7,7 @@
 // legíveis: perguntar quem marcou não parte a função em três pedaços.
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { t } from '@/lib/i18n/index.js';
 
 const UIContext = createContext(null);
 
@@ -33,20 +34,23 @@ export function UIProvider({ children }) {
     });
   }, []);
 
+  // As etiquetas são lidas quando a janela abre, não quando o módulo carrega:
+  // se fossem valores por omissão avaliados uma vez, ficavam presas ao idioma
+  // que estava escolhido no arranque.
   const confirmar = useCallback(
-    (mensagem, { okLabel = 'Confirmar', danger = true, title = 'Confirmar' } = {}) =>
+    (mensagem, { okLabel, danger = true, title } = {}) =>
       open((close) => (
-        <Dialog title={title} onClose={() => close(false)}>
+        <Dialog title={title || t('comum.confirmar')} onClose={() => close(false)}>
           <p className="modal__text">{mensagem}</p>
           <footer className="modal__actions">
             <button className="btn btn--ghost" onClick={() => close(false)}>
-              Cancelar
+              {t('comum.cancelar')}
             </button>
             <button
               className={`btn ${danger ? 'btn--danger' : 'btn--primary'}`}
               onClick={() => close(true)}
             >
-              {okLabel}
+              {okLabel || t('comum.confirmar')}
             </button>
           </footer>
         </Dialog>
@@ -86,7 +90,11 @@ export function Dialog({ title, children, onClose, wide = false }) {
       <div className={`modal ${wide ? 'modal--wide' : ''}`} role="dialog" aria-modal="true">
         <header className="modal__head">
           <h2 className="modal__title">{title}</h2>
-          <button className="btn btn--ghost btn--icon" onClick={onClose} aria-label="Fechar">
+          <button
+            className="btn btn--ghost btn--icon"
+            onClick={onClose}
+            aria-label={t('comum.fechar')}
+          >
             ✕
           </button>
         </header>

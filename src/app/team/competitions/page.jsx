@@ -14,6 +14,7 @@ import { Empty } from '@/components/bits.jsx';
 import { clubAggregate } from '@/domain/stats.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function CompetitionsPage() {
   return (
@@ -26,6 +27,7 @@ export default function CompetitionsPage() {
 function Conteudo() {
   const { clubId, teamId } = useRouteParams();
   const router = useRouter();
+  const t = useT();
   const soLeitura = useSoLeitura();
 
   return (
@@ -46,7 +48,7 @@ function Conteudo() {
                   className="btn btn--primary"
                   onClick={() => router.push(rotas.competicaoNova(clubId, teamId))}
                 >
-                  Criar competição
+                  {t('competicoes.criar')}
                 </button>
               </div>
             )}
@@ -59,24 +61,23 @@ function Conteudo() {
                       className="btn btn--primary"
                       onClick={() => router.push(rotas.competicaoNova(clubId, teamId))}
                     >
-                      Criar a primeira competição
+                      {t('competicoes.primeira')}
                     </button>
                   )
                 }
               >
-                Ainda não há competições. Cada jogo pertence a uma, por isso vale a pena criar já o
-                campeonato.
+                {t('competicoes.vazio')}
               </Empty>
             ) : (
               <DataTable>
                 <thead>
                   <tr>
-                    <th>Competição</th>
-                    <th className="num">Jogos</th>
-                    <th className="num">V / E / D</th>
-                    <th className="num">Marcados</th>
-                    <th className="num">Sofridos</th>
-                    <th className="num">Diferença</th>
+                    <th>{t('lista.competicao')}</th>
+                    <th className="num">{t('competicoes.jogos')}</th>
+                    <th className="num">{t('competicoes.ved')}</th>
+                    <th className="num">{t('competicoes.marcados')}</th>
+                    <th className="num">{t('competicoes.sofridos')}</th>
+                    <th className="num">{t('competicoes.diferenca')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -102,8 +103,9 @@ function Conteudo() {
 
             {semProva ? (
               <p className="muted" style={{ marginTop: 12 }}>
-                {semProva} {semProva === 1 ? 'jogo ficou' : 'jogos ficaram'} sem competição — abra o
-                jogo e escolha uma na preparação.
+                {semProva === 1
+                  ? t('competicoes.semProvaUm', { n: semProva })
+                  : t('competicoes.semProvaVarios', { n: semProva })}
               </p>
             ) : null}
           </>

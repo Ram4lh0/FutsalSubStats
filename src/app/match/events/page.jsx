@@ -14,8 +14,10 @@ import { events, loadMatch } from '@/lib/data/repository.js';
 import { matchEventsCsv, download, slug } from '@/lib/data/exporter.js';
 import * as A from '@/domain/actions.js';
 import { fmt } from '@/domain/clock.js';
-import { EVENT_LABEL, POSITION_LABEL, UNDOABLE_EVENTS } from '@/domain/constants.js';
+import { UNDOABLE_EVENTS } from '@/domain/constants.js';
+import { eventLabel, positionLabel } from '@/lib/format.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function EventsPage() {
   return (
@@ -27,6 +29,7 @@ export default function EventsPage() {
 
 function Historico() {
   const { matchId, back, de } = useRouteParams();
+  const t = useT();
   const { toast, confirmar } = useUI();
   const [dados, setDados] = useState(null);
 
@@ -45,29 +48,32 @@ function Historico() {
     carregar();
   }, [carregar]);
 
-  if (!dados) return <p className="muted">A carregar…</p>;
-  if (dados.vazio) return <Empty>Jogo não encontrado.</Empty>;
+  if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
+  if (dados.vazio) return <Empty>{t('jogo.naoEncontrado')}</Empty>;
 
   const { match, state } = dados;
   const nome = (id) => state.players[id]?.name || '';
 
   async function anular(e) {
     const ok = await confirmar(
-      `Anular "${EVENT_LABEL[e.eventType]}"? Os períodos em campo são recalculados.`,
-      { okLabel: 'Anular' }
+      t('historico.confirmaAnular', { acao: eventLabel(e.eventType) }),
+      { okLabel: t('historico.anular') }
     );
     if (!ok) return;
     await events.markUndone(e.id);
     await events.append(A.undoEvent(state, e));
-    toast('Evento anulado.', 'ok');
+    toast(t('historico.eventoAnulado'), 'ok');
     carregar();
   }
 
   return (
     <>
       <PageHead
-        title="Histórico de ações"
-        subtitle={`vs ${match.opponentName} · ${state.allEvents.length} eventos`}
+        title={t('historico.titulo')}
+        subtitle={t('historico.subtitulo', {
+          adversario: match.opponentName,
+          n: state.allEvents.length,
+        })}
         backTo={backTo}
         actions={
           <button
@@ -80,7 +86,7 @@ function Historico() {
               )
             }
           >
-            Exportar CSV
+            {t('prep.exportarCsv')}
           </button>
         }
       />
@@ -89,10 +95,10 @@ function Historico() {
         <thead>
           <tr>
             <th className="num">#</th>
-            <th>Ação</th>
-            <th className="num">Parte</th>
-            <th className="num">Tempo</th>
-            <th>Detalhe</th>
+            <th>{t('historico.acao')}</th>
+            <th className="num">{t('historico.parte')}</th>
+            <th className="num">{t('historico.tempo')}</th>
+            <th>{t('historico.detalhe')}</th>
             <th />
           </tr>
         </thead>
@@ -100,25 +106,25 @@ function Historico() {
           {state.allEvents.map((e) => (
             <tr key={e.id} className={e.undoneAt ? 'is-undone' : ''}>
               <td className="num mono">{e.seq}</td>
-              <td>{EVENT_LABEL[e.eventType] || e.eventType}</td>
+              <td>{eventLabel(e.eventType) || e.eventType}</td>
               <td className="num">{e.period || '—'}</td>
               <td className="num mono">{fmt(e.matchElapsedMs)}</td>
               <td className="muted">
                 {[
-                  e.playerOutId ? `Sai ${nome(e.playerOutId)}` : null,
-                  e.playerInId ? `Entra ${nome(e.playerInId)}` : null,
+                  e.playerOutId ? t('historico.sai', { nome: nome(e.playerOutId) }) : null,
+                  e.playerInId ? t('historico.entra', { nome: nome(e.playerInId) }) : null,
                   e.playerId ? nome(e.playerId) : null,
-                  e.position ? POSITION_LABEL[e.position] : null,
+                  e.position ? positionLabel(e.position) : null,
                 ]
                   .filter(Boolean)
                   .join(' · ') || '—'}
               </td>
               <td className="right">
                 {e.undoneAt ? (
-                  <Badge kind="muted">Anulado</Badge>
+                  <Badge kind="muted">{t('historico.anulado')}</Badge>
                 ) : UNDOABLE_EVENTS.has(e.eventType) ? (
                   <button className="btn btn--tiny btn--ghost" onClick={() => anular(e)}>
-                    Anular
+                    {t('historico.anular')}
                   </button>
                 ) : null}
               </td>

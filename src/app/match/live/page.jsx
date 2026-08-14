@@ -35,19 +35,18 @@ import { fmt, readClock } from '@/domain/clock.js';
 import { openPenalties, penaltyBoard, canStartPenalty, canReplaceExpelled, PENALTY_STATUS } from '@/domain/penalties.js';
 import {
   EVENT,
-  EVENT_LABEL,
   MATCH_STATUS,
   MATCH_TIMING,
   MAX_ON_COURT,
   POSITIONS,
-  POSITION_LABEL,
   PLAYER_MATCH_STATUS,
   CARD,
   FOUL_LIMIT,
   timingOf,
   timingConfig,
 } from '@/domain/constants.js';
-import { clubShort, opponentShort } from '@/lib/format.js';
+import { clubShort, opponentShort, mensagemErro, eventLabel } from '@/lib/format.js';
+import { t } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 
 const OWN_GOAL = '__OWN_GOAL__';
@@ -111,7 +110,7 @@ function Live() {
       if (anunciadas.current.has(p.penaltyId)) continue;
       anunciadas.current.add(p.penaltyId);
       beep();
-      toast(`2 minutos cumpridos — pode repor um jogador por #${p.number} ${p.name}.`, 'ok', 8000);
+      toast(t('acao.sancaoCumprida', { numero: p.number, nome: p.name }), 'ok', 8000);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clockMs, state]);
@@ -124,8 +123,8 @@ function Live() {
     if (state.status === MATCH_STATUS.FINISHED) router.replace(rotas.jogoResumo(matchId));
   }, [state, matchId, router]);
 
-  if (!carregado) return <p className="muted">A carregar…</p>;
-  if (carregado.vazio) return <Empty>Jogo não encontrado.</Empty>;
+  if (!carregado) return <p className="muted">{t('comum.aCarregar')}</p>;
+  if (carregado.vazio) return <Empty>{t('jogo.naoEncontrado')}</Empty>;
   if (
     state.status === MATCH_STATUS.DRAFT ||
     state.status === MATCH_STATUS.READY ||
@@ -163,20 +162,20 @@ function Live() {
    * popup deixa apenas um golo por atribuir (corrigível no resumo).
    */
   async function scoreFor(p) {
-    const st = await commit(A.teamGoalBy(state, p.playerId), `Golo de ${p.name}!`);
+    const st = await commit(A.teamGoalBy(state, p.playerId), t('acao.goloDe', { nome: p.name }));
     const golo = lastTeamGoal(st);
     if (golo) await askAssist(st, golo, p.playerId);
   }
 
   async function addTeamGoal() {
-    const st = await commit(A.goal(state, EVENT.TEAM_GOAL_ADDED), 'Golo!');
+    const st = await commit(A.goal(state, EVENT.TEAM_GOAL_ADDED), t('acao.golo'));
     const golo = lastTeamGoal(st);
     if (!golo) return;
 
-    const scorerId = await pickPlayer(ui, st, 'Quem marcou?', {
+    const scorerId = await pickPlayer(ui, st, t('acao.quemMarcou'), {
       allowNone: true,
-      noneLabel: 'Não registar',
-      extra: [{ id: OWN_GOAL, label: 'Autogolo do adversário' }],
+      noneLabel: t('acao.naoRegistar'),
+      extra: [{ id: OWN_GOAL, label: t('golos.autogolo') }],
     });
     if (scorerId === undefined) return; // fechou o popup
 
@@ -188,7 +187,7 @@ function Live() {
         { sync: 'defer' }
       );
       await recarregar();
-      return toast('Autogolo do adversário.', 'ok');
+      return toast(t('acao.autogoloFeito'), 'ok');
     }
     if (!scorerId) return;
     await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, scorerId }), {
@@ -199,17 +198,17 @@ function Live() {
   }
 
   async function askAssist(st, golo, scorerId) {
-    const assistId = await pickPlayer(ui, st, 'Quem fez a assistência?', {
+    const assistId = await pickPlayer(ui, st, t('acao.quemAssistiu'), {
       exclude: scorerId,
       allowNone: true,
-      noneLabel: 'Sem assistência',
+      noneLabel: t('golos.semAssistencia'),
     });
     if (!assistId) return;
     await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, assistId }), {
       sync: 'defer',
     });
     const depois = await recarregar();
-    toast(`Assistência de ${depois.state.players[assistId]?.name || '—'}.`, 'ok');
+    toast(t('acao.assistenciaDe', { nome: depois.state.players[assistId]?.name || '—' }), 'ok');
   }
 
   /**
@@ -232,11 +231,7 @@ function Live() {
     const p = st.players[libertado];
     anunciadas.current.add(st.penalties.find((x) => x.playerId === libertado)?.id);
     beep();
-    toast(
-      `Golo sofrido — a sanção de #${p.number} ${p.name} terminou. Pode repor um jogador.`,
-      'ok',
-      8000
-    );
+    toast(t('acao.goloSofridoLiberta', { numero: p.number, nome: p.name }), 'ok', 8000);
   }
 
   /* --------------------------------------------------------------- faltas */
@@ -265,17 +260,19 @@ function Live() {
     const ultima = [...st.fouls].reverse().find((f) => f.team === team);
     if (!ultima) return;
     const nossa = team === 'US';
-    const playerId = await pickPlayer(ui, st, nossa ? 'Quem fez a falta?' : 'Quem sofreu a falta?', {
-      allowNone: true,
-      noneLabel: 'Não registar',
-    });
+    const playerId = await pickPlayer(
+      ui,
+      st,
+      nossa ? t('acao.quemFezFalta') : t('acao.quemSofreuFalta'),
+      { allowNone: true, noneLabel: t('acao.naoRegistar') }
+    );
     if (!playerId) return;
     await events.append(A.attributeFoul(st, { targetEventId: ultima.eventId, playerId }), {
       sync: 'defer',
     });
     const depois = await recarregar();
     const nome = depois.state.players[playerId]?.name || '—';
-    toast(nossa ? `Falta de ${nome}.` : `Falta sofrida por ${nome}.`, 'ok');
+    toast(nossa ? t('acao.faltaDe', { nome }) : t('acao.faltaSofridaPor', { nome }), 'ok');
   }
 
   function removeFoul(team) {
@@ -289,11 +286,11 @@ function Live() {
 
   async function startPenalty(playerId) {
     const erro = canStartPenalty(state, playerId);
-    if (erro) return toast(erro, 'error');
+    if (erro) return toast(mensagemErro(erro), 'error');
     unlockAudio(); // o toque do utilizador é o que permite tocar o aviso depois
     await commit(
       A.startPenalty(state, { playerId, durationMs: penaltyMs() }),
-      `Contagem de ${Math.round(penaltyMs() / 60000)} minutos iniciada.`
+      t('acao.contagemIniciada', { n: Math.round(penaltyMs() / 60000) })
     );
   }
 
@@ -308,7 +305,7 @@ function Live() {
 
   function tapBench(p) {
     if (p.status === PLAYER_MATCH_STATUS.EXPELLED)
-      return toast('Um jogador expulso não pode voltar a entrar.', 'error');
+      return toast(t('validacao.expulsoNaoVolta'), 'error');
     if (sel?.kind === 'court') {
       const pos = state.players[sel.playerId].position;
       return doSubstitution(sel.playerId, p.playerId, pos);
@@ -321,25 +318,25 @@ function Live() {
     if (sel?.kind === 'bench') return doReplacement(sel.playerId, pos);
     if (sel?.kind === 'court') return doMoveTo(sel.playerId, pos);
     const bloqueio = canReplaceExpelled(state, clockMs, penaltyMs());
-    if (bloqueio) return toast(bloqueio, 'error');
+    if (bloqueio) return toast(mensagemErro(bloqueio), 'error');
     const disponiveis = Object.values(state.players).filter(
       (p) => p.status === PLAYER_MATCH_STATUS.ON_BENCH
     );
-    if (!disponiveis.length) return toast('Não há jogadores disponíveis no banco.', 'error');
+    if (!disponiveis.length) return toast(t('acao.semBanco'), 'error');
     const playerId = await pickReplacement(ui, state, pos);
     if (playerId) await doReplacement(playerId, pos);
   }
 
   async function doSubstitution(outId, inId, position) {
     const erro = V.validateSubstitution(state, { playerOutId: outId, playerInId: inId });
-    if (erro) return toast(erro, 'error');
+    if (erro) return toast(mensagemErro(erro), 'error');
     await commit(
       A.substitute(state, {
         playerOutId: outId,
         playerInId: inId,
         position: position || state.players[outId].position,
       }),
-      `Entra ${state.players[inId].name} · sai ${state.players[outId].name}`
+      t('acao.entraSai', { entra: state.players[inId].name, sai: state.players[outId].name })
     );
   }
 
@@ -348,18 +345,18 @@ function Live() {
     if (de === toPosition) return setSel(null);
     await commit(
       A.changePosition(state, { playerId, fromPosition: de, toPosition }),
-      'Posição alterada.'
+      t('acao.posicaoAlterada')
     );
   }
 
   async function doReplacement(playerInId, position) {
     const bloqueio = canReplaceExpelled(state, clockMs, penaltyMs());
-    if (bloqueio) return toast(bloqueio, 'error');
+    if (bloqueio) return toast(mensagemErro(bloqueio), 'error');
     const erro = V.validateReplacement(state, { playerInId, position });
-    if (erro) return toast(erro, 'error');
+    if (erro) return toast(mensagemErro(erro), 'error');
     await commit(
       A.replaceAfterExpulsion(state, { playerInId, position }),
-      `${state.players[playerInId].name} entra em campo.`
+      t('acao.entraEmCampo', { nome: state.players[playerInId].name })
     );
   }
 
@@ -374,24 +371,26 @@ function Live() {
     const temAmarelo = state.cards.some((c) => c.playerId === p.playerId && c.type === CARD.YELLOW);
     if (temAmarelo) {
       const ok = await confirmar(
-        `Segundo amarelo de #${p.number} ${p.name}. Fica expulso e a equipa joga reduzida. Nas estatísticas conta como um vermelho, não como dois amarelos.`,
-        { okLabel: 'Segundo amarelo' }
+        t('acao.confirmaSegundoAmarelo', { numero: p.number, nome: p.name }),
+        { okLabel: t('acao.segundoAmarelo') }
       );
       if (!ok) return;
     }
     await commit(
       A.yellowCard(state, { playerId: p.playerId }),
-      temAmarelo ? `${p.name} expulso por acumulação de amarelos.` : `Amarelo para ${p.name}.`
+      temAmarelo
+        ? t('acao.expulsoPorAmarelos', { nome: p.name })
+        : t('acao.amareloPara', { nome: p.name })
     );
   }
 
   async function aplicarVermelho(p) {
     const ok = await confirmar(
-      `Cartão vermelho para #${p.number} ${p.name}? Fica expulso e a equipa joga reduzida.`,
-      { okLabel: 'Vermelho' }
+      t('acao.confirmaVermelho', { numero: p.number, nome: p.name }),
+      { okLabel: t('acao.vermelho') }
     );
     if (!ok) return;
-    await commit(A.redCard(state, { playerId: p.playerId }), `${p.name} expulso.`);
+    await commit(A.redCard(state, { playerId: p.playerId }), t('acao.expulso', { nome: p.name }));
   }
 
   function cardItems(p, close) {
@@ -407,8 +406,10 @@ function Live() {
           }}
         >
           <span className="cardchip cardchip--yellow" />
-          {temAmarelo ? 'Segundo amarelo (expulsa)' : 'Cartão amarelo'}
-          {cartoes.yellows ? <span className="menu__hint">já tem {cartoes.yellows}</span> : null}
+          {temAmarelo ? t('acao.segundoAmareloMenu') : t('acao.cartaoAmarelo')}
+          {cartoes.yellows ? (
+            <span className="menu__hint">{t('acao.jaTem', { n: cartoes.yellows })}</span>
+          ) : null}
         </button>
         <button
           className="menu__item menu__item--danger"
@@ -433,10 +434,10 @@ function Live() {
             onClick={() => {
               close(null);
               setSel({ kind: 'court', playerId: p.playerId });
-              toast('Escolha o jogador do banco que entra.', 'info');
+              toast(t('acao.escolhaQuemEntra'), 'info');
             }}
           >
-            Substituir
+            {t('acao.substituir')}
           </button>
           <button
             className="menu__item"
@@ -446,7 +447,7 @@ function Live() {
               if (destino) doMoveTo(p.playerId, destino);
             }}
           >
-            Alterar posição
+            {t('acao.alterarPosicao')}
           </button>
           {/* A expulsão não tem entrada própria: é sempre consequência de um cartão. */}
           {cardItems(p, () => close(null))}
@@ -457,7 +458,7 @@ function Live() {
               stintsDialog(ui, state, p, clockMs);
             }}
           >
-            Consultar períodos em campo
+            {t('acao.consultarPeriodos')}
           </button>
         </div>
       </Dialog>
@@ -482,7 +483,7 @@ function Live() {
                 doReplacement(p.playerId, livre);
               }}
             >
-              Colocar em campo (repor jogador)
+              {t('acao.colocarEmCampo')}
             </button>
           ) : null}
           {p.status === PLAYER_MATCH_STATUS.ON_BENCH ? (
@@ -491,10 +492,10 @@ function Live() {
               onClick={() => {
                 close(null);
                 setSel({ kind: 'bench', playerId: p.playerId });
-                toast('Escolha o jogador de campo que sai.', 'info');
+                toast(t('acao.escolhaQuemSai'), 'info');
               }}
             >
-              Substituir um jogador de campo
+              {t('acao.substituirDeCampo')}
             </button>
           ) : null}
           {p.status === PLAYER_MATCH_STATUS.EXPELLED ? null : cardItems(p, () => close(null))}
@@ -505,7 +506,7 @@ function Live() {
               stintsDialog(ui, state, p, clockMs);
             }}
           >
-            Consultar tempos
+            {t('acao.consultarTempos')}
           </button>
         </div>
       </Dialog>
@@ -514,18 +515,18 @@ function Live() {
 
   function moreMenu() {
     ui.open((close) => (
-      <Dialog title="Mais ações" onClose={() => close(null)}>
+      <Dialog title={t('acao.maisAcoes')} onClose={() => close(null)}>
         <div className="menu">
           <button
             className="menu__item"
             onClick={async () => {
               close(null);
               const livre = POSITIONS.find((pos) => !state.court[pos]);
-              if (!livre) return toast('O campo já tem cinco jogadores.', 'error');
+              if (!livre) return toast(t('acao.campoCheio'), 'error');
               await tapEmpty(livre);
             }}
           >
-            Repor jogador (após expulsão)
+            {t('acao.reporJogador')}
           </button>
           {state.currentPeriod === 1 ? (
             <button
@@ -575,34 +576,34 @@ function Live() {
 
   async function finishFirst() {
     const erro = V.canFinishFirstHalf(state);
-    if (erro) return toast(erro, 'error');
+    if (erro) return toast(mensagemErro(erro), 'error');
     const ok = await confirmar(
-      'Terminar a 1.ª parte? Todos os períodos em campo são encerrados e o resultado ao intervalo é guardado.',
-      { okLabel: 'Terminar 1.ª parte', danger: false }
+      t('acao.confirmaTerminarPrimeira'),
+      { okLabel: t('acao.terminarPrimeira'), danger: false }
     );
     if (!ok) return;
-    await commit(A.finishFirstHalf(state), 'Intervalo.', { sync: 'defer' });
+    await commit(A.finishFirstHalf(state), t('acao.intervalo'), { sync: 'defer' });
   }
 
   async function startSecondHalf(lineup) {
     const erro0 = V.validateLineup(lineup, Object.keys(state.players));
-    if (erro0) return toast(erro0, 'error');
+    if (erro0) return toast(mensagemErro(erro0), 'error');
     if (!Object.values(lineup).filter(Boolean).length)
-      return toast('Escolha os jogadores em campo.', 'error');
+      return toast(t('acao.escolhaEmCampo'), 'error');
     await events.append(A.setSecondHalfLineup(state, lineup), { sync: 'defer' });
     const novo = await recarregar();
     const erro = V.canStartSecondHalf(novo.state);
-    if (erro) return toast(erro, 'error');
+    if (erro) return toast(mensagemErro(erro), 'error');
     await events.append(A.startSecondHalf(novo.state), { sync: 'defer' });
     await recarregar();
-    toast('Começou a 2.ª parte.', 'ok');
+    toast(t('acao.comecouSegunda'), 'ok');
   }
 
   async function finishGame() {
     const erro = V.canFinishMatch(state);
-    if (erro) return toast(erro, 'error');
-    const ok = await confirmar('Terminar o jogo e fechar as estatísticas?', {
-      okLabel: 'Terminar jogo',
+    if (erro) return toast(mensagemErro(erro), 'error');
+    const ok = await confirmar(t('acao.confirmaTerminarJogo'), {
+      okLabel: t('acao.terminarJogo'),
       danger: false,
     });
     if (!ok) return;
@@ -611,8 +612,8 @@ function Live() {
 
   async function abandon() {
     const ok = await confirmar(
-      'Abandonar o jogo termina-o imediatamente, mesmo sem a segunda parte. Continuar?',
-      { okLabel: 'Abandonar' }
+      t('acao.confirmaAbandonar'),
+      { okLabel: t('acao.abandonar') }
     );
     if (!ok) return;
     await endMatch();
@@ -678,10 +679,10 @@ function Live() {
             on={on}
           />
           <div className="clockbox">
-            <span className="clockbox__period">INTERVALO</span>
+            <span className="clockbox__period">{t('acao.intervaloTitulo')}</span>
             <span className="clockbox__time">{fmt(state.firstHalfMs || 0)}</span>
-            <span className="clockbox__hint">1.ª parte terminada</span>
-            <span className="pill pill--paused">PARADO</span>
+            <span className="clockbox__hint">{t('acao.primeiraTerminada')}</span>
+            <span className="pill pill--paused">{t('vivo.parado')}</span>
           </div>
           <div className="live__controls">
             <button
@@ -771,25 +772,28 @@ function Live() {
           onClick={async () => {
             if (!undoable) return;
             const ok = await confirmar(
-              `Desfazer "${EVENT_LABEL[undoable.eventType]}" registada aos ${fmt(
-                undoable.matchElapsedMs
-              )}?`,
-              { okLabel: 'Desfazer', danger: false }
+              t('acao.confirmaDesfazer', {
+                acao: eventLabel(undoable.eventType),
+                tempo: fmt(undoable.matchElapsedMs),
+              }),
+              { okLabel: t('acao.desfazer'), danger: false }
             );
             if (!ok) return;
             await events.markUndone(undoable.id, null, { sync: 'defer' });
             await events.append(A.undoEvent(state, undoable), { sync: 'defer' });
             setSel(null);
             await recarregar();
-            toast('Ação desfeita.', 'ok');
+            toast(t('acao.acaoDesfeita'), 'ok');
           }}
         >
-          {undoable ? `Desfazer: ${EVENT_LABEL[undoable.eventType]}` : 'Nada para desfazer'}
+          {undoable
+            ? t('acao.desfazerRotulo', { acao: eventLabel(undoable.eventType) })
+            : t('acao.nadaParaDesfazer')}
         </button>
 
         {sel ? (
           <button className="btn btn--ghost btn--big" onClick={() => setSel(null)}>
-            Cancelar seleção
+            {t('acao.cancelarSelecao')}
           </button>
         ) : null}
 

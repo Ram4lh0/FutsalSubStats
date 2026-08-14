@@ -69,8 +69,21 @@ function utilizacoes(src, conhecidos) {
   const re = /<([A-Z][A-Za-z0-9_]*)([^>]*?)\/?>/g;
   let m;
   while ((m = re.exec(src))) {
-    const [, nome, atributos] = m;
+    const [, nome, bruto] = m;
     if (!conhecidos.has(nome)) continue;
+
+    // Corta no primeiro `<`.
+    //
+    // Uma propriedade pode levar JSX lá dentro — `action={<button …>}` — e a
+    // seta de uma função (`=>`) contém um `>`, o que faz a expressão de cima
+    // parar a meio e arrastar os atributos do elemento aninhado para aqui.
+    // Era assim que o `<Empty action={<button className=… onClick=…>}>` vinha
+    // acusado de receber `className` e `onClick`, que são do botão.
+    //
+    // Cortar aqui pode fazer perder atributos que venham depois do aninhado, e
+    // isso está certo: este verificador prefere calar-se a inventar erros.
+    const atributos = bruto.split('<')[0];
+
     const props = new Set();
     const reAttr = /(?:^|\s)([a-zA-Z][\w]*)\s*=/g;
     let a;

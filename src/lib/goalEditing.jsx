@@ -13,6 +13,7 @@ import * as sync from './data/sync.js';
 import * as A from '@/domain/actions.js';
 import { EVENT, normalizePosition } from '@/domain/constants.js';
 import { fmt } from '@/domain/clock.js';
+import { t } from '@/lib/i18n/index.js';
 
 export const OWN_GOAL = '__OWN_GOAL__';
 
@@ -86,7 +87,7 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
     // de tudo o que se passou dentro das quatro linhas.
     const limite = state.elapsedMatchMs || 0;
     if (limite && ms > limite) {
-      toast(`O jogo só tem ${fmt(limite)}. Escolha um minuto até aí.`, 'error');
+      toast(t('golos.minutoForaDoJogo', { tempo: fmt(limite) }), 'error');
       return;
     }
     const patch = { matchElapsedMs: ms, period: periodOf(state, ms, goal.period) };
@@ -103,7 +104,9 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
 
   const opcoes = (extra = []) => (
     <>
-      <option value="">{nosso ? 'Sem marcador registado' : 'Sem guarda-redes registado'}</option>
+      <option value="">
+        {nosso ? t('golos.semMarcador') : t('golos.semGuardaRedes')}
+      </option>
       {pool.map((p) => (
         <option key={p.playerId} value={p.playerId}>
           #{p.number} {p.name}
@@ -118,20 +121,25 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
   );
 
   return (
-    <Dialog title={title || (nosso ? 'Golo marcado' : 'Golo sofrido')} onClose={onClose}>
+    <Dialog
+      title={title || (nosso ? t('golos.goloMarcado') : t('golos.goloSofrido'))}
+      onClose={onClose}
+    >
       <div className="form">
         <label className="field">
-          <span className="field__label">{nosso ? 'Quem marcou' : 'Quem sofreu'}</span>
+          <span className="field__label">
+            {nosso ? t('golos.quemMarcou') : t('golos.quemSofreu')}
+          </span>
           <select className="input" value={quem} onChange={(e) => setQuem(e.target.value)}>
-            {opcoes(nosso ? [{ id: OWN_GOAL, label: 'Autogolo do adversário' }] : [])}
+            {opcoes(nosso ? [{ id: OWN_GOAL, label: t('golos.autogolo') }] : [])}
           </select>
         </label>
 
         {nosso ? (
           <label className="field">
-            <span className="field__label">Quem assistiu</span>
+            <span className="field__label">{t('golos.quemAssistiu')}</span>
             <select className="input" value={assist} onChange={(e) => setAssist(e.target.value)}>
-              <option value="">Sem assistência</option>
+              <option value="">{t('golos.semAssistencia')}</option>
               {pool
                 .filter((p) => p.playerId !== quem)
                 .map((p) => (
@@ -144,23 +152,23 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
         ) : null}
 
         <label className="field">
-          <span className="field__label">Minuto do jogo</span>
+          <span className="field__label">{t('golos.minuto')}</span>
           <input
             className="input input--time"
             value={minuto}
             inputMode="numeric"
             onChange={(e) => setMinuto(e.target.value)}
           />
-          <span className="field__hint">Formato mm:ss, em tempo de jogo.</span>
+          <span className="field__hint">{t('golos.minutoDica')}</span>
         </label>
       </div>
 
       <footer className="modal__actions">
         <button className="btn btn--ghost" onClick={onClose}>
-          Cancelar
+          {t('comum.cancelar')}
         </button>
         <button className="btn btn--primary" onClick={guardar}>
-          Guardar
+          {t('comum.guardar')}
         </button>
       </footer>
     </Dialog>
@@ -192,7 +200,7 @@ export async function editGoal(ui, { matchId, goal, syncUser = null }) {
   if (!patch) return false;
   await events.append(A.attributeGoal(antes.state, { targetEventId: goal.eventId, ...patch }));
   if (syncUser) await sync.saveNow(syncUser.userId, syncUser.email);
-  ui.toast(goal.team === 'US' ? 'Golo atualizado.' : 'Golo sofrido atualizado.', 'ok');
+  ui.toast(goal.team === 'US' ? t('golos.atualizado') : t('golos.sofridoAtualizado'), 'ok');
   return true;
 }
 
@@ -201,10 +209,10 @@ function ScoreDialog({ state, ourName, opponentName, onClose, onSave }) {
   const [deles, setDeles] = useState(String(state.opponentScore));
 
   return (
-    <Dialog title="Corrigir resultado" onClose={onClose}>
+    <Dialog title={t('golos.corrigirResultado')} onClose={onClose}>
       <div className="form">
         <label className="field">
-          <span className="field__label">Golos do {ourName}</span>
+          <span className="field__label">{t('golos.golosDe', { equipa: ourName })}</span>
           <input
             className="input"
             type="number"
@@ -214,7 +222,7 @@ function ScoreDialog({ state, ourName, opponentName, onClose, onSave }) {
           />
         </label>
         <label className="field">
-          <span className="field__label">Golos do {opponentName}</span>
+          <span className="field__label">{t('golos.golosDe', { equipa: opponentName })}</span>
           <input
             className="input"
             type="number"
@@ -223,11 +231,11 @@ function ScoreDialog({ state, ourName, opponentName, onClose, onSave }) {
             onChange={(e) => setDeles(e.target.value)}
           />
         </label>
-        <p className="muted">A seguir confirma-se a ficha de cada golo, um a um.</p>
+        <p className="muted">{t('golos.aSeguirConfirma')}</p>
       </div>
       <footer className="modal__actions">
         <button className="btn btn--ghost" onClick={onClose}>
-          Cancelar
+          {t('comum.cancelar')}
         </button>
         <button
           className="btn btn--primary"
@@ -238,7 +246,7 @@ function ScoreDialog({ state, ourName, opponentName, onClose, onSave }) {
             })
           }
         >
-          Continuar
+          {t('golos.continuar')}
         </button>
       </footer>
     </Dialog>
@@ -275,8 +283,11 @@ export async function correctScore(ui, { matchId, ourName, opponentName, syncUse
   const nossos = fresco.state.goals.filter((g) => g.team === 'US');
   const deles = fresco.state.goals.filter((g) => g.team === 'THEM');
   const fila = [
-    ...nossos.map((g, i) => ({ goal: g, title: `${i + 1}.º golo do ${ourName}` })),
-    ...deles.map((g, i) => ({ goal: g, title: `${i + 1}.º golo do ${opponentName}` })),
+    ...nossos.map((g, i) => ({ goal: g, title: t('golos.ordinalDe', { n: i + 1, equipa: ourName }) })),
+    ...deles.map((g, i) => ({
+      goal: g,
+      title: t('golos.ordinalDe', { n: i + 1, equipa: opponentName }),
+    })),
   ];
 
   for (const { goal, title } of fila) {
@@ -287,7 +298,7 @@ export async function correctScore(ui, { matchId, ourName, opponentName, syncUse
   }
 
   if (syncUser) await sync.saveNow(syncUser.userId, syncUser.email);
-  ui.toast('Correções guardadas.', 'ok');
+  ui.toast(t('golos.correcoesGuardadas'), 'ok');
   return true;
 }
 

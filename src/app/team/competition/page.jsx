@@ -13,6 +13,7 @@ import { StatCard, Empty } from '@/components/bits.jsx';
 import { clubAggregate } from '@/domain/stats.js';
 import { fmt } from '@/domain/clock.js';
 import { rotas } from '@/lib/routes.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function CompetitionPage() {
   return (
@@ -35,7 +36,7 @@ function Conteudo() {
 
 function Detalhe({ entries, roster, competitions, clubId, teamId, competitionId }) {
   const router = useRouter();
-  const base = rotas.escalao(clubId, teamId);
+  const t = useT();
   const competicao = competitions.find((c) => c.id === competitionId);
   const meus = useMemo(
     () => entries.filter((e) => e.match.competitionId === competitionId),
@@ -50,7 +51,7 @@ function Detalhe({ entries, roster, competitions, clubId, teamId, competitionId 
     [agg]
   );
 
-  if (!competicao) return <Empty>Competição não encontrada.</Empty>;
+  if (!competicao) return <Empty>{t('stats.provaNaoEncontrada')}</Empty>;
 
   return (
     <>
@@ -63,14 +64,18 @@ function Detalhe({ entries, roster, competitions, clubId, teamId, competitionId 
       </div>
 
       <div className="grid grid--stats">
-        <StatCard label="Jogos" value={agg.matches} hint={`${agg.finished} terminados`} />
-        <StatCard label="V / E / D" value={`${agg.wins} / ${agg.draws} / ${agg.losses}`} />
-        <StatCard label="Golos marcados" value={agg.goalsFor} />
-        <StatCard label="Golos sofridos" value={agg.goalsAgainst} />
-        <StatCard label="Diferença" value={agg.goalsFor - agg.goalsAgainst} />
+        <StatCard
+          label={t('stats.jogos')}
+          value={agg.matches}
+          hint={t('stats.terminados', { n: agg.finished })}
+        />
+        <StatCard label={t('stats.ved')} value={`${agg.wins} / ${agg.draws} / ${agg.losses}`} />
+        <StatCard label={t('stats.golosMarcados')} value={agg.goalsFor} />
+        <StatCard label={t('stats.golosSofridos')} value={agg.goalsAgainst} />
+        <StatCard label={t('stats.diferenca')} value={agg.goalsFor - agg.goalsAgainst} />
       </div>
 
-      <h2 className="section">Jogos</h2>
+      <h2 className="section">{t('stats.jogos')}</h2>
       {meus.length ? (
         <MatchList
           entries={meus}
@@ -78,25 +83,29 @@ function Detalhe({ entries, roster, competitions, clubId, teamId, competitionId 
           backPath={rotas.competicao(clubId, teamId, competitionId)}
         />
       ) : (
-        <Empty>Ainda não há jogos nesta competição.</Empty>
+        <Empty>{t('stats.semJogosNaProva')}</Empty>
       )}
 
       {linhas.length ? (
         <>
-          <h2 className="section">Por jogador nesta competição</h2>
+          <h2 className="section">{t('stats.porJogadorNaProva')}</h2>
           <DataTable players>
             <thead>
               <tr>
-                <th>Nº</th>
-                <th>Jogador</th>
-                <th className="num">Jogos</th>
-                <th className="num">Golos</th>
-                <th className="num">Assist.</th>
-                <th className="num" title="Golos da equipa com este jogador em campo">Part. G</th>
-                <th className="num" title="Golos sofridos com este jogador em campo">Part. GS</th>
-                <th className="num">Amarelos</th>
-                <th className="num">Vermelhos</th>
-                <th className="num">Tempo total</th>
+                <th>{t('stats.numero')}</th>
+                <th>{t('stats.jogador')}</th>
+                <th className="num">{t('stats.jogos')}</th>
+                <th className="num">{t('stats.golos')}</th>
+                <th className="num">{t('stats.assistencias')}</th>
+                <th className="num" title={t('stats.partGTitulo')}>
+                  {t('stats.partG')}
+                </th>
+                <th className="num" title={t('stats.partGSTitulo')}>
+                  {t('stats.partGS')}
+                </th>
+                <th className="num">{t('stats.amarelos')}</th>
+                <th className="num">{t('stats.vermelhos')}</th>
+                <th className="num">{t('stats.tempoTotal')}</th>
               </tr>
             </thead>
             <tbody>
