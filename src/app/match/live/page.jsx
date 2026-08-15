@@ -48,6 +48,7 @@ import {
 import { clubShort, opponentShort, mensagemErro, eventLabel } from '@/lib/format.js';
 import { t } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
+import useEcraAceso from '@/lib/ecraAceso.js';
 
 const OWN_GOAL = '__OWN_GOAL__';
 
@@ -78,6 +79,11 @@ function Live() {
   const aCorrer = state?.timerStatus === 'RUNNING';
   const now = useNow(250, Boolean(aCorrer));
   const clockMs = state ? clockMsOf(state, now) : 0;
+
+  // Enquanto o jogo está aberto, o ecrã não adormece. Não é só com o cronómetro
+  // a andar: o intervalo é precisamente quando se pousa o telemóvel e se fala
+  // com a equipa, e voltar a encontrar a app a seguir é o que se quer evitar.
+  useEcraAceso(Boolean(state) && state.status !== MATCH_STATUS.FINISHED);
 
   const recarregar = useCallback(async () => {
     const novo = await loadMatch(matchId);

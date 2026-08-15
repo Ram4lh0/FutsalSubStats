@@ -38,6 +38,10 @@ export const rotas = {
   dashboard: () => '/dashboard',
   conta: () => '/account',
   privacidade: () => '/privacy',
+  // Página pública de eliminação de conta. Existe porque a Google a exige para
+  // apps que deixam criar conta: além do botão lá dentro, tem de haver um
+  // endereço na web, acessível sem sessão iniciada, que explique o que se apaga.
+  apagarConta: () => '/delete-account',
 
   /* ------------------------------------------------------------- clubes */
   clubeNovo: () => '/clubs/new',

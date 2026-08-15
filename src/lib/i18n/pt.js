@@ -795,6 +795,30 @@ export default {
   'priv.irParaLogin': 'Ir para o início de sessão',
   'priv.data': '8 de agosto de 2026',
 
+  /* ---------------------------------------- página pública de eliminação */
+  'apagar.titulo': 'Apagar a conta',
+  'apagar.subtitulo': 'Futsal ao Vivo · como pedir a eliminação da conta e dos dados',
+  'apagar.intro':
+    'Há duas maneiras de apagar a conta do Futsal ao Vivo e tudo o que lhe pertence. A primeira é imediata e não depende de ninguém; a segunda existe para quem já não tenha a app instalada.',
+  'apagar.naApp': 'Dentro da app',
+  'apagar.naAppTexto':
+    'Abre a app, entra na conta, e vai a Definições → Apagar a conta. Pede-se o email escrito à mão para confirmar, e a eliminação acontece na hora. Não é preciso pedir a ninguém nem esperar por resposta.',
+  'apagar.porEmail': 'Por email',
+  'apagar.porEmailTexto':
+    'Se já não tiveres a app instalada, escreve para o endereço abaixo a partir do email da conta que queres apagar. É essa a confirmação de que a conta é tua.',
+  'apagar.prazo':
+    'O pedido é tratado em até 30 dias. Na prática costuma ser no próprio dia.',
+  'apagar.oQueApaga': 'O que é apagado',
+  'apagar.oQueApagaTexto':
+    'Tudo: a conta e o email, os clubes, os escalões, as competições, os planteis com os nomes e números dos jogadores, os jogos e todos os acontecimentos de cada um — golos, substituições, faltas, cartões e tempos. No aparelho e no servidor.',
+  'apagar.oQueFica': 'O que fica, e durante quanto tempo',
+  'apagar.oQueFicaTexto':
+    'Nada é guardado depois da eliminação. Não há cópias de segurança que sobrevivam ao pedido, nem período de recuperação: uma vez apagada, a conta não se restaura.',
+  'apagar.aviso':
+    'Se quiseres guardar alguma coisa, transfere primeiro uma cópia em Definições → Cópia de segurança. Depois de apagar não há como voltar atrás.',
+  'apagar.contacto': 'Endereço para o pedido',
+  'apagar.assunto': 'Apagar a minha conta',
+
   /* --------------------------------------- equipa do jogo de experiência */
   'demo.clube': 'FC Demonstração',
   'demo.escalao': 'Séniores',

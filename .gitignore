@@ -10,3 +10,14 @@ FutsalSubStats.zip
 
 build/
 DerivedData/
+
+# Android: o projeto nativo vai para o repositório, o que ele compila não vai.
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/release/
+# Nunca, em circunstância nenhuma. Quem tiver este ficheiro pode publicar
+# atualizações da app em nome de outra pessoa.
+*.keystore
+*.jks

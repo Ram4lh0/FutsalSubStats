@@ -7,6 +7,10 @@
 #                         confirmar que o projeto iOS não partiu.
 #  ios-testflight         o que interessa: compila assinado e envia para o
 #                         TestFlight. É corrido à mão, não a cada push.
+#  android-preview        o mesmo do preview do iOS, mas para Android: um APK de
+#                         depuração a cada push, sem segredos nenhuns.
+#  android-google-play    compila um AAB assinado e envia para a faixa interna
+#                         da Play Console. Também à mão.
 #
 #  O ios-testflight precisa de duas coisas configuradas no Codemagic:
 #
@@ -195,6 +199,138 @@ workflows:
         # externos passariam por Beta App Review, e é aí que a regra 4.2 —
         # "isto não é mais do que um site" — poderia aparecer.
         submit_to_app_store: false
+
+      email:
+        recipients:
+          - review.futsalsubstats@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # ------------------------------------------------------------------ Android
+  #
+  # Corre a cada push, como o preview do iOS: compila um APK de depuração, sem
+  # assinatura, só para confirmar que o projeto Android não partiu. É rápido e
+  # não precisa de segredos nenhuns.
+  android-preview:
+    name: FutsalSubStats Android Preview
+    max_build_duration: 45
+    instance_type: linux_x2
+
+    environment:
+      node: lts
+      java: 21
+      vars:
+        NEXT_TELEMETRY_DISABLED: "1"
+
+    cache:
+      cache_paths:
+        - node_modules
+        - ~/.gradle/caches
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Run checks and tests
+        script: npm run check
+
+      - name: Build web bundle and sync Android
+        script: |
+          npx next build
+          npx cap sync android
+
+      - name: Build debug APK
+        script: |
+          cd android
+          ./gradlew assembleDebug
+
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+
+  # ------------------------------------------------------- Google Play interno
+  #
+  # Compila um AAB assinado e envia para a faixa interna da Google Play. Corre-se
+  # à mão, como o do TestFlight.
+  #
+  # Precisa de duas coisas configuradas no Codemagic:
+  #
+  # 1. Um **keystore** em Teams → Code signing identities → Android keystores,
+  #    com a referência `futsalsubstats`. É o ficheiro que assina a app, e é
+  #    para sempre: perdê-lo significa nunca mais poder atualizar esta app na
+  #    Play Store. Guardar uma cópia fora do Codemagic.
+  # 2. O grupo de variáveis `google-play`, com GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+  #    — o JSON de uma conta de serviço com acesso à Play Console.
+  #
+  # Ver PUBLICAR-ANDROID.md para o passo a passo.
+  android-google-play:
+    name: FutsalSubStats Android Google Play
+    max_build_duration: 60
+    instance_type: linux_x2
+
+    environment:
+      node: lts
+      java: 21
+      android_signing:
+        - futsalsubstats
+      groups:
+        - google-play
+      vars:
+        NEXT_TELEMETRY_DISABLED: "1"
+        PACKAGE_NAME: "com.ram4lh0.futsalsubstats"
+
+    cache:
+      cache_paths:
+        - node_modules
+        - ~/.gradle/caches
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Run checks and tests
+        script: npm run check
+
+      - name: Build web bundle and sync Android
+        script: |
+          npx next build
+          npx cap sync android
+
+      # O código vai DENTRO da app, como no iOS. O número de versão tem de subir
+      # sempre — a Google recusa um repetido, tal como a Apple.
+      - name: Bump version code
+        script: |
+          ULTIMO=$(google-play get-latest-build-number \
+            --package-name "$PACKAGE_NAME" \
+            --tracks internal || echo 0)
+          cd android
+          sed -i "s/versionCode .*/versionCode $(($ULTIMO + 1))/" app/build.gradle
+
+      - name: Build signed AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+
+    artifacts:
+      - android/app/build/outputs/bundle/**/*.aab
+      - android/app/build/outputs/**/mapping.txt
+
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        # Faixa interna: chega aos testadores em minutos e não passa por
+        # revisão. É o equivalente ao TestFlight interno.
+        track: internal
+        submit_as_draft: false
 
       email:
         recipients:

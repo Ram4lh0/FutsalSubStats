@@ -793,6 +793,29 @@ export default {
   'priv.irParaLogin': 'Ir al inicio de sesión',
   'priv.data': '8 de agosto de 2026',
 
+  /* -------------------------------------- página pública de eliminación */
+  'apagar.titulo': 'Eliminar la cuenta',
+  'apagar.subtitulo': 'Futsal ao Vivo · cómo pedir la eliminación de la cuenta y los datos',
+  'apagar.intro':
+    'Hay dos maneras de eliminar la cuenta de Futsal ao Vivo y todo lo que le pertenece. La primera es inmediata y no depende de nadie; la segunda existe para quien ya no tenga la app instalada.',
+  'apagar.naApp': 'Dentro de la app',
+  'apagar.naAppTexto':
+    'Abre la app, entra en tu cuenta y ve a Ajustes → Eliminar la cuenta. Se pide escribir el correo a mano para confirmar, y la eliminación ocurre al momento. No hay que pedírselo a nadie ni esperar respuesta.',
+  'apagar.porEmail': 'Por correo',
+  'apagar.porEmailTexto':
+    'Si ya no tienes la app instalada, escribe a la dirección de abajo desde el correo de la cuenta que quieres eliminar. Esa es la confirmación de que la cuenta es tuya.',
+  'apagar.prazo': 'La petición se atiende en un máximo de 30 días. En la práctica suele ser el mismo día.',
+  'apagar.oQueApaga': 'Qué se elimina',
+  'apagar.oQueApagaTexto':
+    'Todo: la cuenta y su correo, los clubes, las categorías, las competiciones, las plantillas con los nombres y dorsales de los jugadores, los partidos y todos los eventos de cada uno — goles, cambios, faltas, tarjetas y tiempos. En el dispositivo y en el servidor.',
+  'apagar.oQueFica': 'Qué se conserva, y durante cuánto tiempo',
+  'apagar.oQueFicaTexto':
+    'No se conserva nada después de la eliminación. Ninguna copia de seguridad sobrevive a la petición y no hay periodo de recuperación: una vez eliminada, la cuenta no se restaura.',
+  'apagar.aviso':
+    'Si quieres conservar algo, descarga primero una copia en Ajustes → Copia de seguridad. Después de eliminar no hay vuelta atrás.',
+  'apagar.contacto': 'Dirección para la petición',
+  'apagar.assunto': 'Eliminar mi cuenta',
+
   /* --------------------------------------- equipa do jogo de experiência */
   'demo.clube': 'FC Demostración',
   'demo.escalao': 'Senior',

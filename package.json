@@ -11,9 +11,14 @@
     "check": "node tools/check-syntax.mjs && node tools/check-imports.mjs && node tools/check-undefined.mjs && node tools/check-props.mjs && node tools/check-routes.mjs && node tools/check-security.mjs && node tools/check-i18n.mjs && node --test tests/*.test.js",
     "app:ios": "next build && cap sync ios",
     "cap:sync:ios": "cap sync ios",
-    "cap:open:ios": "cap open ios"
+    "cap:open:ios": "cap open ios",
+    "app:android": "next build && cap sync android",
+    "cap:sync:android": "cap sync android",
+    "cap:open:android": "cap open android",
+    "android:icones": "node tools/android-icones.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
     "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.5.0",
     "@capacitor/ios": "^8.5.0",
