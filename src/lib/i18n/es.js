@@ -718,6 +718,15 @@ export default {
   'auth.semLigacao': 'Sin conexión con el servidor.',
   'auth.backupInvalido': 'Archivo de copia de seguridad no válido.',
 
+  /* -------------------------------------------------- registro por invitación */
+  'registo.fechado': 'El registro es por invitación.',
+  'registo.fechadoTexto':
+    'Las cuentas se crean a petición. Escríbenos y te enviamos una invitación para que elijas tu contraseña.',
+  'registo.pedirConta': 'Pedir una cuenta',
+  'registo.assunto': 'Quiero una cuenta en Futsal ao Vivo',
+  'registo.recusado':
+    'El registro es por invitación. Escribe a {email} y te enviamos una invitación para crear la cuenta.',
+
   /* -------------------------------------------------------- exportación */
   'csv.clube': 'Club',
   'csv.data': 'Fecha',

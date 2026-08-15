@@ -143,3 +143,47 @@ test('as etiquetas de formato seguem o idioma', async () => {
 
   definirIdioma('pt');
 });
+
+/* --------------------------------------------------- o registo por convite */
+
+// A regra que estes protegem: fechar o registo só na interface não fecha nada.
+// A fechadura é o Supabase; isto é a cortesia à volta dela.
+
+const { registoAberto } = await import('../src/lib/registo.js');
+
+test('por omissão o registo está aberto', () => {
+  delete process.env.NEXT_PUBLIC_REGISTO_ABERTO;
+  assert.equal(registoAberto(), true);
+  process.env.NEXT_PUBLIC_REGISTO_ABERTO = '';
+  assert.equal(registoAberto(), true, 'vazio conta como não configurado');
+});
+
+test('fecha-se com 0, false ou não — e nada mais', () => {
+  for (const v of ['0', 'false', 'FALSE', 'nao', 'não']) {
+    process.env.NEXT_PUBLIC_REGISTO_ABERTO = v;
+    assert.equal(registoAberto(), false, `"${v}" devia fechar`);
+  }
+  for (const v of ['1', 'true', 'sim', 'qualquer coisa']) {
+    process.env.NEXT_PUBLIC_REGISTO_ABERTO = v;
+    assert.equal(registoAberto(), true, `"${v}" não devia fechar`);
+  }
+  delete process.env.NEXT_PUBLIC_REGISTO_ABERTO;
+});
+
+/* ------------------------------------------------- atualizações ao vivo */
+
+// A chamada que diz "esta versão arranca". Se falhar ou atirar, o invólucro
+// nativo dá o pacote como avariado e reverte — por isso o que se protege aqui é
+// que ela nunca rebente, mesmo sem plugin nenhum (que é o caso no browser e nos
+// testes).
+
+const { marcarArranqueBemSucedido } = await import('../src/lib/atualizacoes.js');
+
+test('marcar o arranque nunca atira, mesmo sem o plugin nativo', async () => {
+  await assert.doesNotReject(() => marcarArranqueBemSucedido());
+});
+
+test('chamar duas vezes é seguro', async () => {
+  await assert.doesNotReject(() => marcarArranqueBemSucedido());
+  await assert.doesNotReject(() => marcarArranqueBemSucedido());
+});

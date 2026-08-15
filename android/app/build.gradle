@@ -1,6 +1,32 @@
 apply plugin: 'com.android.application'
 
+// A chave que assina a app para lançamento.
+//
+// Nem o ficheiro nem as palavras-passe vivem aqui: ficam em `key.properties`,
+// que o `.gitignore` recusa, e o keystore em si vive fora do repositório. É a
+// única maneira de o projeto poder ser público sem que qualquer pessoa possa
+// publicar atualizações desta app em nome de outra.
+//
+// Sem esse ficheiro, o `assembleDebug` continua a funcionar como sempre — só o
+// `bundleRelease` é que fica sem assinatura, e diz-o.
+def chaveFicheiro = rootProject.file('key.properties')
+def chave = new Properties()
+if (chaveFicheiro.exists()) {
+    chave.load(new FileInputStream(chaveFicheiro))
+}
+
 android {
+    signingConfigs {
+        if (chaveFicheiro.exists()) {
+            release {
+                storeFile file(chave['storeFile'])
+                storePassword chave['storePassword']
+                keyAlias chave['keyAlias']
+                keyPassword chave['keyPassword']
+            }
+        }
+    }
+
     namespace = "com.ram4lh0.futsalsubstats"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
@@ -20,6 +46,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (chaveFicheiro.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

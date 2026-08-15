@@ -30,6 +30,7 @@ import {
 import { useT } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import { emDemo, limparDemo } from '@/lib/demo.js';
+import { registoAberto } from '@/lib/registo.js';
 
 export default function SummaryPage() {
   return (
@@ -176,8 +177,11 @@ function Resumo() {
           <p>{t('resumo.demoTexto')}</p>
           <p className="muted">{t('resumo.demoTexto2')}</p>
           <div className="demo-cta__actions">
+            {/* Leva sempre ao ecrã de entrada. Com o registo aberto, cria-se
+                conta ali; fechado, o mesmo ecrã explica como se pede uma. O
+                convite é o mesmo — o que muda é o que se promete. */}
             <button className="btn btn--primary btn--big" onClick={criarConta}>
-              {t('resumo.demoCriarConta')}
+              {registoAberto() ? t('resumo.demoCriarConta') : t('registo.pedirConta')}
             </button>
             <button className="btn btn--ghost" onClick={sairDaDemo}>
               {t('resumo.demoAgoraNao')}

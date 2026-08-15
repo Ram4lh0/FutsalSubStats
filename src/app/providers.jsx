@@ -12,8 +12,20 @@ import { supabase } from '@/lib/supabase/client.js';
 import * as sync from '@/lib/data/sync.js';
 import { garantirDono } from '@/lib/data/owner.js';
 import { useIdioma, useLocale } from '@/lib/i18n/index.js';
+import { marcarArranqueBemSucedido } from '@/lib/atualizacoes.js';
 
 export default function Providers({ children }) {
+  // Primeira coisa a acontecer na app, e de propósito: se um pacote novo tiver
+  // sido aplicado, é esta chamada que o dá como bom. Sem ela, ao fim de 20
+  // segundos o invólucro nativo assume que está partido e volta ao anterior.
+  //
+  // Está aqui em cima, e não dentro de nenhum ecrã, porque tem de correr mesmo
+  // que o resto da app não consiga carregar nada — sem rede, sem sessão, sem
+  // base de dados. "A app abriu" é a única coisa que isto afirma.
+  useEffect(() => {
+    marcarArranqueBemSucedido();
+  }, []);
+
   return (
     <AuthProvider>
       <UIProvider>
