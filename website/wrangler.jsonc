@@ -1,0 +1,51 @@
+{
+  // wrangler.jsonc — o que o Cloudflare precisa de saber para publicar o site.
+  //
+  // Este ficheiro não vinha no andaime, e é por isso que o `npx wrangler deploy`
+  // falhava. O projeto foi gerado para ser publicado pela ferramenta de sites da
+  // OpenAI, que traz a configuração dela; o `vite.config.ts` sintetiza uma
+  // equivalente, mas só para o modo de desenvolvimento — no `wrangler deploy`
+  // não entra nada disso.
+  //
+  // Os caminhos aqui vêm do que o `npx vinext build` produz de facto:
+  //
+  //   dist/server/index.js   o Worker, com o `export default { fetch }`
+  //   dist/client/           os ficheiros estáticos, e um `_headers`
+  //   dist/.openai/          manifesto da ferramenta que o gerou — não se usa
+  //
+  // O `dist/` está no `.gitignore` de propósito: quem o constrói é o Cloudflare
+  // a cada envio, a partir do código.
+
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // Tem de ser igual ao nome do Worker que já criaste no painel. Diferente,
+  // cria um segundo em vez de atualizar o primeiro.
+  "name": "futsalsubstats",
+
+  "main": "dist/server/index.js",
+
+  // A data decide como o runtime se comporta nas partes que mudaram ao longo do
+  // tempo. Fixa-se para o site se comportar amanhã como se comporta hoje.
+  "compatibility_date": "2026-08-01",
+
+  // O `vinext` usa módulos de Node dentro do Worker. Sem esta bandeira, falha
+  // ao arrancar com erros sobre módulos que não existem.
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": "dist/client",
+    // O `worker/index.ts` vai buscar as imagens por `env.ASSETS`. O nome tem de
+    // ser este, e não outro.
+    "binding": "ASSETS"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+
+  // Sem `d1_databases` e sem `images`: o `.openai/hosting.json` diz `"d1": null`,
+  // e as imagens do site são todas SVG, que não passam pelo otimizador. O
+  // `worker/index.ts` declara os dois em TypeScript, mas isso são tipos — não
+  // obrigam a nada em execução. Se um dia a página passar a usar `next/image`
+  // com um PNG, é aqui que se liga o Cloudflare Images.
+}
