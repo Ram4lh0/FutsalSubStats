@@ -11,10 +11,10 @@ Depois de correr `asc metadata init --dir ./metadata --version "1.0.0" --locale
 ## Nome (30 caracteres)
 
 ```
-Futsal ao Vivo
+FutsalSubStats
 ```
 
-Se estiver tomado, por esta ordem: `Futsal ao Vivo — Treinador`,
+Se estiver tomado, por esta ordem: `FutsalSubStats — Treinador`,
 `Futsal Subs & Stats`, `Rotação Futsal`.
 
 ## Subtítulo (30 caracteres)
@@ -44,7 +44,7 @@ Aponte o jogo enquanto ele acontece e saiba, ao segundo, quanto tempo cada jogad
 Quem treina futsal sabe de cor quem marcou. Do tempo de jogo de cada um, ninguém
 se lembra — e é esse o número que decide as rotações da semana seguinte.
 
-O Futsal ao Vivo é um bloco de notas que sabe contar o tempo. Marca as
+O FutsalSubStats é um bloco de notas que sabe contar o tempo. Marca as
 substituições com o polegar, à beira do campo, e no fim do jogo tem a ficha
 pronta: quanto tempo cada jogador esteve em campo, quantas vezes entrou, quanto
 tempo levou no banco.

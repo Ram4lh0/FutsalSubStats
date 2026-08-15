@@ -38,6 +38,11 @@ export const rotas = {
   dashboard: () => '/dashboard',
   conta: () => '/account',
   privacidade: () => '/privacy',
+  // Definir ou mudar a palavra-passe. É também o destino dos links do convite e
+  // da recuperação — por isso tem de funcionar **sem sessão iniciada**, e os
+  // parâmetros `th` e `tipo` (que o email traz) são lidos lá dentro em vez de
+  // virem daqui: quem os escreve é o modelo do email, não a app.
+  palavraPasse: () => '/password',
   // Página pública de eliminação de conta. Existe porque a Google a exige para
   // apps que deixam criar conta: além do botão lá dentro, tem de haver um
   // endereço na web, acessível sem sessão iniciada, que explique o que se apaga.

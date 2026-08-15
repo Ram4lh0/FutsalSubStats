@@ -153,7 +153,7 @@ aqui para se saber onde estão, não para se voltar a fazer.
 
 ### 3.1 O nome da app ✅
 
-`android/app/src/main/res/values/strings.xml` diz **Futsal ao Vivo**. O
+`android/app/src/main/res/values/strings.xml` diz **FutsalSubStats**. O
 Capacitor tinha lá `FutsalSubStats`, que é o nome do projeto e não o nome que as
 pessoas veem no telemóvel.
 
@@ -267,7 +267,7 @@ A conta de serviço só consegue enviar para uma app que **já existe** na Play
 Console. Por isso a primeira subida é manual:
 
 1. Play Console → *Create app*, com o identificador
-   `com.ram4lh0.futsalsubstats`.
+   `com.futsalsubstats.app`.
 2. Compila o AAB localmente:
    ```bash
    npm run app:android
@@ -361,7 +361,7 @@ está na página de privacidade, que é o endereço que já vai nos dois lados.
 
 - [ ] `npm run check` passa
 - [ ] A app abre num telemóvel Android a sério, não só no emulador
-- [ ] O nome no ecrã principal diz "Futsal ao Vivo"
+- [ ] O nome no ecrã principal diz "FutsalSubStats"
 - [ ] O ícone fica bem em círculo e em quadrado
 - [ ] O manifesto não pede permissões que a app não usa
 - [ ] A app roda para paisagem

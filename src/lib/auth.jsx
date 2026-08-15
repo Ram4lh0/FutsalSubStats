@@ -65,6 +65,85 @@ export function AuthProvider({ children }) {
         return { error: error ? traduzir(error.message) : null };
       },
 
+      /**
+       * Trocar o `token_hash` que vem no link do email por uma sessão.
+       *
+       * É o que faz os convites e as recuperações funcionarem. A alternativa
+       * seria deixar o Supabase pôr a sessão no fim do endereço e a app apanhá-la
+       * de lá — mas o `client.js` tem `detectSessionInUrl: false` de propósito, e
+       * não é para mudar: com ele ligado, qualquer endereço que chegue à app com
+       * um `#access_token=` lá atrás inicia sessão sozinho, sem nada no código a
+       * decidir isso.
+       *
+       * Aqui a app é que pega no símbolo, o entrega e recebe a sessão de volta.
+       */
+      async trocarLinkPorSessao(tokenHash, tipo) {
+        const sb = supabase();
+        if (!sb) return { error: t('auth.semServidor') };
+        const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type: tipo });
+        return { error: error ? traduzir(error.message) : null };
+      },
+
+      /**
+       * O mesmo, mas com o código de seis dígitos em vez do link.
+       *
+       * Existe porque os links dos emails só servem uma vez e há quem os gaste
+       * sem querer: os filtros de segurança de algumas empresas abrem as ligações
+       * das mensagens antes de as entregar, para as verificar. Quando a pessoa
+       * carrega, o link já foi usado. O código não se gasta a ser lido, e é por
+       * isso que vai em todos os emails.
+       */
+      async trocarCodigoPorSessao(email, codigo, tipo) {
+        const sb = supabase();
+        if (!sb) return { error: t('auth.semServidor') };
+        const { error } = await sb.auth.verifyOtp({
+          email: String(email || '').trim(),
+          token: String(codigo || '').trim(),
+          type: tipo,
+        });
+        return { error: error ? traduzir(error.message) : null };
+      },
+
+      /**
+       * Confirmar que quem está a mexer sabe mesmo a palavra-passe atual.
+       *
+       * O `updateUser` não a pede: basta ter sessão. E a sessão vive meses no
+       * telemóvel — quem apanhasse o aparelho destrancado mudava a palavra-passe
+       * e ficava com a conta. Isto fecha essa porta.
+       *
+       * Falhar aqui não expulsa ninguém: um `signInWithPassword` recusado deixa
+       * a sessão que já existia exactamente como estava.
+       */
+      async confirmarPalavraPasse(email, atual) {
+        const sb = supabase();
+        if (!sb) return { error: t('auth.semServidor') };
+        const { error } = await sb.auth.signInWithPassword({ email, password: atual });
+        return { error: error ? traduzir(error.message) : null };
+      },
+
+      /** Escrever a palavra-passe nova. Serve para a definir e para a mudar. */
+      async definirPalavraPasse(nova) {
+        const sb = supabase();
+        if (!sb) return { error: t('auth.semServidor') };
+        const { error } = await sb.auth.updateUser({ password: nova });
+        return { error: error ? traduzir(error.message) : null };
+      },
+
+      /**
+       * Pedir o email de recuperação.
+       *
+       * Sem `redirectTo`: o endereço de destino é construído dentro do próprio
+       * modelo do email, a partir do `Site URL` do projeto (ver
+       * `supabase/emails/`). Um `redirectTo` que não estivesse na lista de
+       * permitidos era recusado pelo servidor — assim não há lista para manter.
+       */
+      async pedirRecuperacao(email) {
+        const sb = supabase();
+        if (!sb) return { error: t('auth.semServidor') };
+        const { error } = await sb.auth.resetPasswordForEmail(String(email || '').trim());
+        return { error: error ? traduzir(error.message) : null };
+      },
+
       async signOut() {
         // A fila pára ANTES de a sessão morrer: um reenvio agendado sem sessão
         // não tem nada que fazer, e o erro que produzia aparecia ao utilizador
@@ -119,8 +198,20 @@ function traduzir(msg = '') {
     return t('registo.recusado', { email: CONTACTO });
   if (m.includes('invalid login')) return t('auth.credenciaisErradas');
   if (m.includes('already registered')) return t('auth.jaExisteConta');
+  // Esta tem de vir antes da `password should be`, senão apanha-a primeiro: o
+  // Supabase escreve "New password should be different from the old password."
+  if (m.includes('should be different')) return t('auth.passwordIgual');
   if (m.includes('password should be')) return t('auth.passwordCurta');
   if (m.includes('email not confirmed')) return t('auth.confirmeEmail');
+  // O link e o código gastos são a recusa que mais gente vai ver, e a mensagem
+  // do Supabase ("Email link is invalid or has expired") não diz o que fazer.
+  if (m.includes('expired') || m.includes('otp_expired') || m.includes('invalid or has expired'))
+    return t('auth.linkExpirado');
+  if (m.includes('token has invalid') || m.includes('invalid token')) return t('auth.codigoInvalido');
+  // Limite de envios. O texto do Supabase começa por "For security purposes, you
+  // can only request this after N seconds".
+  if (m.includes('for security purposes') || m.includes('rate limit'))
+    return t('auth.demasiadosPedidos');
   if (m.includes('failed to fetch')) return t('auth.semLigacao');
   return msg;
 }

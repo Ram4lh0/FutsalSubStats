@@ -1,4 +1,4 @@
-package com.ram4lh0.futsalsubstats;
+package com.futsalsubstats.app;
 
 import com.getcapacitor.BridgeActivity;
 

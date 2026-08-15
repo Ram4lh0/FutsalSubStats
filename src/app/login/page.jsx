@@ -17,7 +17,7 @@ import { registoAberto, CONTACTO } from '@/lib/registo.js';
 export default function LoginPage() {
   const router = useRouter();
   const t = useT();
-  const { signIn, signUp, session, ready, remote } = useAuth();
+  const { signIn, signUp, pedirRecuperacao, session, ready, remote } = useAuth();
   const { toast } = useUI();
   // Com o registo por convite não há dois modos: este ecrã é só de entrada.
   const aberto = registoAberto();
@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [aEnviar, setAEnviar] = useState(false);
   const [aMontar, setAMontar] = useState(false);
+  const [aRecuperar, setARecuperar] = useState(false);
 
   // Já com sessão (ou sem servidor configurado), não há nada a fazer aqui.
   useEffect(() => {
@@ -60,6 +61,25 @@ export default function LoginPage() {
       setAMontar(false);
       toast(t('login.demoFalhou', { erro: e.message }), 'error');
     }
+  }
+
+  /**
+   * Pedir o email para escolher uma palavra-passe nova.
+   *
+   * A resposta é sempre a mesma, haja conta ou não. Se dissesse "não existe
+   * conta com esse email", este botão passava a servir para descobrir quem tem
+   * conta na app — e isso não é da conta de quem pergunta.
+   */
+  async function recuperar() {
+    if (!email.trim()) return toast(t('login.esqueciFaltaEmail'), 'error');
+    if (aRecuperar) return;
+    setARecuperar(true);
+    const { error } = await pedirRecuperacao(email.trim());
+    setARecuperar(false);
+    // O erro que passa é o de rede ou o de limite de envios — esses interessam
+    // mesmo, porque a pessoa fica à espera de um email que não vem.
+    if (error) return toast(error, 'error');
+    toast(t('login.esqueciEnviado'), 'ok', 8000);
   }
 
   async function submeter(e) {
@@ -125,6 +145,18 @@ export default function LoginPage() {
             <span className="field__hint">{t('login.passwordDica')}</span>
           ) : null}
         </label>
+
+        {/* Só a entrar: a quem está a criar conta não faz sentido nenhum. */}
+        {modo === 'entrar' && remote ? (
+          <button
+            className="btn btn--ghost btn--tiny"
+            type="button"
+            onClick={recuperar}
+            disabled={aRecuperar}
+          >
+            {aRecuperar ? t('login.esqueciAEnviar') : t('login.esqueci')}
+          </button>
+        ) : null}
 
         <div className="form__actions">
           {aberto ? (

@@ -42,7 +42,7 @@ tudo o resto fica à espera.
 - **Name**: o nome tem de ser único em toda a App Store, mesmo que nunca
   publiques. Se "Futsal Subs & Stats" estiver tomado, inventa uma variação.
 - **Primary Language**: Portuguese (Portugal)
-- **Bundle ID**: `com.ram4lh0.futsalsubstats`. Se não aparecer na lista, cria-o
+- **Bundle ID**: `com.futsalsubstats.app`. Se não aparecer na lista, cria-o
   primeiro em [developer.apple.com](https://developer.apple.com/account/resources/identifiers/list)
   → Identifiers → **+** → App IDs → App.
 - **SKU**: qualquer texto teu, por exemplo `futsalsubstats`. Ninguém o vê.
