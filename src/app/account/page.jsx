@@ -212,6 +212,18 @@ function Definicoes() {
         </div>
       </div>
 
+      {/* Fica antes das cópias e depois da sincronização de propósito: é a única
+          coisa desta página que uma pessoa vem cá fazer com pressa. */}
+      <div className="card">
+        <h2 className="section section--tight">{t('definicoes.palavraPasse')}</h2>
+        <p className="muted">{t('definicoes.palavraPasseTexto')}</p>
+        <div className="form__actions form__actions--left">
+          <button className="btn btn--ghost" onClick={() => router.push(rotas.palavraPasse())}>
+            {t('definicoes.mudarPalavraPasse')}
+          </button>
+        </div>
+      </div>
+
       <div className="card">
         <h2 className="section">{t('copia.titulo')}</h2>
         <p className="muted">{t('copia.texto')}</p>

@@ -27,10 +27,10 @@ android {
         }
     }
 
-    namespace = "com.ram4lh0.futsalsubstats"
+    namespace = "com.futsalsubstats.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.ram4lh0.futsalsubstats"
+        applicationId "com.futsalsubstats.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

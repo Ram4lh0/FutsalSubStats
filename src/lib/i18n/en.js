@@ -25,7 +25,7 @@ export default {
   'comum.codigo': 'code {codigo}',
 
   /* ---------------------------------------------------------- top bar */
-  'barra.marca': 'Futsal ao Vivo',
+  'barra.marca': 'FutsalSubStats',
   'barra.demonstracao': 'DEMO',
   'barra.criarConta': 'Create account',
   'barra.definicoes': 'Settings',
@@ -722,7 +722,7 @@ export default {
   'registo.fechadoTexto':
     'Accounts are created on request. Write to us and we will send you an invitation so you can choose your own password.',
   'registo.pedirConta': 'Request an account',
-  'registo.assunto': 'I would like an account on Futsal ao Vivo',
+  'registo.assunto': 'I would like an account on FutsalSubStats',
   'registo.recusado':
     'Sign-up is by invitation. Write to {email} and we will send you an invitation to create your account.',
 
@@ -758,7 +758,7 @@ export default {
 
   /* -------------------------------------------------------- privacy policy */
   'priv.titulo': 'Privacy policy',
-  'priv.subtitulo': 'Futsal ao Vivo · updated {data}',
+  'priv.subtitulo': 'FutsalSubStats · updated {data}',
   'priv.intro':
     'This app is for tracking futsal matches: who comes on, who goes off, how long each player was on court. It collects the minimum it needs for that to work, and nothing more.',
   'priv.oQueGuarda': 'What is stored',
@@ -803,9 +803,9 @@ export default {
 
   /* ------------------------------------------- public deletion page */
   'apagar.titulo': 'Delete your account',
-  'apagar.subtitulo': 'Futsal ao Vivo · how to request account and data deletion',
+  'apagar.subtitulo': 'FutsalSubStats · how to request account and data deletion',
   'apagar.intro':
-    'There are two ways to delete your Futsal ao Vivo account and everything belonging to it. The first is immediate and depends on nobody; the second is for people who no longer have the app installed.',
+    'There are two ways to delete your FutsalSubStats account and everything belonging to it. The first is immediate and depends on nobody; the second is for people who no longer have the app installed.',
   'apagar.naApp': 'Inside the app',
   'apagar.naAppTexto':
     'Open the app, sign in, and go to Settings → Delete account. You are asked to type your email to confirm, and the deletion happens right away. There is nobody to ask and nothing to wait for.',
@@ -907,4 +907,52 @@ export default {
   /* ------------------------------------------------------ fallbacks */
   'nome.nos': 'Us',
   'nome.adversario': 'Opponent',
+
+  /* --------------------------------------------------------- password */
+  'pass.titulo': 'Password',
+  'pass.definirTitulo': 'Choose your password',
+  'pass.mudarTitulo': 'Change your password',
+  'pass.definirTexto':
+    'This is how you will sign in from now on, here and in the phone app. Pick one only you know.',
+  'pass.mudarTexto': 'First confirm the one you use today.',
+  'pass.atual': 'Current password',
+  'pass.nova': 'New password',
+  'pass.repetir': 'Repeat the new password',
+  'pass.dica': 'At least {n} characters.',
+  'pass.curta': 'The password must be at least {n} characters long.',
+  'pass.naoCoincide': 'The two passwords do not match.',
+  'pass.faltaAtual': 'Enter the password you use today.',
+  'pass.naoSei': 'I do not know my current password',
+  'pass.naoSeiEnviado': 'We sent an email to {email} with a link to choose a new one.',
+  'pass.atualErrada': 'That is not your current password.',
+  'pass.guardar': 'Save password',
+  'pass.guardada': 'Password changed.',
+  'pass.definida': 'All set. Your account is ready.',
+  'pass.mostrar': 'Show',
+  'pass.esconder': 'Hide',
+  'pass.aValidar': 'Checking the link…',
+  'pass.linkGasto': 'This link no longer works',
+  'pass.linkGastoTexto':
+    'Email links work once and expire after a while. The same email carries a six-digit code — that one is not used up.',
+  'pass.codigo': 'Six-digit code',
+  'pass.codigoDica': 'It is in the email, below the button.',
+  'pass.faltaCodigo': 'Fill in the email and the code.',
+  'pass.aConfirmar': 'Confirming…',
+  'pass.irParaEntrada': 'Go to sign in',
+  'pass.semSessao': 'To change your password you have to sign in first.',
+
+  'definicoes.palavraPasse': 'Password',
+  'definicoes.palavraPasseTexto': 'The password you use to sign in to this account.',
+  'definicoes.mudarPalavraPasse': 'Change password',
+
+  'login.esqueci': 'I forgot my password',
+  'login.esqueciAEnviar': 'Sending…',
+  'login.esqueciFaltaEmail': 'Enter your email first.',
+  'login.esqueciEnviado':
+    'If an account exists for that email, a message with instructions is on its way.',
+
+  'auth.passwordIgual': 'The new password has to be different from the current one.',
+  'auth.linkExpirado': 'This link or code has expired. Ask for a new one.',
+  'auth.codigoInvalido': 'That code is not right.',
+  'auth.demasiadosPedidos': 'Too many requests in a short time. Wait a minute and try again.',
 };

@@ -1,4 +1,4 @@
-# Site de apresentação — Futsal ao Vivo
+# Site de apresentação — FutsalSubStats
 
 Documento de contexto para quem vai construir o site. Lê-o todo antes de
 escrever a primeira linha: há aqui restrições que não se adivinham, e uma delas
@@ -8,7 +8,7 @@ escrever a primeira linha: há aqui restrições que não se adivinham, e uma de
 
 ## 1. O que é o produto
 
-O **Futsal ao Vivo** é uma app para treinadores de futsal apontarem o jogo
+O **FutsalSubStats** é uma app para treinadores de futsal apontarem o jogo
 enquanto ele acontece, à beira do campo, com o polegar.
 
 O problema que resolve, numa frase: **quem treina sabe de cor quem marcou, mas
@@ -346,7 +346,7 @@ inteira.
 com os pais, e é a que ninguém consegue ter de memória.
 
 **E se eu já tiver o plantel no Excel?**
-Importa-se. A app aceita um ficheiro CSV com número, nome, posição e pé, e tem
+Importa-se. A app aceita um ficheiro CSV com número, nome, posição e pé preferido. Tem
 um exemplo para descarregar.
 
 **Funciona no iPad?**

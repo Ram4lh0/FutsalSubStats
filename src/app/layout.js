@@ -3,15 +3,15 @@ import Providers from './providers.jsx';
 import AppBar from '@/components/AppBar.jsx';
 
 export const metadata = {
-  title: 'Futsal ao Vivo',
+  title: 'FutsalSubStats',
   description: 'Acompanhamento de jogos de futsal em tempo real.',
   manifest: '/manifest.webmanifest',
-  applicationName: 'Futsal ao Vivo',
+  applicationName: 'FutsalSubStats',
   // No iPad, "Adicionar ao ecrã principal" abre a app em ecrã inteiro, sem a
   // barra do Safari a roubar altura ao campo.
   appleWebApp: {
     capable: true,
-    title: 'Futsal ao Vivo',
+    title: 'FutsalSubStats',
     statusBarStyle: 'black-translucent',
   },
   icons: {

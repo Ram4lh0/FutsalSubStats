@@ -47,11 +47,11 @@ MEDIO = f'{FONTES}/Poppins-Medium.ttf'
 NORMAL = f'{FONTES}/Poppins-Regular.ttf'
 
 TEXTOS = {
-    'pt': ('Futsal ao Vivo', 'Tempo de jogo, ao segundo',
+    'pt': ('FutsalSubStats', 'Tempo de jogo, ao segundo',
            'futsal · substituições · estatísticas'),
-    'en': ('Futsal ao Vivo', 'Time on court, to the second',
+    'en': ('FutsalSubStats', 'Time on court, to the second',
            'futsal · substitutions · statistics'),
-    'es': ('Futsal ao Vivo', 'Tiempo de juego, al segundo',
+    'es': ('FutsalSubStats', 'Tiempo de juego, al segundo',
            'fútbol sala · cambios · estadísticas'),
 }
 
@@ -81,6 +81,31 @@ def campo(d, x, y, larg):
     d.ellipse([cx - rb, cy - rb, cx + rb, cy + rb], fill=BOLA)
 
 
+# A Play recorta as margens deste gráfico em alguns sítios da loja — nas listas
+# horizontais, sobretudo. O que estiver encostado à borda desaparece.
+MARGEM_DIREITA = 60
+
+
+def cabe(d, texto, ficheiro, tamanho, x):
+    """A maior letra com que `texto` ainda cabe entre `x` e a margem direita.
+
+    Os tamanhos estavam escritos à mão, e estavam certos para o nome de então.
+    Bastou trocar "Futsal ao Vivo" por "FutsalSubStats" — quatro letras a mais —
+    para o título passar a acabar a 29 px da borda. Ninguém teria reparado até
+    ver a ficha cortada no telemóvel de outra pessoa.
+
+    Encolher é sempre melhor do que cortar: o pior que acontece é o título ficar
+    um pouco mais pequeno, e isso não se nota sem os dois lado a lado.
+    """
+    largura_max = L - x - MARGEM_DIREITA
+    while tamanho > 8:
+        fonte = ImageFont.truetype(ficheiro, tamanho)
+        if d.textlength(texto, font=fonte) <= largura_max:
+            return fonte
+        tamanho -= 1
+    return ImageFont.truetype(ficheiro, 8)
+
+
 def grafico(titulo, frase, rodape):
     img = fundo()
     d = ImageDraw.Draw(img)
@@ -101,9 +126,9 @@ def grafico(titulo, frase, rodape):
     campo(d, 92, (A - campo_alt) / 2, campo_larg)
 
     x = 92 + campo_larg + 76
-    d.text((x, 168), titulo, font=ImageFont.truetype(NEGRITO, 68), fill=TEXTO)
-    d.text((x, 252), frase, font=ImageFont.truetype(MEDIO, 32), fill=LINHA)
-    d.text((x, 305), rodape, font=ImageFont.truetype(NORMAL, 23), fill=SUAVE)
+    d.text((x, 168), titulo, font=cabe(d, titulo, NEGRITO, 68, x), fill=TEXTO)
+    d.text((x, 252), frase, font=cabe(d, frase, MEDIO, 32, x), fill=LINHA)
+    d.text((x, 305), rodape, font=cabe(d, rodape, NORMAL, 23, x), fill=SUAVE)
     return img
 
 

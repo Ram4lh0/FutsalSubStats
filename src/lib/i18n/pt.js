@@ -26,7 +26,7 @@ export default {
   'comum.codigo': 'código {codigo}',
 
   /* -------------------------------------------------------- barra topo */
-  'barra.marca': 'Futsal ao Vivo',
+  'barra.marca': 'FutsalSubStats',
   'barra.demonstracao': 'DEMONSTRAÇÃO',
   'barra.criarConta': 'Criar conta',
   'barra.definicoes': 'Definições',
@@ -725,7 +725,7 @@ export default {
   'registo.fechadoTexto':
     'As contas são criadas a pedido. Escreve-nos e enviamos-te um convite para escolheres a tua palavra-passe.',
   'registo.pedirConta': 'Pedir uma conta',
-  'registo.assunto': 'Quero uma conta no Futsal ao Vivo',
+  'registo.assunto': 'Quero uma conta no FutsalSubStats',
   'registo.recusado':
     'O registo é por convite. Escreve para {email} e enviamos-te um convite para criares a conta.',
 
@@ -761,7 +761,7 @@ export default {
 
   /* ------------------------------------------------ política de privacidade */
   'priv.titulo': 'Política de privacidade',
-  'priv.subtitulo': 'Futsal ao Vivo · atualizada a {data}',
+  'priv.subtitulo': 'FutsalSubStats · atualizada a {data}',
   'priv.intro':
     'Esta app serve para acompanhar jogos de futsal: quem entra, quem sai, quanto tempo cada jogador esteve em campo. Recolhe o mínimo que precisa para isso funcionar, e nada mais.',
   'priv.oQueGuarda': 'O que é guardado',
@@ -806,9 +806,9 @@ export default {
 
   /* ---------------------------------------- página pública de eliminação */
   'apagar.titulo': 'Apagar a conta',
-  'apagar.subtitulo': 'Futsal ao Vivo · como pedir a eliminação da conta e dos dados',
+  'apagar.subtitulo': 'FutsalSubStats · como pedir a eliminação da conta e dos dados',
   'apagar.intro':
-    'Há duas maneiras de apagar a conta do Futsal ao Vivo e tudo o que lhe pertence. A primeira é imediata e não depende de ninguém; a segunda existe para quem já não tenha a app instalada.',
+    'Há duas maneiras de apagar a conta do FutsalSubStats e tudo o que lhe pertence. A primeira é imediata e não depende de ninguém; a segunda existe para quem já não tenha a app instalada.',
   'apagar.naApp': 'Dentro da app',
   'apagar.naAppTexto':
     'Abre a app, entra na conta, e vai a Definições → Apagar a conta. Pede-se o email escrito à mão para confirmar, e a eliminação acontece na hora. Não é preciso pedir a ninguém nem esperar por resposta.',
@@ -913,4 +913,52 @@ export default {
   /* ------------------------------------------------ nomes de recurso */
   'nome.nos': 'Nós',
   'nome.adversario': 'Adversário',
+
+  /* --------------------------------------------------- palavra-passe */
+  'pass.titulo': 'Palavra-passe',
+  'pass.definirTitulo': 'Escolhe a tua palavra-passe',
+  'pass.mudarTitulo': 'Mudar a palavra-passe',
+  'pass.definirTexto':
+    'É com esta que passas a entrar, aqui e na app do telemóvel. Escolhe uma que só tu saibas.',
+  'pass.mudarTexto': 'Confirma primeiro a que usas hoje.',
+  'pass.atual': 'Palavra-passe atual',
+  'pass.nova': 'Palavra-passe nova',
+  'pass.repetir': 'Repetir a palavra-passe nova',
+  'pass.dica': 'Pelo menos {n} caracteres.',
+  'pass.curta': 'A palavra-passe tem de ter pelo menos {n} caracteres.',
+  'pass.naoCoincide': 'As duas palavras-passe não são iguais.',
+  'pass.faltaAtual': 'Escreve a palavra-passe que usas hoje.',
+  'pass.naoSei': 'Não sei a palavra-passe atual',
+  'pass.naoSeiEnviado': 'Enviámos um email para {email} com um link para escolheres uma nova.',
+  'pass.atualErrada': 'A palavra-passe atual não está certa.',
+  'pass.guardar': 'Guardar palavra-passe',
+  'pass.guardada': 'Palavra-passe mudada.',
+  'pass.definida': 'Está feito. A tua conta está pronta.',
+  'pass.mostrar': 'Mostrar',
+  'pass.esconder': 'Esconder',
+  'pass.aValidar': 'A validar o link…',
+  'pass.linkGasto': 'Este link já não serve',
+  'pass.linkGastoTexto':
+    'Os links dos emails servem uma vez e expiram passado algum tempo. O mesmo email traz um código de seis dígitos — esse não se gasta.',
+  'pass.codigo': 'Código de seis dígitos',
+  'pass.codigoDica': 'Está no email, por baixo do botão.',
+  'pass.faltaCodigo': 'Preenche o email e o código.',
+  'pass.aConfirmar': 'A confirmar…',
+  'pass.irParaEntrada': 'Ir para a entrada',
+  'pass.semSessao': 'Para mudares a palavra-passe tens de entrar primeiro.',
+
+  'definicoes.palavraPasse': 'Palavra-passe',
+  'definicoes.palavraPasseTexto': 'A palavra-passe com que entras nesta conta.',
+  'definicoes.mudarPalavraPasse': 'Mudar a palavra-passe',
+
+  'login.esqueci': 'Esqueci-me da palavra-passe',
+  'login.esqueciAEnviar': 'A enviar…',
+  'login.esqueciFaltaEmail': 'Escreve o teu email primeiro.',
+  'login.esqueciEnviado':
+    'Se existir conta com esse email, chega já uma mensagem com as instruções.',
+
+  'auth.passwordIgual': 'A palavra-passe nova tem de ser diferente da atual.',
+  'auth.linkExpirado': 'Este link ou código já expirou. Pede outro.',
+  'auth.codigoInvalido': 'O código não está certo.',
+  'auth.demasiadosPedidos': 'Pedidos a mais em pouco tempo. Espera um minuto e tenta outra vez.',
 };
