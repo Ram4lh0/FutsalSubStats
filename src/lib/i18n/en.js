@@ -792,6 +792,29 @@ export default {
   'priv.irParaLogin': 'Go to sign in',
   'priv.data': '8 August 2026',
 
+  /* ------------------------------------------- public deletion page */
+  'apagar.titulo': 'Delete your account',
+  'apagar.subtitulo': 'Futsal ao Vivo · how to request account and data deletion',
+  'apagar.intro':
+    'There are two ways to delete your Futsal ao Vivo account and everything belonging to it. The first is immediate and depends on nobody; the second is for people who no longer have the app installed.',
+  'apagar.naApp': 'Inside the app',
+  'apagar.naAppTexto':
+    'Open the app, sign in, and go to Settings → Delete account. You are asked to type your email to confirm, and the deletion happens right away. There is nobody to ask and nothing to wait for.',
+  'apagar.porEmail': 'By email',
+  'apagar.porEmailTexto':
+    'If you no longer have the app installed, write to the address below from the email address of the account you want deleted. That is how we confirm the account is yours.',
+  'apagar.prazo': 'Requests are handled within 30 days. In practice it is usually the same day.',
+  'apagar.oQueApaga': 'What is deleted',
+  'apagar.oQueApagaTexto':
+    'Everything: the account and its email, the clubs, the age groups, the competitions, the rosters with players’ names and numbers, the matches and every event in them — goals, substitutions, fouls, cards and times. On the device and on the server.',
+  'apagar.oQueFica': 'What is kept, and for how long',
+  'apagar.oQueFicaTexto':
+    'Nothing is kept after deletion. No backup survives the request and there is no recovery window: once deleted, the account cannot be restored.',
+  'apagar.aviso':
+    'If there is anything you want to keep, download a copy first from Settings → Backup. After deletion there is no way back.',
+  'apagar.contacto': 'Address for the request',
+  'apagar.assunto': 'Delete my account',
+
   /* --------------------------------------- equipa do jogo de experiência */
   'demo.clube': 'Demo FC',
   'demo.escalao': 'Seniors',

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Futsal ao Vivo</string>
+    <string name="title_activity_main">Futsal ao Vivo</string>
+    <string name="package_name">com.ram4lh0.futsalsubstats</string>
+    <string name="custom_url_scheme">com.ram4lh0.futsalsubstats</string>
+</resources>

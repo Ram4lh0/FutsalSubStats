@@ -91,6 +91,13 @@ export default function PrivacyPage() {
       </div>
 
       <div className="page__actions">
+        {/* A página de eliminação é pública e tem de se alcançar de fora da app.
+            Ligá-la daqui dá-lhe um segundo caminho para quem chegue à política
+            primeiro — e é o par de endereços que vai nos dois formulários, o da
+            Apple e o da Google. */}
+        <button className="btn btn--ghost" onClick={() => router.push(rotas.apagarConta())}>
+          {t('apagar.titulo')}
+        </button>
         <button className="btn btn--ghost" onClick={() => router.push(rotas.login())}>
           {t('priv.irParaLogin')}
         </button>
