@@ -123,5 +123,32 @@ for (const f of ficheiros(join(RAIZ, 'src'))) {
   }
 }
 
+/* ------------------------------- o Capacitor não entra no pacote web */
+
+// A app é a mesma nos três sítios — site, iOS e Android — e o que a Vercel
+// compila é um site. Um plugin nativo importado em `src/` entra no pacote web,
+// que passa a arrastar código que ali nunca corre e que pode partir o build por
+// razões que não têm nada que ver com a app.
+//
+// Quando é preciso falar com um plugin, faz-se pelo registo que o Capacitor
+// deixa em `globalThis.Capacitor.Plugins` — ver `src/lib/atualizacoes.js`. No
+// telemóvel dá o mesmo resultado; na web não existe, e é isso que se quer.
+//
+// Os pacotes continuam no `package.json`: é de lá que o `cap sync` tira o lado
+// nativo. O que não pode haver é a importação do lado web.
+for (const f of ficheiros(join(RAIZ, 'src'))) {
+  const src = readFileSync(f, 'utf8');
+  const re = /^\s*(?:import[^'"]*|.*\bimport\s*\()\s*['"](@capacitor\/[^'"]+|@capgo\/[^'"]+)['"]/gm;
+  let m;
+  while ((m = re.exec(src))) {
+    const linha = src.slice(0, m.index).split('\n').length;
+    console.log(
+      `${relative(RAIZ, f)}:${linha}  importa "${m[1]}" — um plugin nativo não pode entrar ` +
+        `no pacote web; usa globalThis.Capacitor.Plugins`
+    );
+    problemas++;
+  }
+}
+
 console.log(problemas ? `\n${problemas} problema(s).` : 'Todos os imports resolvem.');
 process.exit(problemas ? 1 : 0);
