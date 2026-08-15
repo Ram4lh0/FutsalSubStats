@@ -12,12 +12,15 @@ import { useUI } from '@/lib/ui.jsx';
 import { iniciarDemo, limparDemo } from '@/lib/demo.js';
 import { rotas } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
+import { registoAberto, CONTACTO } from '@/lib/registo.js';
 
 export default function LoginPage() {
   const router = useRouter();
   const t = useT();
   const { signIn, signUp, session, ready, remote } = useAuth();
   const { toast } = useUI();
+  // Com o registo por convite não há dois modos: este ecrã é só de entrada.
+  const aberto = registoAberto();
   const [modo, setModo] = useState('entrar');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -124,13 +127,15 @@ export default function LoginPage() {
         </label>
 
         <div className="form__actions">
-          <button
-            className="btn btn--ghost"
-            type="button"
-            onClick={() => setModo(modo === 'entrar' ? 'criar' : 'entrar')}
-          >
-            {modo === 'entrar' ? t('login.criarConta') : t('login.jaTenhoConta')}
-          </button>
+          {aberto ? (
+            <button
+              className="btn btn--ghost"
+              type="button"
+              onClick={() => setModo(modo === 'entrar' ? 'criar' : 'entrar')}
+            >
+              {modo === 'entrar' ? t('login.criarConta') : t('login.jaTenhoConta')}
+            </button>
+          ) : null}
           <button className="btn btn--primary" type="submit" disabled={aEnviar}>
             {aEnviar
               ? t('login.aLigar')
@@ -139,6 +144,22 @@ export default function LoginPage() {
                 : t('login.criarConta')}
           </button>
         </div>
+
+        {/* Com o registo fechado, quem chega aqui sem conta tem de saber o que
+            fazer a seguir. Um ecrã de entrada sem saída nenhuma é um beco. */}
+        {aberto ? null : (
+          <div className="card card--inset">
+            <p className="muted small">
+              <strong>{t('registo.fechado')}</strong> {t('registo.fechadoTexto')}
+            </p>
+            <a
+              className="btn btn--ghost btn--block"
+              href={`mailto:${CONTACTO}?subject=${encodeURIComponent(t('registo.assunto'))}`}
+            >
+              {t('registo.pedirConta')}
+            </a>
+          </div>
+        )}
 
         {/* Experimentar antes de decidir. O jogo é o mesmo código do jogo a
             sério — só a equipa é que é inventada. */}
@@ -153,7 +174,7 @@ export default function LoginPage() {
         {/* A política tem de estar à mão ANTES de alguém criar conta, não
             escondida lá dentro depois de já ter dado os dados. */}
         <p className="muted small">
-          {modo === 'criar' ? t('login.aceitaPolitica') : t('login.consultePolitica')}
+          {modo === 'criar' && aberto ? t('login.aceitaPolitica') : t('login.consultePolitica')}
           <a
             className="link"
             onClick={() => router.push(rotas.privacidade())}

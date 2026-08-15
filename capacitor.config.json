@@ -10,5 +10,28 @@
   "server": {
     "androidScheme": "https",
     "iosScheme": "capacitor"
+  },
+  "plugins": {
+    "CapacitorUpdater": {
+      "_": "Atualizações ao vivo, alojadas por nós. Ver ATUALIZACOES.md.",
+
+      "_autoUpdate": "O lado nativo trata de tudo: pergunta, descarrega em segundo plano e aplica na abertura seguinte. O JavaScript só tem de dizer que arrancou bem.",
+      "autoUpdate": true,
+
+      "_updateUrl": "A função no Supabase que responde 'há novidade?'. O identificador do projeto não é segredo — já vai dentro da app, no endereço do Supabase.",
+      "updateUrl": "https://bkfkpfhcysuyiotwkaty.supabase.co/functions/v1/atualizacao",
+
+      "_directUpdate": "Aplica ao arrancar, não a meio de uma sessão. Um treinador a meio de um jogo nunca vê a app recarregar debaixo dos pés.",
+      "directUpdate": true,
+
+      "_resetWhenUpdate": "Uma versão nova vinda da loja deita fora os pacotes antigos. Sem isto, um pacote velho podia sobrepor-se a uma casca nativa nova e partir tudo.",
+      "resetWhenUpdate": true,
+
+      "_appReadyTimeout": "Se o `notifyAppReady()` não chegar em 20 segundos, o pacote é dado como avariado e a app volta sozinha ao anterior. É esta a rede de segurança que torna isto aceitável.",
+      "appReadyTimeout": 20000,
+
+      "_responseTimeout": "A pergunta ao servidor desiste depressa. Num pavilhão sem rede, ninguém pode ficar à espera para abrir a app.",
+      "responseTimeout": 10
+    }
   }
 }

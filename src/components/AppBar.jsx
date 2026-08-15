@@ -22,6 +22,7 @@ import { rotas } from '@/lib/routes.js';
 import { emDemo, limparDemo } from '@/lib/demo.js';
 import { useT } from '@/lib/i18n/index.js';
 import { syncLabel } from '@/lib/format.js';
+import { registoAberto } from '@/lib/registo.js';
 
 export default function AppBar() {
   const router = useRouter();
@@ -101,7 +102,10 @@ export default function AppBar() {
                 router.replace(rotas.login());
               }}
             >
-              {t('barra.criarConta')}
+              {/* Com o registo por convite este botão leva ao ecrã de entrada,
+                  onde está explicado como se pede uma conta. O destino é o
+                  mesmo; só o rótulo é que muda para não prometer o que não há. */}
+              {registoAberto() ? t('barra.criarConta') : t('registo.pedirConta')}
             </button>
           </>
         ) : null}

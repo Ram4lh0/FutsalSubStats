@@ -717,6 +717,15 @@ export default {
   'auth.semLigacao': 'No connection to the server.',
   'auth.backupInvalido': 'Invalid backup file.',
 
+  /* --------------------------------------------------- invite-only sign-up */
+  'registo.fechado': 'Sign-up is by invitation.',
+  'registo.fechadoTexto':
+    'Accounts are created on request. Write to us and we will send you an invitation so you can choose your own password.',
+  'registo.pedirConta': 'Request an account',
+  'registo.assunto': 'I would like an account on Futsal ao Vivo',
+  'registo.recusado':
+    'Sign-up is by invitation. Write to {email} and we will send you an invitation to create your account.',
+
   /* --------------------------------------------------------------- export */
   'csv.clube': 'Club',
   'csv.data': 'Date',

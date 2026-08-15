@@ -10,6 +10,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase, hasRemote } from './supabase/client.js';
 import * as sync from './data/sync.js';
 import { t } from '@/lib/i18n/index.js';
+import { CONTACTO } from '@/lib/registo.js';
 
 const AuthContext = createContext(null);
 
@@ -107,6 +108,15 @@ export function useAuth() {
 /** As mensagens do Supabase vêm em inglês; as que se vêem mais ficam em português. */
 function traduzir(msg = '') {
   const m = msg.toLowerCase();
+  // O registo por convite é a recusa mais importante de traduzir bem.
+  //
+  // Quando se desligar o registo no Supabase, quem já tiver a app instalada
+  // continua a ver o botão de criar conta — a app vai empacotada no telemóvel e
+  // só muda com uma versão nova nas lojas. Sem esta linha, essa pessoa levava
+  // com "Signups not allowed for this instance" e não fazia ideia do que fazer
+  // a seguir. Com ela, fica a saber que basta escrever um email.
+  if (m.includes('signups not allowed') || m.includes('signup is disabled'))
+    return t('registo.recusado', { email: CONTACTO });
   if (m.includes('invalid login')) return t('auth.credenciaisErradas');
   if (m.includes('already registered')) return t('auth.jaExisteConta');
   if (m.includes('password should be')) return t('auth.passwordCurta');

@@ -17,7 +17,12 @@ android/app/build/
 android/.gradle/
 android/local.properties
 android/app/release/
-# Nunca, em circunstância nenhuma. Quem tiver este ficheiro pode publicar
-# atualizações da app em nome de outra pessoa.
+# Nunca, em circunstância nenhuma. Quem tiver este ficheiro — ou as palavras-passe
+# que estão no key.properties — pode publicar atualizações da app em nome de
+# outra pessoa.
 *.keystore
 *.jks
+android/key.properties
+
+# Os pacotes de atualização são gerados; o que interessa fica no Supabase.
+.pacotes/

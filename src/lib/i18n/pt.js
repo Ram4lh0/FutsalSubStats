@@ -720,6 +720,15 @@ export default {
   'auth.semLigacao': 'Sem ligação ao servidor.',
   'auth.backupInvalido': 'Ficheiro de backup inválido.',
 
+  /* --------------------------------------------------- registo fechado */
+  'registo.fechado': 'O registo é por convite.',
+  'registo.fechadoTexto':
+    'As contas são criadas a pedido. Escreve-nos e enviamos-te um convite para escolheres a tua palavra-passe.',
+  'registo.pedirConta': 'Pedir uma conta',
+  'registo.assunto': 'Quero uma conta no Futsal ao Vivo',
+  'registo.recusado':
+    'O registo é por convite. Escreve para {email} e enviamos-te um convite para criares a conta.',
+
   /* ---------------------------------------------------------- exportação */
   'csv.clube': 'Clube',
   'csv.data': 'Data',

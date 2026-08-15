@@ -1,0 +1,16 @@
+# Copiar este ficheiro para `key.properties` (na mesma pasta) e preencher.
+#
+# O `key.properties` a sério NUNCA vai para o repositório — o `.gitignore`
+# recusa-o. Este exemplo existe só para se saber que campos são precisos, e para
+# quem clonar o projeto perceber porque é que o `bundleRelease` não assina nada.
+#
+# O `storeFile` aponta para fora do projeto de propósito. Um keystore dentro do
+# repositório é um acidente à espera de acontecer: basta um `git add -f` para
+# qualquer pessoa poder publicar atualizações desta app.
+#
+# As barras são para a frente mesmo no Windows — é assim que o Gradle as lê.
+
+storeFile=C:/Users/axram/chaves/futsalsubstats.keystore
+storePassword=a-palavra-passe-do-keystore
+keyAlias=futsalsubstats
+keyPassword=a-palavra-passe-da-chave
