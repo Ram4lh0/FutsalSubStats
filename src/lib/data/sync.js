@@ -258,7 +258,17 @@ export async function push(userId, email) {
       // `c.ownerId` quando se sabe, senão quem está a enviar: um clube criado
       // sem rede ainda não tem dono gravado, e é de quem o criou.
       .upsert(clubes.map((c) => clubMapper.toRow(c, c.ownerId || userId)));
-    if (error) throw etiqueta(error, 'clubs');
+    if (error) {
+      // A mensagem do Postgres diz "new row violates row-level security policy
+      // for table clubs" e mais nada. Com dois clubes na base local — o meu e o
+      // de um clube a que estou associado — isso não chega para saber qual foi
+      // recusado, nem com que dono ia carimbado. Sem isto, o diagnóstico é
+      // adivinhação.
+      const detalhe = clubes
+        .map((c) => `${c.name}[${c.id.slice(0, 8)} dono=${c.ownerId || 'null→' + userId}]`)
+        .join(', ');
+      throw etiqueta(error, `clubs (${detalhe})`);
+    }
     // O dono volta para a linha local.
     //
     // O clube nasce sem dono e é aqui que ele é decidido — mas até agora essa
@@ -272,6 +282,14 @@ export async function push(userId, email) {
     total += clubes.length;
   }
 
+  // O mesmo detalhe para as tabelas seguintes: qual linha, e a que escalão ou
+  // clube pertence. É o que separa "não tenho acesso" de "mandei a linha errada".
+  const detalharLinhas = (linhas) =>
+    linhas
+      .map((r) => `${r.name || r.id}[${String(r.id).slice(0, 8)}]`)
+      .slice(0, 5)
+      .join(', ');
+
   for (const [store, mapper, linhas] of [
     [db.STORES.teams, teamMapper, escaloes],
     [db.STORES.competitions, competitionMapper, competicoes],
@@ -281,7 +299,7 @@ export async function push(userId, email) {
   ]) {
     if (!linhas.length) continue;
     const { error } = await sb.from(mapper.table).upsert(linhas.map((r) => mapper.toRow(r)));
-    if (error) throw etiqueta(error, mapper.table);
+    if (error) throw etiqueta(error, `${mapper.table} (${detalharLinhas(linhas)})`);
     await clean(store, linhas);
     total += linhas.length;
   }
