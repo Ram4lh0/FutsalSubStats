@@ -13,6 +13,7 @@ import * as sync from '@/lib/data/sync.js';
 import { garantirDono } from '@/lib/data/owner.js';
 import { useIdioma, useLocale } from '@/lib/i18n/index.js';
 import { marcarArranqueBemSucedido } from '@/lib/atualizacoes.js';
+import { prepararOffline } from '@/lib/pwa.js';
 
 export default function Providers({ children }) {
   // Primeira coisa a acontecer na app, e de propósito: se um pacote novo tiver
@@ -24,6 +25,14 @@ export default function Providers({ children }) {
   // base de dados. "A app abriu" é a única coisa que isto afirma.
   useEffect(() => {
     marcarArranqueBemSucedido();
+  }, []);
+
+  // A outra metade do offline. O IndexedDB já guardava os dados; isto guarda o
+  // código, para a app aberta pelo browser abrir num pavilhão sem rede. Dentro
+  // do invólucro não faz nada — lá os ficheiros já vão no APK, e quem manda nas
+  // versões é o sistema de pacotes ao vivo.
+  useEffect(() => {
+    prepararOffline();
   }, []);
 
   return (
