@@ -174,6 +174,27 @@ begin
     perform pg_temp.exigir(true, 'o bruno com `ver` não consegue escrever');
   end;
 
+  /* ---- antes de acusar, perguntar às peças uma a uma ---- */
+  --
+  -- Um `update` que não altera nada tem várias causas possíveis, e o número de
+  -- linhas não distingue nenhuma delas. Estas três perguntas separam-nas: se a
+  -- função disser `true` e o `update` mexer em zero linhas, o problema está na
+  -- política; se a função disser `false`, está nos dados ou na própria função.
+  perform pg_temp.exigir(
+    pode_ver_escalao('00000000-0000-4000-9002-000000000001'),
+    'diagnóstico: pode_ver_escalao diz que sim'
+  );
+  perform pg_temp.exigir(
+    pode_editar_escalao('00000000-0000-4000-9002-000000000001'),
+    'diagnóstico: pode_editar_escalao diz que sim'
+  );
+  perform pg_temp.exigir(
+    exists (select 1 from pg_policies
+             where schemaname = 'public' and tablename = 'teams'
+               and cmd = 'UPDATE' and qual like '%pode_editar_escalao%'),
+    'diagnóstico: a política de update é a da migração 0013'
+  );
+
   /* ---- a ana muda o escalão, mas não o faz desaparecer ---- */
 
   -- Contam-se as linhas afectadas, e não se espera uma exceção.
