@@ -41,6 +41,7 @@ export default {
   'sinc.erroTitulo': 'Sync error',
   'sinc.erroTexto':
     'Your data is saved on this device — nothing was lost. What failed was sending it to the server.',
+  'sinc.sessaoExpirada': 'Your session has expired. Sign out and back in — nothing is lost, your data is on this device.',
   'sinc.reenviarTudo': 'Send everything again',
   'sinc.tentarDeNovo': 'Try again',
   'sinc.aReenviar': 'Sending everything again.',

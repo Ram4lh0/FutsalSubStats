@@ -42,6 +42,7 @@ export default {
   'sinc.erroTitulo': 'Erro de sincronização',
   'sinc.erroTexto':
     'Os dados estão guardados neste dispositivo — nada se perdeu. O que falhou foi o envio para o servidor.',
+  'sinc.sessaoExpirada': 'A tua sessão expirou. Sai e entra outra vez — nada se perde, os dados estão guardados neste aparelho.',
   'sinc.reenviarTudo': 'Reenviar tudo',
   'sinc.tentarDeNovo': 'Tentar de novo',
   'sinc.aReenviar': 'A reenviar tudo.',
