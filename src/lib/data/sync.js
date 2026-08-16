@@ -159,9 +159,32 @@ export async function push(userId, email) {
   // erro aparecia sempre a quem carregava em Sair.
   //
   // Confirmar de quem é a sessão ANTES de escrever resolve-o na origem.
+  //
+  // ## Porque é que o `getSession` não chega
+  //
+  // Ele devolve o que está guardado no aparelho, sem perguntar a ninguém. Uma
+  // sessão expirada cuja renovação falhou continua lá, com o utilizador certo —
+  // e passa nesta verificação. Só que os pedidos que se seguem seguem sem
+  // credencial válida: para o servidor são anónimos, o `auth.uid()` é nulo, e
+  // todas as políticas de escrita recusam com a mesma frase que uma falta de
+  // permissão a sério.
+  //
+  // O `getUser` pergunta ao servidor. É um pedido a mais de vez em quando, e é o
+  // que separa "não tens autorização" de "a tua sessão morreu" — duas coisas com
+  // a mesma mensagem e soluções opostas.
   if (typeof sb.auth?.getSession === 'function') {
     const { data } = await sb.auth.getSession();
     if (data?.session?.user?.id !== userId) return { pushed: 0 };
+
+    const expirado = (data.session.expires_at || 0) * 1000 < Date.now();
+    if (expirado && typeof sb.auth.getUser === 'function') {
+      const { data: quem, error: erroQuem } = await sb.auth.getUser();
+      if (erroQuem || quem?.user?.id !== userId) {
+        const erro = new Error(t('sinc.sessaoExpirada'));
+        erro.chave = 'sinc.sessaoExpirada';
+        throw erro;
+      }
+    }
   }
 
   let total = 0;
@@ -259,6 +282,21 @@ export async function push(userId, email) {
       // sem rede ainda não tem dono gravado, e é de quem o criou.
       .upsert(clubes.map((c) => clubMapper.toRow(c, c.ownerId || userId)));
     if (error) {
+      // Antes de acusar as políticas, perguntar ao servidor se ele ainda sabe
+      // quem somos. Uma sessão morta dá exactamente este erro — e a verificação
+      // proactiva lá em cima só apanha o caso em que a validade já passou, o que
+      // não cobre um token revogado nem um relógio desacertado.
+      //
+      // Aqui é o sítio certo para perguntar: só custa um pedido quando algo já
+      // correu mal, e distingue "não tens autorização" de "entra outra vez".
+      if (/42501|row-level security/i.test(`${error.code} ${error.message}`)) {
+        const { data: quem } = (await sb.auth?.getUser?.()) || {};
+        if (quem?.user?.id !== userId) {
+          const morta = new Error(t('sinc.sessaoExpirada'));
+          morta.chave = 'sinc.sessaoExpirada';
+          throw morta;
+        }
+      }
       // A mensagem do Postgres diz "new row violates row-level security policy
       // for table clubs" e mais nada. Com dois clubes na base local — o meu e o
       // de um clube a que estou associado — isso não chega para saber qual foi
