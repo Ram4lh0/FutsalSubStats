@@ -228,6 +228,27 @@ begin
   get diagnostics n = row_count;
   perform pg_temp.exigir(n = 1, 'a ana com `editar` muda mesmo o nome do escalão');
 
+  -- E pelo caminho que a app usa de verdade, que não é um `update`: é um
+  -- `upsert`, ou seja um `insert … on conflict do update`. O Postgres avalia o
+  -- `with check` da política de **inserção** para a linha proposta mesmo quando
+  -- a operação acaba em `update` — e foi aí que isto encalhou, com a mensagem a
+  -- apontar para uma política que não era a que decidia.
+  insert into teams (id, club_id, name, timing)
+  values ('00000000-0000-4000-9002-000000000001', '00000000-0000-4000-9001-00000000000a',
+          'A1 pelo upsert', 'UNTIMED')
+  on conflict (id) do update set name = excluded.name;
+  perform pg_temp.exigir(true, 'e consegue-o pelo `upsert`, que é como a app grava');
+
+  -- Mas um escalão **novo** continua fora do seu alcance: um id que ainda não
+  -- existe não tem linha em `team_access`, logo não há acesso a invocar.
+  begin
+    insert into teams (club_id, name, timing)
+    values ('00000000-0000-4000-9001-00000000000a', 'A9 que não devia nascer', 'UNTIMED');
+    raise exception 'FALHOU: a ana criou um escalão no clube do gerente';
+  exception when insufficient_privilege then
+    perform pg_temp.exigir(true, 'e não consegue criar um escalão novo');
+  end;
+
   -- Arquivar é outra coisa: a política deixa passar (ela pode editar), e quem
   -- trava é o gatilho da 0013 — que **atira**. Se esta parte falhar com "não
   -- arquivou nada", é sinal de que a 0013 não foi aplicada.
