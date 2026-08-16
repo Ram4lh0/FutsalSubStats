@@ -121,8 +121,24 @@ coordenador quer ver tudo sem editar nada.
 
 ## Estado
 
-Construído:
+Construído — **do lado do servidor**:
 
-- uma conta, um clube (`repository.js` + migração `0010`).
+- uma conta, um clube (`repository.js` + migração `0010`);
+- `profiles.licenca`, `club_members`, `team_access` e a reescrita completa das
+  políticas de segurança (migração `0011`);
+- o limite de um escalão para a licença de Treinador, por gatilho;
+- `supabase/scripts/verificar_acessos.sql`, que põe tudo isto à prova dentro de
+  uma transação que se desfaz no fim.
 
-Por construir: tudo o resto deste documento.
+Por construir — **do lado da app**:
+
+- a licença tem de ser descarregada com o resto (`sync.js` só a envia);
+- o `pull` traz "os clubes que são meus" e passa a ter de trazer os escalões a
+  que se tem acesso;
+- o `teams.create` do `repository.js` ainda não conhece a licença;
+- o ecrã de definições do escalão onde o gerente dá e tira acesso;
+- o modo "só ver" aplicado aos ecrãs de edição, não só aos botões.
+
+E, fora do código: decidir como autorizamos um email já associado a um clube —
+criando a conta sem palavra-passe, para o gerente poder fazer o setup antes de o
+treinador instalar a app.
