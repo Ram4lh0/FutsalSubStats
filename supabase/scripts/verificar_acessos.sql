@@ -184,10 +184,19 @@ begin
     pode_ver_escalao('00000000-0000-4000-9002-000000000001'),
     'diagnóstico: pode_ver_escalao diz que sim'
   );
-  perform pg_temp.exigir(
-    pode_editar_escalao('00000000-0000-4000-9002-000000000001'),
-    'diagnóstico: pode_editar_escalao diz que sim'
-  );
+  -- Esta traz os valores na própria mensagem. Um "false" sem contexto não diz
+  -- se o problema é a linha de acesso, o utilizador que a sessão julga ser, ou a
+  -- função — e são três sítios muito diferentes.
+  if not pode_editar_escalao('00000000-0000-4000-9002-000000000001') then
+    raise exception
+      'pode_editar_escalao=false · auth.uid()=% · nivel na tabela=% · linhas minhas=%',
+      auth.uid(),
+      coalesce((select nivel from team_access
+                 where team_id = '00000000-0000-4000-9002-000000000001'
+                   and user_id = auth.uid()), '(nenhuma)'),
+      (select count(*) from team_access where user_id = auth.uid());
+  end if;
+  perform pg_temp.exigir(true, 'diagnóstico: pode_editar_escalao diz que sim');
   perform pg_temp.exigir(
     exists (select 1 from pg_policies
              where schemaname = 'public' and tablename = 'teams'
