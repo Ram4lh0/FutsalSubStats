@@ -118,6 +118,13 @@ const PERIGOS = [
 // do JWT, continua a correr em todo o lado e é esse que apanha o valor a sério.
 const LE_DO_AMBIENTE = /process\.env\.[A-Z_]*SERVICE_ROLE[A-Z_]*/;
 
+// Ou delega em quem a lê. As guardas da chave saíram para um módulo partilhado
+// quando apareceu um segundo comando a precisar delas, e a partir daí os scripts
+// que a usam já não a leem: pedem um cliente pronto. Continuam a falar dela nos
+// comentários — e devem, é lá que se explica porque é que ela nunca pode entrar
+// na app — mas deixaram de a tocar.
+const DELEGA = /from '\.\/chave-de-servico\.mjs'/;
+
 for (const f of [...ficheiros(join(RAIZ, 'src')), ...ficheiros(join(RAIZ, 'tools'))]) {
   if (f.endsWith('check-security.mjs')) continue;
   const conteudo = readFileSync(f, 'utf8');
@@ -127,7 +134,11 @@ for (const f of [...ficheiros(join(RAIZ, 'src')), ...ficheiros(join(RAIZ, 'tools
     // Um script fora de `src/` que só lê a chave do ambiente está a fazer o
     // que deve. Qualquer menção dentro de `src/` continua a ser um erro: o que
     // está lá é empacotado e vai para dentro do telemóvel.
-    if (padrao.source.includes('service_role') && emTools && LE_DO_AMBIENTE.test(conteudo)) {
+    if (
+      padrao.source.includes('service_role') &&
+      emTools &&
+      (LE_DO_AMBIENTE.test(conteudo) || DELEGA.test(conteudo))
+    ) {
       continue;
     }
     problemas.push(`${relative(RAIZ, f)}: ${porque}`);

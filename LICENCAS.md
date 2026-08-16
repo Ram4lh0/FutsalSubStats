@@ -141,12 +141,35 @@ Construído, na app:
 - o ecrã **Quem tem acesso**, dentro das definições do escalão, só para o dono;
 - o modo de só leitura aplicado aos ecrãs do escalão, e não apenas aos botões.
 
+- **a associação de um treinador a um clube**, pelo comando `npm run convidar`.
+
+## Autorizar e associar
+
+O gerente manda-nos a lista de emails. Nós corremos:
+
+```powershell
+$env:SUPABASE_SERVICE_ROLE_KEY = "…"
+
+npm run convidar -- --clubes                          # ver os clubes e os ids
+npm run convidar -- gerente@clube.pt --licenca clube  # a conta da estrutura
+npm run convidar -- ze@clube.pt rui@clube.pt --clube <id>
+```
+
+Cada email fica com **conta criada, convite enviado e associação feita**. A conta
+existe a partir desse momento, mesmo antes de a pessoa abrir o email — e é isso
+que permite ao gerente distribuir os escalões antes de os treinadores instalarem
+a app.
+
+Não se criam palavras-passe temporárias. Um convite já cria o utilizador; não é
+preciso saber a palavra-passe de ninguém para a conta existir, e assim ela não
+viaja pelo WhatsApp do gerente até ao treinador.
+
+É um comando e não um botão na app porque precisa da chave de serviço. Um
+endereço na web capaz de criar contas tem de se defender de quem o descobrir; um
+comando que corre na nossa máquina não tem esse problema.
+
 Por construir:
 
-- **a associação de um treinador a um clube.** É a peça que falta para o resto
-  funcionar de ponta a ponta: hoje as linhas de `club_members` têm de ser
-  inseridas à mão no painel do Supabase. O caminho combinado é criarmos a conta
-  já convidada — sem palavra-passe definida — e associá-la ao clube na mesma
-  altura, para o gerente poder distribuir escalões antes de o treinador sequer
-  instalar a app.
-- um ecrã nosso para fazer isso sem abrir o Supabase.
+- nada de essencial. Fica em aberto se um treinador associado deve poder criar
+  também um clube seu — hoje pode, porque não é dono de nenhum. Não faz mal a
+  ninguém e ainda não apareceu quem se queixasse.
