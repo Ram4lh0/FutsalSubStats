@@ -64,11 +64,23 @@ export const clubs = {
     // A exceção do `data.id` é o jogo de experiência: ele traz identificadores
     // fixos para depois se conseguir apagar a si próprio, e corre sempre num
     // aparelho acabado de limpar.
-    // Contam-se só os clubes **desta conta**. Um treinador associado tem na base
-    // o clube do gerente, e sem esta distinção a app dizia-lhe "esta conta já tem
-    // um clube" — a falar do clube de outra pessoa.
+    // Contam-se só os clubes que são **mesmo** desta conta.
+    //
+    // A versão anterior tratava um clube sem dono como sendo meu, por
+    // precaução. Isso dava falsos positivos: bastava uma linha antiga na base
+    // local — de outra conta, ou de um teste — para a app recusar o primeiro
+    // clube de quem não tinha nenhum. Aconteceu.
+    //
+    // Um clube é meu se o dono for eu, ou se ainda estiver por enviar: aí nasceu
+    // aqui, nesta sessão, e o dono é quem o criou.
+    //
+    // E se não soubermos quem somos — sem `localStorage`, num arranque a meio —
+    // não se bloqueia nada. Quem garante a regra é o índice único do servidor;
+    // isto é a cortesia, e uma cortesia que adivinha é pior do que nenhuma.
     const eu = donoAtual();
-    const meus = (await clubs.list()).filter((c) => !eu || !c.ownerId || c.ownerId === eu);
+    const meus = eu
+      ? (await clubs.list()).filter((c) => c.ownerId === eu || (!c.ownerId && c.dirty))
+      : [];
     if (!data.id && meus.length) {
       const erro = new Error('Já existe um clube nesta conta.');
       erro.chave = 'clube.jaExiste';

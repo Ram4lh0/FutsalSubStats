@@ -908,3 +908,59 @@ test('sem origem, o endereço fica como estava', () => {
   assert.equal(origem(R.clubeEditar('c1'), {}), R.clubeEditar('c1'));
   assert.equal(origem(R.clubeEditar('c1')), R.clubeEditar('c1'));
 });
+
+/* ------------------------------------------ "já tens um clube" sem adivinhar */
+
+test('uma linha antiga sem dono não impede o primeiro clube', async () => {
+  // O falso positivo que apareceu a testar: a contagem tratava um clube sem dono
+  // como sendo desta conta, por precaução. Bastava uma linha esquecida na base
+  // local — de outra conta, de um teste — para a app recusar o primeiro clube a
+  // quem não tinha nenhum. E o botão de criar chegava a aparecer, porque a
+  // página só olhava para a lista.
+  await limpar();
+  await garantirDono(UTILIZADOR);
+  await db.put(db.STORES.clubs, {
+    id: 'sobra-sem-dono', ownerId: null, name: 'Sobra', dirty: false,
+    createdAt: 1, updatedAt: 1,
+  });
+
+  const meu = await clubs.create({ name: 'O meu primeiro' });
+  assert.ok(meu.id, 'a sobra impediu o primeiro clube desta conta');
+  esquecerDono();
+});
+
+test('mas o segundo clube da mesma sessão continua recusado', async () => {
+  // Um clube acabado de criar ainda não tem dono — está por enviar, e é isso que
+  // o identifica como sendo desta sessão.
+  await limpar();
+  await garantirDono(UTILIZADOR);
+  await clubs.create({ name: 'O primeiro' });
+  await assert.rejects(
+    () => clubs.create({ name: 'O segundo' }),
+    (e) => e.chave === 'clube.jaExiste'
+  );
+  esquecerDono();
+});
+
+test('depois de enviado, o clube fica com o dono na linha local', async () => {
+  // Sem isto, a linha local ficava sem dono até uma descarga a reescrever — e
+  // nesse intervalo a app não sabia de quem era o seu próprio clube. É o que
+  // fazia o segundo clube voltar a passar assim que o primeiro sincronizasse.
+  await limpar();
+  await garantirDono(UTILIZADOR);
+  const servidor = servidorFalso();
+  setRemote(servidor);
+
+  const clube = await clubs.create({ name: 'Meu' });
+  assert.equal(clube.ownerId, null, 'nasce sem dono, de propósito');
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal((await clubs.get(clube.id)).ownerId, UTILIZADOR, 'o envio não escreveu o dono de volta');
+
+  await assert.rejects(
+    () => clubs.create({ name: 'O segundo' }),
+    (e) => e.chave === 'clube.jaExiste',
+    'deixou criar um segundo depois de o primeiro sincronizar'
+  );
+  esquecerDono();
+});
