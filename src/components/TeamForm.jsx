@@ -153,7 +153,11 @@ export default function TeamForm({ clubId, teamId }) {
         ) : null}
 
         <div className="form__actions">
-          {teamId ? (
+          {/* Apagar um escalão é mexer na estrutura do clube, e continua a ser
+              só do dono. Quem tem "Ver e editar" muda o nome e a foto — o
+              gatilho `teams_so_o_dono_arquiva` garante o resto do lado do
+              servidor, para o botão escondido não ser a única defesa. */}
+          {teamId && nivel === 'dono' ? (
             <button className="btn btn--danger btn--ghost" type="button" onClick={eliminar}>
               {t('escalao.eliminar')}
             </button>

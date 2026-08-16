@@ -25,8 +25,15 @@ escalões todos, vê-os todos, e distribui acesso pelos treinadores.
 escalões do seu clube. Cria e remove escalões. Dá e tira acesso.
 
 **Treinador associado** — vê apenas os escalões que lhe foram atribuídos, e em
-cada um com o nível que lhe foi dado: **ver** ou **ver e editar**. Não cria nem
-remove escalões. Não vê os outros escalões do clube, nem sabe que existem.
+cada um com o nível que lhe foi dado: **ver** ou **ver e editar**.
+
+Com `editar` faz tudo dentro do escalão — plantel, jogos, competições,
+cronómetro — e muda também o nome e o emblema do próprio escalão. O que não faz
+é **criar** nem **apagar** escalões: isso é da estrutura do clube. Apagar, na
+app, é arquivar; uma política de `update` não distingue que colunas mudaram, por
+isso quem trava essa é um gatilho (`teams_so_o_dono_arquiva`, migração 0013).
+
+Não vê os outros escalões do clube, nem sabe que existem.
 
 **Treinador sozinho** (licença Treinador) — vê o clube que criou e o único
 escalão que pode criar. É o dono.

@@ -132,10 +132,10 @@ function Escaloes() {
               className="card club-card"
               style={{ borderTopColor: club.primaryColor || '#22c55e' }}
             >
-              {/* Mudar o nome, a foto ou o tipo de tempo de um escalão é do
-                  dono — é o que a política `teams_atualizar` permite. Quem tem
-                  `editar` trabalha dentro do escalão: plantel, jogos, provas. */}
-              {soLeitura || !souDono ? null : (
+              {/* O lápis a quem pode editar: o dono, e quem recebeu "Ver e
+                  editar". Apagar o escalão continua a ser só do dono, e isso
+                  decide-se lá dentro — aqui só se abre o formulário. */}
+              {soLeitura || (!souDono && team.nivel === 'ver') ? null : (
                 <button
                   className="card__edit"
                   title={t('clube.editarEscalao')}
