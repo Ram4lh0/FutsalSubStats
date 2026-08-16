@@ -6,8 +6,10 @@
 --
 --   Supabase → SQL Editor → colar tudo → Run
 --
--- Se aparecer "TUDO CERTO" no fim, as políticas fazem o que dizem. Qualquer
--- outra coisa é uma linha a dizer o que falhou.
+-- No fim sai uma tabela com uma linha por verificação. Todas a `ok` significa
+-- que as políticas fazem o que dizem. Se alguma falhar, o guião pára ali e a
+-- mensagem a vermelho diz qual foi — as falhas atiram exceção de propósito, para
+-- não haver hipótese de passarem despercebidas no meio das outras.
 --
 -- ## Corre DEPOIS da migração 0011, não antes
 --
@@ -108,13 +110,28 @@ begin
     json_build_object('sub', quem, 'role', 'authenticated')::text, true);
 end $$;
 
+-- Os resultados vão para uma tabela, e não para `raise notice`.
+--
+-- O SQL Editor do Supabase mostra o que uma consulta devolve; os avisos podem
+-- não aparecer em lado nenhum. Um guião que só falasse por avisos daria "Success.
+-- No rows returned" e ficavas sem saber se tinha passado ou se não tinha chegado
+-- a testar nada.
+--
+-- As falhas continuam a atirar exceção — param tudo e aparecem a vermelho — mas
+-- agora os acertos também se veem.
+create temp table resultado (ordem serial, verificacao text, estado text) on commit drop;
+
+-- `security definer` porque esta função é chamada enquanto fingimos ser a ana ou
+-- o bruno, e nenhum deles tem autorização para escrever numa tabela temporária
+-- criada pelo superutilizador. Sem isto, o guião rebentava a meio a queixar-se de
+-- permissões — e a queixa não teria nada que ver com o que se está a testar.
 create or replace function pg_temp.exigir(condicao boolean, o_que text) returns void
-language plpgsql as $$
+language plpgsql security definer as $$
 begin
   if not condicao then
     raise exception 'FALHOU: %', o_que;
   end if;
-  raise notice '  ok  %', o_que;
+  insert into resultado (verificacao, estado) values (o_que, 'ok');
 end $$;
 
 do $$
@@ -180,23 +197,24 @@ begin
     values ('00000000-0000-4000-9001-00000000000d', 'B2 que não devia existir');
     raise exception 'FALHOU: a licença de treinador deixou criar um segundo escalão';
   exception when check_violation then
-    raise notice '  ok  a licença de treinador recusa o segundo escalão';
+    insert into resultado (verificacao, estado) values ('a licença de treinador recusa o segundo escalão', 'ok');
   end;
 
   -- E o gerente, com licença de clube, cria à vontade.
   insert into teams (club_id, name)
   values ('00000000-0000-4000-9001-00000000000a', 'A3');
-  raise notice '  ok  a licença de clube cria o terceiro escalão';
+  insert into resultado (verificacao, estado) values ('a licença de clube cria o terceiro escalão', 'ok');
 
   -- Arquivar o único escalão liberta o lugar: quem apaga o seu para recomeçar
   -- não pode ficar preso.
   update teams set archived_at = now() where id = '00000000-0000-4000-9002-000000000009';
   insert into teams (club_id, name)
   values ('00000000-0000-4000-9001-00000000000d', 'B1 outra vez');
-  raise notice '  ok  depois de arquivar, o treinador cria outro';
+  insert into resultado (verificacao, estado) values ('depois de arquivar, o treinador cria outro', 'ok');
 end $$;
 
-do $$ begin raise notice 'TUDO CERTO.'; end $$;
+-- O resultado, à vista. Se aparecerem todas as linhas com `ok`, está feito.
+select ordem, verificacao, estado from resultado order by ordem;
 
 -- Nada disto fica. Se precisares de espreitar o estado a meio, troca por
 -- `commit` — mas depois tens de limpar à mão, e as linhas ficam com utilizadores
