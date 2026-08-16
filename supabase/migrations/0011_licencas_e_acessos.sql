@@ -35,11 +35,35 @@
 
 /* ------------------------------------------------------------ a licença */
 
--- `treinador` é o valor por omissão de propósito: uma conta nova é sempre a mais
--- restrita, e a licença de Clube é uma coisa que nós concedemos à mão, depois de
--- combinada. O caminho seguro é o que não exige que ninguém se lembre de nada.
-alter table profiles
-  add column if not exists licenca text not null default 'treinador';
+-- `treinador` é o valor por omissão de propósito: uma conta **nova** é sempre a
+-- mais restrita, e a licença de Clube é concedida à mão, depois de combinada. O
+-- caminho seguro é o que não exige que ninguém se lembre de nada.
+--
+-- As contas que já existem hoje são outra história: somos nós e os testadores,
+-- e nenhum deles combinou licença nenhuma. Ficam com `clube`, senão esta
+-- migração prendia-os a um escalão sem aviso — e o primeiro sinal seria alguém
+-- a não conseguir criar o segundo escalão que já tinha na cabeça.
+--
+-- A distinção "antes" e "depois" é a criação da coluna, e é por isso que o
+-- preenchimento vive dentro do `if`: correr esta migração duas vezes não pode
+-- promover a `clube` toda a gente que entretanto se inscreveu.
+do $$
+declare ja_existia boolean;
+begin
+  select exists (
+    select 1 from information_schema.columns
+     where table_schema = 'public' and table_name = 'profiles' and column_name = 'licenca'
+  ) into ja_existia;
+
+  if not ja_existia then
+    alter table profiles add column licenca text not null default 'treinador';
+    update profiles set licenca = 'clube';
+    raise notice 'licenca: coluna criada, % contas existentes ficaram com `clube`.',
+      (select count(*) from profiles);
+  else
+    raise notice 'licenca: a coluna já existia — nada foi alterado.';
+  end if;
+end $$;
 
 do $$ begin
   alter table profiles add constraint profiles_licenca_valida

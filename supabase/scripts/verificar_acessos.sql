@@ -55,9 +55,14 @@ begin
   end loop;
 end $$;
 
--- O gatilho `handle_new_user` já criou os perfis. Só falta dizer as licenças.
+-- O gatilho `handle_new_user` já criou os perfis. Só falta dizer as licenças —
+-- ambas explícitas, e não à conta do valor por omissão: estas quatro contas
+-- nascem depois da migração, mas se um dia o guião for corrido antes dela o
+-- teste tem de continuar a medir o que diz medir.
 update profiles set licenca = 'clube'     where id = '00000000-0000-4000-9000-00000000000a';
 update profiles set licenca = 'treinador' where id = '00000000-0000-4000-9000-00000000000d';
+update profiles set licenca = 'treinador'
+  where id in ('00000000-0000-4000-9000-00000000000b', '00000000-0000-4000-9000-00000000000c');
 
 insert into clubs (id, owner_id, name) values
   ('00000000-0000-4000-9001-00000000000a', '00000000-0000-4000-9000-00000000000a', 'Clube A'),
