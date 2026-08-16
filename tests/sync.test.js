@@ -878,3 +878,33 @@ test('sem clube nenhum não há dono', () => {
   assert.equal(souDonoDe(null), false);
   assert.equal(souDonoDe(undefined), false);
 });
+
+/* ---------------------------------------------- voltar ao sítio de onde se veio */
+
+// O "atrás" de um formulário de edição não pode apontar sempre para o mesmo
+// sítio. Quem edita um escalão a partir da lista de escalões do clube quer voltar
+// à lista; quem edita o clube a partir do painel quer voltar ao painel. Antes,
+// ambos eram despejados **para dentro** do que tinham acabado de editar.
+
+const { comOrigem: origem, rotas: R } = await import('../src/lib/routes.js');
+
+test('a origem viaja no endereço e não pisa os ids', () => {
+  const destino = origem(R.escalaoEditar('c1', 't1'), { atras: R.clube('c1') });
+  assert.ok(destino.startsWith('/team/edit?'), destino);
+  assert.match(destino, /c=c1/);
+  assert.match(destino, /t=t1/);
+  assert.match(destino, /back=/);
+});
+
+test('a origem é codificada, para os seus próprios parâmetros não se perderem', () => {
+  // `/club?c=abc` tem um `?` e um `=` lá dentro. Sem codificação, o `c=abc`
+  // colava-se aos parâmetros do endereço de fora e o "atrás" ficava truncado.
+  const destino = origem(R.escalaoEditar('c1', 't1'), { atras: R.clube('c1') });
+  const back = new URLSearchParams(destino.split('?')[1]).get('back');
+  assert.equal(back, '/club?c=c1', 'a origem chegou partida do outro lado');
+});
+
+test('sem origem, o endereço fica como estava', () => {
+  assert.equal(origem(R.clubeEditar('c1'), {}), R.clubeEditar('c1'));
+  assert.equal(origem(R.clubeEditar('c1')), R.clubeEditar('c1'));
+});
