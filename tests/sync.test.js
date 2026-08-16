@@ -751,3 +751,89 @@ test('um escalão que não existe não dá acesso a nada', async () => {
   // endereço. O que trava esse caso é o servidor, mas convém saber-se.
   assert.equal(await teams.nivel('nao-existe'), 'dono');
 });
+
+/* ---------------------------------------- o clube de outra pessoa na base */
+
+// Três defeitos que só apareceram ao pôr duas contas a sério em cima disto, e
+// todos com a mesma origem: a base local passou a poder conter um clube que não
+// é desta conta.
+
+const { garantirDono, esquecerDono, DONO_DEMO } = await import('../src/lib/data/owner.js');
+
+test('a fila não reenvia o clube de outra pessoa', async () => {
+  // Era o pior dos três. O `comPais` arrasta os pais de que uma linha depende, e
+  // o pai de um escalão é o clube. Um treinador associado tem na base o clube do
+  // gerente, e a fila reenviava-o carimbado com o `owner_id` de quem estava a
+  // enviar — o servidor recusava com "new row violates row-level security policy
+  // for table clubs", a falar do clube quando a pessoa tinha criado um escalão.
+  await limpar();
+  esquecerDono();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+
+  // Um clube que veio do servidor e é de outra pessoa.
+  await db.put(db.STORES.clubs, {
+    id: 'clube-do-gerente', ownerId: 'o-gerente', name: 'Do gerente',
+    createdAt: 1, updatedAt: 1, dirty: false,
+  });
+  await db.put(db.STORES.teams, {
+    id: 'escalao-partilhado', clubId: 'clube-do-gerente', name: 'Sub-15',
+    timing: 'UNTIMED', nivel: 'editar', createdAt: 1, updatedAt: 1, dirty: true,
+  });
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  assert.equal(servidor.tabelas.clubs.length, 0, 'reenviou um clube que não é desta conta');
+});
+
+test('o clube nasce sem dono e é o envio que o carimba', async () => {
+  // Carimbar o dono na criação parecia mais directo e é frágil: logo a seguir ao
+  // jogo de experiência, "quem está a usar o aparelho" ainda é `demo`, e um clube
+  // criado nessa janela nascia com um dono que não existe e nunca mais subia.
+  //
+  // Quem carimba é o envio, que sabe de quem é a sessão com que está a falar. E
+  // o `null` é o que distingue "criado aqui" de "veio do servidor" — a
+  // distinção em que a fila se apoia para não reenviar clubes alheios.
+  await limpar();
+  await garantirDono(DONO_DEMO);
+  const clube = await clubs.create({ name: 'Meu' });
+  assert.equal(clube.ownerId, null, 'nasceu já com dono, e o dono podia estar errado');
+
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(servidor.tabelas.clubs[0].owner_id, UTILIZADOR, 'o envio não o carimbou');
+  esquecerDono();
+});
+
+test('"já tens um clube" só conta os clubes desta conta', async () => {
+  // Um treinador associado tem na base o clube do gerente. Sem esta distinção, a
+  // app dizia-lhe que já tinha um clube — a falar do clube de outra pessoa.
+  await limpar();
+  await garantirDono(UTILIZADOR);
+  await db.put(db.STORES.clubs, {
+    id: 'clube-do-gerente', ownerId: 'o-gerente', name: 'Do gerente',
+    createdAt: 1, updatedAt: 1, dirty: false,
+  });
+
+  const meu = await clubs.create({ name: 'O meu' });
+  assert.ok(meu.id, 'não deixou criar o primeiro clube desta conta');
+  esquecerDono();
+});
+
+test('um treinador associado não cria escalões no clube do gerente', async () => {
+  // O servidor já o impedia, mas só quando a fila lá chegasse — e nessa altura o
+  // treinador já tinha escrito o nome e carregado em Guardar.
+  await limpar();
+  await garantirDono(UTILIZADOR);
+  await db.put(db.STORES.clubs, {
+    id: 'clube-do-gerente', ownerId: 'o-gerente', name: 'Do gerente',
+    createdAt: 1, updatedAt: 1, dirty: false,
+  });
+
+  await assert.rejects(
+    () => teams.create('clube-do-gerente', { name: 'Sub-15' }),
+    (e) => e.chave === 'escalao.soODono'
+  );
+  esquecerDono();
+});

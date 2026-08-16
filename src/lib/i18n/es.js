@@ -262,6 +262,7 @@ export default {
   'foto.ilegivel': 'No se ha podido leer esa imagen.',
   'foto.grande': 'Esa imagen es demasiado grande incluso reducida. Prueba con otra.',
   'escalao.guardarFalhou': 'No se ha podido guardar: {erro}',
+  'escalao.soODono': 'Solo el club puede crear categorías. Habla con quien lo gestiona.',
   'escalao.limiteDaLicenca': 'Tu licencia permite una categoría. Habla con nosotros para seguir más.',
   'clube.jaExiste': 'Esta cuenta ya tiene un club. Cada cuenta gestiona un club.',
   'clube.guardadoLocal': 'Club guardado en este dispositivo, pero aún no ha subido: {erro}',

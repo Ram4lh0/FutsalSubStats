@@ -264,6 +264,7 @@ export default {
   'foto.ilegivel': 'Não foi possível ler essa imagem.',
   'foto.grande': 'Essa imagem é grande de mais, mesmo depois de reduzida. Tenta outra.',
   'escalao.guardarFalhou': 'Não foi possível guardar: {erro}',
+  'escalao.soODono': 'Só o clube pode criar escalões. Fala com quem o gere.',
   'escalao.limiteDaLicenca': 'A tua licença permite um escalão. Fala connosco para acompanhares mais.',
   'clube.jaExiste': 'Esta conta já tem um clube. Cada conta gere um clube.',
   'clube.guardadoLocal': 'Clube guardado neste dispositivo, mas ainda não subiu: {erro}',

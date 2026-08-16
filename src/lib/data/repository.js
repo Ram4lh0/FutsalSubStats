@@ -14,6 +14,7 @@
 // fica isolada em `toRow`/`fromRow` do futuro adaptador.
 
 import * as db from './local.js';
+import { donoAtual } from './owner.js';
 import { notifyLocalChange } from './sync.js';
 import { uid } from '../../domain/actions.js';
 import { buildMatchState } from '../../domain/reducer.js';
@@ -63,7 +64,12 @@ export const clubs = {
     // A exceção do `data.id` é o jogo de experiência: ele traz identificadores
     // fixos para depois se conseguir apagar a si próprio, e corre sempre num
     // aparelho acabado de limpar.
-    if (!data.id && (await clubs.list()).length) {
+    // Contam-se só os clubes **desta conta**. Um treinador associado tem na base
+    // o clube do gerente, e sem esta distinção a app dizia-lhe "esta conta já tem
+    // um clube" — a falar do clube de outra pessoa.
+    const eu = donoAtual();
+    const meus = (await clubs.list()).filter((c) => !eu || !c.ownerId || c.ownerId === eu);
+    if (!data.id && meus.length) {
       const erro = new Error('Já existe um clube nesta conta.');
       erro.chave = 'clube.jaExiste';
       throw erro;
@@ -73,7 +79,18 @@ export const clubs = {
       // Um id vindo de fora só acontece no jogo de experiência, que precisa de
       // identificadores fixos para depois se apagar a si próprio.
       id: data.id || uid(),
-      ownerId: (await profile.get())?.id || null,
+      // Sem dono, de propósito.
+      //
+      // A tentação é carimbar aqui quem está a usar o aparelho, mas isso é
+      // frágil: logo a seguir ao jogo de experiência, "quem está a usar" ainda é
+      // `demo`, e um clube criado nessa janela nascia com um dono que não existe
+      // e nunca mais subia. Quem carimba é o envio, que sabe de quem é a sessão
+      // com que está a falar — e a descarga seguinte traz o valor de volta.
+      //
+      // O `null` também é o que distingue "criado aqui" de "veio do servidor", e
+      // é nessa distinção que o `sync.js` se apoia para não reenviar o clube de
+      // outra pessoa.
+      ownerId: null,
       name: data.name.trim(),
       // Apelido curto para o marcador e para os resumos. Opcional: sem ele
       // mostra-se o nome completo.
@@ -145,6 +162,23 @@ export const teams = {
     // Na dúvida, restringe: uma conta que ainda não descarregou a licença conta
     // como `treinador`. Recusar de mais explica-se com uma frase; permitir de
     // mais deixa criar coisas que morrem mais tarde.
+    // Criar escalões é do dono do clube. Um treinador associado trabalha
+    // **dentro** de um escalão que lhe deram; não abre escalões nos outros.
+    //
+    // O servidor já o impedia — a política `teams_criar` — mas só quando a fila
+    // chegasse lá, e nessa altura o treinador já tinha escrito o nome, escolhido
+    // o tipo de tempo e carregado em Guardar. Falhar aqui é falhar no sítio onde
+    // se percebe porquê.
+    if (!data.id) {
+      const eu = donoAtual();
+      const clube = await clubs.get(clubId);
+      if (eu && clube?.ownerId && clube.ownerId !== eu) {
+        const erro = new Error('Só o dono do clube cria escalões.');
+        erro.chave = 'escalao.soODono';
+        throw erro;
+      }
+    }
+
     if (!data.id) {
       const licenca = (await profile.get())?.licenca || 'treinador';
       if (licenca !== 'clube' && (await teams.listByClub(clubId)).length) {
