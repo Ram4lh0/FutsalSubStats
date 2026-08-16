@@ -174,6 +174,17 @@ begin
     perform pg_temp.exigir(true, 'o bruno com `ver` não consegue escrever');
   end;
 
+  /* ---- a ana muda o escalão, mas não o faz desaparecer ---- */
+  update teams set name = 'A1 renomeado' where id = '00000000-0000-4000-9002-000000000001';
+  perform pg_temp.exigir(true, 'a ana com `editar` muda o nome do escalão');
+
+  begin
+    update teams set archived_at = now() where id = '00000000-0000-4000-9002-000000000001';
+    raise exception 'FALHOU: a ana arquivou um escalão que não é dela';
+  exception when insufficient_privilege then
+    perform pg_temp.exigir(true, 'mas não o consegue arquivar — isso é do dono');
+  end;
+
   /* ---- o treinador sozinho não vê nada do clube A ---- */
   perform pg_temp.como('00000000-0000-4000-9000-00000000000d');
   select count(*) into n from teams;
