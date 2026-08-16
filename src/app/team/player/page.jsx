@@ -37,7 +37,7 @@ function Ficha() {
   const router = useRouter();
   const t = useT();
   const [dados, setDados] = useState(null);
-  const soLeitura = useSoLeitura();
+  const soLeitura = useSoLeitura(teamId);
 
   useEffect(() => {
     (async () => {

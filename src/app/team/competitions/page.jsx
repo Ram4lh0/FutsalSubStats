@@ -28,7 +28,7 @@ function Conteudo() {
   const { clubId, teamId } = useRouteParams();
   const router = useRouter();
   const t = useT();
-  const soLeitura = useSoLeitura();
+  const soLeitura = useSoLeitura(teamId);
 
   return (
     <TeamShell clubId={clubId} teamId={teamId}>

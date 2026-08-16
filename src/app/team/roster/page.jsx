@@ -45,7 +45,7 @@ function Roster({ team, entries, roster, clubId, teamId }) {
   const router = useRouter();
   const t = useT();
   const idioma = useIdioma();
-  const soLeitura = useSoLeitura();
+  const soLeitura = useSoLeitura(teamId);
   const ui = useUI();
   const { toast, confirmar } = ui;
   const { userId, user } = useAuth();

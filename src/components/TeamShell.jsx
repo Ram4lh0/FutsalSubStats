@@ -35,7 +35,7 @@ function Shell({ clubId, teamId, children }) {
   const router = useRouter();
   const t = useT();
   const [dados, setDados] = useState(null);
-  const soLeitura = useSoLeitura();
+  const soLeitura = useSoLeitura(teamId);
 
   const carregar = useCallback(async () => {
     const team = await teams.get(teamId);

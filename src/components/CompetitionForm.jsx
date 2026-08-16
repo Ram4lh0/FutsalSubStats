@@ -17,7 +17,7 @@ const VAZIO = { name: '', shortName: '' };
 export default function CompetitionForm({ clubId, teamId, competitionId }) {
   const router = useRouter();
   const t = useT();
-  const soLeitura = useSoLeitura();
+  const soLeitura = useSoLeitura(teamId);
   const { toast, confirmar } = useUI();
   const [team, setTeam] = useState(null);
   const [form, setForm] = useState(VAZIO);

@@ -61,6 +61,10 @@ export const rotas = {
   jogos: (club, team) => comIds('/team/matches', { club, team }),
   jogoNovo: (club, team) => comIds('/team/matches/new', { club, team }),
   estatisticas: (club, team) => comIds('/team/statistics', { club, team }),
+  // Quem vê e quem edita este escalão. Só o dono do clube lá chega, e só faz
+  // sentido com a licença de Clube — um treinador sozinho não tem com quem
+  // partilhar.
+  acessos: (club, team) => comIds('/team/access', { club, team }),
 
   /* -------------------------------------------------------- competições */
   competicoes: (club, team) => comIds('/team/competitions', { club, team }),
