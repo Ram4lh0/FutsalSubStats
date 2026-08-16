@@ -175,11 +175,29 @@ begin
   end;
 
   /* ---- a ana muda o escalão, mas não o faz desaparecer ---- */
-  update teams set name = 'A1 renomeado' where id = '00000000-0000-4000-9002-000000000001';
-  perform pg_temp.exigir(true, 'a ana com `editar` muda o nome do escalão');
 
+  -- Contam-se as linhas afectadas, e não se espera uma exceção.
+  --
+  -- Um `update` recusado pela segurança por linha **não dá erro**: as linhas que
+  -- a política não deixa ver simplesmente não entram no `update`, e o comando
+  -- termina bem tendo alterado zero. Só o `with check` é que atira — e esse
+  -- aplica-se à linha nova, não ao direito de lá chegar.
+  --
+  -- É por isso que um `update` que "correu" não prova nada. A primeira versão
+  -- deste teste dava a ana como capaz de renomear sem nunca ter renomeado.
+  update teams set name = 'A1 renomeado' where id = '00000000-0000-4000-9002-000000000001';
+  get diagnostics n = row_count;
+  perform pg_temp.exigir(n = 1, 'a ana com `editar` muda mesmo o nome do escalão');
+
+  -- Arquivar é outra coisa: a política deixa passar (ela pode editar), e quem
+  -- trava é o gatilho da 0013 — que **atira**. Se esta parte falhar com "não
+  -- arquivou nada", é sinal de que a 0013 não foi aplicada.
   begin
     update teams set archived_at = now() where id = '00000000-0000-4000-9002-000000000001';
+    get diagnostics n = row_count;
+    if n = 0 then
+      raise exception 'FALHOU: nem arquivou nem foi travada — a migração 0013 não está aplicada';
+    end if;
     raise exception 'FALHOU: a ana arquivou um escalão que não é dela';
   exception when insufficient_privilege then
     perform pg_temp.exigir(true, 'mas não o consegue arquivar — isso é do dono');
