@@ -21,6 +21,7 @@ import { MATCH_STATUS, timingOf } from '@/domain/constants.js';
 import { timingShort, ultimoJogoLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import useSouDono from '@/lib/useSouDono.js';
 import { useT } from '@/lib/i18n/index.js';
 
 export default function ClubPage() {
@@ -37,6 +38,7 @@ function Escaloes() {
   const t = useT();
   const [dados, setDados] = useState(null);
   const soLeitura = useSoLeitura();
+  const souDono = useSouDono(clubId);
 
   const carregar = useCallback(async () => {
     const club = await clubs.get(clubId);
@@ -81,8 +83,11 @@ function Escaloes() {
             : t('clube.escaloesDoClube')
         }
         backTo={rotas.dashboard()}
+        // Mexer no clube e abrir escalões é de quem é dono do clube. Um
+        // treinador associado vê esta página — são os escalões a que tem acesso
+        // — mas não gere a estrutura.
         actions={
-          soLeitura ? null : (
+          soLeitura || !souDono ? null : (
             <>
               <button
                 className="btn btn--ghost"
@@ -104,15 +109,20 @@ function Escaloes() {
       {!cartoes.length ? (
         <Empty
           action={
-            <button
-              className="btn btn--primary"
-              onClick={() => router.push(rotas.escalaoNovo(clubId))}
-            >
-              {t('clube.primeiroEscalao')}
-            </button>
+            souDono ? (
+              <button
+                className="btn btn--primary"
+                onClick={() => router.push(rotas.escalaoNovo(clubId))}
+              >
+                {t('clube.primeiroEscalao')}
+              </button>
+            ) : null
           }
         >
-          {t('clube.semEscaloes')}
+          {/* Sem escalão nenhum e sem ser dono: está associado ao clube mas
+              ainda não lhe deram acesso a nada. Dizer-lho é melhor do que uma
+              página vazia com um botão que ele não pode usar. */}
+          {souDono ? t('clube.semEscaloes') : t('clube.semAcessoAEscaloes')}
         </Empty>
       ) : (
         <div className="grid grid--cards">
@@ -122,7 +132,10 @@ function Escaloes() {
               className="card club-card"
               style={{ borderTopColor: club.primaryColor || '#22c55e' }}
             >
-              {soLeitura ? null : (
+              {/* Mudar o nome, a foto ou o tipo de tempo de um escalão é do
+                  dono — é o que a política `teams_atualizar` permite. Quem tem
+                  `editar` trabalha dentro do escalão: plantel, jogos, provas. */}
+              {soLeitura || !souDono ? null : (
                 <button
                   className="card__edit"
                   title={t('clube.editarEscalao')}
