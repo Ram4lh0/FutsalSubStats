@@ -1,5 +1,6 @@
 // tools/convidar.mjs — autorizar um email e, se for de um clube, associá-lo.
 //
+//   npm run convidar -- --contas
 //   npm run convidar -- --clubes
 //   npm run convidar -- treinador@clube.pt --licenca treinador
 //   npm run convidar -- ze@clube.pt rui@clube.pt --clube <id-do-clube>
@@ -73,18 +74,52 @@ if (tem('clubes')) {
   }
 }
 
+/* ------------------------------------------------------ listar contas */
+
+// O `--clubes` mostra clubes, e uma conta sem clube não aparece lá — que é
+// exactamente o caso de um treinador associado, ou de alguém acabado de
+// convidar. Esta é a vista de quem quer saber "quem existe e com que licença".
+if (tem('contas')) {
+  const { data: perfis, error } = await sb
+    .from('profiles')
+    .select('id, email, licenca')
+    .order('email');
+  if (error) console.error(`Não foi possível listar: ${error.message}`);
+
+  const { data: donos } = await sb.from('clubs').select('owner_id, name').is('archived_at', null);
+  const { data: membros } = await sb.from('club_members').select('user_id, clubs ( name )');
+
+  const clubeDe = new Map((donos || []).map((c) => [c.owner_id, c.name]));
+  const associadoA = new Map();
+  for (const m of membros || []) {
+    if (!associadoA.has(m.user_id)) associadoA.set(m.user_id, []);
+    associadoA.get(m.user_id).push(m.clubs?.name || '?');
+  }
+
+  if (!perfis?.length) console.log('Ainda não há contas.');
+  for (const p of perfis || []) {
+    const papel = clubeDe.has(p.id)
+      ? `dono de "${clubeDe.get(p.id)}"`
+      : associadoA.has(p.id)
+        ? `associado a ${associadoA.get(p.id).map((n) => `"${n}"`).join(', ')}`
+        : 'sem clube';
+    console.log(`${(p.email || '?').padEnd(34)} ${(p.licenca || '?').padEnd(10)} ${papel}`);
+  }
+}
+
 // Daqui para baixo já existe um cliente do Supabase com ligações abertas, e é
 // por isso que se marca o código de saída em vez de chamar `process.exit()`:
 // cortar o processo a meio faz o Node no Windows queixar-se de um
 // "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)" que parece uma avaria
 // grave e é só a saída a atropelar o que estava por fechar.
-if (!tem('clubes')) {
+if (!tem('clubes') && !tem('contas')) {
 
 /* ------------------------------------------------------------ validações */
 
 if (!emails.length) {
   console.error(
     'Falta o email. Exemplos:\n' +
+      '  npm run convidar -- --contas                        (ver as contas e as licenças)\n' +
       '  npm run convidar -- --clubes                        (ver os clubes e os seus ids)\n' +
       '  npm run convidar -- treinador@clube.pt              (conta sozinha, licença treinador)\n' +
       '  npm run convidar -- gerente@clube.pt --licenca clube\n' +
@@ -181,7 +216,7 @@ console.log(
     ? `\n${falhas} problema(s). O que passou está feito; repetir este comando não duplica nada.`
     : clube
       ? '\nFeito. O gerente já pode distribuir os escalões — as contas existem, mesmo antes de alguém instalar a app.'
-      : '\nFeito.'
+      : `\nFeito. Licença ${licenca} atribuída. Confirma com: npm run convidar -- --contas`
 );
 if (falhas) process.exitCode = 1;
 }
