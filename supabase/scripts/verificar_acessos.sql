@@ -174,6 +174,15 @@ begin
     perform pg_temp.exigir(true, 'o bruno com `ver` não consegue escrever');
   end;
 
+  /* ---- de volta à ana, que tem `editar` ---- */
+  --
+  -- Esta linha não é decoração. O bloco de cima corre como o bruno, e a sessão
+  -- **fica** como ele até alguém a trocar: um `set_config` dura toda a
+  -- transação. Sem isto, o que vinha a seguir pedia a um treinador com "só ver"
+  -- que renomeasse o escalão — e o servidor recusava, com toda a razão, o que
+  -- fazia o guião acusar as políticas de um erro que era do próprio guião.
+  perform pg_temp.como('00000000-0000-4000-9000-00000000000b');
+
   /* ---- antes de acusar, perguntar às peças uma a uma ---- */
   --
   -- Um `update` que não altera nada tem várias causas possíveis, e o número de
