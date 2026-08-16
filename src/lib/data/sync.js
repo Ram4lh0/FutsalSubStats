@@ -259,7 +259,16 @@ export async function push(userId, email) {
       // sem rede ainda não tem dono gravado, e é de quem o criou.
       .upsert(clubes.map((c) => clubMapper.toRow(c, c.ownerId || userId)));
     if (error) throw etiqueta(error, 'clubs');
-    await clean(db.STORES.clubs, clubes);
+    // O dono volta para a linha local.
+    //
+    // O clube nasce sem dono e é aqui que ele é decidido — mas até agora essa
+    // decisão só existia do lado do servidor: a linha local ficava com `ownerId`
+    // a nulo até uma descarga a reescrever, e podiam passar dias. Nesse
+    // intervalo a app não sabia de quem era o seu próprio clube.
+    await clean(
+      db.STORES.clubs,
+      clubes.map((c) => ({ ...c, ownerId: c.ownerId || userId }))
+    );
     total += clubes.length;
   }
 
