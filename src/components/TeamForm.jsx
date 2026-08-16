@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHead from './PageHead.jsx';
+import EscolherFoto from './EscolherFoto.jsx';
 import { SoLeitura, Field } from './bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { clubs, teams } from '@/lib/data/repository.js';
@@ -17,7 +18,7 @@ import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import { useT } from '@/lib/i18n/index.js';
 
-const VAZIO = { name: '', shortName: '', timing: MATCH_TIMING.UNTIMED };
+const VAZIO = { name: '', shortName: '', logoUrl: null, timing: MATCH_TIMING.UNTIMED };
 
 export default function TeamForm({ clubId, teamId }) {
   const router = useRouter();
@@ -50,6 +51,7 @@ export default function TeamForm({ clubId, teamId }) {
     const payload = {
       name: (form.name || '').trim(),
       shortName: (form.shortName || '').trim() || null,
+      logoUrl: form.logoUrl || null,
       timing: form.timing,
     };
     // Sem isto, a recusa da licença — que é uma exceção — não chegava a lado
@@ -87,6 +89,14 @@ export default function TeamForm({ clubId, teamId }) {
         backTo={teamId ? rotas.escalao(clubId, teamId) : rotas.clube(clubId)}
       />
       <form className="card form" onSubmit={guardar}>
+        {/* O escalão herda a cor do clube quando não tem foto: é do clube que
+            ele é, e duas cores diferentes no mesmo ecrã só confundiam. */}
+        <EscolherFoto
+          nome={form.name}
+          cor={club?.primaryColor}
+          valor={form.logoUrl}
+          onChange={(logoUrl) => setForm((f) => ({ ...f, logoUrl }))}
+        />
         <div className="form__row">
           <Field label={t('escalao.nome')} hint={t('escalao.nomeDica')}>
             <input className="input" placeholder={t('escalao.nomePlaceholder')} {...campo('name')} />

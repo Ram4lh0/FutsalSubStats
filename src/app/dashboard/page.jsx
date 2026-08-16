@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Guard from '@/components/Guard.jsx';
 import PageHead from '@/components/PageHead.jsx';
+import Emblema from '@/components/Emblema.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import * as sync from '@/lib/data/sync.js';
@@ -161,12 +162,7 @@ function Dashboard() {
                 </button>
               )}
               <header className="club-card__head">
-                <div
-                  className="club-card__crest"
-                  style={{ background: club.primaryColor || '#22c55e' }}
-                >
-                  {iniciais(club.name)}
-                </div>
+                <Emblema nome={club.name} foto={club.logoUrl} cor={club.primaryColor} />
                 <div>
                   <h2>{club.name}</h2>
                   {club.currentSeason ? <p className="muted">{club.currentSeason}</p> : null}
@@ -201,13 +197,4 @@ function Dashboard() {
       )}
     </>
   );
-}
-
-function iniciais(nome) {
-  return nome
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join('');
 }

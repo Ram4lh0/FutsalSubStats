@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHead from './PageHead.jsx';
 import { SoLeitura } from './bits.jsx';
+import EscolherFoto from './EscolherFoto.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { clubs } from '@/lib/data/repository.js';
@@ -18,6 +19,7 @@ import { useT } from '@/lib/i18n/index.js';
 const VAZIO = {
   name: '',
   shortName: '',
+  logoUrl: null,
   currentSeason: '',
   primaryColor: '#22c55e',
   secondaryColor: '#0f172a',
@@ -54,6 +56,7 @@ export default function ClubForm({ clubId }) {
     const payload = {
       name: (form.name || '').trim(),
       shortName: (form.shortName || '').trim() || null,
+      logoUrl: form.logoUrl || null,
       currentSeason: (form.currentSeason || '').trim() || null,
       primaryColor: form.primaryColor,
       secondaryColor: form.secondaryColor,
@@ -94,6 +97,12 @@ export default function ClubForm({ clubId }) {
         backTo={clubId ? rotas.clube(clubId) : rotas.dashboard()}
       />
       <form className="card form" onSubmit={guardar}>
+        <EscolherFoto
+          nome={form.name}
+          cor={form.primaryColor}
+          valor={form.logoUrl}
+          onChange={(logoUrl) => setForm((f) => ({ ...f, logoUrl }))}
+        />
         <div className="form__row">
           <label className="field">
             <span className="field__label">{t('clube.nome')}</span>

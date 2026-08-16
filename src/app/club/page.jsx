@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import PageHead from '@/components/PageHead.jsx';
+import Emblema from '@/components/Emblema.jsx';
 import { Empty } from '@/components/bits.jsx';
 import { clubs, teams, players, loadTeamMatchStates } from '@/lib/data/repository.js';
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
@@ -132,12 +133,13 @@ function Escaloes() {
                 </button>
               )}
               <header className="club-card__head">
-                <div
-                  className="club-card__crest"
-                  style={{ background: club.primaryColor || '#22c55e' }}
-                >
-                  {iniciais(team.shortName || team.name)}
-                </div>
+                {/* O escalão mostra a sua foto se a tiver; se não, as iniciais
+                    sobre a cor do clube, que é a que já usava. */}
+                <Emblema
+                  nome={team.shortName || team.name}
+                  foto={team.logoUrl}
+                  cor={club.primaryColor}
+                />
                 <div>
                   <h2>{team.name}</h2>
                   <p className="muted">{timingShort(timingOf(team))}</p>
@@ -179,13 +181,4 @@ function Escaloes() {
       )}
     </>
   );
-}
-
-function iniciais(nome) {
-  return nome
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join('');
 }

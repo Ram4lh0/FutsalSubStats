@@ -30,6 +30,8 @@ try {
 const GLOBAIS = new Set([
   'window', 'document', 'navigator', 'console', 'localStorage', 'sessionStorage',
   'indexedDB', 'IDBKeyRange', 'crypto', 'fetch', 'URL', 'URLSearchParams', 'Blob',
+  // Preparar o emblema no dispositivo: ler a imagem e desenhá-la mais pequena.
+  'createImageBitmap', 'Image', 'FileReader', 'ImageBitmap',
   'File', 'FileReader', 'FormData', 'Headers', 'Request', 'Response', 'AbortController',
   'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame',
   'cancelAnimationFrame', 'queueMicrotask', 'structuredClone', 'Event', 'CustomEvent',
