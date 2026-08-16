@@ -161,6 +161,7 @@ export const teams = {
       clubId,
       name: (data.name || '').trim(),
       shortName: (data.shortName || '').trim() || null,
+      logoUrl: data.logoUrl || null,
       // O tipo de tempo é do escalão: os mais novos jogam corrido, os séniores
       // cronometrado, e o mesmo clube tem os dois.
       timing: data.timing === MATCH_TIMING.TIMED ? MATCH_TIMING.TIMED : MATCH_TIMING.UNTIMED,
