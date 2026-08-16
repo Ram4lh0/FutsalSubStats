@@ -241,6 +241,7 @@ export default {
   'clube.eliminar': 'Eliminar club',
   'clube.precisaNome': 'El nombre del club es obligatorio.',
   'clube.guardado': 'Club guardado y sincronizado.',
+  'clube.jaExiste': 'Esta cuenta ya tiene un club. Cada cuenta gestiona un club.',
   'clube.guardadoLocal': 'Club guardado en este dispositivo, pero aún no ha subido: {erro}',
   'clube.confirmaApagar':
     'Eliminar «{nome}» borra las categorías, las plantillas, los partidos y todos los eventos. Esta acción no se puede deshacer.',
@@ -279,7 +280,6 @@ export default {
   'painel.titulo': 'Mis clubes',
   'painel.subtitulo': 'Elige un club para gestionar la plantilla y los partidos.',
   'painel.limparDispositivo': 'Limpiar este dispositivo',
-  'painel.criarClube': 'Crear club',
   'painel.jogoEmCurso': 'Hay un partido en curso',
   'painel.retomar': 'Reanudar partido',
   'painel.semClubes': 'Todavía no hay ningún club.',

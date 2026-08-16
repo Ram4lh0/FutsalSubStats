@@ -289,7 +289,12 @@ test('pedir sincronizacao enquanto outra corre faz uma segunda passagem', async 
 
   while (!soltarClubes) await new Promise((resolve) => setTimeout(resolve, 0));
 
-  const segundo = await clubs.create({ name: 'Segundo' });
+  // Com id explícito porque o `clubs.create` passou a recusar um segundo clube
+  // na mesma conta. A regra é do produto e vive lá em cima; aqui em baixo, a
+  // fila tem de saber levar duas linhas da mesma tabela em duas passagens — o
+  // que acontece de verdade quando se restaura uma cópia antiga ou se recebe do
+  // servidor. É isso que este teste mede, e não quantos clubes se podem criar.
+  const segundo = await clubs.create({ id: 'c0000000-0000-4000-8000-000000000002', name: 'Segundo' });
   const segundaPassagem = flush(UTILIZADOR, 'treinador@exemplo.pt');
   soltarClubes();
   await emCurso;
@@ -537,4 +542,51 @@ test('o mesmo dono a voltar não perde nada', async () => {
   const r = await garantirDono('conta-A');
   assert.equal(r.trocou, false);
   assert.ok(await clubs.get(meu.id), 'continua tudo onde estava');
+});
+
+/* ------------------------------------------------- uma conta, um clube */
+
+// A app assume isto em todo o lado: o painel abre no clube, os escalões
+// pertencem-lhe, a época é dele. Nada o impedia, e quem criasse o segundo ficava
+// com uma app sem resposta para "qual mostro?".
+//
+// Aqui protege-se a camada do meio. O botão desapareceu do painel e há um índice
+// único na base de dados; isto é o que apanha quem escreva `/clubs/new` à mão
+// numa versão da app que já não tem botão nenhum.
+
+test('o segundo clube é recusado', async () => {
+  await limpar();
+  await clubs.create({ name: 'CD Ribeira Alta' });
+
+  await assert.rejects(
+    () => clubs.create({ name: 'Outro qualquer' }),
+    (erro) => erro.chave === 'clube.jaExiste',
+    'deixou criar um segundo clube'
+  );
+
+  assert.equal((await clubs.list()).length, 1);
+});
+
+test('depois de arquivar o clube, pode criar-se outro', async () => {
+  // Apagar um clube na app é arquivá-lo — os jogos e o histórico ficam. Se o
+  // arquivado continuasse a ocupar o lugar, um treinador que quisesse recomeçar
+  // nunca mais criava nenhum, e sem nada no ecrã que explicasse a recusa.
+  await limpar();
+  const primeiro = await clubs.create({ name: 'O antigo' });
+  await clubs.archive(primeiro.id);
+
+  const segundo = await clubs.create({ name: 'O novo' });
+  assert.ok(segundo.id);
+  assert.deepEqual((await clubs.list()).map((c) => c.name), ['O novo']);
+});
+
+test('o jogo de experiência continua a poder montar-se', async () => {
+  // Ele traz identificadores fixos, para depois se conseguir apagar a si
+  // próprio. É essa a exceção — e corre sempre num aparelho acabado de limpar.
+  await limpar();
+  const demo = await clubs.create({
+    id: '00000000-dem0-4000-8000-000000000001',
+    name: 'FC Demonstração',
+  });
+  assert.equal(demo.id, '00000000-dem0-4000-8000-000000000001');
 });

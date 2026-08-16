@@ -64,7 +64,10 @@ export default function ClubForm({ clubId }) {
       toast(t('clube.guardado'), 'ok');
       router.push(rotas.clube(club.id));
     } catch (err) {
-      toast(t('clube.guardadoLocal', { erro: err.message }), 'error');
+      // Uma recusa nossa não é uma falha de gravação, e não pode usar a mesma
+      // frase: "guardado só neste dispositivo" a quem tentou criar um segundo
+      // clube seria mentira e ainda por cima tranquilizadora.
+      toast(err.chave ? t(err.chave) : t('clube.guardadoLocal', { erro: err.message }), 'error');
     } finally {
       setAGuardar(false);
     }

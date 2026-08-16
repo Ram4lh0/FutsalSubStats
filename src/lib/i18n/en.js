@@ -242,6 +242,7 @@ export default {
   'clube.eliminar': 'Delete club',
   'clube.precisaNome': 'The club name is required.',
   'clube.guardado': 'Club saved and synced.',
+  'clube.jaExiste': 'This account already has a club. Each account manages one club.',
   'clube.guardadoLocal': 'Club saved on this device, but not uploaded yet: {erro}',
   'clube.confirmaApagar':
     'Deleting “{nome}” removes the age groups, the rosters, the matches and every event. This cannot be undone.',
@@ -280,7 +281,6 @@ export default {
   'painel.titulo': 'My clubs',
   'painel.subtitulo': 'Pick a club to manage its roster and matches.',
   'painel.limparDispositivo': 'Wipe this device',
-  'painel.criarClube': 'New club',
   'painel.jogoEmCurso': 'There is a match in progress',
   'painel.retomar': 'Resume match',
   'painel.semClubes': 'There are no clubs yet.',

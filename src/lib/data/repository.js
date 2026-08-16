@@ -49,6 +49,26 @@ export const clubs = {
   },
   get: (id) => db.get(db.STORES.clubs, id),
   async create(data) {
+    // Uma conta, um clube.
+    //
+    // A app é para o treinador de um clube, e tudo o que está por cima assume
+    // isso: o painel abre no clube, os escalões pertencem-lhe, a época é dele.
+    // Dois clubes na mesma conta não estavam proibidos em lado nenhum, e quem
+    // criasse o segundo ficava com uma app que não sabia qual mostrar.
+    //
+    // Esconder o botão não chega — quem escrever `/clubs/new` na barra de
+    // endereço chega ao formulário à mesma. É aqui que se trava, e no índice
+    // único da base de dados, que é o que trava mesmo.
+    //
+    // A exceção do `data.id` é o jogo de experiência: ele traz identificadores
+    // fixos para depois se conseguir apagar a si próprio, e corre sempre num
+    // aparelho acabado de limpar.
+    if (!data.id && (await clubs.list()).length) {
+      const erro = new Error('Já existe um clube nesta conta.');
+      erro.chave = 'clube.jaExiste';
+      throw erro;
+    }
+
     const row = stamp({
       // Um id vindo de fora só acontece no jogo de experiência, que precisa de
       // identificadores fixos para depois se apagar a si próprio.
