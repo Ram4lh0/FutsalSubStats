@@ -17,6 +17,7 @@
     "cap:open:android": "cap open android",
     "android:icones": "node tools/android-icones.mjs",
     "emails": "node tools/emails.mjs",
+    "convidar": "node tools/convidar.mjs",
     "publicar:pacote": "node tools/publicar-bundle.mjs"
   },
   "dependencies": {
