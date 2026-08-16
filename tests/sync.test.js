@@ -837,3 +837,44 @@ test('um treinador associado não cria escalões no clube do gerente', async () 
   );
   esquecerDono();
 });
+
+/* ----------------------------------------------- quem vê botões de edição */
+
+// A regra que estes protegem: um botão que existe e falha ao ser carregado é
+// pior do que um botão que não existe. A pessoa escreve o nome, escolhe as
+// cores, carrega em Guardar, e leva um erro de sincronização que não tem nada
+// que ver com o que fez.
+//
+// A pergunta vive no `useSouDono.js` e é a mesma nos três sítios: o lápis do
+// cartão do clube, o "editar clube"/"criar escalão" da página do clube, e o
+// lápis do cartão do escalão.
+
+const { souDonoDe } = await import('../src/lib/useSouDono.js');
+
+test('o clube do gerente não mostra botões a um treinador associado', async () => {
+  await limpar();
+  await garantirDono(UTILIZADOR);
+  assert.equal(souDonoDe({ id: 'x', ownerId: 'o-gerente' }), false);
+  esquecerDono();
+});
+
+test('o meu clube mostra', async () => {
+  await limpar();
+  await garantirDono(UTILIZADOR);
+  assert.equal(souDonoDe({ id: 'x', ownerId: UTILIZADOR }), true);
+  esquecerDono();
+});
+
+test('um clube criado aqui e ainda por sincronizar é meu', async () => {
+  // Nasce sem dono — quem carimba é o envio. Tratá-lo como alheio deixava quem
+  // cria um clube sem rede a olhar para ele sem poder mexer.
+  await limpar();
+  await garantirDono(UTILIZADOR);
+  assert.equal(souDonoDe({ id: 'x', ownerId: null }), true);
+  esquecerDono();
+});
+
+test('sem clube nenhum não há dono', () => {
+  assert.equal(souDonoDe(null), false);
+  assert.equal(souDonoDe(undefined), false);
+});

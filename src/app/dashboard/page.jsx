@@ -22,6 +22,7 @@ import { MATCH_STATUS } from '@/domain/constants.js';
 import { ultimoJogoLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import { souDonoDe } from '@/lib/useSouDono.js';
 import { useT } from '@/lib/i18n/index.js';
 
 export default function DashboardPage() {
@@ -151,7 +152,10 @@ function Dashboard() {
               className="card club-card"
               style={{ borderTopColor: club.primaryColor || '#22c55e' }}
             >
-              {soLeitura ? null : (
+              {/* O lápis do cartão do clube só a quem é dono dele. Um treinador
+                  associado vê o clube na lista — é o clube onde trabalha — mas
+                  não muda o nome, as cores nem a época a ninguém. */}
+              {soLeitura || !souDonoDe(club) ? null : (
                 <button
                   className="card__edit"
                   title={t('clube.editarTitulo')}
