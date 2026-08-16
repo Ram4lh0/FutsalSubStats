@@ -71,8 +71,14 @@ if (tem('clubes')) {
     console.log(`${c.id}  ${c.name}`);
     console.log(`${' '.repeat(38)}${c.profiles?.email || '?'} · licença ${c.profiles?.licenca || '?'}`);
   }
-  process.exit(0);
 }
+
+// Daqui para baixo já existe um cliente do Supabase com ligações abertas, e é
+// por isso que se marca o código de saída em vez de chamar `process.exit()`:
+// cortar o processo a meio faz o Node no Windows queixar-se de um
+// "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)" que parece uma avaria
+// grave e é só a saída a atropelar o que estava por fechar.
+if (!tem('clubes')) {
 
 /* ------------------------------------------------------------ validações */
 
@@ -177,4 +183,5 @@ console.log(
       ? '\nFeito. O gerente já pode distribuir os escalões — as contas existem, mesmo antes de alguém instalar a app.'
       : '\nFeito.'
 );
-process.exit(falhas ? 1 : 0);
+if (falhas) process.exitCode = 1;
+}
