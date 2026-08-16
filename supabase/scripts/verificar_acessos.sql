@@ -220,3 +220,10 @@ select ordem, verificacao, estado from resultado order by ordem;
 -- `commit` — mas depois tens de limpar à mão, e as linhas ficam com utilizadores
 -- em `auth.users` que não existem em lado nenhum.
 rollback;
+
+-- O SQL Editor mostra o resultado da **última** instrução, e a última era o
+-- `rollback`, que não devolve nada — a tabela de cima era produzida e nunca
+-- chegava ao ecrã. Esta linha é o que se vê, e vê-se só se tudo o que está
+-- acima tiver corrido: qualquer verificação falhada atira exceção e o guião
+-- nunca chega aqui.
+select 'Passou. As políticas fazem o que dizem.' as resultado;
