@@ -19,7 +19,7 @@ import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
 import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS, timingOf } from '@/domain/constants.js';
 import { timingShort, ultimoJogoLabel } from '@/lib/format.js';
-import { rotas } from '@/lib/routes.js';
+import { rotas, comOrigem } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import useSouDono from '@/lib/useSouDono.js';
 import { useT } from '@/lib/i18n/index.js';
@@ -91,7 +91,7 @@ function Escaloes() {
             <>
               <button
                 className="btn btn--ghost"
-                onClick={() => router.push(rotas.clubeEditar(clubId))}
+                onClick={() => router.push(comOrigem(rotas.clubeEditar(clubId), { atras: rotas.clube(clubId) }))}
               >
                 {t('clube.editarTitulo')}
               </button>
@@ -140,7 +140,11 @@ function Escaloes() {
                   className="card__edit"
                   title={t('clube.editarEscalao')}
                   aria-label={t('clube.editarNome', { nome: team.name })}
-                  onClick={() => router.push(rotas.escalaoEditar(clubId, team.id))}
+                  onClick={() =>
+                    router.push(
+                      comOrigem(rotas.escalaoEditar(clubId, team.id), { atras: rotas.clube(clubId) })
+                    )
+                  }
                 >
                   {t('comum.editar')}
                 </button>

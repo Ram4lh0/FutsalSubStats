@@ -31,7 +31,7 @@ export default function AcessosPage() {
 }
 
 function Conteudo() {
-  const { clubId, teamId } = useRouteParams();
+  const { clubId, teamId, back } = useRouteParams();
   const router = useRouter();
   const t = useT();
   const { toast, confirmar } = useUI();
@@ -100,7 +100,7 @@ function Conteudo() {
       <PageHead
         title={t('acessos.titulo')}
         subtitle={escalao?.name || ''}
-        backTo={rotas.escalaoEditar(clubId, teamId)}
+        backTo={back || rotas.escalaoEditar(clubId, teamId)}
       />
 
       <div className="card">

@@ -20,7 +20,7 @@ import {
 import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
 import { ultimoJogoLabel } from '@/lib/format.js';
-import { rotas } from '@/lib/routes.js';
+import { rotas, comOrigem } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import { souDonoDe } from '@/lib/useSouDono.js';
 import { useT } from '@/lib/i18n/index.js';
@@ -160,7 +160,9 @@ function Dashboard() {
                   className="card__edit"
                   title={t('clube.editarTitulo')}
                   aria-label={t('clube.editarNome', { nome: club.name })}
-                  onClick={() => router.push(rotas.clubeEditar(club.id))}
+                  onClick={() =>
+                    router.push(comOrigem(rotas.clubeEditar(club.id), { atras: rotas.dashboard() }))
+                  }
                 >
                   {t('comum.editar')}
                 </button>

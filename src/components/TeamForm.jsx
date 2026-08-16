@@ -14,7 +14,8 @@ import { useUI } from '@/lib/ui.jsx';
 import { clubs, teams } from '@/lib/data/repository.js';
 import { MATCH_TIMING, timingOf } from '@/domain/constants.js';
 import { timingLabel } from '@/lib/format.js';
-import { rotas } from '@/lib/routes.js';
+import { rotas, comOrigem } from '@/lib/routes.js';
+import useRouteParams from '@/lib/useRouteParams.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import { useT } from '@/lib/i18n/index.js';
 
@@ -29,6 +30,11 @@ export default function TeamForm({ clubId, teamId }) {
   const [form, setForm] = useState(VAZIO);
   const [pronto, setPronto] = useState(!teamId);
   const [nivel, setNivel] = useState(null);
+  // De onde se veio. Sem isto, quem editava um escalão a partir da lista de
+  // escalões do clube era despejado **dentro** do escalão ao voltar — perdia a
+  // lista onde estava e tinha de navegar para trás outra vez.
+  const { back } = useRouteParams();
+  const voltarPara = back || (teamId ? rotas.escalao(clubId, teamId) : rotas.clube(clubId));
 
   useEffect(() => {
     (async () => {
@@ -66,7 +72,7 @@ export default function TeamForm({ clubId, teamId }) {
       return toast(err.chave ? t(err.chave) : t('escalao.guardarFalhou', { erro: err.message }), 'error');
     }
     toast(t('escalao.guardado'), 'ok');
-    router.push(teamId ? rotas.escalao(clubId, team.id) : rotas.clube(clubId));
+    router.push(teamId ? voltarPara : rotas.clube(clubId));
   }
 
   async function eliminar() {
@@ -88,7 +94,7 @@ export default function TeamForm({ clubId, teamId }) {
       <PageHead
         title={teamId ? t('escalao.editarTitulo') : t('escalao.criarTitulo')}
         subtitle={club?.name}
-        backTo={teamId ? rotas.escalao(clubId, teamId) : rotas.clube(clubId)}
+        backTo={teamId ? voltarPara : rotas.clube(clubId)}
       />
       <form className="card form" onSubmit={guardar}>
         {/* O escalão herda a cor do clube quando não tem foto: é do clube que
@@ -130,7 +136,16 @@ export default function TeamForm({ clubId, teamId }) {
             <button
               className="btn btn--ghost"
               type="button"
-              onClick={() => router.push(rotas.acessos(clubId, teamId))}
+              onClick={() =>
+                router.push(
+                  // A origem viaja também para aqui: sem isto, quem chegasse à
+                  // lista de acessos vindo da página do clube voltava para o
+                  // formulário do escalão e ficava a meio caminho.
+                  comOrigem(rotas.acessos(clubId, teamId), {
+                    atras: comOrigem(rotas.escalaoEditar(clubId, teamId), { atras: back }),
+                  })
+                )
+              }
             >
               {t('acessos.titulo')}
             </button>
@@ -144,7 +159,7 @@ export default function TeamForm({ clubId, teamId }) {
             </button>
           ) : null}
           <span className="toolbar__spacer" />
-          <button className="btn btn--ghost" type="button" onClick={() => router.back()}>
+          <button className="btn btn--ghost" type="button" onClick={() => router.push(voltarPara)}>
             {t('comum.cancelar')}
           </button>
           <button className="btn btn--primary" type="submit">

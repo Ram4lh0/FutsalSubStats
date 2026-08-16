@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth.jsx';
 import { clubs } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { rotas } from '@/lib/routes.js';
+import useRouteParams from '@/lib/useRouteParams.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import { useT } from '@/lib/i18n/index.js';
 
@@ -34,6 +35,10 @@ export default function ClubForm({ clubId }) {
   const [form, setForm] = useState(VAZIO);
   const [pronto, setPronto] = useState(!clubId);
   const [aGuardar, setAGuardar] = useState(false);
+  // Ver o comentário igual no `TeamForm`: quem edita o clube a partir do painel
+  // quer voltar ao painel, não entrar no clube.
+  const { back } = useRouteParams();
+  const voltarPara = back || (clubId ? rotas.clube(clubId) : rotas.dashboard());
 
   useEffect(() => {
     if (!clubId) return;
@@ -65,7 +70,7 @@ export default function ClubForm({ clubId }) {
       const club = clubId ? await clubs.update(clubId, payload) : await clubs.create(payload);
       await sync.saveNow(userId, user?.email);
       toast(t('clube.guardado'), 'ok');
-      router.push(rotas.clube(club.id));
+      router.push(clubId ? voltarPara : rotas.clube(club.id));
     } catch (err) {
       // Uma recusa nossa não é uma falha de gravação, e não pode usar a mesma
       // frase: "guardado só neste dispositivo" a quem tentou criar um segundo
@@ -94,7 +99,7 @@ export default function ClubForm({ clubId }) {
     <>
       <PageHead
         title={clubId ? t('clube.editarTitulo') : t('clube.criarTitulo')}
-        backTo={clubId ? rotas.clube(clubId) : rotas.dashboard()}
+        backTo={voltarPara}
       />
       <form className="card form" onSubmit={guardar}>
         <EscolherFoto
@@ -144,7 +149,7 @@ export default function ClubForm({ clubId }) {
             </button>
           ) : null}
           <span className="toolbar__spacer" />
-          <button className="btn btn--ghost" type="button" onClick={() => router.back()}>
+          <button className="btn btn--ghost" type="button" onClick={() => router.push(voltarPara)}>
             {t('comum.cancelar')}
           </button>
           <button className="btn btn--primary" type="submit" disabled={aGuardar}>
