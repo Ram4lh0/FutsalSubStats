@@ -28,9 +28,18 @@
   // tempo. Fixa-se para o site se comportar amanhã como se comporta hoje.
   "compatibility_date": "2026-08-01",
 
-  // O `vinext` usa módulos de Node dentro do Worker. Sem esta bandeira, falha
-  // ao arrancar com erros sobre módulos que não existem.
-  "compatibility_flags": ["nodejs_compat"],
+  // NÃO pôr aqui `compatibility_flags`.
+  //
+  // O Worker precisa mesmo do `nodejs_compat` — o `vinext` usa módulos de Node
+  // lá dentro — mas quem o acrescenta é o plugin do Cloudflare, ao construir o
+  // `dist/server/wrangler.json`. Declarado também aqui, aparece duas vezes na
+  // configuração final e a API recusa o envio:
+  //
+  //   Compatibility flag specified multiple times: nodejs_compat  [code: 10021]
+  //
+  // O erro só aparece no fim, depois de os ficheiros já terem subido, e não diz
+  // de onde vem a repetição. Para a ver, é preciso abrir o `wrangler.json`
+  // gerado e reparar no `["nodejs_compat","nodejs_compat"]`.
 
   "assets": {
     "directory": "dist/client",
