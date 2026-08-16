@@ -722,3 +722,32 @@ test('um escalão criado sem rede é de quem o criou', async () => {
   const escalao = await teams.create(clube.id, { name: 'Séniores' });
   assert.equal(await teams.nivel(escalao.id), 'dono');
 });
+
+/* ------------------------------------------------- o modo de só leitura */
+
+test('quem tem `ver` não escreve, quem tem `editar` escreve', async () => {
+  // O hook que trava a interface pergunta isto. Aqui prova-se a resposta, que é
+  // a parte que se pode testar sem browser.
+  await limpar();
+  const clube = await clubs.create({ name: 'Do gerente' });
+  const escalao = await teams.create(clube.id, { name: 'Sub-15' });
+
+  // Como criador, é dele.
+  assert.equal(await teams.nivel(escalao.id), 'dono');
+
+  // Como o servidor diria de um treinador só com leitura.
+  const local = await db.get(db.STORES.teams, escalao.id);
+  await db.put(db.STORES.teams, { ...local, nivel: 'ver' });
+  assert.equal(await teams.nivel(escalao.id), 'ver');
+
+  await db.put(db.STORES.teams, { ...local, nivel: 'editar' });
+  assert.equal(await teams.nivel(escalao.id), 'editar');
+});
+
+test('um escalão que não existe não dá acesso a nada', async () => {
+  await limpar();
+  // `dono` por omissão é para escalões criados aqui e ainda não sincronizados —
+  // não pode ser a resposta para um id inventado que chegue pela barra de
+  // endereço. O que trava esse caso é o servidor, mas convém saber-se.
+  assert.equal(await teams.nivel('nao-existe'), 'dono');
+});

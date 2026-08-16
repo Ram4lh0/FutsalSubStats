@@ -23,11 +23,12 @@ const VAZIO = { name: '', shortName: '', logoUrl: null, timing: MATCH_TIMING.UNT
 export default function TeamForm({ clubId, teamId }) {
   const router = useRouter();
   const t = useT();
-  const soLeitura = useSoLeitura();
+  const soLeitura = useSoLeitura(teamId);
   const { toast, confirmar } = useUI();
   const [club, setClub] = useState(null);
   const [form, setForm] = useState(VAZIO);
   const [pronto, setPronto] = useState(!teamId);
+  const [nivel, setNivel] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -35,6 +36,7 @@ export default function TeamForm({ clubId, teamId }) {
       if (teamId) {
         const t = await teams.get(teamId);
         if (t) setForm({ ...VAZIO, ...t, timing: timingOf(t) });
+        setNivel(await teams.nivel(teamId));
         setPronto(true);
       }
     })();
@@ -120,6 +122,20 @@ export default function TeamForm({ clubId, teamId }) {
             ))}
           </select>
         </Field>
+
+        {/* Só ao editar, e só a quem é dono do clube: um treinador associado vê
+            este ecrã do escalão mas não decide quem mais lá entra. */}
+        {teamId && nivel === 'dono' ? (
+          <div className="form__actions form__actions--left">
+            <button
+              className="btn btn--ghost"
+              type="button"
+              onClick={() => router.push(rotas.acessos(clubId, teamId))}
+            >
+              {t('acessos.titulo')}
+            </button>
+          </div>
+        ) : null}
 
         <div className="form__actions">
           {teamId ? (

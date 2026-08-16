@@ -121,24 +121,32 @@ coordenador quer ver tudo sem editar nada.
 
 ## Estado
 
-Construído — **do lado do servidor**:
+Construído, no servidor:
 
 - uma conta, um clube (`repository.js` + migração `0010`);
-- `profiles.licenca`, `club_members`, `team_access` e a reescrita completa das
-  políticas de segurança (migração `0011`);
+- `profiles.licenca`, `club_members`, `team_access` e as políticas de nove
+  tabelas reescritas (migração `0011`);
 - o limite de um escalão para a licença de Treinador, por gatilho;
-- `supabase/scripts/verificar_acessos.sql`, que põe tudo isto à prova dentro de
-  uma transação que se desfaz no fim.
+- `supabase/scripts/verificar_acessos.sql`, que prova tudo isto dentro de uma
+  transação que se desfaz no fim.
 
-Por construir — **do lado da app**:
+Construído, na app:
 
-- a licença tem de ser descarregada com o resto (`sync.js` só a envia);
-- o `pull` traz "os clubes que são meus" e passa a ter de trazer os escalões a
-  que se tem acesso;
-- o `teams.create` do `repository.js` ainda não conhece a licença;
-- o ecrã de definições do escalão onde o gerente dá e tira acesso;
-- o modo "só ver" aplicado aos ecrãs de edição, não só aos botões.
+- a licença desce com a descarga e fica no perfil do aparelho;
+- a descarga deixou de filtrar por dono — quem filtra é a segurança por linha,
+  senão um treinador associado recebia uma lista vazia;
+- cada escalão fica anotado com `dono`, `editar` ou `ver`, reescrito em todas as
+  descargas;
+- o `teams.create` recusa o segundo escalão a quem tem licença de Treinador;
+- o ecrã **Quem tem acesso**, dentro das definições do escalão, só para o dono;
+- o modo de só leitura aplicado aos ecrãs do escalão, e não apenas aos botões.
 
-E, fora do código: decidir como autorizamos um email já associado a um clube —
-criando a conta sem palavra-passe, para o gerente poder fazer o setup antes de o
-treinador instalar a app.
+Por construir:
+
+- **a associação de um treinador a um clube.** É a peça que falta para o resto
+  funcionar de ponta a ponta: hoje as linhas de `club_members` têm de ser
+  inseridas à mão no painel do Supabase. O caminho combinado é criarmos a conta
+  já convidada — sem palavra-passe definida — e associá-la ao clube na mesma
+  altura, para o gerente poder distribuir escalões antes de o treinador sequer
+  instalar a app.
+- um ecrã nosso para fazer isso sem abrir o Supabase.

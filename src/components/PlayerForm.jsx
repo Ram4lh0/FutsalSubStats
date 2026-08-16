@@ -23,7 +23,7 @@ import { POSITIONS_ALL, normalizePosition, FOOT, FOOT_ALL } from '@/domain/const
 export default function PlayerForm({ clubId, teamId, playerId }) {
   const router = useRouter();
   const t = useT();
-  const soLeitura = useSoLeitura();
+  const soLeitura = useSoLeitura(teamId);
   const { toast } = useUI();
   const { userId, user } = useAuth();
   const [club, setClub] = useState(null);
