@@ -235,12 +235,29 @@ export async function push(userId, email) {
     ...jogos.map((m) => m.clubId),
     ...escaloes.map((t) => t.clubId),
   ]);
-  const clubes = await comPais(db.STORES.clubs, await dirtyRows(db.STORES.clubs), clubesNecessarios);
+  // Só os clubes que são desta conta.
+  //
+  // O `comPais` traz os pais de que as linhas dependem, e o pai de um escalão é
+  // o clube. Isso era inofensivo enquanto tudo o que estava na base local tinha
+  // sido criado aqui. Deixou de ser: um treinador associado tem na base o clube
+  // do gerente, e a fila reenviava-o **carimbado como sendo dele** —
+  // `toRow(c, userId)` põe sempre o `owner_id` de quem está a enviar.
+  //
+  // O servidor recusa, e bem: `new row violates row-level security policy for
+  // table "clubs"`. Mas a mensagem aponta para o clube quando o que a pessoa
+  // fez foi criar um escalão, e não há forma de adivinhar a ligação.
+  //
+  // Um clube que não é nosso já está no servidor — foi de lá que veio. Não há
+  // nada para enviar.
+  const clubes = (await comPais(db.STORES.clubs, await dirtyRows(db.STORES.clubs), clubesNecessarios))
+    .filter((c) => !c.ownerId || c.ownerId === userId);
 
   if (clubes.length) {
     const { error } = await sb
       .from('clubs')
-      .upsert(clubes.map((c) => clubMapper.toRow(c, userId)));
+      // `c.ownerId` quando se sabe, senão quem está a enviar: um clube criado
+      // sem rede ainda não tem dono gravado, e é de quem o criou.
+      .upsert(clubes.map((c) => clubMapper.toRow(c, c.ownerId || userId)));
     if (error) throw etiqueta(error, 'clubs');
     await clean(db.STORES.clubs, clubes);
     total += clubes.length;

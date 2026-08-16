@@ -263,6 +263,7 @@ export default {
   'foto.ilegivel': 'That image could not be read.',
   'foto.grande': 'That image is too large even after shrinking. Try another one.',
   'escalao.guardarFalhou': 'Could not save: {erro}',
+  'escalao.soODono': 'Only the club can create age groups. Talk to whoever manages it.',
   'escalao.limiteDaLicenca': 'Your licence covers one age group. Talk to us to follow more.',
   'clube.jaExiste': 'This account already has a club. Each account manages one club.',
   'clube.guardadoLocal': 'Club saved on this device, but not uploaded yet: {erro}',
