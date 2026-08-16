@@ -9,6 +9,20 @@
 -- Se aparecer "TUDO CERTO" no fim, as políticas fazem o que dizem. Qualquer
 -- outra coisa é uma linha a dizer o que falhou.
 --
+-- ## Corre DEPOIS da migração 0011, não antes
+--
+-- Isto não é um ensaio prévio: é a verificação do que a 0011 deixou feito. Sem
+-- ela aplicada não há coluna `licenca` nem tabelas de acesso, e o guião falha
+-- logo na terceira linha a dizer que a coluna não existe.
+--
+-- A ordem certa é: 0011 → este guião. Se algo falhar aqui, corrige-se e
+-- reaplica-se a 0011 — que é escrita para poder correr outra vez sem estragar o
+-- que já lá está.
+--
+-- Se preferires não aplicar nada sem prova, dá para fazer o ensaio a sério:
+-- colar `begin;`, o conteúdo da 0011, depois este guião sem o `begin`/`rollback`
+-- dele, e terminar em `rollback`. Fica tudo testado e nada fica gravado.
+--
 -- ## Porque é que isto existe
 --
 -- A migração 0011 substituiu a única frase em que toda a segurança assentava. Um
