@@ -120,7 +120,40 @@ export const teams = {
       .sort((a, b) => a.name.localeCompare(b.name, 'pt'));
   },
   get: (id) => db.get(db.STORES.teams, id),
+
+  /**
+   * O que esta conta pode fazer neste escalão: `dono`, `editar` ou `ver`.
+   *
+   * Escrito na descarga pelo `sync.js`. Um escalão criado aqui e ainda não
+   * sincronizado não tem nível nenhum — e é `dono`, porque foi esta conta que o
+   * criou. Sem essa omissão, quem criasse um escalão sem rede ficava a olhar
+   * para ele em modo de leitura até haver ligação.
+   */
+  async nivel(teamId) {
+    const t = await db.get(db.STORES.teams, teamId);
+    return t?.nivel || 'dono';
+  },
+
   async create(clubId, data) {
+    // A licença de Treinador dá direito a um escalão.
+    //
+    // A mesma receita do clube: aqui é a cortesia, o gatilho no servidor é a
+    // fechadura. Sem esta, o treinador escrevia o plantel todo num escalão que
+    // o servidor ia recusar — e só descobria quando a sincronização falhasse,
+    // longe do sítio onde se enganou.
+    //
+    // Na dúvida, restringe: uma conta que ainda não descarregou a licença conta
+    // como `treinador`. Recusar de mais explica-se com uma frase; permitir de
+    // mais deixa criar coisas que morrem mais tarde.
+    if (!data.id) {
+      const licenca = (await profile.get())?.licenca || 'treinador';
+      if (licenca !== 'clube' && (await teams.listByClub(clubId)).length) {
+        const erro = new Error('A licença de treinador permite um escalão.');
+        erro.chave = 'escalao.limiteDaLicenca';
+        throw erro;
+      }
+    }
+
     const row = stamp({
       // Um id vindo de fora só acontece no jogo de experiência, que precisa de
       // identificadores fixos para depois se apagar a si próprio.

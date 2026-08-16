@@ -295,7 +295,20 @@ export async function pull(userId) {
   if (!sb || !userId) return { pulled: 0 };
   let total = 0;
 
-  const { data: clubes, error: e1 } = await sb.from('clubs').select('*').eq('owner_id', userId);
+  // A licença decide quantos escalões se podem criar, e a app tem de a saber sem
+  // rede. Vem primeiro porque é a resposta mais barata e a que menos depende do
+  // resto: se tudo o que vem a seguir falhar, ao menos isto ficou actualizado.
+  await trazerLicenca(sb, userId);
+
+  // Sem `owner_id`: quem filtra é a segurança por linha do servidor.
+  //
+  // Enquanto uma conta só via o que tinha criado, filtrar aqui era o mesmo que
+  // filtrar lá e poupava trabalho ao servidor. Com clubes partilhados deixou de
+  // ser: um treinador associado não é dono de nada, e com este filtro recebia
+  // uma lista vazia — a app abria sem clube nenhum e sem nada que explicasse
+  // porquê. O servidor já sabe quem pode ver o quê; a pergunta certa é "o que é
+  // que eu posso ver", não "o que é que eu criei".
+  const { data: clubes, error: e1 } = await sb.from('clubs').select('*');
   if (e1) throw e1;
   total += await merge(db.STORES.clubs, (clubes || []).map(clubMapper.fromRow));
 
@@ -305,6 +318,7 @@ export async function pull(userId) {
   const { data: escaloes, error: e1b } = await sb.from('teams').select('*').in('club_id', ids);
   if (e1b) throw e1b;
   total += await merge(db.STORES.teams, (escaloes || []).map(teamMapper.fromRow));
+  await marcarNiveis(sb, userId, clubes || [], escaloes || []);
 
   const escalaoIds = (escaloes || []).map((t) => t.id);
   if (escalaoIds.length) {
@@ -344,6 +358,93 @@ export async function pull(userId) {
 
   if (total) notifyDataUpdated();
   return { pulled: total };
+}
+
+/**
+ * Traz a licença da conta e guarda-a no perfil deste aparelho.
+ *
+ * O perfil sempre subiu e nunca desceu — não havia nada lá em cima que a app
+ * precisasse de saber. A licença mudou isso: é definida por nós no painel, do
+ * lado do servidor, e a app tem de a conhecer para decidir sem rede se pode
+ * criar mais um escalão.
+ *
+ * Falhar aqui não pode parar a sincronização. Sem resposta, fica o que já
+ * estava; e o que já estava, na pior das hipóteses, é `treinador` — o valor mais
+ * restrito. Uma app que recuse de mais explica-se; uma que permita de mais deixa
+ * criar coisas que o servidor vai recusar mais tarde, longe daqui.
+ */
+async function trazerLicenca(sb, userId) {
+  try {
+    const { data, error } = await sb
+      .from('profiles')
+      .select('licenca')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error || !data?.licenca) return;
+
+    const atual = (await db.all(db.STORES.profile))[0];
+    if (atual?.licenca === data.licenca) return;
+    await db.put(db.STORES.profile, { ...(atual || { id: userId }), licenca: data.licenca });
+  } catch {
+    // Servidor antigo, sem a coluna. A app continua com o que tinha.
+  }
+}
+
+/**
+ * Anota em cada escalão o que esta conta lá pode fazer: `dono`, `editar` ou `ver`.
+ *
+ * ## Porque é que isto corre em TODAS as descargas
+ *
+ * Por duas razões, e ambas obrigam a que seja aqui e não dentro do `merge`.
+ *
+ * A primeira: o `merge` substitui a linha inteira pela que vem do servidor, e a
+ * tabela `teams` do servidor não tem coluna `nivel`. Ou seja, cada descarga
+ * **apaga** o que aqui se escreveu. Se isto corresse só de vez em quando, o
+ * nível desaparecia e toda a gente ficava em modo de leitura.
+ *
+ * A segunda é o caso que interessa de verdade. O `merge` salta as linhas que
+ * ainda estão por enviar, para não pisar trabalho do treinador. Nessas, o
+ * `nivel` antigo sobrevive — e o nível muda **sem o escalão mudar**: o gerente
+ * passa alguém de `editar` para `ver` e a linha do escalão fica igual. Sem esta
+ * reescrita, esse treinador continuava a poder escrever num escalão em que já
+ * não pode, precisamente porque tinha alterações por enviar.
+ *
+ * ## Porque é que não vai numa tabela própria
+ *
+ * Seria uma tabela nova no armazenamento do aparelho, e isso obriga a subir a
+ * versão da base local — que é a operação com mais maneiras de correr mal em
+ * telemóveis que já têm dados lá dentro. O nível pertence à relação entre uma
+ * pessoa e um escalão, e esta app só tem uma pessoa de cada vez: escrevê-lo na
+ * linha do escalão diz exactamente o mesmo e não custa nada.
+ *
+ * O `nivel` não sobe para o servidor: o `teamMapper.toRow` só envia os campos
+ * que a tabela `teams` tem, e este não é um deles.
+ */
+async function marcarNiveis(sb, userId, clubes, escaloes) {
+  if (!escaloes.length) return;
+
+  const meus = new Set(clubes.filter((c) => c.owner_id === userId).map((c) => c.id));
+
+  let acessos = [];
+  try {
+    const { data } = await sb.from('team_access').select('team_id, nivel').eq('user_id', userId);
+    acessos = data || [];
+  } catch {
+    // Servidor antigo, sem a tabela: fica tudo pelo dono.
+  }
+  const porEscalao = new Map(acessos.map((a) => [a.team_id, a.nivel]));
+
+  for (const escalao of escaloes) {
+    // Ser dono do clube ganha sempre. Um gerente não precisa de se dar acesso a
+    // si próprio escalão a escalão, e se o fizesse por engano com `ver` ficava
+    // sem poder mexer no seu próprio clube.
+    const nivel = meus.has(escalao.club_id) ? 'dono' : porEscalao.get(escalao.id) || 'ver';
+    const local = await db.get(db.STORES.teams, escalao.id);
+    if (!local || local.nivel === nivel) continue;
+    // Sem `stamp`: isto não é uma alteração do treinador e não pode ir para a
+    // fila de envio. O `dirty` fica como estava.
+    await db.put(db.STORES.teams, { ...local, nivel });
+  }
 }
 
 async function merge(store, rows) {

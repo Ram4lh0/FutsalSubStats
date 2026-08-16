@@ -243,6 +243,8 @@ export default {
   'clube.eliminar': 'Eliminar clube',
   'clube.precisaNome': 'O nome do clube é obrigatório.',
   'clube.guardado': 'Clube guardado e sincronizado.',
+  'escalao.guardarFalhou': 'Não foi possível guardar: {erro}',
+  'escalao.limiteDaLicenca': 'A tua licença permite um escalão. Fala connosco para acompanhares mais.',
   'clube.jaExiste': 'Esta conta já tem um clube. Cada conta gere um clube.',
   'clube.guardadoLocal': 'Clube guardado neste dispositivo, mas ainda não subiu: {erro}',
   'clube.confirmaApagar':
