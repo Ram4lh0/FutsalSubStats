@@ -18,9 +18,21 @@
 
   "$schema": "node_modules/wrangler/config-schema.json",
 
-  // Tem de ser igual ao nome do Worker que já criaste no painel. Diferente,
-  // cria um segundo em vez de atualizar o primeiro.
-  "name": "futsalsubstats",
+  // Este nome é a **primeira metade do endereço**. O Cloudflare monta-o assim:
+  //
+  //   <nome-do-worker>.<subdomínio-da-conta>.workers.dev
+  //
+  // Com o subdomínio da conta em `futsalsubstats` (muda-se em Workers & Pages →
+  // Change, ao lado de "Your subdomain"), este `www` dá:
+  //
+  //   www.futsalsubstats.workers.dev
+  //
+  // que se lê quase como um domínio a sério. Chamar-lhe `futsalsubstats` daria
+  // `futsalsubstats.futsalsubstats.workers.dev`, com a palavra repetida.
+  //
+  // Mudar este campo **não renomeia** o Worker que já existe: cria outro. O
+  // antigo fica a servir a versão velha até ser apagado à mão no painel.
+  "name": "www",
 
   "main": "dist/server/index.js",
 
