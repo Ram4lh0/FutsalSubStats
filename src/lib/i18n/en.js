@@ -242,6 +242,8 @@ export default {
   'clube.eliminar': 'Delete club',
   'clube.precisaNome': 'The club name is required.',
   'clube.guardado': 'Club saved and synced.',
+  'escalao.guardarFalhou': 'Could not save: {erro}',
+  'escalao.limiteDaLicenca': 'Your licence covers one age group. Talk to us to follow more.',
   'clube.jaExiste': 'This account already has a club. Each account manages one club.',
   'clube.guardadoLocal': 'Club saved on this device, but not uploaded yet: {erro}',
   'clube.confirmaApagar':

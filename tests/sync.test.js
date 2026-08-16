@@ -19,6 +19,9 @@ function servidorFalso({ falhaEm } = {}) {
   const tabelas = {
     profiles: [], clubs: [], teams: [], competitions: [],
     players: [], matches: [], match_squad: [], match_events: [],
+    // A descarga passou a fazer duas perguntas novas: a licença da conta e os
+    // acessos por escalão.
+    team_access: [],
   };
   const chamadas = { upserts: 0, rpc: 0 };
 
@@ -41,7 +44,10 @@ function servidorFalso({ falhaEm } = {}) {
         eq: () => res,
         in: () => res,
         order: () => res,
-        then: (fn) => Promise.resolve({ data: tabelas[nome], error: null }).then(fn),
+        // O `trazerLicenca` pede uma linha só. Sem isto, o duplo não tinha
+        // resposta e o `catch` engolia a falha — o teste passaria sem testar.
+        maybeSingle: () => Promise.resolve({ data: (tabelas[nome] || [])[0] ?? null, error: null }),
+        then: (fn) => Promise.resolve({ data: tabelas[nome] || [], error: null }).then(fn),
       };
       return res;
     },
@@ -589,4 +595,130 @@ test('o jogo de experiência continua a poder montar-se', async () => {
     name: 'FC Demonstração',
   });
   assert.equal(demo.id, '00000000-dem0-4000-8000-000000000001');
+});
+
+/* -------------------------------------------- licenças e acesso partilhado */
+
+// A app decide sem rede se pode criar mais um escalão, e mostra-se em modo de
+// leitura a quem só tem `ver`. As duas respostas vêm do servidor e têm de estar
+// guardadas no aparelho antes de fazerem falta.
+
+test('a licença desce com a descarga e fica guardada', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  await cenario();
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  // No servidor, esta conta é de um clube.
+  servidor.tabelas.profiles[0] = { ...servidor.tabelas.profiles[0], licenca: 'clube' };
+  await pull(UTILIZADOR);
+
+  const perfil = (await db.all(db.STORES.profile))[0];
+  assert.equal(perfil.licenca, 'clube', 'a licença não chegou ao aparelho');
+});
+
+test('com licença de treinador, o segundo escalão é recusado', async () => {
+  await limpar();
+  const clube = await clubs.create({ name: 'Só um' });
+  await teams.create(clube.id, { name: 'Séniores' });
+
+  // Sem licença descarregada vale a mais restrita: recusar de mais explica-se,
+  // permitir de mais deixa criar coisas que o servidor mata mais tarde.
+  await assert.rejects(
+    () => teams.create(clube.id, { name: 'Sub-19' }),
+    (e) => e.chave === 'escalao.limiteDaLicenca',
+    'deixou criar um segundo escalão'
+  );
+});
+
+test('com licença de clube, criam-se os escalões todos', async () => {
+  await limpar();
+  const clube = await clubs.create({ name: 'Com licença' });
+  const perfil = (await db.all(db.STORES.profile))[0];
+  await db.put(db.STORES.profile, { ...perfil, licenca: 'clube' });
+
+  await teams.create(clube.id, { name: 'Séniores' });
+  await teams.create(clube.id, { name: 'Sub-19' });
+  await teams.create(clube.id, { name: 'Sub-15' });
+
+  assert.equal((await teams.listByClub(clube.id)).length, 3);
+});
+
+test('o nível de acesso desce em cada descarga', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao } = await cenario();
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  // O clube passa a ser de outra pessoa: aqui somos um treinador associado.
+  servidor.tabelas.clubs[0] = { ...servidor.tabelas.clubs[0], owner_id: 'outro-qualquer' };
+
+  servidor.tabelas.team_access = [{ team_id: escalao.id, user_id: UTILIZADOR, nivel: 'editar' }];
+  await pull(UTILIZADOR);
+  assert.equal(await teams.nivel(escalao.id), 'editar');
+
+  servidor.tabelas.team_access = [{ team_id: escalao.id, user_id: UTILIZADOR, nivel: 'ver' }];
+  await pull(UTILIZADOR);
+  assert.equal(await teams.nivel(escalao.id), 'ver', 'a descida de nível não chegou');
+});
+
+test('o nível desce mesmo num escalão com alterações por enviar', async () => {
+  // Este é o caso que obriga o `marcarNiveis` a existir, e a primeira versão do
+  // teste acima não chegava lá: o `merge` reescreve a linha inteira e apaga o
+  // `nivel` de caminho, por isso qualquer implementação parecia funcionar.
+  //
+  // O `merge` salta as linhas por enviar, para não pisar trabalho do treinador —
+  // e é aí que o `nivel` antigo sobrevive. Um treinador a quem o gerente acabou
+  // de tirar a edição, e que tenha uma alteração por sincronizar, continuaria a
+  // poder escrever.
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao } = await cenario();
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  servidor.tabelas.clubs[0] = { ...servidor.tabelas.clubs[0], owner_id: 'outro-qualquer' };
+
+  servidor.tabelas.team_access = [{ team_id: escalao.id, user_id: UTILIZADOR, nivel: 'editar' }];
+  await pull(UTILIZADOR);
+  assert.equal(await teams.nivel(escalao.id), 'editar');
+
+  // Mexer no escalão deixa-o por enviar — e é isso que faz o `merge` saltá-lo.
+  await teams.update(escalao.id, { name: 'Séniores A' });
+  assert.equal((await db.get(db.STORES.teams, escalao.id)).dirty, true, 'devia ficar por enviar');
+
+  servidor.tabelas.team_access = [{ team_id: escalao.id, user_id: UTILIZADOR, nivel: 'ver' }];
+  await pull(UTILIZADOR);
+
+  assert.equal(
+    await teams.nivel(escalao.id),
+    'ver',
+    'continuou a poder editar um escalão que já não lhe pertence'
+  );
+  assert.equal((await db.get(db.STORES.teams, escalao.id)).name, 'Séniores A', 'e não perdeu o que tinha escrito');
+});
+
+test('ser dono do clube ganha ao que estiver na tabela de acessos', async () => {
+  // Um gerente que se desse `ver` a si próprio por engano ficava sem poder mexer
+  // no seu próprio clube.
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao } = await cenario();
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  servidor.tabelas.team_access = [{ team_id: escalao.id, user_id: UTILIZADOR, nivel: 'ver' }];
+  await pull(UTILIZADOR);
+
+  assert.equal(await teams.nivel(escalao.id), 'dono');
+});
+
+test('um escalão criado sem rede é de quem o criou', async () => {
+  // Sem nível anotado — ninguém sincronizou ainda — a resposta tem de ser `dono`,
+  // senão quem cria um escalão num pavilhão fica a olhar para ele sem poder mexer.
+  await limpar();
+  const clube = await clubs.create({ name: 'Sem rede' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+  assert.equal(await teams.nivel(escalao.id), 'dono');
 });

@@ -52,7 +52,15 @@ export default function TeamForm({ clubId, teamId }) {
       shortName: (form.shortName || '').trim() || null,
       timing: form.timing,
     };
-    const team = teamId ? await teams.update(teamId, payload) : await teams.create(clubId, payload);
+    // Sem isto, a recusa da licença — que é uma exceção — não chegava a lado
+    // nenhum: o formulário ficava calado, a página ficava na mesma, e a pessoa
+    // carregava outra vez a pensar que não tinha carregado bem.
+    let team;
+    try {
+      team = teamId ? await teams.update(teamId, payload) : await teams.create(clubId, payload);
+    } catch (err) {
+      return toast(err.chave ? t(err.chave) : t('escalao.guardarFalhou', { erro: err.message }), 'error');
+    }
     toast(t('escalao.guardado'), 'ok');
     router.push(teamId ? rotas.escalao(clubId, team.id) : rotas.clube(clubId));
   }
