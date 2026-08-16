@@ -108,9 +108,11 @@ function Dashboard() {
               <button className="btn btn--ghost" onClick={limparDispositivo}>
                 {t('painel.limparDispositivo')}
               </button>
-              <button className="btn btn--primary" onClick={() => router.push(rotas.clubeNovo())}>
-                {t('painel.criarClube')}
-              </button>
+              {/* Não há botão de criar clube aqui em cima, e é de propósito:
+                  uma conta tem um clube. Criar só faz sentido quando ainda não
+                  existe nenhum, e para esse caso há o botão do estado vazio,
+                  mesmo por baixo. Um botão permanente prometia uma coisa que a
+                  app recusa a seguir. */}
             </>
           )
         }

@@ -243,6 +243,7 @@ export default {
   'clube.eliminar': 'Eliminar clube',
   'clube.precisaNome': 'O nome do clube é obrigatório.',
   'clube.guardado': 'Clube guardado e sincronizado.',
+  'clube.jaExiste': 'Esta conta já tem um clube. Cada conta gere um clube.',
   'clube.guardadoLocal': 'Clube guardado neste dispositivo, mas ainda não subiu: {erro}',
   'clube.confirmaApagar':
     'Apagar "{nome}" elimina os escalões, os planteis, os jogos e todos os eventos. Esta ação não pode ser anulada.',
@@ -281,7 +282,6 @@ export default {
   'painel.titulo': 'Os meus clubes',
   'painel.subtitulo': 'Escolha um clube para gerir o plantel e os jogos.',
   'painel.limparDispositivo': 'Limpar este dispositivo',
-  'painel.criarClube': 'Criar clube',
   'painel.jogoEmCurso': 'Existe um jogo em curso',
   'painel.retomar': 'Retomar jogo',
   'painel.semClubes': 'Ainda não existe nenhum clube.',
