@@ -134,6 +134,11 @@ Construído, no servidor:
 - `profiles.licenca`, `club_members`, `team_access` e as políticas de nove
   tabelas reescritas (migração `0011`);
 - o limite de um escalão para a licença de Treinador, por gatilho;
+- o emblema do escalão e o direito de o trocar sem o poder apagar (migrações
+  `0012` e `0013`);
+- as políticas de leitura de `clubs` e `teams` refeitas para deixarem passar o
+  `upsert`, que é como a app grava (migrações `0014` e `0015` — a explicação
+  está no cabeçalho da `0015`);
 - `supabase/scripts/verificar_acessos.sql`, que prova tudo isto dentro de uma
   transação que se desfaz no fim.
 
