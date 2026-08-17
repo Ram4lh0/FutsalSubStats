@@ -18,7 +18,8 @@
     "android:icones": "node tools/android-icones.mjs",
     "emails": "node tools/emails.mjs",
     "convidar": "node tools/convidar.mjs",
-    "publicar:pacote": "node tools/publicar-bundle.mjs"
+    "publicar:pacote": "node tools/publicar-bundle.mjs",
+    "painel": "node tools/painel/servidor.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
