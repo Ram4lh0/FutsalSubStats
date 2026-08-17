@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { rotas, comOrigem, abaActiva } from '../src/lib/routes.js';
+import { rotas, comOrigem, abaActiva, noJogoAoVivo } from '../src/lib/routes.js';
 
 test('os ids viajam na barra de endereço, e não no caminho', () => {
   // É o que permite a exportação estática: um ficheiro por endereço conhecido
@@ -70,4 +70,31 @@ test('um caminho de fora não acende nada', () => {
   assert.equal(abaActiva('/dashboard/', abas), -1);
   // `/teamXYZ` não é `/team`: a barra na comparação é o que separa os dois.
   assert.equal(abaActiva('/teamXYZ/', [rotas.escalao('c1', 't1')]), -1);
+});
+
+/* ------------------------------------------------- o ecrã do jogo ao vivo */
+
+// A mesma armadilha das abas, e com consequências maiores: além de encolher o
+// cabeçalho, esta resposta é o que trava a sincronização periódica enquanto o
+// jogo decorre. O teste que aqui estava era `/\/live$/`, que com a barra final
+// do `trailingSlash` nunca dava verdade.
+
+test('reconhece o jogo ao vivo com e sem barra no fim', () => {
+  assert.equal(noJogoAoVivo('/match/live/'), true);
+  assert.equal(noJogoAoVivo('/match/live'), true);
+});
+
+test('e não confunde com os ecrãs vizinhos do jogo', () => {
+  assert.equal(noJogoAoVivo('/match/setup/'), false);
+  assert.equal(noJogoAoVivo('/match/summary/'), false);
+  assert.equal(noJogoAoVivo('/match/events/'), false);
+  assert.equal(noJogoAoVivo('/dashboard/'), false);
+  assert.equal(noJogoAoVivo(''), false);
+  assert.equal(noJogoAoVivo(null), false);
+});
+
+test('o endereço do jogo ao vivo é mesmo esse', () => {
+  // Se a rota mudar, este teste falha e obriga a olhar para o `noJogoAoVivo` —
+  // que de outra forma passava a responder sempre false, em silêncio.
+  assert.equal(noJogoAoVivo(rotas.jogoAoVivo('m1').split('?')[0]), true);
 });
