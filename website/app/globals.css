@@ -56,3 +56,4 @@
    vez de desaparecer. As licenças continuam no menu, com secção própria. */
 .header-install{white-space:nowrap}
 @media(max-width:600px){.header-install{min-height:38px;padding:0 12px;font-size:12.5px;box-shadow:none}}
+.install-link{margin:10px 0 0;padding:9px 12px;background:rgba(145,164,196,.07);border:1px solid rgba(145,164,196,.16);border-radius:11px;color:var(--green-soft);font-size:13px;text-align:center;word-break:break-all;user-select:all}

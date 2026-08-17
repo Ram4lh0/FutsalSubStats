@@ -155,6 +155,7 @@ function InstallDialog({ t, onClose }: { t: (typeof translations)[Language]; onC
   // computador é sempre onde se começa, porque não há nada para adivinhar.
   const [sistema, setSistema] = useState<"ios" | "android" | null>(() => detectarSistema());
   const detectado = useMemo(() => detectarSistema() !== null, []);
+  const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -162,7 +163,29 @@ function InstallDialog({ t, onClose }: { t: (typeof translations)[Language]; onC
     return () => window.removeEventListener("keydown", aoTeclar);
   }, [onClose]);
 
-  const passos = sistema === "ios" ? c.iosSteps : c.androidSteps;
+  // Quem está no telemóvel abre a app e faz os passos ali. Quem está no
+  // computador não tem onde a instalar — o primeiro passo passa a ser levar o
+  // link para o telemóvel, e o botão copia em vez de abrir.
+  const noTelemovel = detectado;
+  const base = sistema === "ios" ? c.iosSteps : c.androidSteps;
+  const primeiro = noTelemovel
+    ? base[0]
+    : sistema === "ios"
+      ? c.iosPasteStep
+      : c.androidPasteStep;
+  const passos = [primeiro, ...base.slice(1)];
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(APP_URL);
+      setCopiado(true);
+      window.setTimeout(() => setCopiado(false), 2200);
+    } catch {
+      // Sem permissão para a área de transferência — em `http`, ou num browser
+      // que a recuse. O endereço está escrito por baixo do botão de propósito:
+      // é sempre possível seleccioná-lo à mão.
+    }
+  }
 
   return <div className="install-backdrop" onClick={onClose} role="presentation">
     <div className="install-modal" role="dialog" aria-modal="true" aria-label={c.title} onClick={(e) => e.stopPropagation()}>
@@ -183,8 +206,14 @@ function InstallDialog({ t, onClose }: { t: (typeof translations)[Language]; onC
           <span>{passos[1]}</span>
         </div>
         <ol className="install-steps">{passos.map((passo) => <li key={passo}>{passo}</li>)}</ol>
-        <a className="button" href={APP_URL} target="_blank" rel="noreferrer">{c.openApp}<Icon name="arrow"/></a>
-        <p className="install-note">{c.openHint}</p>
+        {noTelemovel
+          ? <a className="button" href={APP_URL} target="_blank" rel="noreferrer">{c.openApp}<Icon name="arrow"/></a>
+          : <><button type="button" className="button" onClick={copiar}>{copiado ? c.copied : c.copyLink}<Icon name={copiado ? "check" : "arrow"}/></button>
+            {/* O endereço à vista, e não só na área de transferência: se a cópia
+                falhar — acontece em `http` e em browsers que a recusem — ainda
+                se pode seleccionar à mão. */}
+            <p className="install-link">{APP_URL.replace("https://", "")}</p></>}
+        <p className="install-note">{noTelemovel ? c.openHint : c.deskHint}</p>
         <p className="install-note">{c.offlineNote}</p>
         {/* Sempre disponível, mesmo quando acertámos: o telemóvel onde a pessoa
             quer a app pode não ser aquele em que está a ler isto. */}
