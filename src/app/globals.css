@@ -185,6 +185,16 @@ ul { padding: 0; list-style: none; }
 
 .grid { display: grid; gap: 14px; }
 .grid--cards { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+/* Um cartão sozinho fica ao meio.
+ *
+ * Com `auto-fill` a grelha cria as colunas todas que couberem e o único cartão
+ * ocupa a primeira — encostado à esquerda, com um vazio à direita que parecia
+ * uma lista a meio de carregar. E sozinho é agora a regra, não a excepção: uma
+ * conta tem um clube, e a licença de Treinador tem um escalão.
+ *
+ * O `minmax(0, 420px)` é o que o impede de esticar de margem a margem num
+ * computador, onde um cartão de mil pixels de largura não se lê melhor. */
+.grid--cards.grid--um { grid-template-columns: minmax(0, 420px); justify-content: center; }
 .grid--stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 8px; }
 
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
