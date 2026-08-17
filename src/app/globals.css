@@ -60,15 +60,19 @@ ul { padding: 0; list-style: none; }
 
 /* O fundo.
  *
- * Um campo de futsal desenhado a traço fino, dois clarões e uma malha de pontos,
- * na linguagem do site de apresentação. Tira ao azul-escuro o ar de folha em
- * branco sem lhe pôr nada por cima que se leia.
+ * Três clarões muito ténues e uma malha de pontos, na linguagem do site de
+ * apresentação. Tira ao azul-escuro o ar de folha em branco sem lhe pôr nada
+ * por cima que se leia.
+ *
+ * Houve aqui um campo de futsal desenhado a traço. Ficava bem em captura de
+ * ecrã e mal a usar: com linhas a atravessar a página, o olho procura-lhes
+ * sentido e deixa de as tratar como fundo. O que resta é só luz.
  *
  * ## Porquê tudo embutido no CSS
  *
  * Uma imagem de fundo seria mais um ficheiro a descarregar, mais um ficheiro
- * para o service worker guardar, e mais peso no APK. Os clarões são gradientes;
- * o campo é um SVG escrito aqui dentro, e não custa um pedido a mais.
+ * para o service worker guardar, e mais peso no APK. Isto são quatro gradientes
+ * que já vão no ficheiro de estilos e não custam um pedido.
  *
  * ## Porquê no `.app` e não numa camada por cima
  *
@@ -88,32 +92,20 @@ ul { padding: 0; list-style: none; }
  *
  * ## Se estiver de mais ou de menos
  *
- * Os números a mexer são as opacidades: `.10` no verde, `.06` no azul, `.05`
- * nos pontos. Baixá-los é seguro; subi-los tira contraste ao texto, que é o
- * único mal que isto pode fazer.
+ * Os números a mexer são as opacidades. Baixá-los é seguro; subi-los tira
+ * contraste ao texto, que é o único mal que isto pode fazer.
  */
 .app {
   background:
-    /* O campo. Um desenho, e não gradientes: uma linha lateral, um círculo e um
-       arco de área não se fazem com `radial-gradient` sem ficarem tortos — foi o
-       que aconteceu à primeira tentativa, em que a linha de meio-campo solta
-       atravessava a área por não haver área nenhuma desenhada.
-
-       Vai embutido no CSS em vez de ser um `.svg` à parte: assim não é mais um
-       pedido, mais um ficheiro no APK, nem mais um ficheiro para o service
-       worker guardar.
-
-       O `contain` é o que o faz servir nas duas orientações. O campo é 20 por 40
-       metros, ou seja duas vezes mais alto do que largo, e o `contain` mantém-lhe
-       a proporção e encaixa-o inteiro: num telemóvel ao alto ocupa quase o ecrã
-       todo, num computador fica uma faixa ao centro, por trás dos cartões. Em
-       nenhum dos casos há linhas cortadas a meio. */
-    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 400' fill='none' stroke='rgba%28110,231,160,0.13%29' stroke-width='1.6' stroke-linecap='round'><rect x='10' y='10' width='180' height='380' rx='3'/><line x1='10' y1='200' x2='190' y2='200'/><circle cx='100' cy='200' r='30'/><circle cx='100' cy='200' r='2.2' fill='rgba%28110,231,160,0.13%29' stroke='none'/><path d='M25,10 A75,60 0 0 0 175,10'/><path d='M25,390 A75,60 0 0 1 175,390'/></svg>"),
+    /* verde em cima à direita */
     radial-gradient(46rem 46rem at 88% -6%, rgba(34, 197, 94, 0.14), transparent 62%),
+    /* verde em baixo, a nascer da margem e ao largo — é a base do ecrã, e é o
+       que enche a metade de baixo onde o campo estava */
+    radial-gradient(60rem 26rem at 50% 108%, rgba(34, 197, 94, 0.11), transparent 68%),
+    /* azul em baixo à esquerda, só para o verde não ficar sozinho */
     radial-gradient(38rem 38rem at -8% 106%, rgba(56, 189, 248, 0.07), transparent 60%),
     radial-gradient(circle at 1px 1px, rgba(145, 164, 196, 0.07) 1px, transparent 0);
-  background-size: contain, auto, auto, 26px 26px;
-  background-position: center, center, center, center;
+  background-size: auto, auto, auto, 26px 26px;
   background-repeat: no-repeat, no-repeat, no-repeat, repeat;
 }
 
@@ -122,26 +114,6 @@ ul { padding: 0; list-style: none; }
  * Aquele ecrã lê-se de relance, com o jogo a correr e o treinador a olhar para
  * o campo entre toques. Tudo o que lá esteja e não sirva para decidir uma
  * substituição está a atrapalhar. */
-/* Em ecrã ao baixo, o campo cresce e sai pela margem de baixo.
- *
- * Um campo tem 20 por 40 metros, ou seja é duas vezes mais alto do que largo.
- * Preso à altura do ecrã, isso dava-lhe a largura exacta do cartão do clube — as
- * linhas laterais rentes ao cartão, sem ar nenhum à volta.
- *
- * Aqui passa a ser escalado a 150% da altura e encostado ao topo: fica bem mais
- * largo do que o cartão, mantém a proporção certa, e o que sai do ecrã é a
- * baliza de baixo. A área de cima, o meio-campo e o círculo central — que é o
- * que se lê como campo — ficam todos à vista.
- *
- * Ao alto não se aplica: aí a largura do ecrã é que manda, e o campo já entra
- * inteiro. */
-@media (min-aspect-ratio: 1 / 1) {
-  .app {
-    background-size: auto 150%, auto, auto, 26px 26px;
-    background-position: center top, center, center, center;
-  }
-}
-
 .app.is-live { background: none; }
 
 .appbar {
