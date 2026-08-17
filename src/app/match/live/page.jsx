@@ -752,11 +752,11 @@ function Live() {
             </button>
           ) : null}
           {state.currentPeriod === 1 ? (
-            <button className="btn btn--big btn--ghost" onClick={finishFirst}>
+            <button className="btn btn--big btn--fecha" onClick={finishFirst}>
               Terminar 1.ª parte
             </button>
           ) : (
-            <button className="btn btn--big btn--ghost" onClick={finishGame}>
+            <button className="btn btn--big btn--fecha" onClick={finishGame}>
               Terminar jogo
             </button>
           )}

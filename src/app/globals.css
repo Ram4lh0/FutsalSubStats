@@ -114,6 +114,27 @@ ul { padding: 0; list-style: none; }
 .btn--big { min-height: 60px; font-size: 1.05rem; padding: 0 22px; }
 .btn--tiny { min-height: 36px; padding: 0 12px; font-size: 0.85rem; border-radius: 10px; }
 .btn--block { width: 100%; }
+/* Encerrar a parte ou o jogo.
+ *
+ * Eram botões fantasma, ou seja os mais apagados do ecrã, e são a coisa mais
+ * consequente que ali se carrega: fecham uma parte e não há como voltar atrás
+ * sem desfazer eventos. Ficar à mistura com o resto obrigava a procurá-los.
+ *
+ * Azul e não verde nem vermelho, e a razão é a companhia: ao lado está o
+ * "Parar tempo" em âmbar e, no jogo corrido, o "Retomar tempo" em verde — dois
+ * botões da mesma cor lado a lado, num ecrã que se usa de relance com o jogo a
+ * correr, é pior do que nenhuma cor. Vermelho também não: isto não é destruir
+ * nada, é o passo seguinte, e assustar quem chega ao fim da parte não ajuda.
+ *
+ * Fica com o contorno pintado em vez do fundo cheio, para não competir com o
+ * botão principal do rodapé. */
+.btn--fecha {
+  background: rgba(56, 189, 248, 0.14);
+  color: var(--info);
+  border-color: rgba(56, 189, 248, 0.55);
+  font-weight: 700;
+}
+.btn--fecha:hover { background: rgba(56, 189, 248, 0.24); }
 .btn--icon { width: var(--touch); padding: 0; font-size: 1.6rem; line-height: 1; }
 
 /* ------------------------------------------------------------------ cabeça */
@@ -482,8 +503,18 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
    valor por omissão dos itens de grelha) e arrasta a página para o lado. */
 .live > * { min-width: 0; }
 /* O intervalo não tem campo nem banco: são duas faixas, e é a de baixo que
-   estica para o conteúdo poder deslizar lá dentro. */
-.live--pause { grid-template-rows: auto minmax(0, 1fr); }
+   estica para o conteúdo poder deslizar lá dentro.
+
+   `height` e não só o `min-height: 100%` que vem do `.live`. A diferença parece
+   nenhuma e é toda: com apenas `min-height`, a altura da grelha continua a ser
+   automática, e uma faixa `1fr` numa grelha de altura automática resolve-se
+   pelo **conteúdo**. Com dez jogadores na tabela, a faixa crescia, as duas
+   colunas cresciam com ela, e nunca chegava a haver nada a transbordar cá
+   dentro — quem deslizava era a página inteira.
+
+   Com altura definida, a faixa fica com o que sobra do ecrã e são as colunas a
+   deslizar, cada uma por si. */
+.live--pause { grid-template-rows: auto minmax(0, 1fr); height: 100%; }
 
 .live__head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 14px; }
 .live__head > * { min-width: 0; }
@@ -732,6 +763,18 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  /* `contain` e não `none`: dentro da coluna o deslize é dela, e ao chegar ao
+     fim não arrasta a página atrás.
+
+     Tem uma armadilha, e foi metade deste erro: um elemento com `overflow: auto`
+     é um contentor de deslize mesmo quando não há nada a transbordar, e com
+     `contain` ele engole a roda do rato em vez de a passar a quem está por
+     fora. Enquanto a faixa crescia com o conteúdo, as colunas nunca
+     transbordavam — e a roda não fazia nada em lado nenhum, embora a página
+     tivesse barra de deslize. No dedo funcionava, porque o toque começa no
+     elemento e arrasta o que estiver por baixo.
+
+     Agora que as colunas deslizam mesmo, o `contain` faz o que promete. */
   overscroll-behavior: contain;
 }
 .halftime__title { display: flex; align-items: center; gap: 10px; }
@@ -839,8 +882,15 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .form__row { grid-template-columns: 1fr; }
   .live__head { grid-template-columns: 1fr; justify-items: center; gap: 6px; padding: 6px 10px; }
   .live__controls { justify-content: center; flex-wrap: wrap; max-width: 100%; }
+  /* Em vertical as duas colunas passam a ser duas secções uma debaixo da outra,
+     e quem desliza é a página — que é o que se espera de um telemóvel. Por isso
+     a altura do intervalo volta a ser a do conteúdo: presa ao ecrã, o que não
+     coubesse ficava cortado sem forma de lá chegar. */
+  .live--pause { height: auto; }
   .halftime { grid-template-columns: 1fr; height: auto; overflow: visible; }
-  .halftime__left, .halftime__right { overflow: visible; }
+  /* `visible` desfaz o contentor de deslize, e com ele o `overscroll-behavior`
+     que estava a comer a roda do rato. */
+  .halftime__left, .halftime__right { overflow: visible; overscroll-behavior: auto; }
   .scoreboard__name { max-width: 30vw; }
 }
 
