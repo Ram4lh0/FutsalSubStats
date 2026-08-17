@@ -22,17 +22,20 @@
   //
   //   <nome-do-worker>.<subdomínio-da-conta>.workers.dev
   //
-  // Com o subdomínio da conta em `futsalsubstats` (muda-se em Workers & Pages →
-  // Change, ao lado de "Your subdomain"), este `www` dá:
+  // O subdomínio da conta é `r4m`, por isso este nome dá o endereço a sério:
   //
-  //   www.futsalsubstats.workers.dev
+  //   https://futsalsubstats.r4m.workers.dev
   //
-  // que se lê quase como um domínio a sério. Chamar-lhe `futsalsubstats` daria
-  // `futsalsubstats.futsalsubstats.workers.dev`, com a palavra repetida.
+  // Dizia `www` por causa de um plano que não se concretizou: contava-se mudar o
+  // subdomínio da conta para `futsalsubstats`, e aí `www` dava
+  // `www.futsalsubstats.workers.dev`. O subdomínio ficou `r4m` e o nome não
+  // acompanhou.
   //
-  // Mudar este campo **não renomeia** o Worker que já existe: cria outro. O
-  // antigo fica a servir a versão velha até ser apagado à mão no painel.
-  "name": "www",
+  // Isto não é detalhe. Mudar este campo **não renomeia** o Worker que já
+  // existe: publica noutro. Com `www`, o `wrangler deploy` criava um segundo
+  // site em `www.r4m.workers.dev` e deixava o verdadeiro na versão antiga — sem
+  // erro nenhum, que é o pior feitio que uma avaria pode ter.
+  "name": "futsalsubstats",
 
   "main": "dist/server/index.js",
 
