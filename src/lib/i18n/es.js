@@ -686,8 +686,9 @@ export default {
   'resumo.demoTexto':
     'Todos estos números salen del partido que acabas de apuntar: cuánto tiempo estuvo cada jugador en pista, cuántas veces entró, quién marcó y cuándo. En una temporada entera, es este historial el que responde a quién ha jugado menos.',
   'resumo.demoTexto2':
-    'Este partido era de prueba, con un equipo inventado, y desaparece al salir. Con cuenta, todos tus partidos quedan guardados y tienes acceso a las estadísticas de tu equipo.',
+    'Este partido era de prueba y desaparece al salir. Puedes repetirlo para probar lo que te faltó; con cuenta, tus partidos quedan guardados y con estadísticas.',
   'resumo.demoCriarConta': 'Crear cuenta y guardar mis partidos',
+  'resumo.demoRepetir': 'Repetir demo',
   'resumo.demoAgoraNao': 'Ahora no',
   'resumo.corrigirResultado': 'Corregir el resultado',
   'resumo.notas': 'Notas',

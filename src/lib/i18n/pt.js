@@ -688,8 +688,9 @@ export default {
   'resumo.demoTexto':
     'Todos estes números saíram do jogo que acabou de apontar: quanto tempo cada jogador esteve em campo, quantas vezes entrou, quem marcou e quando. Numa época inteira, é este histórico que responde a quem jogou a menos.',
   'resumo.demoTexto2':
-    'Este jogo era de treino, com uma equipa inventada, e desaparece quando sair. Com conta, todos os teus jogos ficam guardados e tens acesso às estatísticas da tua equipa.',
+    'Este jogo era de treino e desaparece quando saíres. Podes repeti-lo para experimentar o que ficou por testar; com conta, os teus jogos ficam guardados e com estatísticas.',
   'resumo.demoCriarConta': 'Criar conta e guardar os meus jogos',
+  'resumo.demoRepetir': 'Repetir demo',
   'resumo.demoAgoraNao': 'Agora não',
   'resumo.corrigirResultado': 'Corrigir resultado',
   'resumo.notas': 'Notas',
