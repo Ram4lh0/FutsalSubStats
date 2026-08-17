@@ -58,6 +58,50 @@ ul { padding: 0; list-style: none; }
 
 .app { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 
+/* O fundo.
+ *
+ * Dois clarões muito ténues e uma malha de pontos, na linguagem do site de
+ * apresentação. Tira ao azul-escuro o ar de folha em branco sem lhe pôr nada
+ * por cima que se leia.
+ *
+ * ## Porquê gradientes e não uma imagem
+ *
+ * Uma imagem de fundo seria mais um ficheiro a descarregar, mais um ficheiro
+ * para o service worker guardar, e mais peso no APK. Isto são três linhas de
+ * CSS que já vão no ficheiro de estilos e não custam um pedido.
+ *
+ * ## Porquê `fixed`
+ *
+ * Quem desliza é a `.view`, não a página. Preso ao ecrã, o fundo fica quieto
+ * enquanto o conteúdo passa por cima — que é o efeito que se quer. A deslizar
+ * junto, notava-se, e um fundo que se nota deixou de ser fundo.
+ *
+ * ## Se estiver de mais ou de menos
+ *
+ * Os números a mexer são as opacidades: `.10` no verde, `.06` no azul, `.05`
+ * nos pontos. Baixá-los é seguro; subi-los tira contraste ao texto, que é o
+ * único mal que isto pode fazer.
+ */
+.app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(46rem 46rem at 88% -6%, rgba(34, 197, 94, 0.1), transparent 62%),
+    radial-gradient(38rem 38rem at -8% 106%, rgba(56, 189, 248, 0.06), transparent 60%),
+    radial-gradient(circle at 1px 1px, rgba(145, 164, 196, 0.05) 1px, transparent 0);
+  background-size: auto, auto, 26px 26px;
+}
+
+/* No jogo, não.
+ *
+ * Aquele ecrã lê-se de relance, com o jogo a correr e o treinador a olhar para
+ * o campo entre toques. Tudo o que lá esteja e não sirva para decidir uma
+ * substituição está a atrapalhar. */
+.app.is-live::before { display: none; }
+
 .appbar {
   display: flex; align-items: center; gap: 12px;
   padding: 8px 16px;
