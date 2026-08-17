@@ -48,3 +48,11 @@
 .install-modal .button{width:100%;margin-top:6px}
 .install-note{margin:14px 0 0;color:var(--muted);font-size:12.5px;line-height:1.55}
 .install-back{margin-top:14px;width:100%;background:transparent;border:0;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px}
+
+/* O botão de instalar no cabeçalho.
+   Ao contrário do "Ver licenças" que aqui estava, este **não** tem
+   `desktop-cta`: era a classe que o escondia abaixo dos 820px, ou seja
+   exactamente nos telemóveis, que é onde instalar faz sentido. Aqui encolhe em
+   vez de desaparecer. As licenças continuam no menu, com secção própria. */
+.header-install{white-space:nowrap}
+@media(max-width:600px){.header-install{min-height:38px;padding:0 12px;font-size:12.5px;box-shadow:none}}
