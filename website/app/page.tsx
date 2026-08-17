@@ -7,6 +7,10 @@ const CONTACT_EMAIL = "review.futsalsubstats@gmail.com";
 // Add the public store URLs here when the apps are published.
 const APP_STORE_URL: string | null = null;
 const PLAY_STORE_URL: string | null = null;
+// Onde a app vive. O botão de instalar leva aqui antes de explicar os passos:
+// "Adicionar ao ecrã principal" guarda a página **em que a pessoa está**, por
+// isso feito a partir deste site o que ficava no telemóvel era o site, não a app.
+const APP_URL = "https://futsalsubstats.vercel.app";
 
 const demoPlayers = {
   1: { number: 1, name: "Rui Almeida", role: "goalkeeper" },
@@ -31,7 +35,7 @@ const initialOnCourt: DemoPlayerNumber[] = [1, 4, 5, 6, 9];
 const initialBench: DemoPlayerNumber[] = [2, 7, 8];
 const initialTimes: Record<DemoPlayerNumber, number> = { 1: 436, 2: 214, 4: 401, 5: 378, 6: 329, 7: 187, 8: 153, 9: 352 };
 
-type IconName = "clock" | "swap" | "chart" | "folder" | "wifi" | "shield" | "mail" | "check" | "arrow" | "globe" | "ball";
+type IconName = "clock" | "swap" | "chart" | "folder" | "wifi" | "shield" | "mail" | "check" | "arrow" | "globe" | "ball" | "share" | "dots" | "apple" | "android";
 function Icon({ name }: { name: IconName }) {
   const paths = {
     clock: <><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></>,
@@ -44,6 +48,13 @@ function Icon({ name }: { name: IconName }) {
     check: <path d="m5 12 4 4L19 6"/>, arrow: <><path d="M5 12h14M14 7l5 5-5 5"/></>,
     globe: <><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></>,
     ball: <><circle cx="12" cy="12" r="9"/><path d="m12 8 3 2-1 4h-4l-1-4zM12 8V3M15 10l4-2M14 14l3 4M10 14l-3 4M9 10 5 8"/></>,
+    // O botão de partilha do iOS e o menu de três pontos do Android, desenhados
+    // como a pessoa os vê no telemóvel. Uma seta para cima a sair de uma caixa,
+    // e três pontos na vertical: é por isto que ela tem de procurar.
+    share: <><path d="M12 15V3m0 0L8.5 6.5M12 3l3.5 3.5"/><path d="M7 11H5v10h14V11h-2"/></>,
+    dots: <><circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/></>,
+    apple: <path d="M15.5 3c.2 1.3-.3 2.5-1 3.3-.8.9-1.9 1.5-3 1.4-.2-1.2.4-2.5 1.1-3.3.8-.9 2.1-1.5 2.9-1.4M18.6 16.4c-.5 1.2-.8 1.7-1.5 2.7-1 1.4-2.3 3.2-4 3.2-1.5 0-1.9-1-3.9-1-2 0-2.5 1-4 1-1.7 0-2.9-1.6-3.9-3-2.8-4-3.1-8.7-1.4-11.2 1.2-1.8 3.1-2.8 4.9-2.8 1.8 0 3 1 4.5 1 1.5 0 2.4-1 4.5-1 1.6 0 3.2.9 4.4 2.4-3.9 2.1-3.2 7.6.4 8.7"/>,
+    android: <><path d="M6 11h12v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1z"/><path d="M6 11a6 6 0 0 1 12 0"/><path d="m8 5 1.2 2M16 5l-1.2 2"/><path d="M3.5 12v4M20.5 12v4M10 19v2.5M14 19v2.5"/></>,
   };
   return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }
@@ -120,10 +131,75 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
   </div>;
 }
 
+/**
+ * O sistema do aparelho, ou nada.
+ *
+ * Não é para servir conteúdo diferente — é só para poupar uma pergunta a quem
+ * está no telemóvel. Se falhar, cai no chooser, que funciona sempre.
+ *
+ * O iPad é o caso chato: desde o iPadOS 13 diz-se Macintosh. Distingue-se por
+ * ter toque, que um Mac a sério não tem.
+ */
+function detectarSistema(): "ios" | "android" | null {
+  if (typeof window === "undefined") return null;
+  const ua = window.navigator.userAgent;
+  if (/Android/i.test(ua)) return "android";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
+  if (/Macintosh/.test(ua) && window.navigator.maxTouchPoints > 1) return "ios";
+  return null;
+}
+
+function InstallDialog({ t, onClose }: { t: (typeof translations)[Language]; onClose: () => void }) {
+  const c = t.install;
+  // Começa no que o aparelho disser. A `null` é o ecrã de escolha — num
+  // computador é sempre onde se começa, porque não há nada para adivinhar.
+  const [sistema, setSistema] = useState<"ios" | "android" | null>(() => detectarSistema());
+  const detectado = useMemo(() => detectarSistema() !== null, []);
+
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [onClose]);
+
+  const passos = sistema === "ios" ? c.iosSteps : c.androidSteps;
+
+  return <div className="install-backdrop" onClick={onClose} role="presentation">
+    <div className="install-modal" role="dialog" aria-modal="true" aria-label={c.title} onClick={(e) => e.stopPropagation()}>
+      <button type="button" className="install-close" onClick={onClose} aria-label={c.close}>×</button>
+      <h3>{c.title}</h3>
+      <p>{sistema ? c.intro : c.chooseHint}</p>
+
+      {!sistema ? <>
+        <div className="install-choice">
+          <button type="button" onClick={() => setSistema("ios")}><Icon name="apple"/>{c.iphone}</button>
+          <button type="button" onClick={() => setSistema("android")}><Icon name="android"/>{c.android}</button>
+        </div>
+      </> : <>
+        {/* O ícone que ela tem de procurar, à escala a que aparece no telemóvel.
+            Vale mais do que a frase que o descreve. */}
+        <div className="install-glyph">
+          <Icon name={sistema === "ios" ? "share" : "dots"}/>
+          <span>{passos[1]}</span>
+        </div>
+        <ol className="install-steps">{passos.map((passo) => <li key={passo}>{passo}</li>)}</ol>
+        <a className="button" href={APP_URL} target="_blank" rel="noreferrer">{c.openApp}<Icon name="arrow"/></a>
+        <p className="install-note">{c.openHint}</p>
+        <p className="install-note">{c.offlineNote}</p>
+        {/* Sempre disponível, mesmo quando acertámos: o telemóvel onde a pessoa
+            quer a app pode não ser aquele em que está a ler isto. */}
+        <button type="button" className="install-back" onClick={() => setSistema(null)}>
+          {detectado ? c.wrongDevice : c.chooseTitle}
+        </button>
+      </>}
+    </div>
+  </div>;
+}
+
 export default function Home() {
   const [lang, setLang] = useState<Language>("pt");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [installNotice, setInstallNotice] = useState("");
+  const [installOpen, setInstallOpen] = useState(false);
   const t = useMemo(() => translations[lang], [lang]);
   useEffect(() => {
     const saved = window.localStorage.getItem("futsal-language") as Language | null;
@@ -134,12 +210,13 @@ export default function Home() {
   useEffect(() => { document.documentElement.lang = lang; window.localStorage.setItem("futsal-language", lang); }, [lang]);
   useEffect(() => { const observer = new IntersectionObserver((entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("visible")), { threshold:.12 }); document.querySelectorAll(".reveal").forEach((el) => observer.observe(el)); return () => observer.disconnect(); }, [lang]);
   const emailHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(t.contact.subject)}&body=${encodeURIComponent(t.contact.body)}`;
+  // Enquanto não houver lojas, instalar é adicionar ao ecrã principal — e isso
+  // explica-se, não se faz por link. Quando as lojas existirem, a constante
+  // deixa de ser `null` e o botão passa a levar lá directamente.
   const handleInstall = () => {
-    const isAndroid = /Android/i.test(window.navigator.userAgent);
-    const storeUrl = isAndroid ? PLAY_STORE_URL : APP_STORE_URL;
+    const storeUrl = /Android/i.test(window.navigator.userAgent) ? PLAY_STORE_URL : APP_STORE_URL;
     if (storeUrl) { window.location.href = storeUrl; return; }
-    setInstallNotice(t.licenses.storeSoon);
-    window.setTimeout(() => setInstallNotice(""), 2200);
+    setInstallOpen(true);
   };
 
   return <main>
@@ -167,10 +244,11 @@ export default function Home() {
 
     <section className="offline-section" id="offline"><div className="offline-glow"/><div className="offline-visual reveal"><div className="signal-rings"><i/><i/><i/></div><div className="offline-device"><span className="offline-notch"/><span className="offline-icon"><Icon name="wifi"/><b>{t.offline.local}</b></span><small>{t.offline.device}</small></div><div className="sync-path"><i/><i/><i/></div><div className="data-card data-one"><Icon name="folder"/><span><b>{t.offline.saved}</b><small>{t.offline.device}</small></span><Icon name="check"/></div><div className="data-card data-two"><Icon name="chart"/><span><b>{t.offline.synced}</b><small>{t.offline.connection}</small></span><Icon name="check"/></div></div><div className="offline-copy reveal"><span className="section-number">03</span><p>{t.offline.kicker}</p><h2>{t.offline.title}</h2><p>{t.offline.text}</p><div className="offline-detail"><Icon name="shield"/><div><b>{t.offline.privacyTitle}</b><span>{t.offline.privacyText}</span></div></div></div></section>
 
-    <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">04</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul><a className="button" href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`${t.licenses.request}: ${plan.name}`)}`}>{t.licenses.request}<Icon name="arrow"/></a></article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><button type="button" className="button" onClick={handleInstall}>{t.licenses.installNow}<Icon name="arrow"/></button>{installNotice&&<small>{installNotice}</small>}</div></div></section>
+    <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">04</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul><a className="button" href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`${t.licenses.request}: ${plan.name}`)}`}>{t.licenses.request}<Icon name="arrow"/></a></article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><button type="button" className="button" onClick={handleInstall}>{t.licenses.installNow}<Icon name="arrow"/></button></div></div></section>
 
     <section className="contact-section" id="contact"><div className="contact-card reveal"><div><p>{t.contact.kicker}</p><h2>{t.contact.title}</h2><span>{t.contact.text}</span></div><a className="button" href={emailHref}><Icon name="mail"/>{t.contact.button}</a><small>{CONTACT_EMAIL}</small></div></section>
     <section className="faq-section"><div className="faq-heading reveal"><p>{t.faq.kicker}</p><h2>{t.faq.title}</h2></div><div className="faq-list reveal">{t.faq.items.map((item)=><details key={item.question}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
+    {installOpen && <InstallDialog t={t} onClose={() => setInstallOpen(false)}/>}
     <footer><a href="#top" className="brand" aria-label="FutsalSubStats"><span className="brand-mark"><Icon name="ball"/></span><span>Futsal<b>SubStats</b></span></a><p>{t.footer.tagline}</p><div><a href={`mailto:${CONTACT_EMAIL}`}>{t.nav.contact}</a><a href="#licenses">{t.nav.licenses}</a><span>© 2026 FutsalSubStats</span></div></footer>
   </main>;
 }
