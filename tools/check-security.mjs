@@ -123,7 +123,12 @@ const LE_DO_AMBIENTE = /process\.env\.[A-Z_]*SERVICE_ROLE[A-Z_]*/;
 // que a usam já não a leem: pedem um cliente pronto. Continuam a falar dela nos
 // comentários — e devem, é lá que se explica porque é que ela nunca pode entrar
 // na app — mas deixaram de a tocar.
-const DELEGA = /from '\.\/chave-de-servico\.mjs'/;
+//
+// O caminho é comparado sem o prefixo relativo de propósito: o painel vive em
+// `tools/painel/` e importa `../chave-de-servico.mjs`. Exigir o `./` fazia a
+// regra depender da profundidade da pasta, que não tem nada que ver com o que
+// se está a verificar.
+const DELEGA = /from '[./]*chave-de-servico\.mjs'/;
 
 for (const f of [...ficheiros(join(RAIZ, 'src')), ...ficheiros(join(RAIZ, 'tools'))]) {
   if (f.endsWith('check-security.mjs')) continue;

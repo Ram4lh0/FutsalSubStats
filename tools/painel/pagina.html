@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="no-referrer" />
+<title>Painel · FutsalSubStats</title>
+<style>
+  /* A paleta é a mesma do `globals.css`. Não é vaidade: quando o painel se
+     parece com a app, um número estranho salta à vista por ser estranho, e não
+     por estar num sítio que parece outro programa. */
+  :root {
+    --bg: #0b1220; --card: #16233b; --line: #2a3d5f; --text: #eaf1ff;
+    --muted: #91a4c4; --primary: #22c55e; --primary-ink: #05240f;
+    --warn: #f59e0b; --danger: #ef4444; --info: #38bdf8; --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 28px 0 10px; color: var(--muted); font-weight: 600; }
+  .aviso { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .cartao { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .resumo { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+  .resumo div { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+  .resumo dt { color: var(--muted); font-size: 12px; }
+  .resumo dd { margin: 2px 0 0; font-size: 22px; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  tr:last-child td { border-bottom: 0; }
+  .etiqueta { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .etiqueta--clube { background: rgba(34,197,94,.15); color: var(--primary); }
+  .etiqueta--treinador { background: rgba(56,189,248,.15); color: var(--info); }
+  .etiqueta--ver { background: rgba(145,164,196,.15); color: var(--muted); }
+  .etiqueta--editar { background: rgba(245,158,11,.15); color: var(--warn); }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  input, select, button {
+    font: inherit; padding: 9px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: #0f1a2e; color: var(--text);
+  }
+  input { min-width: 240px; }
+  button { cursor: pointer; border-color: transparent; background: var(--primary); color: var(--primary-ink); font-weight: 700; }
+  button.discreto { background: transparent; border-color: var(--line); color: var(--text); font-weight: 500; padding: 5px 10px; font-size: 13px; }
+  button:disabled { opacity: .5; cursor: progress; }
+  #recado { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; display: none; }
+  #recado.ok { display: block; background: rgba(34,197,94,.12); color: var(--primary); }
+  #recado.erro { display: block; background: rgba(239,68,68,.12); color: var(--danger); }
+</style>
+</head>
+<body>
+
+<h1>Painel do FutsalSubStats</h1>
+<p class="aviso">
+  Só nesta máquina, e só enquanto o comando estiver a correr. Tudo o que se vê
+  aqui são dados de clientes — cuidado com o que se mostra a quem esteja ao lado.
+</p>
+
+<dl class="resumo" id="resumo"></dl>
+
+<h2>Criar conta</h2>
+<div class="cartao">
+  <form id="convite">
+    <input id="email" type="email" placeholder="email@clube.pt" required autocomplete="off" />
+    <select id="licenca">
+      <option value="treinador">Licença de treinador</option>
+      <option value="clube">Licença de clube</option>
+    </select>
+    <select id="clube"><option value="">Sem clube</option></select>
+    <button type="submit">Convidar</button>
+  </form>
+  <p class="muted small" style="margin: 10px 0 0" id="explicacao"></p>
+  <p id="recado"></p>
+</div>
+
+<h2>Contas</h2>
+<div class="cartao">
+  <table id="tabela">
+    <thead>
+      <tr>
+        <th>Email</th><th>Licença</th><th>Clube</th><th>Escalões</th>
+        <th>Partilhados</th><th>Jogos</th><th></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<h2>Clubes</h2>
+<div class="cartao">
+  <table id="clubes">
+    <thead><tr><th>Clube</th><th>Dono</th><th>Escalões</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+// A chave da sessão vem na barra de endereço, na primeira visita. Guarda-se aqui
+// e limpa-se do endereço, para não ficar no histórico nem em capturas de ecrã.
+const CHAVE = new URL(location.href).searchParams.get('chave');
+if (CHAVE) history.replaceState(null, '', location.pathname);
+
+const $ = (s) => document.querySelector(s);
+const texto = (s) => String(s ?? '').replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+
+async function pedir(caminho, opcoes = {}) {
+  const r = await fetch(caminho, {
+    ...opcoes,
+    headers: { 'x-painel': CHAVE, ...(opcoes.body ? { 'content-type': 'application/json' } : {}) },
+  });
+  const dados = await r.json();
+  if (!r.ok) throw new Error(dados.erro || 'Falhou.');
+  return dados;
+}
+
+function recado(mensagem, tipo) {
+  const el = $('#recado');
+  el.textContent = mensagem;
+  el.className = tipo;
+}
+
+// O `tipo` também passa pelo `texto`. Hoje só pode ser uma de quatro palavras
+// que vêm do servidor, mas uma classe montada com texto de fora é o género de
+// coisa que fica certa até alguém acrescentar um campo.
+const ETIQUETA = (v, tipo) => `<span class="etiqueta etiqueta--${texto(tipo)}">${texto(v)}</span>`;
+
+function desenhar(estado) {
+  const r = estado.resumo;
+  $('#resumo').innerHTML = [
+    ['Contas', r.contas],
+    ['Licença de clube', r.comLicencaClube],
+    ['Licença de treinador', r.comLicencaTreinador],
+    ['Ainda sem clube', r.semClube],
+    ['Clubes', r.clubes],
+    ['Escalões', r.escaloes],
+    ['Jogos registados', r.jogos],
+  ].map(([nome, valor]) => `<div><dt>${nome}</dt><dd>${valor}</dd></div>`).join('');
+
+  $('#tabela tbody').innerHTML = estado.contas.map((c) => `
+    <tr>
+      <td>${texto(c.email)}</td>
+      <td>${ETIQUETA(c.licenca, c.licenca)}</td>
+      <td>${c.clube
+          ? texto(c.clube.nome)
+          : c.associadoA.length
+            ? `<span class="muted small">associado a ${texto(c.associadoA.map((x) => x.nome).join(', '))}</span>`
+            : '<span class="muted small">—</span>'}</td>
+      <td class="small">${c.escaloes.length ? texto(c.escaloes.join(', ')) : '<span class="muted">—</span>'}</td>
+      <td class="small">${c.partilhados.length
+          ? c.partilhados.map((p) => `${texto(p.nome)} ${ETIQUETA(p.nivel, p.nivel)}`).join('<br>')
+          : '<span class="muted">—</span>'}</td>
+      <td>${c.jogos}</td>
+      <td>
+        <button class="discreto" data-conta="${texto(c.id)}"
+                data-para="${c.licenca === 'clube' ? 'treinador' : 'clube'}"
+                data-email="${texto(c.email)}">
+          passar a ${c.licenca === 'clube' ? 'treinador' : 'clube'}
+        </button>
+      </td>
+    </tr>`).join('');
+
+  $('#clubes tbody').innerHTML = estado.clubes.map((c) => `
+    <tr><td>${texto(c.nome)}</td><td class="small muted">${texto(c.dono)}</td><td>${c.escaloes}</td></tr>
+  `).join('') || '<tr><td colspan="3" class="muted">Ainda não há clubes.</td></tr>';
+
+  // A lista de clubes do formulário só muda quando os clubes mudam, mas
+  // reescrevê-la é mais barato do que descobrir se mudou.
+  const escolhido = $('#clube').value;
+  $('#clube').innerHTML = '<option value="">Sem clube</option>' +
+    estado.clubes.map((c) => `<option value="${texto(c.id)}">${texto(c.nome)}</option>`).join('');
+  $('#clube').value = escolhido;
+  ajustarFormulario();
+}
+
+async function carregar() {
+  try {
+    desenhar(await pedir('/api/estado'));
+  } catch (e) {
+    recado(e.message, 'erro');
+  }
+}
+
+// A escolha do clube só existe para a licença de treinador.
+//
+// Quem tem licença de clube é dono do seu, e cria-o na app quando entrar. A
+// pergunta "a que clube o associo?" não tem resposta certa nenhuma nesse caso —
+// e a resposta errada dava-lhe dois clubes na lista.
+function ajustarFormulario() {
+  const deClube = $('#licenca').value === 'clube';
+  $('#clube').hidden = deClube;
+  if (deClube) $('#clube').value = '';
+  $('#explicacao').textContent = deClube
+    ? 'A conta nasce sem palavra-passe: sai o email de convite e é a pessoa que escolhe a dela. O clube é criado por ela, na app.'
+    : 'A conta nasce sem palavra-passe: sai o email de convite e é a pessoa que escolhe a dela. Escolhe um clube se este treinador vai trabalhar no clube de outra pessoa; deixa em "Sem clube" se vai ter o seu.';
+}
+
+$('#licenca').addEventListener('change', ajustarFormulario);
+ajustarFormulario();
+
+$('#convite').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const botao = e.target.querySelector('button');
+  botao.disabled = true;
+  try {
+    const r = await pedir('/api/convidar', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: $('#email').value,
+        licenca: $('#licenca').value,
+        clubeId: ($('#licenca').value === 'clube' ? '' : $('#clube').value) || null,
+      }),
+    });
+    recado(r.mensagem, 'ok');
+    $('#email').value = '';
+    await carregar();
+  } catch (err) {
+    recado(err.message, 'erro');
+  } finally {
+    botao.disabled = false;
+  }
+});
+
+// Mudar a licença é raro e não se desfaz sozinho — daí a confirmação. A recusa
+// de descer com escalões a mais vem do servidor, e a mensagem dele é a que
+// aparece: é ela que diz o que fazer.
+$('#tabela').addEventListener('click', async (e) => {
+  const botao = e.target.closest('[data-conta]');
+  if (!botao) return;
+  const { conta, para, email } = botao.dataset;
+  if (!confirm(`Passar ${email} para licença de ${para}?`)) return;
+  botao.disabled = true;
+  try {
+    const r = await pedir('/api/licenca', {
+      method: 'POST',
+      body: JSON.stringify({ userId: conta, licenca: para }),
+    });
+    recado(r.mensagem, 'ok');
+    await carregar();
+  } catch (err) {
+    recado(err.message, 'erro');
+  } finally {
+    botao.disabled = false;
+  }
+});
+
+carregar();
+</script>
+</body>
+</html>
