@@ -304,7 +304,9 @@ function Preparacao() {
                 okLabel: t('prep.apagarJogo'),
               });
               if (!ok) return;
-              await matches.remove(matchId);
+              // Arquivar, e não apagar: o `remove` só limpava este aparelho, e
+              // o jogo reaparecia na descarga seguinte.
+              await matches.archive(matchId);
               toast(t('prep.jogoApagado'), 'ok');
               router.push(rotas.jogos(match.clubId, match.teamId));
             }}

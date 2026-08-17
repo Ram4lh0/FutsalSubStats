@@ -137,6 +137,7 @@ export const matchMapper = {
     period_duration_ms: m.periodDurationMs || 1800000,
     team_fouls: m.teamFouls ?? null,
     notes: m.notes || null,
+    archived_at: iso(m.archivedAt),
   }),
   fromRow: (r) => ({
     id: r.id,
@@ -153,6 +154,7 @@ export const matchMapper = {
     periodDurationMs: r.period_duration_ms,
     teamFouls: r.team_fouls,
     notes: r.notes,
+    archivedAt: ms(r.archived_at),
     createdAt: ms(r.created_at),
     updatedAt: ms(r.updated_at),
     dirty: false,
