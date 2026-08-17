@@ -12,7 +12,7 @@ import { useUI } from '@/lib/ui.jsx';
 import { iniciarDemo, limparDemo } from '@/lib/demo.js';
 import { rotas } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
-import { registoAberto, CONTACTO } from '@/lib/registo.js';
+import { registoAberto, ligacaoPedirConta } from '@/lib/registo.js';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -186,7 +186,7 @@ export default function LoginPage() {
             </p>
             <a
               className="btn btn--ghost btn--block"
-              href={`mailto:${CONTACTO}?subject=${encodeURIComponent(t('registo.assunto'))}`}
+              href={ligacaoPedirConta(t('registo.assunto'))}
             >
               {t('registo.pedirConta')}
             </a>

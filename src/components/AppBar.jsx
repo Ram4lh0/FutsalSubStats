@@ -22,7 +22,7 @@ import { rotas } from '@/lib/routes.js';
 import { emDemo, limparDemo } from '@/lib/demo.js';
 import { useT } from '@/lib/i18n/index.js';
 import { syncLabel } from '@/lib/format.js';
-import { registoAberto } from '@/lib/registo.js';
+import { registoAberto, ligacaoPedirConta } from '@/lib/registo.js';
 
 export default function AppBar() {
   const router = useRouter();
@@ -95,18 +95,28 @@ export default function AppBar() {
         {demo ? (
           <>
             <span className="sync sync--demo">{t('barra.demonstracao')}</span>
-            <button
-              className="btn btn--primary btn--tiny"
-              onClick={async () => {
-                await limparDemo();
-                router.replace(rotas.login());
-              }}
-            >
-              {/* Com o registo por convite este botão leva ao ecrã de entrada,
-                  onde está explicado como se pede uma conta. O destino é o
-                  mesmo; só o rótulo é que muda para não prometer o que não há. */}
-              {registoAberto() ? t('barra.criarConta') : t('registo.pedirConta')}
-            </button>
+            {/* Com o registo aberto vai-se ao ecrã de entrada criar a conta.
+                Fechado não há lá nada para fazer: abre-se o email. E não se
+                limpa a demonstração — quem vai escrever um email volta, e voltar
+                a um ecrã vazio é o pior que lhe podia acontecer. */}
+            {registoAberto() ? (
+              <button
+                className="btn btn--primary btn--tiny"
+                onClick={async () => {
+                  await limparDemo();
+                  router.replace(rotas.login());
+                }}
+              >
+                {t('barra.criarConta')}
+              </button>
+            ) : (
+              <a
+                className="btn btn--primary btn--tiny"
+                href={ligacaoPedirConta(t('registo.assunto'))}
+              >
+                {t('registo.pedirConta')}
+              </a>
+            )}
           </>
         ) : null}
         {estado.status === sync.SYNC.SYNCED ? null : (

@@ -29,8 +29,8 @@ import {
 } from '@/lib/format.js';
 import { useT } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
-import { emDemo, limparDemo } from '@/lib/demo.js';
-import { registoAberto } from '@/lib/registo.js';
+import { emDemo, limparDemo, iniciarDemo } from '@/lib/demo.js';
+import { registoAberto, ligacaoPedirConta } from '@/lib/registo.js';
 
 export default function SummaryPage() {
   return (
@@ -47,6 +47,7 @@ function Resumo() {
   const ui = useUI();
   const { userId, user } = useAuth();
   const [dados, setDados] = useState(null);
+  const [aRepetir, setARepetir] = useState(false);
 
   // De onde se veio. Só quando não há origem — ou seja, quando se chega aqui por
   // ter acabado o jogo — é que a saída passa a ser a casa dos clubes.
@@ -141,6 +142,26 @@ function Resumo() {
 
   const criarConta = sairDaDemo;
 
+  /**
+   * Outra vez do princípio, com o jogo por jogar.
+   *
+   * Quem chega aqui viu o que a app produz, mas quase de certeza não
+   * experimentou metade — as substituições, as faltas, o cronómetro. Sem isto, a
+   * única forma de tentar de novo era sair para o ecrã de entrada e voltar a
+   * carregar em "experimentar", que é longe de mais para uma segunda tentativa.
+   */
+  async function repetirDemo() {
+    if (aRepetir) return;
+    setARepetir(true);
+    try {
+      const { matchId: novo } = await iniciarDemo();
+      router.replace(rotas.jogoPreparar(novo));
+    } catch (e) {
+      setARepetir(false);
+      ui.toast(t('login.demoFalhou', { erro: e.message }), 'error');
+    }
+  }
+
   function verPeriodos(s) {
     ui.open((close) => (
       <Dialog title={`#${s.number} ${s.name}`} onClose={() => close(null)}>
@@ -177,11 +198,25 @@ function Resumo() {
           <p>{t('resumo.demoTexto')}</p>
           <p className="muted">{t('resumo.demoTexto2')}</p>
           <div className="demo-cta__actions">
-            {/* Leva sempre ao ecrã de entrada. Com o registo aberto, cria-se
-                conta ali; fechado, o mesmo ecrã explica como se pede uma. O
-                convite é o mesmo — o que muda é o que se promete. */}
-            <button className="btn btn--primary btn--big" onClick={criarConta}>
-              {registoAberto() ? t('resumo.demoCriarConta') : t('registo.pedirConta')}
+            {/* Com o registo aberto, o botão leva ao ecrã de entrada, que é
+                onde se cria a conta. Fechado, não há nada para fazer lá: abre-se
+                o email, com o assunto já escrito. Antes disto ia sempre parar ao
+                ecrã de entrada e a pessoa tinha de procurar sozinha para onde
+                escrever — e ainda perdia a demonstração pelo caminho. */}
+            {registoAberto() ? (
+              <button className="btn btn--primary btn--big" onClick={criarConta}>
+                {t('resumo.demoCriarConta')}
+              </button>
+            ) : (
+              <a
+                className="btn btn--primary btn--big"
+                href={ligacaoPedirConta(t('registo.assunto'))}
+              >
+                {t('registo.pedirConta')}
+              </a>
+            )}
+            <button className="btn btn--ghost" onClick={repetirDemo} disabled={aRepetir}>
+              {t('resumo.demoRepetir')}
             </button>
             <button className="btn btn--ghost" onClick={sairDaDemo}>
               {t('resumo.demoAgoraNao')}

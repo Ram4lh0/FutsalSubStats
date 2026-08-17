@@ -37,3 +37,18 @@ export function registoAberto() {
 
 /** O endereço para quem quiser uma conta quando o registo está fechado. */
 export const CONTACTO = 'review.futsalsubstats@gmail.com';
+
+/**
+ * A ligação que abre o email já com o assunto escrito.
+ *
+ * Existe porque os botões de "pedir conta" espalhados pela app estavam todos a
+ * levar ao ecrã de entrada, onde a pessoa tinha de encontrar sozinha o endereço
+ * para onde escrever. Com o registo fechado, o ecrã de entrada não é um destino:
+ * é mais um passo entre alguém que quer a app e nós.
+ *
+ * Um `mailto` num `<a>` e não um `router.push`: quem carrega quer escrever um
+ * email, e o sítio onde isso se faz é o programa de email dele.
+ */
+export function ligacaoPedirConta(assunto) {
+  return `mailto:${CONTACTO}?subject=${encodeURIComponent(assunto || '')}`;
+}
