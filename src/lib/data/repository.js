@@ -129,7 +129,10 @@ export const clubs = {
     return clubs.update(id, { archivedAt: now() });
   },
   async remove(id) {
-    for (const t of await teams.listByClub(id)) await teams.remove(t.id);
+    // Todos os escalões, incluindo os arquivados. O `listByClub` filtra-os — é
+    // para isso que existe — e limpar por aí deixava para trás as linhas de um
+    // escalão apagado, com o clube já fora da base.
+    for (const t of await db.byIndex(db.STORES.teams, 'by_club', id)) await teams.remove(t.id);
     await db.del(db.STORES.clubs, id);
     notifyLocalChange();
   },
@@ -224,6 +227,28 @@ export const teams = {
     notifyLocalChange();
     return row;
   },
+  /**
+   * Apagar um escalão na app é arquivá-lo, tal como no clube.
+   *
+   * Antes daqui passava pelo `remove`, que apaga a linha **deste aparelho** e
+   * mais nada. Localmente parecia feito; a descarga seguinte trazia o escalão de
+   * volta, porque no servidor ele nunca tinha saído — e não havia forma de o
+   * servidor adivinhar a diferença entre "foi apagado" e "este aparelho ainda
+   * não o conhece".
+   *
+   * Marcar o `archivedAt` resolve isso sem inventar nada: é uma alteração como
+   * as outras, sobe na fila com o resto, e as listas já a filtravam. O histórico
+   * fica — os jogos daquele escalão continuam a existir, que é o que se quer
+   * quando alguém apaga um escalão para recomeçar a época.
+   */
+  async archive(id) {
+    return teams.update(id, { archivedAt: now() });
+  },
+
+  /**
+   * O apagar a sério, que não passa pelo servidor: só o usa o jogo de
+   * experiência, que se limpa a si próprio, e o `clubs.remove`.
+   */
   async remove(id) {
     for (const m of await matches.listByTeam(id)) await matches.remove(m.id);
     for (const p of await players.listByTeam(id)) await db.del(db.STORES.players, p.id);
@@ -264,14 +289,25 @@ export const competitions = {
     notifyLocalChange();
     return row;
   },
-  /** Apagar uma competição não apaga os jogos: eles ficam sem prova associada. */
-  async remove(id) {
+  /**
+   * Apagar uma competição não apaga os jogos: eles ficam sem prova associada.
+   *
+   * E apagar é arquivar, como no clube e no escalão. Antes daqui era um `del`
+   * local, que desaparecia do ecrã e voltava na descarga seguinte — no servidor
+   * a competição nunca tinha saído.
+   */
+  async archive(id) {
     const comp = await competitions.get(id);
     if (comp) {
       for (const m of await matches.listByTeam(comp.teamId)) {
         if (m.competitionId === id) await matches.update(m.id, { competitionId: null });
       }
     }
+    return competitions.update(id, { archivedAt: now() });
+  },
+
+  /** O apagar a sério, que não passa pelo servidor. Só o `teams.remove` o usa. */
+  async remove(id) {
     await db.del(db.STORES.competitions, id);
     notifyLocalChange();
   },
@@ -397,13 +433,20 @@ export const players = {
 /* ------------------------------------------------------------------ jogos */
 
 export const matches = {
+  // Um jogo arquivado é um jogo apagado: sai de todas as listas. Fica na base
+  // porque a fila precisa dele para levar a marca ao servidor, e porque um
+  // apagar por engano leva atrás as estatísticas de toda a gente que jogou.
   async listByTeam(teamId) {
     const rows = await db.byIndex(db.STORES.matches, 'by_team', teamId);
-    return rows.sort((a, b) => (b.scheduledAt || b.createdAt) - (a.scheduledAt || a.createdAt));
+    return rows
+      .filter((m) => !m.archivedAt)
+      .sort((a, b) => (b.scheduledAt || b.createdAt) - (a.scheduledAt || a.createdAt));
   },
   async listByClub(clubId) {
     const rows = await db.byIndex(db.STORES.matches, 'by_club', clubId);
-    return rows.sort((a, b) => (b.scheduledAt || b.createdAt) - (a.scheduledAt || a.createdAt));
+    return rows
+      .filter((m) => !m.archivedAt)
+      .sort((a, b) => (b.scheduledAt || b.createdAt) - (a.scheduledAt || a.createdAt));
   },
   get: (id) => db.get(db.STORES.matches, id),
   async create(teamId, data) {
@@ -440,6 +483,22 @@ export const matches = {
     if (syncMode !== 'defer') notifyLocalChange();
     return row;
   },
+  /**
+   * Apagar um jogo é arquivá-lo.
+   *
+   * A convocatória e os eventos ficam onde estão, e é de propósito. Apagá-los
+   * obrigava a percorrer quatro tabelas pela ordem certa dentro de uma fila que
+   * corre sem rede e pode falhar a meio — e um jogo apagado por engano leva
+   * atrás as estatísticas de toda a gente que nele jogou. Assim é recuperável.
+   *
+   * Fora das listas ninguém lá chega: as estatísticas partem sempre de
+   * `listByTeam`, que já o filtra.
+   */
+  async archive(id) {
+    return matches.update(id, { archivedAt: now() });
+  },
+
+  /** O apagar a sério, que não passa pelo servidor. Só o jogo de experiência. */
   async remove(id) {
     for (const s of await db.byIndex(db.STORES.matchSquad, 'by_match', id))
       await db.del(db.STORES.matchSquad, s.id);
@@ -553,7 +612,11 @@ async function loadStatesOf(list) {
 
 /** Jogo em curso (para o atalho "retomar jogo"). */
 export async function findLiveMatch() {
-  const all = await db.all(db.STORES.matches);
+  // Este vai à base directamente, e não por uma das listas — por isso é o único
+  // sítio onde o filtro dos arquivados tem de estar escrito à mão. Sem ele,
+  // apagar um jogo a meio deixava a faixa "jogo em curso" no painel a apontar
+  // para um jogo que já não existe em lado nenhum.
+  const all = (await db.all(db.STORES.matches)).filter((m) => !m.archivedAt);
   for (const m of all) {
     const evs = await events.listByMatch(m.id);
     if (!evs.length) continue;

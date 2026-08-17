@@ -55,7 +55,9 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
       okLabel: t('competicao.apagarBotao'),
     });
     if (!ok) return;
-    await competitions.remove(competitionId);
+    // Arquivar, e não apagar: o `remove` só limpava este aparelho, e a
+    // competição reaparecia na descarga seguinte.
+    await competitions.archive(competitionId);
     toast(t('competicao.apagada'), 'ok');
     router.push(rotas.competicoes(clubId, teamId));
   }

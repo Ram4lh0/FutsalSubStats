@@ -964,3 +964,129 @@ test('depois de enviado, o clube fica com o dono na linha local', async () => {
   );
   esquecerDono();
 });
+
+/* ------------------------------------------------- apagar é arquivar */
+
+// Apagar um escalão passava pelo `teams.remove`, que apaga a linha **deste
+// aparelho** e mais nada. No ecrã parecia feito; a descarga seguinte trazia o
+// escalão de volta, porque no servidor ele nunca tinha saído — e o servidor não
+// tem como distinguir "foi apagado" de "este aparelho ainda não o conhece".
+
+test('apagar um escalão sobe ao servidor e não volta na descarga', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+
+  const clube = await clubs.create({ name: 'Com escalão' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  await teams.archive(escalao.id);
+  assert.equal((await teams.listByClub(clube.id)).length, 0, 'devia sair da lista logo');
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.ok(
+    servidor.tabelas.teams.find((t) => t.id === escalao.id)?.archived_at,
+    'o servidor não ficou a saber que o escalão foi apagado'
+  );
+
+  await pull(UTILIZADOR);
+  assert.equal((await teams.listByClub(clube.id)).length, 0, 'o escalão voltou na descarga');
+});
+
+test('e o lugar fica livre para outro', async () => {
+  // A licença de Treinador dá direito a um escalão. Quem apaga o seu para
+  // recomeçar não pode ficar preso — é a mesma regra que já valia para o clube,
+  // e é por isso que as listas contam só os que não estão arquivados.
+  await limpar();
+  const clube = await clubs.create({ name: 'Recomeçar' });
+  const antigo = await teams.create(clube.id, { name: 'Séniores' });
+  await teams.archive(antigo.id);
+
+  const novo = await teams.create(clube.id, { name: 'Sub-19' });
+  assert.ok(novo.id);
+  assert.deepEqual((await teams.listByClub(clube.id)).map((t) => t.name), ['Sub-19']);
+});
+
+test('apagar um jogo sobe ao servidor e não volta na descarga', async () => {
+  // Igual ao escalão, e o último sítio onde faltava: a tabela `matches` nem
+  // sequer tinha coluna para isto até à migração 0016.
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+
+  const clube = await clubs.create({ name: 'Com jogos' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+  const jogo = await matches.create(escalao.id, { opponentName: 'Adversário' });
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  await matches.archive(jogo.id);
+  assert.equal((await matches.listByTeam(escalao.id)).length, 0, 'devia sair da lista logo');
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.ok(
+    servidor.tabelas.matches.find((m) => m.id === jogo.id)?.archived_at,
+    'o servidor não ficou a saber que o jogo foi apagado'
+  );
+
+  await pull(UTILIZADOR);
+  assert.equal((await matches.listByTeam(escalao.id)).length, 0, 'o jogo voltou na descarga');
+});
+
+test('um jogo apagado a meio deixa de ser o "jogo em curso"', async () => {
+  // O `findLiveMatch` vai à base directamente, sem passar pelas listas. Sem o
+  // filtro, o painel ficava com a faixa "jogo em curso" a apontar para um jogo
+  // que a pessoa tinha acabado de apagar.
+  await limpar();
+  const { findLiveMatch } = await import('../src/lib/data/repository.js');
+
+  const clube = await clubs.create({ name: 'A jogar' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+  const jogo = await matches.create(escalao.id, { opponentName: 'Adversário' });
+  await events.append({
+    ...A.matchCreated({ matchId: jogo.id }),
+    eventType: EVENT.FIRST_HALF_STARTED,
+    clientEventId: 'ev-inicio',
+  });
+
+  assert.equal((await findLiveMatch())?.id, jogo.id, 'devia estar em curso');
+  await matches.archive(jogo.id);
+  assert.equal(await findLiveMatch(), null, 'continuou a dar-se como em curso');
+});
+
+test('a competição apagada sai da lista e sobe arquivada', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+
+  const clube = await clubs.create({ name: 'Com provas' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+  const prova = await competitions.create(escalao.id, { name: 'Campeonato' });
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  await competitions.archive(prova.id);
+  assert.equal((await competitions.listByTeam(escalao.id)).length, 0);
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.ok(
+    servidor.tabelas.competitions.find((c) => c.id === prova.id)?.archived_at,
+    'o servidor não ficou a saber'
+  );
+});
+
+test('e os jogos dessa competição ficam sem prova, não apagados', async () => {
+  // Era assim antes e continua a ser: apagar a prova não apaga o que se jogou
+  // nela. Só deixa de haver prova associada.
+  await limpar();
+  const clube = await clubs.create({ name: 'Com provas' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+  const prova = await competitions.create(escalao.id, { name: 'Taça' });
+  const jogo = await matches.create(escalao.id, {
+    opponentName: 'Adversário',
+    competitionId: prova.id,
+  });
+
+  await competitions.archive(prova.id);
+  assert.equal((await matches.get(jogo.id)).competitionId, null);
+  assert.equal((await matches.listByTeam(escalao.id)).length, 1, 'o jogo desapareceu');
+});

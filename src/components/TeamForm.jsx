@@ -87,7 +87,9 @@ export default function TeamForm({ clubId, teamId }) {
       okLabel: t('escalao.apagarBotao'),
     });
     if (!ok) return;
-    await teams.remove(teamId);
+    // Arquivar, e não apagar: o `remove` só limpava este aparelho, e o escalão
+    // reaparecia na descarga seguinte porque no servidor continuava lá.
+    await teams.archive(teamId);
     toast(t('escalao.apagado'), 'ok');
     router.push(rotas.clube(clubId));
   }
