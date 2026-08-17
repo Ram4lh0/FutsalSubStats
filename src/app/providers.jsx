@@ -6,6 +6,7 @@
 
 import { Fragment, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { noJogoAoVivo } from '@/lib/routes.js';
 import { AuthProvider, useAuth } from '@/lib/auth.jsx';
 import { UIProvider } from '@/lib/ui.jsx';
 import { supabase } from '@/lib/supabase/client.js';
@@ -82,7 +83,7 @@ function LiveChrome() {
   const pathname = usePathname();
   useEffect(() => {
     const el = document.getElementById('app');
-    if (el) el.classList.toggle('is-live', /\/live$/.test(pathname || ''));
+    if (el) el.classList.toggle('is-live', noJogoAoVivo(pathname));
   }, [pathname]);
   return null;
 }
@@ -97,7 +98,7 @@ function LiveChrome() {
 function SyncBridge() {
   const { userId, user } = useAuth();
   const pathname = usePathname();
-  const isLive = /\/live$/.test(pathname || '');
+  const isLive = noJogoAoVivo(pathname);
 
   useEffect(() => {
     sync.setRemote(supabase());

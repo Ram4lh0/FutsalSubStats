@@ -137,3 +137,24 @@ export function abaActiva(atual, destinos) {
 
   return escolhida;
 }
+
+/**
+ * Estamos no ecrã do jogo ao vivo?
+ *
+ * Existe por causa da mesma armadilha que apagava as abas: com `trailingSlash`,
+ * o `usePathname` devolve `/match/live/` — com barra no fim. O teste que aqui
+ * estava era `/\/live$/`, que nunca dava verdade em lado nenhum.
+ *
+ * E isso não era só cosmético. Esta resposta decide duas coisas:
+ *
+ *   · a classe `is-live`, que encolhe o cabeçalho e tira o fundo;
+ *   · **travar a sincronização periódica enquanto o jogo decorre** — que é o
+ *     que evita ir buscar dados ao servidor entre uma substituição e a
+ *     seguinte.
+ *
+ * Compara-se o caminho todo, e não só o fim: `/live` sozinho podia um dia
+ * aparecer noutro sítio e ninguém ligaria as duas coisas.
+ */
+export function noJogoAoVivo(atual) {
+  return /\/match\/live\/?$/.test(atual || '');
+}
