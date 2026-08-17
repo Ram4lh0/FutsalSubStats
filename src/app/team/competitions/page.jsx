@@ -10,7 +10,7 @@ import TeamShell from '@/components/TeamShell.jsx';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import DataTable from '@/components/DataTable.jsx';
-import { Empty } from '@/components/bits.jsx';
+import { Empty, Ved } from '@/components/bits.jsx';
 import { clubAggregate } from '@/domain/stats.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
@@ -89,8 +89,8 @@ function Conteudo() {
                     >
                       <td>{competicao.name}</td>
                       <td className="num">{jogos}</td>
-                      <td className="num mono">
-                        {agg.wins} / {agg.draws} / {agg.losses}
+                      <td className="num">
+                        <Ved v={agg.wins} e={agg.draws} d={agg.losses} />
                       </td>
                       <td className="num mono">{agg.goalsFor}</td>
                       <td className="num mono">{agg.goalsAgainst}</td>

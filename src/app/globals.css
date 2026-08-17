@@ -44,6 +44,25 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 h1, h2, h3, p, dl, dd, ul { margin: 0; }
 ul { padding: 0; list-style: none; }
 
+/* Vitórias, empates e derrotas.
+ *
+ * `inline-flex` e `nowrap` para os três números nunca se separarem em duas
+ * linhas — numa coluna estreita de telemóvel era o que acontecia.
+ *
+ * A `min-width` em `ch` reserva o espaço de dois algarismos em cada número, e é
+ * o que impede a linha de saltar quando um deles passa de 9 para 10 a meio de
+ * uma época. Com `tabular-nums`, todos os algarismos ocupam o mesmo, portanto
+ * as colunas de várias competições ficam alinhadas entre si. */
+.ved { display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ved b { min-width: 2ch; text-align: right; font-weight: 700; }
+.ved i { font-style: normal; font-size: 0.85em; color: var(--muted); opacity: 0.55; }
+.ved__v { color: var(--primary); }
+.ved__e { color: var(--muted); }
+.ved__d { color: var(--danger); }
+/* Dentro de um cartão de estatística os números já são grandes; aqui só se
+   ajusta o espaço, para não ficarem esparramados. */
+.stat__value .ved { gap: 7px; }
+
 .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
 .muted { color: var(--muted); }
 .small { font-size: 0.85rem; }
