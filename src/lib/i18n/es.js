@@ -379,6 +379,11 @@ export default {
   'competicoes.vazio':
     'Todavía no hay competiciones. Cada partido pertenece a una, así que vale la pena crear ya la liga.',
   'competicoes.jogos': 'Partidos',
+  // As três letras em separado, para o cabeçalho da tabela poder ficar
+  // alinhado coluna a coluna com os números que estão por baixo.
+  'ved.v': 'V',
+  'ved.e': 'E',
+  'ved.d': 'D',
   'competicoes.ved': 'V / E / D',
   'competicoes.marcados': 'A favor',
   'competicoes.sofridos': 'En contra',

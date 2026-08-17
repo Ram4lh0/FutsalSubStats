@@ -380,6 +380,11 @@ export default {
   'competicoes.vazio':
     'There are no competitions yet. Every match belongs to one, so it is worth creating the league now.',
   'competicoes.jogos': 'Matches',
+  // As três letras em separado, para o cabeçalho da tabela poder ficar
+  // alinhado coluna a coluna com os números que estão por baixo.
+  'ved.v': 'W',
+  'ved.e': 'D',
+  'ved.d': 'L',
   'competicoes.ved': 'W / D / L',
   'competicoes.marcados': 'Scored',
   'competicoes.sofridos': 'Conceded',
