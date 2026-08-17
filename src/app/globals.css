@@ -94,10 +94,24 @@ ul { padding: 0; list-style: none; }
  */
 .app {
   background:
-    radial-gradient(46rem 46rem at 88% -6%, rgba(34, 197, 94, 0.1), transparent 62%),
-    radial-gradient(38rem 38rem at -8% 106%, rgba(56, 189, 248, 0.06), transparent 60%),
-    radial-gradient(circle at 1px 1px, rgba(145, 164, 196, 0.05) 1px, transparent 0);
-  background-size: auto, auto, 26px 26px;
+    /* O arco do círculo central, a espreitar do fundo do ecrã.
+       É o que enche a metade de baixo, que num painel com um clube só ficava
+       vazia. O centro do círculo está abaixo da margem de propósito: assim vê-se
+       um arco, e não uma bola desenhada no fundo. */
+    radial-gradient(
+      circle at 50% calc(100% + 46px),
+      transparent 0 168px,
+      rgba(110, 231, 160, 0.13) 168px 170px,
+      transparent 170px
+    ),
+    /* E a linha do meio-campo a cortá-lo, que é o que o faz ler como campo. */
+      linear-gradient(rgba(145, 164, 196, 0.11), rgba(145, 164, 196, 0.11)),
+    radial-gradient(46rem 46rem at 88% -6%, rgba(34, 197, 94, 0.14), transparent 62%),
+    radial-gradient(38rem 38rem at -8% 106%, rgba(56, 189, 248, 0.07), transparent 60%),
+    radial-gradient(circle at 1px 1px, rgba(145, 164, 196, 0.07) 1px, transparent 0);
+  background-size: auto, 100% 1px, auto, auto, 26px 26px;
+  background-position: center, 0 calc(100% - 46px), center, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat;
 }
 
 /* No jogo, não.
