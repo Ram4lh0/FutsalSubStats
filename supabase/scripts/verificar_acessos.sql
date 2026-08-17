@@ -47,12 +47,17 @@ begin;
 
 /* ------------------------------------------------------------- o cenário */
 
--- Dois clubes que não têm nada que ver um com o outro, e quatro pessoas:
+-- Dois clubes que não têm nada que ver um com o outro, e cinco pessoas:
 --
 --   gerente   dono do Clube A, licença `clube`
 --   ana       associada ao A, com `editar` no escalão A1
 --   bruno     associado ao A, com `ver` no escalão A1
 --   sozinho   dono do Clube B, licença `treinador`
+--   nova      acabada de convidar: licença `treinador`, sem clube nenhum
+--
+-- A `nova` existe por causa da 0015. Era este o caso que faltava — uma conta
+-- sem nada a criar o seu primeiro clube — e é o único em que a política de
+-- leitura é chamada a decidir sobre uma linha que ainda não está na tabela.
 
 do $$
 declare
@@ -60,7 +65,8 @@ declare
     '00000000-0000-4000-9000-00000000000a'::uuid,  -- gerente
     '00000000-0000-4000-9000-00000000000b'::uuid,  -- ana
     '00000000-0000-4000-9000-00000000000c'::uuid,  -- bruno
-    '00000000-0000-4000-9000-00000000000d'::uuid   -- sozinho
+    '00000000-0000-4000-9000-00000000000d'::uuid,  -- sozinho
+    '00000000-0000-4000-9000-00000000000e'::uuid   -- nova
   ];
   i int;
 begin
@@ -77,6 +83,7 @@ end $$;
 -- teste tem de continuar a medir o que diz medir.
 update profiles set licenca = 'clube'     where id = '00000000-0000-4000-9000-00000000000a';
 update profiles set licenca = 'treinador' where id = '00000000-0000-4000-9000-00000000000d';
+update profiles set licenca = 'treinador' where id = '00000000-0000-4000-9000-00000000000e';
 update profiles set licenca = 'treinador'
   where id in ('00000000-0000-4000-9000-00000000000b', '00000000-0000-4000-9000-00000000000c');
 
@@ -262,6 +269,49 @@ begin
   exception when insufficient_privilege then
     perform pg_temp.exigir(true, 'mas não o consegue arquivar — isso é do dono');
   end;
+
+  /* ---- o caminho da 0015: gravar pelo `upsert` uma linha que ainda não existe ---- */
+  --
+  -- A app nunca faz `insert`: faz `upsert`, para poder enviar a mesma linha
+  -- outra vez sem saber se já lá está. E um `on conflict` obriga o Postgres a
+  -- procurar a linha que colidiria — o que ele só permite a quem tem
+  -- autorização para a **ler**. Se a política de leitura precisar de encontrar
+  -- a linha na tabela para dizer que sim, uma linha nova nunca passa.
+  --
+  -- Estas três verificações são a prova. Sem a 0015 falham todas com 42501, e
+  -- com a mensagem a apontar para as políticas de escrita, que estão bem.
+
+  -- Uma conta acabada de convidar cria o seu primeiro clube. Era este o erro.
+  perform pg_temp.como('00000000-0000-4000-9000-00000000000e');
+  insert into clubs (id, owner_id, name)
+  values ('00000000-0000-4000-9001-00000000000e', auth.uid(), 'Clube da Nova')
+  on conflict (id) do update set name = excluded.name;
+  perform pg_temp.exigir(true, 'uma conta sem clube cria o primeiro pelo `upsert`');
+
+  select count(*) into n from clubs;
+  perform pg_temp.exigir(n = 1, 'e passa a vê-lo — só esse');
+
+  -- Com o `owner_id` de outra pessoa continua a ser recusado. A 0015 mexeu na
+  -- leitura, não em quem pode escrever, e é aqui que isso se confirma.
+  begin
+    insert into clubs (owner_id, name)
+    values ('00000000-0000-4000-9000-00000000000a', 'Clube roubado ao gerente');
+    raise exception 'FALHOU: criou um clube em nome de outra conta';
+  exception when insufficient_privilege then
+    perform pg_temp.exigir(true, 'mas não consegue criar um clube em nome de outro');
+  end;
+
+  -- E o dono do clube cria um escalão **novo** pelo mesmo caminho. A `teams_ler`
+  -- tinha o mesmo defeito da `clubs_ler`, por isso isto falhava até para ele.
+  perform pg_temp.como('00000000-0000-4000-9000-00000000000a');
+  insert into teams (id, club_id, name, timing)
+  values ('00000000-0000-4000-9002-000000000004', '00000000-0000-4000-9001-00000000000a',
+          'A4 pelo upsert', 'UNTIMED')
+  on conflict (id) do update set name = excluded.name;
+  perform pg_temp.exigir(true, 'o dono cria um escalão novo pelo `upsert`');
+
+  select count(*) into n from clubs;
+  perform pg_temp.exigir(n = 1, 'e continua a ver um só clube — não o da Nova');
 
   /* ---- o treinador sozinho não vê nada do clube A ---- */
   perform pg_temp.como('00000000-0000-4000-9000-00000000000d');
