@@ -5,7 +5,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { statusLabel, statusKind } from '@/lib/format.js';
 import { useT } from '@/lib/i18n/index.js';
-import { rotas } from '@/lib/routes.js';
+import { rotas, abaActiva } from '@/lib/routes.js';
 import PageHead from './PageHead.jsx';
 
 export function Empty({ children, action }) {
@@ -87,12 +87,18 @@ export function SoLeitura({ titulo }) {
 export function Tabs({ items }) {
   const router = useRouter();
   const pathname = usePathname();
+  // Comparar o caminho actual com o destino da aba não é um `===`: um traz a
+  // barra no fim e o outro traz os ids colados. A explicação está no
+  // `abaActiva`, e é ela que faz a aba acender — antes disto não acendia
+  // nenhuma, em ecrã nenhum.
+  const activa = abaActiva(pathname, items.map((it) => it.to));
   return (
     <nav className="tabs">
-      {items.map((it) => (
+      {items.map((it, i) => (
         <button
           key={it.to}
-          className={`tab ${pathname === it.to ? 'is-active' : ''}`}
+          className={`tab ${i === activa ? 'is-active' : ''}`}
+          aria-current={i === activa ? 'page' : undefined}
           onClick={() => router.push(it.to)}
         >
           {it.label}

@@ -96,3 +96,44 @@ export function comOrigem(destino, { de, atras } = {}) {
   if (atras) extra.push(`back=${encodeURIComponent(atras)}`);
   return extra.length ? `${destino}${separador}${extra.join('&')}` : destino;
 }
+
+/**
+ * Qual das abas corresponde ao ecrã em que estamos.
+ *
+ * Parece uma comparação trivial e não é, porque os dois lados nunca têm a mesma
+ * forma. O `usePathname` do Next devolve `/team/roster/` — com a barra no fim,
+ * por causa do `trailingSlash` que a exportação estática obriga — e sem os
+ * parâmetros. As rotas daqui devolvem `/team/roster?c=…&t=…`: sem barra no fim
+ * e com os ids colados. Um `===` entre as duas coisas é sempre falso, e o
+ * resultado era nenhuma aba ficar acesa em ecrã nenhum.
+ *
+ * A regra é o prefixo mais comprido, e não a igualdade, para que as páginas
+ * penduradas numa aba a mantenham acesa: em `/team/matches/new` continua acesa
+ * a de Jogos. Como `/team` é prefixo de todas as outras, tem de ser o mais
+ * comprido a ganhar — senão as Estatísticas ficavam acesas em todo o lado.
+ *
+ * @param {string} atual o que o `usePathname` devolveu
+ * @param {string[]} destinos os endereços das abas, pela ordem em que aparecem
+ * @returns {number} o índice da aba acesa, ou -1 se nenhuma servir
+ */
+export function abaActiva(atual, destinos) {
+  const limpar = (e) => (e || '').split('?')[0].replace(/\/+$/, '') || '/';
+  const aqui = limpar(atual);
+
+  let escolhida = -1;
+  let maisComprido = -1;
+
+  destinos.forEach((destino, i) => {
+    const base = limpar(destino);
+    // `aqui === base` apanha a própria aba; o resto apanha o que está por baixo
+    // dela. A barra na comparação não é detalhe: sem ela, `/team` dava-se como
+    // prefixo de `/teamXYZ`, que é outra página.
+    const debaixo = aqui === base || aqui.startsWith(`${base}/`);
+    if (debaixo && base.length > maisComprido) {
+      maisComprido = base.length;
+      escolhida = i;
+    }
+  });
+
+  return escolhida;
+}
