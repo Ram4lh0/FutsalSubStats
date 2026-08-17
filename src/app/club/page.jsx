@@ -14,7 +14,7 @@ import useRouteParams from '@/lib/useRouteParams.js';
 import PageHead from '@/components/PageHead.jsx';
 import Emblema from '@/components/Emblema.jsx';
 import { Empty } from '@/components/bits.jsx';
-import { clubs, teams, players, loadTeamMatchStates } from '@/lib/data/repository.js';
+import { clubs, teams, players, profile, loadTeamMatchStates } from '@/lib/data/repository.js';
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
 import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS, timingOf } from '@/domain/constants.js';
@@ -58,7 +58,12 @@ function Escaloes() {
         ultimo: terminados[0] || null,
       });
     }
-    setDados({ club, cartoes });
+    // A licença decide se o botão de criar escalão aparece. É a mesma regra do
+    // clube: a de Treinador dá direito a um, e um botão que existe só para
+    // recusar depois de a pessoa ter escrito o nome não é um botão, é uma
+    // partida. Quem trava a sério continua a ser o gatilho `limite_de_escaloes`.
+    const licenca = (await profile.get())?.licenca || 'treinador';
+    setDados({ club, cartoes, licenca });
   }, [clubId]);
 
   useEffect(() => {
@@ -71,7 +76,11 @@ function Escaloes() {
   if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
   if (!dados.club) return <Empty>{t('clube.naoEncontrado')}</Empty>;
 
-  const { club, cartoes } = dados;
+  const { club, cartoes, licenca } = dados;
+
+  // Com licença de Clube, os escalões que quiser. Com a de Treinador, um — e
+  // depois de o ter, o botão desaparece em vez de prometer um segundo.
+  const podeCriarEscalao = licenca === 'clube' || cartoes.length === 0;
 
   return (
     <>
@@ -95,12 +104,14 @@ function Escaloes() {
               >
                 {t('clube.editarTitulo')}
               </button>
-              <button
-                className="btn btn--primary"
-                onClick={() => router.push(rotas.escalaoNovo(clubId))}
-              >
-                {t('clube.criarEscalao')}
-              </button>
+              {podeCriarEscalao ? (
+                <button
+                  className="btn btn--primary"
+                  onClick={() => router.push(rotas.escalaoNovo(clubId))}
+                >
+                  {t('clube.criarEscalao')}
+                </button>
+              ) : null}
             </>
           )
         }
