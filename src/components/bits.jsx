@@ -36,10 +36,14 @@ export function StatusBadge({ status }) {
  * — e as barras ficam ténues, que é o papel delas. A cor não é a única pista:
  * a ordem V/E/D mantém-se e o cabeçalho continua lá, para quem não distinga
  * verde de vermelho.
+ *
+ * Com `head`, é o cabeçalho da tabela: as mesmas caixas, com as letras em vez
+ * dos números e sem cor própria. É o que faz o V cair por cima das vitórias e o
+ * D por cima das derrotas — antes era um texto solto que aterrava onde calhava.
  */
-export function Ved({ v, e, d }) {
+export function Ved({ v, e, d, head = false }) {
   return (
-    <span className="ved">
+    <span className={`ved ${head ? 'ved--head' : ''}`}>
       <b className="ved__v">{v}</b>
       <i>/</i>
       <b className="ved__e">{e}</b>

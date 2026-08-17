@@ -74,7 +74,12 @@ function Conteudo() {
                   <tr>
                     <th>{t('lista.competicao')}</th>
                     <th className="num">{t('competicoes.jogos')}</th>
-                    <th className="num">{t('competicoes.ved')}</th>
+                    {/* As mesmas caixas de largura fixa da célula, para as
+                        letras caírem por cima dos números a que dizem
+                        respeito. */}
+                    <th className="num" aria-label={t('competicoes.ved')}>
+                      <Ved v={t('ved.v')} e={t('ved.e')} d={t('ved.d')} head />
+                    </th>
                     <th className="num">{t('competicoes.marcados')}</th>
                     <th className="num">{t('competicoes.sofridos')}</th>
                     <th className="num">{t('competicoes.diferenca')}</th>

@@ -381,6 +381,11 @@ export default {
   'competicoes.vazio':
     'Ainda não há competições. Cada jogo pertence a uma, por isso vale a pena criar já o campeonato.',
   'competicoes.jogos': 'Jogos',
+  // As três letras em separado, para o cabeçalho da tabela poder ficar
+  // alinhado coluna a coluna com os números que estão por baixo.
+  'ved.v': 'V',
+  'ved.e': 'E',
+  'ved.d': 'D',
   'competicoes.ved': 'V / E / D',
   'competicoes.marcados': 'Marcados',
   'competicoes.sofridos': 'Sofridos',
