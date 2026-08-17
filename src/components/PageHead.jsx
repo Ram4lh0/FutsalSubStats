@@ -24,7 +24,10 @@ const HOME_ICON = (
   </svg>
 );
 
-export default function PageHead({ title, subtitle, backTo, homeTo, actions }) {
+// O `onBack` existe para os ecrãs onde sair pode perder trabalho — o dos
+// acessos é o primeiro — e que precisam de perguntar antes de deixar ir. Sem
+// ele, o botão faz o que sempre fez.
+export default function PageHead({ title, subtitle, backTo, onBack, homeTo, actions }) {
   const router = useRouter();
   const t = useT();
   return (
@@ -39,8 +42,11 @@ export default function PageHead({ title, subtitle, backTo, homeTo, actions }) {
           >
             {HOME_ICON}
           </button>
-        ) : backTo ? (
-          <button className="btn btn--ghost btn--icon" onClick={() => router.push(backTo)}>
+        ) : backTo || onBack ? (
+          <button
+            className="btn btn--ghost btn--icon"
+            onClick={onBack || (() => router.push(backTo))}
+          >
             ‹
           </button>
         ) : null}

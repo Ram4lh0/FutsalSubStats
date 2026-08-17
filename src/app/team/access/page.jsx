@@ -39,7 +39,16 @@ function Conteudo() {
   const [escalao, setEscalao] = useState(null);
   const [linhas, setLinhas] = useState(null);
   const [erro, setErro] = useState(null);
-  const [ocupado, setOcupado] = useState(null);
+  const [aGuardar, setAGuardar] = useState(false);
+
+  // O que foi escolhido neste ecrã e ainda não subiu: `userId` → `'ver'`,
+  // `'editar'` ou `null` (sem acesso).
+  //
+  // Antes cada toque ia ao servidor de imediato. Funcionava, mas dava um ecrã
+  // sem fim: distribuir acessos por cinco treinadores eram cinco viagens, cada
+  // uma podendo falhar por si, e nada que dissesse "está feito". Agora escolhe-se
+  // tudo e guarda-se de uma vez.
+  const [pendentes, setPendentes] = useState({});
 
   const carregar = useCallback(async () => {
     if (!clubId || !teamId) return;
@@ -67,32 +76,66 @@ function Conteudo() {
     carregar();
   }, [carregar]);
 
-  async function mudar(userId, nivel) {
-    setOcupado(userId);
+  /** O nível que este ecrã mostra: o escolhido agora, ou o que veio do servidor. */
+  const nivelDe = (linha) =>
+    Object.hasOwn(pendentes, linha.userId) ? pendentes[linha.userId] : linha.nivel;
+
+  /**
+   * Escolher um nível — ou tirar o acesso, com `null`.
+   *
+   * Voltar ao que o servidor já tinha apaga a escolha em vez de a guardar como
+   * "alteração". Sem isto, carregar em "Só ver" e outra vez em "Só ver" deixava
+   * o botão de guardar aceso com nada para fazer.
+   */
+  function escolher(linha, nivel) {
+    setPendentes((antes) => {
+      const proximo = { ...antes };
+      if (nivel === linha.nivel) delete proximo[linha.userId];
+      else proximo[linha.userId] = nivel;
+      return proximo;
+    });
+  }
+
+  const porGuardar = Object.keys(pendentes).length;
+
+  /**
+   * Manda as alterações, uma a uma, e volta para as definições do escalão.
+   *
+   * Uma a uma porque não há forma de as mandar juntas: cada acesso é uma linha
+   * sua em `team_access`. Se alguma falhar, pára ali e não navega — o que já
+   * subiu fica feito, o resto continua por guardar no ecrã, e a mensagem diz o
+   * que aconteceu. Fingir sucesso e sair era o pior desfecho possível.
+   */
+  async function guardar() {
+    if (!porGuardar || aGuardar) return;
+    setAGuardar(true);
+    const feitos = [];
     try {
-      await darAcesso(teamId, userId, nivel);
-      await carregar();
+      for (const [userId, nivel] of Object.entries(pendentes)) {
+        if (nivel) await darAcesso(teamId, userId, nivel);
+        else await tirarAcesso(teamId, userId);
+        feitos.push(userId);
+      }
+      toast(t('acessos.guardado'), 'ok');
+      router.push(back || rotas.escalaoEditar(clubId, teamId));
     } catch (e) {
+      setPendentes((antes) => {
+        const resto = { ...antes };
+        for (const id of feitos) delete resto[id];
+        return resto;
+      });
+      await carregar();
       toast(explicar(e), 'error');
     } finally {
-      setOcupado(null);
+      setAGuardar(false);
     }
   }
 
-  async function retirar(linha) {
-    const ok = await confirmar(t('acessos.confirmaRetirar', { nome: linha.nome }), {
-      okLabel: t('acessos.retirar'),
-    });
-    if (!ok) return;
-    setOcupado(linha.userId);
-    try {
-      await tirarAcesso(teamId, linha.userId);
-      await carregar();
-    } catch (e) {
-      toast(explicar(e), 'error');
-    } finally {
-      setOcupado(null);
-    }
+  /** Sair com alterações por guardar avisa primeiro. */
+  async function sair() {
+    const destino = back || rotas.escalaoEditar(clubId, teamId);
+    if (porGuardar && !(await confirmar(t('acessos.descartar')))) return;
+    router.push(destino);
   }
 
   return (
@@ -101,6 +144,7 @@ function Conteudo() {
         title={t('acessos.titulo')}
         subtitle={escalao?.name || ''}
         backTo={back || rotas.escalaoEditar(clubId, teamId)}
+        onBack={sair}
       />
 
       <div className="card">
@@ -140,28 +184,31 @@ function Conteudo() {
                 <div className="form__actions form__actions--left">
                   {/* Três estados e não um interruptor: "sem acesso" é tão
                       escolhível como os outros dois, e um interruptor de
-                      ver/editar deixava a remoção escondida noutro sítio. */}
+                      ver/editar deixava a remoção escondida noutro sítio.
+
+                      Nenhum destes botões fala com o servidor: escrevem no
+                      rascunho, e quem o manda é o "Guardar alterações". */}
                   <button
-                    className={`btn btn--tiny ${linha.nivel === 'ver' ? 'btn--primary' : 'btn--ghost'}`}
-                    disabled={ocupado === linha.userId}
-                    aria-pressed={linha.nivel === 'ver'}
-                    onClick={() => mudar(linha.userId, 'ver')}
+                    className={`btn btn--tiny ${nivelDe(linha) === 'ver' ? 'btn--primary' : 'btn--ghost'}`}
+                    disabled={aGuardar}
+                    aria-pressed={nivelDe(linha) === 'ver'}
+                    onClick={() => escolher(linha, 'ver')}
                   >
                     {t('acessos.ver')}
                   </button>
                   <button
-                    className={`btn btn--tiny ${linha.nivel === 'editar' ? 'btn--primary' : 'btn--ghost'}`}
-                    disabled={ocupado === linha.userId}
-                    aria-pressed={linha.nivel === 'editar'}
-                    onClick={() => mudar(linha.userId, 'editar')}
+                    className={`btn btn--tiny ${nivelDe(linha) === 'editar' ? 'btn--primary' : 'btn--ghost'}`}
+                    disabled={aGuardar}
+                    aria-pressed={nivelDe(linha) === 'editar'}
+                    onClick={() => escolher(linha, 'editar')}
                   >
                     {t('acessos.editar')}
                   </button>
-                  {linha.nivel ? (
+                  {nivelDe(linha) ? (
                     <button
                       className="btn btn--tiny btn--danger btn--ghost"
-                      disabled={ocupado === linha.userId}
-                      onClick={() => retirar(linha)}
+                      disabled={aGuardar}
+                      onClick={() => escolher(linha, null)}
                     >
                       {t('acessos.retirar')}
                     </button>
@@ -172,6 +219,25 @@ function Conteudo() {
               </li>
             ))}
           </ul>
+
+          {/* O botão vive dentro do cartão, a seguir à última pessoa: é o fim da
+              tarefa, e é onde o polegar já está depois de escolher. */}
+          <div className="form__actions">
+            <button
+              className="btn btn--primary"
+              disabled={!porGuardar || aGuardar}
+              onClick={guardar}
+            >
+              {t('acessos.guardar')}
+            </button>
+            {porGuardar ? (
+              <span className="muted small">
+                {t(porGuardar === 1 ? 'acessos.porGuardar' : 'acessos.porGuardarPlural', {
+                  n: porGuardar,
+                })}
+              </span>
+            ) : null}
+          </div>
         </div>
       )}
     </>
