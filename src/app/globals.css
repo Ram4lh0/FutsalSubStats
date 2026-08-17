@@ -70,11 +70,21 @@ ul { padding: 0; list-style: none; }
  * para o service worker guardar, e mais peso no APK. Isto são três linhas de
  * CSS que já vão no ficheiro de estilos e não custam um pedido.
  *
- * ## Porquê `fixed`
+ * ## Porquê no `.app` e não numa camada por cima
  *
- * Quem desliza é a `.view`, não a página. Preso ao ecrã, o fundo fica quieto
- * enquanto o conteúdo passa por cima — que é o efeito que se quer. A deslizar
- * junto, notava-se, e um fundo que se nota deixou de ser fundo.
+ * A primeira tentativa foi um `::before` preso ao ecrã com `z-index: -1`. Não
+ * aparecia nada, e a razão é a ordem de pintura: uma camada de `z-index`
+ * negativo é desenhada **antes** dos elementos normais, e o `body` tem fundo
+ * opaco. Pintava-se e ficava tapada no mesmo instante.
+ *
+ * Aqui não há camadas nenhumas: é o fundo do contentor, e os filhos desenham-se
+ * por cima como sempre fizeram. O `.appbar` tem fundo próprio e continua a
+ * tapá-lo; a `.view` não tem, e deixa passar.
+ *
+ * Também não precisa de `fixed`: quem desliza é a `.view`, e o `.app` está
+ * quieto e do tamanho do ecrã. O fundo fica parado enquanto o conteúdo passa —
+ * que é o que se quer, porque um fundo que acompanha o deslize nota-se, e um
+ * fundo que se nota deixou de ser fundo.
  *
  * ## Se estiver de mais ou de menos
  *
@@ -82,12 +92,7 @@ ul { padding: 0; list-style: none; }
  * nos pontos. Baixá-los é seguro; subi-los tira contraste ao texto, que é o
  * único mal que isto pode fazer.
  */
-.app::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
+.app {
   background:
     radial-gradient(46rem 46rem at 88% -6%, rgba(34, 197, 94, 0.1), transparent 62%),
     radial-gradient(38rem 38rem at -8% 106%, rgba(56, 189, 248, 0.06), transparent 60%),
@@ -100,7 +105,7 @@ ul { padding: 0; list-style: none; }
  * Aquele ecrã lê-se de relance, com o jogo a correr e o treinador a olhar para
  * o campo entre toques. Tudo o que lá esteja e não sirva para decidir uma
  * substituição está a atrapalhar. */
-.app.is-live::before { display: none; }
+.app.is-live { background: none; }
 
 .appbar {
   display: flex; align-items: center; gap: 12px;
