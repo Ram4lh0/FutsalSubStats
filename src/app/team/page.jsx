@@ -8,7 +8,7 @@ import TeamShell from '@/components/TeamShell.jsx';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import DataTable from '@/components/DataTable.jsx';
-import { StatCard, Empty } from '@/components/bits.jsx';
+import { StatCard, Empty, Ved } from '@/components/bits.jsx';
 import { clubAggregate } from '@/domain/stats.js';
 import { fmt } from '@/domain/clock.js';
 import { rotas } from '@/lib/routes.js';
@@ -48,7 +48,7 @@ function Stats({ entries, roster, clubId, teamId }) {
           value={agg.matches}
           hint={t('stats.terminados', { n: agg.finished })}
         />
-        <StatCard label={t('stats.ved')} value={`${agg.wins} / ${agg.draws} / ${agg.losses}`} />
+        <StatCard label={t('stats.ved')} value={<Ved v={agg.wins} e={agg.draws} d={agg.losses} />} />
         <StatCard label={t('stats.golosMarcados')} value={agg.goalsFor} />
         <StatCard label={t('stats.golosSofridos')} value={agg.goalsAgainst} />
         <StatCard label={t('stats.diferenca')} value={agg.goalsFor - agg.goalsAgainst} />

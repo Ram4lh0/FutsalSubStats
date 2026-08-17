@@ -25,8 +25,33 @@ export function StatusBadge({ status }) {
   return <Badge kind={statusKind(status)}>{statusLabel(status)}</Badge>;
 }
 
+/**
+ * Vitórias, empates e derrotas.
+ *
+ * Era um texto só — `${wins} / ${draws} / ${losses}` — e lia-se mal em qualquer
+ * largura: três números iguais, separados por barras do mesmo peso, sem nada
+ * que dissesse qual é qual. Num telemóvel ainda podia partir a meio.
+ *
+ * Aqui cada número tem a sua cor — a mesma convenção de qualquer classificação
+ * — e as barras ficam ténues, que é o papel delas. A cor não é a única pista:
+ * a ordem V/E/D mantém-se e o cabeçalho continua lá, para quem não distinga
+ * verde de vermelho.
+ */
+export function Ved({ v, e, d }) {
+  return (
+    <span className="ved">
+      <b className="ved__v">{v}</b>
+      <i>/</i>
+      <b className="ved__e">{e}</b>
+      <i>/</i>
+      <b className="ved__d">{d}</b>
+    </span>
+  );
+}
+
 /** `kind` pinta o cartão: 'win' | 'draw' | 'loss'. */
 /** Com `onClick` o cartão passa a botão — para os que abrem o detalhe por trás. */
+
 export function StatCard({ label, value, hint, kind, onClick }) {
   const conteudo = (
     <>
