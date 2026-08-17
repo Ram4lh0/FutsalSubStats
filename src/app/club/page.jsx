@@ -136,7 +136,7 @@ function Escaloes() {
           {souDono ? t('clube.semEscaloes') : t('clube.semAcessoAEscaloes')}
         </Empty>
       ) : (
-        <div className="grid grid--cards">
+        <div className={`grid grid--cards ${cartoes.length === 1 ? 'grid--um' : ''}`}>
           {cartoes.map(({ team, ativos, jogos, ultimo }) => (
             <article
               key={team.id}

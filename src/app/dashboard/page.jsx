@@ -145,7 +145,7 @@ function Dashboard() {
           </button>
         </div>
       ) : (
-        <div className="grid grid--cards">
+        <div className={`grid grid--cards ${cartoes.length === 1 ? 'grid--um' : ''}`}>
           {cartoes.map(({ club, escaloes, ativos, jogos, ultimo }) => (
             <article
               key={club.id}
