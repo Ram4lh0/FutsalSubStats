@@ -64,16 +64,21 @@ ul { padding: 0; list-style: none; }
  * A caixa dá para dois algarismos, que é o que impede a linha de saltar quando
  * um dos números passa de 9 para 10 a meio da época. */
 .ved {
-  --ved-num: 1.6rem;
-  --ved-sep: 0.55rem;
+  --ved-num: 1.35rem;
+  --ved-sep: 0.5rem;
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
   white-space: nowrap;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
-.ved b { min-width: var(--ved-num); text-align: right; font-weight: 700; }
+/* Ao centro da caixa, e não encostado à direita.
+ *
+ * Encostado, a barra ficava colada ao número da esquerda e longe do da direita
+ * — `2/  4/  3` em vez de `2 / 4 / 3`. Ao centro, o espaço reparte-se pelos dois
+ * lados e o grupo lê-se como um só. Com `tabular-nums`, um número de dois
+ * algarismos cresce para os dois lados por igual e nada salta de sítio. */
+.ved b { min-width: var(--ved-num); text-align: center; font-weight: 700; }
 .ved i {
   width: var(--ved-sep); text-align: center;
   font-style: normal; font-size: 0.75rem; color: var(--muted); opacity: 0.55;
@@ -84,9 +89,13 @@ ul { padding: 0; list-style: none; }
 /* No cabeçalho as letras não se pintam: quem manda ali é a cor do `th`. */
 .ved--head b { color: inherit; font-weight: inherit; }
 
-/* Dentro de um cartão de estatística os números são maiores e não têm de
-   alinhar com nada — só de respirar. */
-.stat__value .ved { --ved-num: 2.4rem; --ved-sep: 0.8rem; gap: 6px; }
+/* No cartão de estatística não há caixa nenhuma: os números ficam com a largura
+   que têm.
+   Aqui não é preciso alinhar com um cabeçalho — a etiqueta está por cima, não
+   ao lado — e a caixa só servia para afastar o primeiro número da margem
+   esquerda, deixando-o desalinhado da etiqueta. Sem ela, começam os dois no
+   mesmo sítio e o grupo fica junto. */
+.stat__value .ved { --ved-num: 0; --ved-sep: 0.7rem; }
 .stat__value .ved i { font-size: 1rem; }
 
 .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
