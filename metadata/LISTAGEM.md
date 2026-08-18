@@ -103,7 +103,7 @@ uma página simples com o email acima.
 ## URL da política de privacidade
 
 ```
-https://futsal-lake-five.vercel.app/privacy
+https://futsalsubstats.vercel.app/privacy
 ```
 
 ---
