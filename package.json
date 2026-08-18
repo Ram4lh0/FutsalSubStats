@@ -19,7 +19,8 @@
     "emails": "node tools/emails.mjs",
     "convidar": "node tools/convidar.mjs",
     "publicar:pacote": "node tools/publicar-bundle.mjs",
-    "painel": "node tools/painel/servidor.mjs"
+    "painel": "node tools/painel/servidor.mjs",
+    "arte:loja": "python tools/arte-da-loja.py"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
