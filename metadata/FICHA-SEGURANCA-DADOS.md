@@ -23,7 +23,7 @@ sessão iniciada.
 | Campo | O que responder |
 |---|---|
 | A app permite criar conta? | **Sim** |
-| Ligação para eliminação da conta | `https://<domínio>/delete-account` |
+| Ligação para eliminação da conta | `https://futsalsubstats.vercel.app/delete-account` |
 | A app permite pedir a eliminação dentro dela? | **Sim** — Definições → Apagar a conta |
 | Alguns dados são retidos após a eliminação? | **Não** |
 
@@ -120,10 +120,10 @@ quem o inscreve, e a app só guarda nome, número, posição e pé.
 
 | Campo | Valor |
 |---|---|
-| Política de privacidade | `https://<domínio>/privacy` |
-| Eliminação de conta | `https://<domínio>/delete-account` |
+| Política de privacidade | `https://futsalsubstats.vercel.app/privacy` |
+| Eliminação de conta | `https://futsalsubstats.vercel.app/delete-account` |
 | Email de contacto | `review.futsalsubstats@gmail.com` |
-| Site | o site de apresentação, quando existir |
+| Site | `https://futsalsubstats.r4m.workers.dev` |
 
 ---
 
