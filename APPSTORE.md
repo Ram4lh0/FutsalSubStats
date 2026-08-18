@@ -85,7 +85,7 @@ Em **App Store Connect → a versão → App Review Information**:
 Já existe, servida pela própria app:
 
 ```
-https://futsal-lake-five.vercel.app/privacy
+https://futsalsubstats.vercel.app/privacy
 ```
 
 É este endereço que vai no campo **Privacy Policy URL**. Abre sem sessão
