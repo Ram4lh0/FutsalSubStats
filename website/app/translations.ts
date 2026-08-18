@@ -3,7 +3,7 @@ export type Language = "pt" | "en" | "es";
 export const translations = {
   pt: {
     nav: { label: "Navegação principal", tryHere: "Experimenta Aqui", features: "Durante o Jogo", licenses: "Licenças", contact: "Contactos", language: "Idioma", cta: "Ver licenças", install: "Instalar", menu: "Abrir menu" },
-    hero: { eyebrow: "Criado para quem está no banco", titleStart: "O jogo acontece depressa.", titleHighlight: "O tempo de cada um não se perde.", description: "Aponta substituições, golos e faltas com o polegar. A app conta cada segundo em campo — mesmo num pavilhão sem rede.", primary: "Ver como funciona", secondary: "Conhecer as licenças", proofOffline: "Funciona sem internet", proofPrivacy: "Sem publicidade", statTime: "Tempo em campo", entries: "entradas", auto: "detetado sozinho", scroll: "Explorar" },
+    hero: { eyebrow: "Criado para quem está no banco", titleStart: "O jogo acontece depressa.", titleHighlight: "O tempo de cada um não se perde.", description: "Aponta substituições, golos e faltas com o polegar. A app conta cada segundo em campo, mesmo num pavilhão sem rede.", primary: "Ver como funciona", secondary: "Conhecer as licenças", proofOffline: "Funciona sem internet", proofPrivacy: "Sem publicidade", statTime: "Tempo em campo", entries: "entradas", auto: "detetado sozinho", scroll: "Explorar" },
     demo: { label: "Demonstração interativa de um jogo de futsal", live: "EM JOGO", part: "1.ª PARTE", pause: "Parar", resume: "Continuar", undo: "Desfazer última ação", increaseHome: "Adicionar golo ao CAP", decreaseHome: "Retirar golo ao CAP", increaseAway: "Adicionar golo ao ADV", decreaseAway: "Retirar golo ao ADV", bench: "Banco", tap: "Toca num jogador para experimentar", tryTitle: "Experimenta aqui", tryText: "Toca num jogador em campo e depois num do banco", enters: "entra por", pickFirst: "Escolhe primeiro alguém em campo", pickBench: "Agora escolhe alguém do banco", pickField: "Agora escolhe alguém em campo", totalTime: "Tempo de jogo", playingFor: "Em jogo há", leftAgo: "Saiu há", notEntered: "Ainda não entrou", roles: { goalkeeper: "GR", wing: "ALA", defender: "FIXO", leftWing: "ALA E", rightWing: "ALA D", universal: "UNIVERSAL", pivot: "PIVOT" } },
     statement: { kicker: "A memória não chega para tudo.", title: "Quem marcou, sabes de cor.", highlight: "Quanto tempo jogou cada um, a app sabe por ti." },
     features: { kicker: "Durante o jogo", title: "O que precisas, à distância de um toque.", intro: "Nada para configurar a meio do jogo. Os gestos são simples para continuares de olhos no campo.", items: [
@@ -44,7 +44,7 @@ export const translations = {
         "Escolhe Adicionar ao ecrã principal ou Instalar aplicação.",
         "Confirma em Instalar. Fica um ícone como o de qualquer outra app.",
       ],
-      offlineNote: "Depois de instalada, a app abre e funciona sem rede — um jogo inteiro num pavilhão sem cobertura.",
+      offlineNote: "Depois de instalada, a app abre e funciona sem rede. Um jogo inteiro num pavilhão sem cobertura.",
     },
     faq: { kicker: "Perguntas frequentes", title: "Antes do primeiro jogo.", items: [
       { question: "Funciona sem internet?", answer: "Sim. Tudo é guardado no aparelho primeiro e sincroniza sozinho quando houver ligação." },
@@ -53,12 +53,12 @@ export const translations = {
       { question: "E se já tiver o plantel no Excel?", answer: "Podes importar um CSV com número, nome, posição e pé preferido." },
       { question: "Funciona no iPad?", answer: "Sim. É onde a vista de jogo se vê melhor à beira do campo." },
     ]},
-    contact: { kicker: "Vamos falar", title: "Queres levar isto para o próximo jogo?", text: "Fala connosco e descobre como podes acompanhar melhor cada jogo e ter os números da tua equipa sempre à mão.", button: "Enviar email", subject: "FutsalSubStats — pedido de informação", body: "Olá,\n\nGostaria de saber mais sobre as licenças do FutsalSubStats.\n\nClube/Equipa:\nNúmero de escalões:\n\nObrigado." },
+    contact: { kicker: "Vamos falar", title: "Queres levar isto para o próximo jogo?", text: "Fala connosco e descobre como podes acompanhar melhor cada jogo e ter os números da tua equipa sempre à mão.", button: "Enviar email", subject: "FutsalSubStats: pedido de informação", body: "Olá,\n\nGostaria de saber mais sobre as licenças do FutsalSubStats.\n\nClube/Equipa:\nNúmero de escalões:\n\nObrigado." },
     footer: { tagline: "Cada segundo em campo, contado." },
   },
   en: {
     nav: { label: "Main navigation", tryHere: "Try it here", features: "During the match", licenses: "Licences", contact: "Contact", language: "Language", cta: "View licences", install: "Install", menu: "Open menu" },
-    hero: { eyebrow: "Built for the bench", titleStart: "The match moves fast.", titleHighlight: "No player minute gets lost.", description: "Log substitutions, goals and fouls with your thumb. The app counts every second on court — even in a venue with no signal.", primary: "See how it works", secondary: "Explore licences", proofOffline: "Works offline", proofPrivacy: "No advertising", statTime: "Time on court", entries: "entries", auto: "detected automatically", scroll: "Explore" },
+    hero: { eyebrow: "Built for the bench", titleStart: "The match moves fast.", titleHighlight: "No player minute gets lost.", description: "Log substitutions, goals and fouls with your thumb. The app counts every second on court, even in a venue with no signal.", primary: "See how it works", secondary: "Explore licences", proofOffline: "Works offline", proofPrivacy: "No advertising", statTime: "Time on court", entries: "entries", auto: "detected automatically", scroll: "Explore" },
     demo: { label: "Interactive futsal match demo", live: "LIVE", part: "1ST HALF", pause: "Pause", resume: "Resume", undo: "Undo last action", increaseHome: "Add a CAP goal", decreaseHome: "Remove a CAP goal", increaseAway: "Add an opponent goal", decreaseAway: "Remove an opponent goal", bench: "Bench", tap: "Tap a player to try it", tryTitle: "Try it here", tryText: "Tap an on-court player, then someone on the bench", enters: "replaces", pickFirst: "Pick an on-court player first", pickBench: "Now pick someone from the bench", pickField: "Now pick someone on court", totalTime: "Playing time", playingFor: "On court for", leftAgo: "Off for", notEntered: "Not yet played", roles: { goalkeeper: "GK", wing: "WING", defender: "DEF", leftWing: "L WING", rightWing: "R WING", universal: "UTILITY", pivot: "PIVOT" } },
     statement: { kicker: "Memory cannot hold everything.", title: "You know who scored.", highlight: "The app remembers how long everyone played." },
     features: { kicker: "During the match", title: "Everything you need, one tap away.", intro: "Nothing to configure during play. Simple gestures keep your eyes on the court.", items: [
@@ -99,7 +99,7 @@ export const translations = {
         "Choose Add to Home screen or Install app.",
         "Confirm with Install. You get an icon like any other app.",
       ],
-      offlineNote: "Once installed, the app opens and works with no connection — a whole match in a sports hall with no signal.",
+      offlineNote: "Once installed, the app opens and works with no connection. A whole match in a sports hall with no signal.",
     },
     faq: { kicker: "Frequently asked", title: "Before the first match.", items: [
       { question: "Does it work offline?", answer: "Yes. Everything is saved on the device first and syncs automatically when connection returns." },
@@ -108,7 +108,7 @@ export const translations = {
       { question: "What if my squad is already in Excel?", answer: "Import a CSV with number, name, position and preferred foot." },
       { question: "Does it work on iPad?", answer: "Yes. It is the best way to see the live match view courtside." },
     ]},
-    contact: { kicker: "Let's talk", title: "Ready to take it to your next match?", text: "Talk to us and discover how you can follow every match more clearly and always have your team's numbers at hand.", button: "Send email", subject: "FutsalSubStats — information request", body: "Hello,\n\nI would like to know more about FutsalSubStats licences.\n\nClub/Team:\nNumber of teams:\n\nThank you." },
+    contact: { kicker: "Let's talk", title: "Ready to take it to your next match?", text: "Talk to us and discover how you can follow every match more clearly and always have your team's numbers at hand.", button: "Send email", subject: "FutsalSubStats: information request", body: "Hello,\n\nI would like to know more about FutsalSubStats licences.\n\nClub/Team:\nNumber of teams:\n\nThank you." },
     footer: { tagline: "Every second on court, counted." },
   },
   es: {
@@ -154,7 +154,7 @@ export const translations = {
         "Elige Añadir a pantalla de inicio o Instalar aplicación.",
         "Confirma en Instalar. Queda un icono como el de cualquier otra app.",
       ],
-      offlineNote: "Una vez instalada, la app abre y funciona sin conexión — un partido entero en un pabellón sin cobertura.",
+      offlineNote: "Una vez instalada, la app abre y funciona sin conexión. Un partido entero en un pabellón sin cobertura.",
     },
     faq: { kicker: "Preguntas frecuentes", title: "Antes del primer partido.", items: [
       { question: "¿Funciona sin internet?", answer: "Sí. Todo se guarda primero en el dispositivo y se sincroniza automáticamente cuando vuelve la conexión." },
@@ -163,7 +163,7 @@ export const translations = {
       { question: "¿Y si ya tengo la plantilla en Excel?", answer: "Puedes importar un CSV con número, nombre, posición y pie preferido." },
       { question: "¿Funciona en iPad?", answer: "Sí. Es donde mejor se ve la pantalla de partido desde el banquillo." },
     ]},
-    contact: { kicker: "Hablemos", title: "¿Quieres llevarlo al próximo partido?", text: "Habla con nosotros y descubre cómo seguir mejor cada partido y tener siempre a mano los números de tu equipo.", button: "Enviar email", subject: "FutsalSubStats — solicitud de información", body: "Hola,\n\nMe gustaría saber más sobre las licencias de FutsalSubStats.\n\nClub/Equipo:\nNúmero de equipos:\n\nGracias." },
+    contact: { kicker: "Hablemos", title: "¿Quieres llevarlo al próximo partido?", text: "Habla con nosotros y descubre cómo seguir mejor cada partido y tener siempre a mano los números de tu equipo.", button: "Enviar email", subject: "FutsalSubStats: solicitud de información", body: "Hola,\n\nMe gustaría saber más sobre las licencias de FutsalSubStats.\n\nClub/Equipo:\nNúmero de equipos:\n\nGracias." },
     footer: { tagline: "Cada segundo en pista, contado." },
   },
 } as const;
