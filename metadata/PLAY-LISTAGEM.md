@@ -133,16 +133,33 @@ A Google exige este endereço para apps com contas, e exige que a página exista
 
 ## Acesso para quem revê
 
-A app não deixa criar conta — o registo está fechado e as contas são
-autorizadas uma a uma. Sem isto, quem revê abre a app, não consegue entrar, e
-recusa por "não foi possível avaliar a funcionalidade".
+**A app avalia-se inteira sem conta nenhuma.** O jogo de experiência, no ecrã de
+entrada, não é uma amostra: monta um clube, um escalão, um plantel e um jogo, e
+o `Guard` deixa percorrer tudo a partir daí — painel, clube, escalões, plantel,
+jogos, competições e estatísticas. O que ele não deixa é **alterar** a
+estrutura, e isso é de propósito: aquilo desaparece quando a experiência acaba.
 
-Dar-lhes:
+Ficam de fora três coisas, todas pequenas: apagar a conta (não há conta),
+o ecrã "Quem tem acesso" (precisa de rede e de sessão) e a sincronização. A
+eliminação da conta — a única que a Google verifica a sério — está coberta pelo
+endereço público mais acima, que responde sem sessão.
 
-- o email e a palavra-passe da conta de revisão (a palavra-passe **nunca** se
-  escreve aqui nem em nenhum ficheiro do repositório — vai só no formulário);
-- e a nota de que há um **jogo de experiência** no ecrã de entrada, que não
-  precisa de conta nenhuma e mostra a app inteira a funcionar.
+Mesmo assim, preencher o **App access** com a conta de revisão. Não é por a
+demonstração não chegar: é porque basta um revisor tentar entrar, reparar que o
+registo está fechado, e marcar como bloqueado. Custa dois campos e evita um
+ciclo de recusa com os 14 dias do teste fechado a correr.
+
+No mesmo campo, escrever a nota da demonstração — é ela que dá o caminho rápido:
+
+```
+Não é preciso conta para avaliar a app. No ecrã de entrada há um jogo de
+experiência que não exige registo e dá acesso a todos os ecrãs: painel, clube,
+escalões, plantel, jogos, competições e estatísticas. As credenciais abaixo
+servem apenas para quem quiser ver a app com uma conta a sério.
+```
+
+A palavra-passe **nunca** se escreve aqui nem em nenhum ficheiro do
+repositório — vai só no formulário da consola.
 
 ---
 
