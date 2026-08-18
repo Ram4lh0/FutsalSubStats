@@ -354,3 +354,44 @@ Sim, e é onde se vê melhor durante o jogo.
 
 **Há versão Android?**
 Ainda não.
+
+---
+
+## Publicar o site, no Windows
+
+```powershell
+cd website
+npx --no-install vinext build
+npx wrangler deploy
+```
+
+Sai em `https://futsalsubstats.r4m.workers.dev`. O nome do Worker é
+`futsalsubstats` e está no `wrangler.jsonc`; o `r4m` é o subdomínio da conta.
+
+### Porque é que não se usa o `npm run build` aqui
+
+O `build` do site chama `scripts/build-verified.sh`. No Windows, o `npm`
+resolve o `bash` para o do WSL, e dentro do WSL não há Node instalado — o
+comando morre com `exec: node: not found` sem chegar a compilar nada. O script
+serve o ambiente onde o site foi gerado, não esta máquina.
+
+O que se perde ao saltá-lo é a verificação final, que confirma que o
+`dist/server/index.js` existe e exporta um `fetch`. Na prática o
+`wrangler deploy` faz essa prova sozinho: não publica um Worker que não consiga
+carregar.
+
+### Porquê `--no-install`
+
+Sem ele, o `npx` que não encontrar o `vinext` local vai descarregar uma versão
+avulsa da internet — e essa não combina com as bibliotecas do projeto. O erro
+que dá são três `MISSING_EXPORT` do `@vitejs/plugin-rsc`, que não têm nada que
+ver com o código e mandam à procura no sítio errado. Com `--no-install`, falha
+logo a dizer que não encontrou.
+
+Atenção também à pasta: correr isto fora de `website/` é a outra forma de cair
+no mesmo engano.
+
+### Depois de publicar
+
+Recarregar com `Ctrl+Shift+R`. O browser guarda o JavaScript e o CSS, e sem
+isso vê-se a versão antiga de um site que já foi substituído.
