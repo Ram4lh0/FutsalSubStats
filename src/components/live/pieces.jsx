@@ -176,7 +176,10 @@ function CourtCard({ pos, p, state, sel, clockMs, on }) {
     >
       <div className="pcard__top">
         <span className="pcard__num">{p.number}</span>
-        <span className="pcard__pos">{positionShort(pos)}</span>
+        {/* A posição saiu daqui. O cartão já **está** no lugar dela dentro do
+            campo, portanto a etiqueta repetia o que se via, e era o que gastava
+            a linha de cima — que agora sobra para o que vier a seguir.
+            Nos lugares vazios continua, que aí não há mais nada a identificá-los. */}
         {pos === 'GOALKEEPER' ? <PowerPlayChip state={state} on={on} /> : null}
         <CardChips p={p} state={state} />
         <span
