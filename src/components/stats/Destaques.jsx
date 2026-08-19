@@ -132,6 +132,14 @@ function Cartao5v4({ pp }) {
                 value={fmt(pp.mediaPorJogoMs)}
                 hint={t('stats.emJogos', { n: pp.jogosCom })}
               />
+              {/* Com que frequência se recorre a isto. Dois treinadores com o
+                  mesmo tempo total podem ter chegado lá de maneiras opostas:
+                  um pouco em muitos jogos, ou muito em dois. */}
+              <StatCard
+                label={t('stats.percentagem5v4')}
+                value={`${pp.percentagemJogos}%`}
+                hint={t('stats.deJogos', { com: pp.jogosCom, total: pp.jogosTotal })}
+              />
             </div>
 
             <h3 className="section">{t('stats.tempoPorJogador5v4')}</h3>

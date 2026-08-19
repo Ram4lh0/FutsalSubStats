@@ -467,6 +467,8 @@ export default {
   'stats.detalhes5v4': 'Flying goalkeeper',
   'stats.golosEm5v4': 'Goals in 5v4',
   'stats.sofridosEm5v4': 'Conceded in 5v4',
+  'stats.percentagem5v4': 'Matches with 5v4',
+  'stats.deJogos': '{com} of {total}',
   'stats.mediaPorJogo5v4': 'Average per match',
   'stats.saldo5v4': 'Net',
   'stats.periodos5v4': '{n} spells across {jogos} matches',

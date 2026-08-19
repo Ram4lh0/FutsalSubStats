@@ -466,6 +466,8 @@ export default {
   'stats.detalhes5v4': 'Portero-jugador',
   'stats.golosEm5v4': 'Goles en 5v4',
   'stats.sofridosEm5v4': 'Encajados en 5v4',
+  'stats.percentagem5v4': 'Partidos con 5v4',
+  'stats.deJogos': '{com} de {total}',
   'stats.mediaPorJogo5v4': 'Media por partido',
   'stats.saldo5v4': 'Saldo',
   'stats.periodos5v4': '{n} periodos en {jogos} partidos',

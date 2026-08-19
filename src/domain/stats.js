@@ -260,8 +260,15 @@ export function powerPlayAggregate(entries) {
   let golosA = 0;
   let golosContra = 0;
   let jogosCom = 0;
+  let jogosTotal = 0;
 
   for (const { state } of entries) {
+    // Um jogo por começar não conta para a percentagem. Não é que não tenha
+    // havido 5v4 nele: é que ainda não houve jogo nenhum, e contá-lo puxava a
+    // percentagem para baixo por uma razão que não tem que ver com futsal.
+    if (state.status !== MATCH_STATUS.DRAFT && state.status !== MATCH_STATUS.READY) {
+      jogosTotal += 1;
+    }
     const clockMs = state.elapsedMatchMs;
     const janelas = powerPlayPeriods(state, clockMs).map((x) => ({
       ini: x.startMatchMs,
@@ -311,6 +318,11 @@ export function powerPlayAggregate(entries) {
     periodos,
     totalMs,
     jogosCom,
+    jogosTotal,
+    // Em quantos jogos se recorreu ao guarda-redes avançado. Diz se é um
+    // recurso de fim de jogo ou parte do plano — dois treinadores com o mesmo
+    // tempo total de 5v4 podem ter chegado lá de maneiras opostas.
+    percentagemJogos: jogosTotal ? Math.round((jogosCom / jogosTotal) * 100) : 0,
     golosA,
     golosContra,
     saldo: golosA - golosContra,
