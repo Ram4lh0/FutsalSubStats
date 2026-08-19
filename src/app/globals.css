@@ -330,7 +330,22 @@ ul { padding: 0; list-style: none; }
 .tablewrap {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  /* Ao lado sim, ao alto não.
+   *
+   * Ao lado é o que se quer: arrastar a tabela para ver as colunas da direita
+   * não pode levar a página atrás.
+   *
+   * Ao alto era uma armadilha. Um elemento com `overflow: auto` é um contentor
+   * de deslize **mesmo quando não há nada a transbordar**, e com `contain` ele
+   * engole o gesto em vez de o passar a quem está por fora. Numa tabela de
+   * estatísticas mais curta do que os 520px de altura máxima, o dedo em cima da
+   * tabela não fazia nada e a página só deslizava com o dedo no fundo escuro ao
+   * lado. Acontecia o mesmo ao chegar ao fim de uma tabela comprida.
+   *
+   * `auto` no eixo vertical devolve o encadeamento: a tabela desliza enquanto
+   * tiver para onde, e a partir daí é a página que continua. */
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
