@@ -12,7 +12,12 @@ import {
   powerPlayAtivo,
 } from '../src/domain/reducer.js';
 import { readClock, fmt, periodProgress } from '../src/domain/clock.js';
-import { clubAggregate, playerMatchStats, powerPlayTotals } from '../src/domain/stats.js';
+import {
+  clubAggregate,
+  playerMatchStats,
+  powerPlayTotals,
+  powerPlayAggregate,
+} from '../src/domain/stats.js';
 import * as A from '../src/domain/actions.js';
 import * as V from '../src/domain/validation.js';
 import {
@@ -1088,4 +1093,57 @@ test('um golo sofrido com dois expulsos devolve um jogador, não dois', () => {
     null,
     'abre um lugar logo a seguir ao golo'
   );
+});
+
+/* ------------------------------------------------- o 5v4 ao longo da época */
+
+test('5v4 da época: saldo, tempo e quem lá esteve', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+
+  // 5' abre o 5v4 — a guarda-redes sai, entra o p6 para a baliza.
+  step(
+    ctx,
+    (s) => A.substitute(s, { playerOutId: 'p1', playerInId: 'p6', position: 'GOALKEEPER' }, T0 + 5 * MIN),
+    T0 + 5 * MIN
+  );
+  // 6' marcamos, 7' sofremos: um de cada, ambos dentro da janela.
+  step(ctx, (s) => A.goal(s, EVENT.TEAM_GOAL_ADDED, T0 + 6 * MIN), T0 + 6 * MIN);
+  step(ctx, (s) => A.goal(s, EVENT.OPPONENT_GOAL_ADDED, T0 + 7 * MIN), T0 + 7 * MIN);
+  // 8' fecha.
+  const st = step(
+    ctx,
+    (s) => A.substitute(s, { playerOutId: 'p6', playerInId: 'p1', position: 'GOALKEEPER' }, T0 + 8 * MIN),
+    T0 + 8 * MIN
+  );
+  // 9' sofremos outro, já fora do 5v4 — não pode contar.
+  const fim = step(ctx, (s) => A.goal(s, EVENT.OPPONENT_GOAL_ADDED, T0 + 9 * MIN), T0 + 9 * MIN);
+
+  const pp = powerPlayAggregate([{ state: fim }]);
+
+  assert.equal(pp.periodos, 1);
+  assert.equal(pp.jogosCom, 1);
+  assert.equal(pp.totalMs, 3 * MIN, 'dos 5 aos 8 minutos');
+  assert.equal(pp.golosA, 1);
+  assert.equal(pp.golosContra, 1, 'o golo aos 9 minutos ficou de fora');
+  assert.equal(pp.saldo, 0);
+  assert.equal(pp.mediaPorJogoMs, 3 * MIN);
+
+  // O p6 entrou exactamente com o 5v4 e saiu com ele: leva os três minutos.
+  const p6 = pp.jogadores.find((j) => j.playerId === 'p6');
+  assert.equal(p6.ms, 3 * MIN, 'o tempo de quem esteve lá a leva toda');
+
+  // A guarda-redes saiu quando aquilo começou: não leva nada.
+  assert.equal(pp.jogadores.some((j) => j.playerId === 'p1'), false);
+});
+
+test('sem 5v4 nenhum, o agregado é todo zeros e não divide por zero', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  const st = step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const pp = powerPlayAggregate([{ state: st }]);
+
+  assert.equal(pp.periodos, 0);
+  assert.equal(pp.jogosCom, 0);
+  assert.equal(pp.mediaPorJogoMs, 0, 'a média por jogo sem jogos é zero, não NaN');
+  assert.deepEqual(pp.jogadores, []);
 });
