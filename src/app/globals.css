@@ -1234,3 +1234,26 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .destaque__valor { flex: none; font-weight: 700; }
 .destaque .stat__value { margin: 0 0 2px; text-align: left; font-size: 1.5rem; font-weight: 700; }
 .destaque .btn--block { margin-top: 12px; }
+
+/* Acertar o relógio: quatro botões pequenos ao lado do número.
+   Pequenos de propósito — isto usa-se uma vez por jogo, se tanto, e a mão do
+   treinador está no campo e nas substituições. Botões grandes aqui só
+   aumentavam a hipótese de lhes tocar sem querer a meio de uma troca. */
+.clockbox__linha { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.clockadj { display: grid; grid-template-columns: auto auto; gap: 3px; }
+.clockadj__par { display: flex; flex-direction: column; gap: 3px; }
+.clockadj__b {
+  min-height: 22px; min-width: 34px; padding: 0 5px;
+  border: 1px solid var(--line); border-radius: 7px;
+  background: transparent; color: var(--muted);
+  font-size: 0.66rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  cursor: pointer; line-height: 1;
+}
+.clockadj__b:hover { color: var(--text); border-color: var(--primary); }
+/* No telemóvel ao alto o cronómetro já ocupa a largura toda: os botões passam
+   para uma fila de quatro por baixo, em vez de espremerem o número. */
+@media (max-width: 560px) {
+  .clockbox__linha { flex-direction: column; gap: 6px; }
+  .clockadj { grid-template-columns: repeat(4, auto); }
+  .clockadj__par { flex-direction: row; }
+}

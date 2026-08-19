@@ -1,0 +1,23 @@
+-- 0017_acertar_o_relogio.sql
+--
+-- Um tipo de evento novo: acertar o relógio a meio da parte.
+--
+-- O treinador carrega em parar e retomar o tempo com o jogo a decorrer, e
+-- engana-se: pára tarde, retoma cedo, ou esquece-se de retomar de todo. Ao fim
+-- de duas partes o cronómetro já não corresponde ao do banco — e como é dele
+-- que sai o tempo de jogo de cada jogador, o erro contamina tudo o que a app
+-- serve para responder.
+--
+-- Daí quatro botões pequenos para somar ou tirar um segundo e um minuto.
+--
+-- ## Porque é que é um evento, e não um acerto silencioso
+--
+-- Um jogo, nesta app, é a soma dos seus eventos e mais nada. O que não for
+-- evento não sobrevive à sincronização, não aparece no histórico e não se
+-- desfaz. Um acerto que se perdesse ao abrir o mesmo jogo no tablet era pior do
+-- que não haver acerto nenhum: ficavam dois aparelhos com relógios diferentes e
+-- ninguém saberia qual acreditar.
+--
+-- Correr no Supabase → SQL Editor, depois da 0016.
+
+alter type match_event_type add value if not exists 'CLOCK_ADJUSTED';
