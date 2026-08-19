@@ -47,6 +47,14 @@ o da Vercel, o mesmo da política de privacidade.
 | **Informações pessoais → Endereço de email** | Sim | Não | Obrigatório | Gestão da conta |
 | **Informações pessoais → Nome** | Sim | Não | Opcional | Gestão da conta |
 | **Atividade na app → Outro conteúdo gerado pelo utilizador** | Sim | Não | Obrigatório | Funcionalidade da app |
+| **Informações pessoais → IDs de utilizador** | Sim | Não | Obrigatório | Gestão da conta |
+
+Sobre os **IDs de utilizador**: não é o email nem o nome, é uma terceira coisa
+que escapou à primeira versão desta ficha. A app atribui a cada conta um
+identificador próprio — o `id` do perfil, um UUID — e esse identificador viaja
+para o servidor em cada linha que se grava. Um identificador de conta que se
+liga a uma pessoa identificável é, pela definição da Google, um ID de
+utilizador, e declara-se.
 
 E mais nada. Em particular, **não** se declara:
 
