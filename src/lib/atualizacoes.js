@@ -64,3 +64,42 @@ export async function marcarArranqueBemSucedido() {
     // Não há nada a fazer nem nada a dizer: a app corre na mesma.
   }
 }
+
+/**
+ * Que versão é esta, para quem tiver de responder à pergunta.
+ *
+ * Não é vaidade nem depuração: com doze pessoas a testar, a primeira coisa que
+ * se pergunta a quem reporta um problema é "que versão tens?" — e sem isto nem
+ * elas nem nós sabíamos responder. Duas apps com o mesmo ícone podem estar a
+ * correr código diferente, e é precisamente isso que o OTA torna normal.
+ *
+ * São dois números e não um, porque são duas coisas:
+ *
+ *   · a **casca**, que vem da loja e só muda com uma versão nova lá;
+ *   · o **pacote**, que chega por cima e pode mudar no mesmo dia.
+ *
+ * Um problema que só aparece num deles conta-se de maneiras diferentes, e sem
+ * os dois à vista não há como distinguir.
+ *
+ * Fora do invólucro nativo — browser, `npm run dev` — não há plugin nenhum e
+ * devolve-se `null`. Quem chama decide se mostra ou se cala.
+ *
+ * Como no resto deste ficheiro, o plugin vai-se buscar ao `window` em vez de o
+ * importar: manter o pacote web sem uma linha de Capacitor lá dentro é o que
+ * garante que o mesmo código também constrói para a web.
+ */
+export async function versoes() {
+  try {
+    const plugin = globalThis?.Capacitor?.Plugins?.CapacitorUpdater;
+    if (!plugin?.current) return null;
+    const { bundle, native } = (await plugin.current()) || {};
+    return {
+      // `builtin` é o nome que o plugin dá ao pacote que veio dentro do APK,
+      // ou seja "nenhuma atualização aplicada". Traduz-se em quem mostra.
+      pacote: bundle?.version || null,
+      casca: native || null,
+    };
+  } catch {
+    return null;
+  }
+}
