@@ -16,6 +16,29 @@
   --radius: 14px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --touch: 52px;
+
+  /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
+   * navegação em baixo, os cantos redondos ao lado.
+   *
+   * Há duas formas de as saber e nenhuma serve sozinha.
+   *
+   * O `env(safe-area-inset-*)` é o padrão da web, e é o que funciona no iOS e
+   * no browser. No WebView do Android devolve **zero**, e por isso a app
+   * desenhava-se por baixo da barra dos botões de voltar e de início: via-se o
+   * conteúdo através dela, meio tapado.
+   *
+   * O Capacitor 8 resolve isso à maneira dele — escreve `--safe-area-inset-*`
+   * no `<html>`, em píxeis, e mantém-nos actualizados quando o telemóvel roda.
+   * Está ligado por omissão (`SystemBars.insetsHandling: 'css'`), portanto já
+   * chegam à app sem se configurar nada.
+   *
+   * Estas quatro variáveis pegam no valor do Capacitor quando existe e caem no
+   * `env()` quando não existe. Um único nome para usar em todo o lado, e
+   * funciona nos três sítios onde a app corre. */
+  --seguro-cima: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --seguro-baixo: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --seguro-esq: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  --seguro-dir: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
 }
 
 * { box-sizing: border-box; }
@@ -144,9 +167,9 @@ ul { padding: 0; list-style: none; }
 .appbar {
   display: flex; align-items: center; gap: 12px;
   padding: 8px 16px;
-  padding-top: max(8px, env(safe-area-inset-top));
-  padding-left: max(16px, env(safe-area-inset-left));
-  padding-right: max(16px, env(safe-area-inset-right));
+  padding-top: max(8px, var(--seguro-cima));
+  padding-left: max(16px, var(--seguro-esq));
+  padding-right: max(16px, var(--seguro-dir));
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
   flex: 0 0 auto;
@@ -165,9 +188,9 @@ ul { padding: 0; list-style: none; }
 .view {
   flex: 1 1 auto; min-height: 0; overflow: auto;
   padding: 20px;
-  padding-left: max(20px, env(safe-area-inset-left));
-  padding-right: max(20px, env(safe-area-inset-right));
-  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  padding-left: max(20px, var(--seguro-esq));
+  padding-right: max(20px, var(--seguro-dir));
+  padding-bottom: max(20px, var(--seguro-baixo));
   max-width: 1400px; width: 100%; margin: 0 auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -175,7 +198,7 @@ ul { padding: 0; list-style: none; }
    vertical, ecrã curto), passa a poder deslizar em vez de ficar cortado. */
 /* Nunca há deslize lateral no jogo: o que não cabe em largura encolhe. */
 .app.is-live .view { padding: 0; max-width: none; overflow-x: hidden; }
-.app.is-live .appbar { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: 4px; }
+.app.is-live .appbar { padding-top: max(4px, var(--seguro-cima)); padding-bottom: 4px; }
 
 /* ------------------------------------------------------------------ botões */
 
@@ -547,7 +570,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   background: var(--bg);
   border-top: 1px solid var(--line);
   box-shadow: 0 -8px 18px rgba(3, 8, 18, 0.85);
-  padding: 10px max(20px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-bottom));
+  padding: 10px max(20px, var(--seguro-esq)) max(10px, var(--seguro-baixo));
 }
 .setup__footer > * { max-width: min(1400px, 100%); }
 .setup__spacer { height: 96px; flex: none; }
@@ -613,9 +636,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   min-height: 100%;
   gap: 8px;
   padding: 8px 12px 10px;
-  padding-left: max(12px, env(safe-area-inset-left));
-  padding-right: max(12px, env(safe-area-inset-right));
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  padding-left: max(12px, var(--seguro-esq));
+  padding-right: max(12px, var(--seguro-dir));
+  padding-bottom: max(10px, var(--seguro-baixo));
 }
 /* Sem isto, cada faixa cresce até caber o seu conteúdo (min-width: auto é o
    valor por omissão dos itens de grelha) e arrasta a página para o lado. */
@@ -804,8 +827,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
    ecrã para lá chegar. Quadrado e gordo: acerta-se com o polegar sem olhar. */
 .clocktoggle {
   position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
+  right: max(16px, var(--seguro-dir));
+  bottom: max(16px, var(--seguro-baixo));
   z-index: 40;
   width: 104px;
   height: 104px;
@@ -828,8 +851,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
    mesmo tamanho, mesma lógica do botão de parar o tempo. */
 .floatbtn {
   position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
+  right: max(16px, var(--seguro-dir));
+  bottom: max(16px, var(--seguro-baixo));
   z-index: 40;
   width: 116px;
   height: 104px;
