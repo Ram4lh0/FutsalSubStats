@@ -52,6 +52,18 @@ import useEcraAceso from '@/lib/ecraAceso.js';
 
 const OWN_GOAL = '__OWN_GOAL__';
 
+/**
+ * O passo do acerto, para a mensagem de confirmação: `+1 min`, `−1 s`.
+ *
+ * O sinal de menos é o de subtracção (−), e não o hífen do teclado: com o hífen
+ * e um número ao lado, à pressa, lê-se como parte da palavra.
+ */
+function rotuloPasso(ms) {
+  const sinal = ms > 0 ? '+' : '\u2212';
+  const abs = Math.abs(ms);
+  return abs >= 60_000 ? `${sinal}${abs / 60_000} min` : `${sinal}${abs / 1000} s`;
+}
+
 export default function LivePage() {
   return (
     <Pagina>
@@ -664,6 +676,12 @@ function Live() {
     courtMenu,
     benchMenu,
     startPenalty,
+    // Acertar o relógio. O passo vem em milissegundos e pode ser negativo; o
+    // reducer é que trava para não passar do zero.
+    adjustClock: (deltaMs) =>
+      commit(A.adjustClock(state, deltaMs, Date.now()), t('vivo.relogioAcertado', {
+        passo: rotuloPasso(deltaMs),
+      }), { sync: 'defer' }),
     togglePowerPlay: (ligar) =>
       commit(A.setPowerPlay(state, ligar), ligar ? '5v4 a contar.' : '5v4 terminado.'),
     opponentExpulsion: (delta) => commit(A.opponentExpulsion(state, delta)),
@@ -734,6 +752,9 @@ function Live() {
           periodLabel={periodLabel}
           running={aCorrer}
           now={now}
+          // Só no jogo cronometrado. No corrido o relógio é uma referência, não
+          // uma contagem oficial, e não há paragens onde alguém se possa enganar.
+          on={timing === MATCH_TIMING.TIMED ? on : null}
         />
         <div className="live__controls">
           {/* No jogo cronometrado a pausa vive no canto inferior direito, ao

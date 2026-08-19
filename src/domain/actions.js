@@ -54,6 +54,18 @@ export const startFirstHalf = (s, now) =>
 
 export const pauseClock = (s, now) => makeEvent(s, EVENT.CLOCK_PAUSED, {}, now);
 export const resumeClock = (s, now) => makeEvent(s, EVENT.CLOCK_RESUMED, {}, now);
+
+/**
+ * Acertar o relógio, quando o treinador se enganou numa paragem.
+ *
+ * É um evento como os outros, e não um ajuste silencioso do estado. Isso não é
+ * cerimónia: um jogo é a soma dos seus eventos e mais nada, portanto o que não
+ * for evento não sobrevive à sincronização, não aparece no histórico e não se
+ * desfaz. Um acerto que se perdesse ao abrir o jogo no tablet era pior do que
+ * não haver acerto nenhum.
+ */
+export const adjustClock = (s, deltaMs, now) =>
+  makeEvent(s, EVENT.CLOCK_ADJUSTED, { metadata: { deltaMs } }, now);
 export const finishFirstHalf = (s, now) => makeEvent(s, EVENT.FIRST_HALF_FINISHED, {}, now);
 
 export const setSecondHalfLineup = (s, lineup, now) =>

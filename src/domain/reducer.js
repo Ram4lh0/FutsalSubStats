@@ -342,6 +342,27 @@ function applyEvent(state, ev) {
       break;
     }
 
+    case EVENT.CLOCK_ADJUSTED: {
+      // Como nos outros eventos de relógio: fora de uma parte não há relógio
+      // para acertar.
+      if (state.currentPeriod === 0 || state.status === MATCH_STATUS.HALFTIME) break;
+
+      const pedido = Number(ev.metadata?.deltaMs) || 0;
+      // O relógio não anda para trás do zero, e os dois contadores têm de andar
+      // juntos: se o do jogo travasse no zero e o da parte continuasse a descer,
+      // ficavam desencontrados e o "faltam X" passava a mentir. Limita-se pelo
+      // mais pequeno dos dois, e aplica-se o mesmo passo a ambos.
+      const delta = Math.max(pedido, -Math.min(ev.matchElapsedMs, ev.periodElapsedMs));
+
+      state.elapsedMatchMs = ev.matchElapsedMs + delta;
+      state.periodElapsedMs = ev.periodElapsedMs + delta;
+      // Com o cronómetro a andar, a conta seguinte tem de partir de agora — se
+      // não se mexesse no `timerStartedAt`, o tempo decorrido desde o último
+      // arranque era contado outra vez por cima do valor já acertado.
+      if (state.timerStatus === TIMER_STATUS.RUNNING) state.timerStartedAt = ev.createdAt;
+      break;
+    }
+
     case EVENT.FIRST_HALF_FINISHED: {
       state.elapsedMatchMs = ev.matchElapsedMs;
       state.periodElapsedMs = ev.periodElapsedMs;

@@ -111,12 +111,65 @@ function FoulsCell({ state, team, side, interactive, on }) {
  * configurada — o árbitro é que manda. Passado o limite, o número fica âmbar e a
  * linha de baixo troca a contagem decrescente por quanto tempo já vai a mais.
  */
-export function ClockBox({ state, periodDurationMs, periodLabel, running, now }) {
+export function ClockBox({ state, periodDurationMs, periodLabel, running, now, on }) {
   const p = periodProgress(state, periodDurationMs, now);
   return (
     <div className="clockbox">
       <span className="clockbox__period">{periodLabel}</span>
-      <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(p.periodMs)}</span>
+      <div className="clockbox__linha">
+        <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(p.periodMs)}</span>
+        {/* Acertar o relógio, para quando a paragem foi tarde ou o retomar foi
+            cedo. Ao lado do número e não noutro sítio: é o número que está
+            errado e é ali que se olha.
+
+            Pequenos de propósito. Isto usa-se uma vez por jogo, se tanto, e a
+            mão do treinador está no campo e nas substituições — botões grandes
+            aqui só aumentavam a hipótese de lhes tocar sem querer. */}
+        {on?.adjustClock ? (
+          <span className="clockadj" aria-label={t('vivo.acertarRelogio')}>
+            <span className="clockadj__par">
+              <button
+                type="button"
+                className="clockadj__b"
+                title={t('vivo.maisMinuto')}
+                aria-label={t('vivo.maisMinuto')}
+                onClick={() => on.adjustClock(60_000)}
+              >
+                +1m
+              </button>
+              <button
+                type="button"
+                className="clockadj__b"
+                title={t('vivo.menosMinuto')}
+                aria-label={t('vivo.menosMinuto')}
+                onClick={() => on.adjustClock(-60_000)}
+              >
+                −1m
+              </button>
+            </span>
+            <span className="clockadj__par">
+              <button
+                type="button"
+                className="clockadj__b"
+                title={t('vivo.maisSegundo')}
+                aria-label={t('vivo.maisSegundo')}
+                onClick={() => on.adjustClock(1000)}
+              >
+                +1s
+              </button>
+              <button
+                type="button"
+                className="clockadj__b"
+                title={t('vivo.menosSegundo')}
+                aria-label={t('vivo.menosSegundo')}
+                onClick={() => on.adjustClock(-1000)}
+              >
+                −1s
+              </button>
+            </span>
+          </span>
+        ) : null}
+      </div>
       <span className="clockbox__hint">
         {p.over
           ? t('vivo.alemDe', {

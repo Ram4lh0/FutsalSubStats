@@ -1147,3 +1147,64 @@ test('sem 5v4 nenhum, o agregado é todo zeros e não divide por zero', () => {
   assert.equal(pp.mediaPorJogoMs, 0, 'a média por jogo sem jogos é zero, não NaN');
   assert.deepEqual(pp.jogadores, []);
 });
+
+/* ------------------------------------------------------ acertar o relógio */
+
+test('acertar o relógio move o jogo e a parte pelo mesmo passo', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.pauseClock(s, T0 + 10 * MIN), T0 + 10 * MIN);
+
+  const st = step(ctx, (s) => A.adjustClock(s, -30_000, T0 + 10 * MIN), T0 + 10 * MIN);
+
+  assert.equal(st.elapsedMatchMs, 10 * MIN - 30_000);
+  assert.equal(st.periodElapsedMs, 10 * MIN - 30_000, 'os dois contadores andam juntos');
+});
+
+test('e soma quando o passo é positivo', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.pauseClock(s, T0 + 2 * MIN), T0 + 2 * MIN);
+
+  const st = step(ctx, (s) => A.adjustClock(s, 60_000, T0 + 2 * MIN), T0 + 2 * MIN);
+  assert.equal(st.elapsedMatchMs, 3 * MIN);
+  assert.equal(st.periodElapsedMs, 3 * MIN);
+});
+
+test('não anda para trás do zero, e não desencontra os dois contadores', () => {
+  // O caso que motivou o limite: tirar um minuto quando só passaram vinte
+  // segundos. Se o relógio do jogo travasse no zero e o da parte continuasse a
+  // descer, o "faltam X" passava a mentir para o resto da parte.
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.pauseClock(s, T0 + 20_000), T0 + 20_000);
+
+  const st = step(ctx, (s) => A.adjustClock(s, -60_000, T0 + 20_000), T0 + 20_000);
+  assert.equal(st.elapsedMatchMs, 0);
+  assert.equal(st.periodElapsedMs, 0);
+});
+
+test('com o cronómetro a andar, o acerto não é comido pelo tempo decorrido', () => {
+  // Sem mexer no `timerStartedAt`, o `readClock` somava outra vez os segundos
+  // desde o último arranque por cima do valor já acertado, e o acerto
+  // desaparecia no instante seguinte.
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+
+  const quando = T0 + 5 * MIN;
+  const st = step(ctx, (s) => A.adjustClock(s, -60_000, quando), quando);
+
+  assert.equal(st.timerStartedAt, quando, 'a contagem seguinte parte de agora');
+  assert.equal(readClock(st, quando).matchMs, 4 * MIN, 'lido no mesmo instante, ficam 4 minutos');
+  assert.equal(readClock(st, quando + 10_000).matchMs, 4 * MIN + 10_000, 'e continua a andar');
+});
+
+test('no intervalo não há relógio para acertar', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.finishFirstHalf(s, T0 + 20 * MIN), T0 + 20 * MIN);
+
+  const antes = buildMatchState(match, ctx.squad, ctx.events).elapsedMatchMs;
+  const st = step(ctx, (s) => A.adjustClock(s, 60_000, T0 + 21 * MIN), T0 + 21 * MIN);
+  assert.equal(st.elapsedMatchMs, antes, 'ignorado, como os outros eventos de relógio');
+});
