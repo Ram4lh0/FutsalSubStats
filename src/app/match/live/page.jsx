@@ -49,6 +49,7 @@ import { clubShort, opponentShort, mensagemErro, eventLabel } from '@/lib/format
 import { t } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import useEcraAceso from '@/lib/ecraAceso.js';
+import useArrasto from '@/lib/arrastar.js';
 
 const OWN_GOAL = '__OWN_GOAL__';
 
@@ -85,6 +86,11 @@ function Live() {
   // Sanções cujo fim já foi anunciado — evita repetir o aviso a cada batimento e
   // evita anunciar sanções que já tinham terminado quando o ecrã abriu.
   const anunciadas = useRef(new Set());
+
+  // Arrastar um jogador para cima de outro troca-os. É um atalho para o que o
+  // toque já fazia em dois passos, e não um substituto: quem tem o gesto na mão
+  // continua a poder tocar num e depois no outro.
+  const arrasto = useArrasto((origem, destino) => largar(origem, destino));
 
   const state = carregado?.state || null;
   const match = carregado?.match || null;
@@ -343,6 +349,32 @@ function Live() {
     if (!disponiveis.length) return toast(t('acao.semBanco'), 'error');
     const playerId = await pickReplacement(ui, state, pos);
     if (playerId) await doReplacement(playerId, pos);
+  }
+
+  /**
+   * Largar um jogador em cima de um lugar do campo.
+   *
+   * Repete as decisões do toque, e não inventa nenhuma: do banco para um lugar
+   * ocupado é uma substituição, do banco para um lugar vazio é uma entrada, e de
+   * um lugar para outro é uma troca de posição. Quem valida continua a ser o
+   * `V.validate*`, como em qualquer outro caminho.
+   */
+  function largar(origem, destino) {
+    if (destino?.tipo !== 'court') return;
+    setSel(null);
+
+    if (origem.tipo === 'bench') {
+      const ocupante = state.court[destino.pos];
+      if (ocupante) return doSubstitution(ocupante, origem.playerId, destino.pos);
+      return doReplacement(origem.playerId, destino.pos);
+    }
+
+    if (origem.tipo === 'court') {
+      // Largar em cima de si próprio não é nada. Sem isto, um arrasto curto que
+      // acabasse onde começou disparava uma troca de posição consigo mesmo.
+      if (origem.pos === destino.pos) return;
+      return doMoveTo(origem.playerId, destino.pos);
+    }
   }
 
   async function doSubstitution(outId, inId, position) {
@@ -788,9 +820,16 @@ function Live() {
           não pode ficar abaixo da dobra, à espera que alguém deslize para a ver. */}
       <Penalties state={state} clockMs={clockMs} penaltyMs={penaltyMs()} on={on} />
 
-      <Court state={state} sel={sel} clockMs={clockMs} penaltyMs={penaltyMs()} on={on} />
+      <Court
+        state={state}
+        sel={sel}
+        clockMs={clockMs}
+        penaltyMs={penaltyMs()}
+        on={on}
+        arrasto={arrasto}
+      />
 
-      <Bench state={state} sel={sel} clockMs={clockMs} on={on} />
+      <Bench state={state} sel={sel} clockMs={clockMs} on={on} arrasto={arrasto} />
 
       <footer className="live__bar">
         <button
