@@ -1257,3 +1257,20 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .clockadj { grid-template-columns: repeat(4, auto); }
   .clockadj__par { flex-direction: row; }
 }
+
+/* Arrastar um jogador para o substituir.
+ *
+ * `touch-action: none` é o que impede o browser de começar a deslizar a página
+ * ao primeiro movimento — sem isso o ponteiro é cancelado antes de chegarmos ao
+ * limiar e o arrasto nunca começa no telemóvel. É seguro aqui porque não há
+ * nada por baixo destes cartões que precise de deslizar: o campo é fixo e o
+ * banco é uma grelha. */
+.arrastavel { touch-action: none; }
+/* O que está a ser arrastado esmorece, para o olho seguir o destino e não a
+   origem. */
+.is-a-arrastar { opacity: 0.45; }
+/* Todos os sítios onde se pode largar, enquanto dura o arrasto. Discreto: é
+   orientação, não um alarme. */
+.is-largavel { outline: 1px dashed rgba(110, 231, 160, 0.35); outline-offset: 2px; }
+/* E o que está debaixo do dedo agora. */
+.is-alvo { outline: 2px solid var(--primary); outline-offset: 2px; }

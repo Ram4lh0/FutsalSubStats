@@ -188,7 +188,7 @@ export function ClockBox({ state, periodDurationMs, periodLabel, running, now, o
 
 /* ------------------------------------------------------------------ campo */
 
-export function Court({ state, sel, clockMs, penaltyMs, on }) {
+export function Court({ state, sel, clockMs, penaltyMs, on, arrasto }) {
   const emCampo = countOnCourt(state);
   return (
     <section className="court">
@@ -197,7 +197,16 @@ export function Court({ state, sel, clockMs, penaltyMs, on }) {
         const pid = state.court[pos];
         const p = pid ? state.players[pid] : null;
         return p ? (
-          <CourtCard key={pos} pos={pos} p={p} state={state} sel={sel} clockMs={clockMs} on={on} />
+          <CourtCard
+            key={pos}
+            pos={pos}
+            p={p}
+            state={state}
+            sel={sel}
+            clockMs={clockMs}
+            on={on}
+            arrasto={arrasto}
+          />
         ) : (
           <EmptySlot
             key={pos}
@@ -205,6 +214,7 @@ export function Court({ state, sel, clockMs, penaltyMs, on }) {
             sel={sel}
             trancado={Boolean(canReplaceExpelled(state, clockMs, penaltyMs))}
             on={on}
+            arrasto={arrasto}
           />
         );
       })}
@@ -215,16 +225,25 @@ export function Court({ state, sel, clockMs, penaltyMs, on }) {
   );
 }
 
-function CourtCard({ pos, p, state, sel, clockMs, on }) {
+function CourtCard({ pos, p, state, sel, clockMs, on, arrasto }) {
   const selecionado = sel?.kind === 'court' && sel.playerId === p.playerId;
   const aEntrar = sel?.kind === 'bench';
   const s = playerMatchStats(state.players[p.playerId] || p, clockMs);
+  const pega = arrasto?.pegar({ tipo: 'court', playerId: p.playerId, pos }) || {};
+  const solta = arrasto?.alvo({ tipo: 'court', pos }) || {};
+  const aSerArrastado = arrasto?.origem?.playerId === p.playerId;
 
   return (
     <button
       className={`pcard pcard--court slot--${pos.toLowerCase()} ${selecionado ? 'is-out' : ''} ${
         aEntrar ? 'is-target' : ''
-      }`}
+      } ${pega.className || ''} ${solta.className || ''} ${aSerArrastado ? 'is-a-arrastar' : ''}`}
+      data-largar={solta['data-largar']}
+      onPointerDown={pega.onPointerDown}
+      onPointerMove={pega.onPointerMove}
+      onPointerUp={pega.onPointerUp}
+      onPointerCancel={pega.onPointerCancel}
+      onClickCapture={pega.onClickCapture}
       onClick={() => on.tapCourt(pos, p)}
     >
       <div className="pcard__top">
@@ -267,7 +286,7 @@ function CourtCard({ pos, p, state, sel, clockMs, on }) {
   );
 }
 
-function EmptySlot({ pos, sel, trancado, on }) {
+function EmptySlot({ pos, sel, trancado, on, arrasto }) {
   // Durante a sanção o lugar fica trancado: a equipa tem de jogar reduzida.
   const aEntrar = sel?.kind === 'bench' && !trancado;
   return (
@@ -276,7 +295,12 @@ function EmptySlot({ pos, sel, trancado, on }) {
       // campo (e o que os põe na grelha, no telemóvel).
       className={`pcard pcard--court pcard--empty slot--${pos.toLowerCase()} ${
         aEntrar ? 'is-target' : ''
-      } ${trancado ? 'is-locked' : ''}`}
+      } ${trancado ? 'is-locked' : ''} ${
+        // Um lugar trancado por sanção não recebe ninguém, nem por toque nem por
+        // arrasto: a equipa tem mesmo de jogar reduzida.
+        trancado ? '' : arrasto?.alvo({ tipo: 'court', pos })?.className || ''
+      }`}
+      data-largar={trancado ? undefined : arrasto?.alvo({ tipo: 'court', pos })?.['data-largar']}
       onClick={() => on.tapEmpty(pos)}
     >
       <span className="pcard__pos">{positionShort(pos)}</span>
@@ -289,7 +313,7 @@ function EmptySlot({ pos, sel, trancado, on }) {
 
 /* ------------------------------------------------------------------ banco */
 
-export function Bench({ state, sel, clockMs, on }) {
+export function Bench({ state, sel, clockMs, on, arrasto }) {
   const lista = Object.values(state.players)
     .filter((p) => p.status !== PLAYER_MATCH_STATUS.ON_COURT)
     .sort((a, b) => {
@@ -313,7 +337,15 @@ export function Bench({ state, sel, clockMs, on }) {
       <div className="bench__row" style={{ '--bench-cols': String(cols) }}>
         {lista.length ? (
           lista.map((p) => (
-            <BenchCard key={p.playerId} p={p} state={state} sel={sel} clockMs={clockMs} on={on} />
+            <BenchCard
+              key={p.playerId}
+              p={p}
+              state={state}
+              sel={sel}
+              clockMs={clockMs}
+              on={on}
+              arrasto={arrasto}
+            />
           ))
         ) : (
           <span className="muted">{t('vivo.semBanco')}</span>
@@ -323,17 +355,26 @@ export function Bench({ state, sel, clockMs, on }) {
   );
 }
 
-function BenchCard({ p, state, sel, clockMs, on }) {
+function BenchCard({ p, state, sel, clockMs, on, arrasto }) {
   const expulso = p.status === PLAYER_MATCH_STATUS.EXPELLED;
   const selecionado = sel?.kind === 'bench' && sel.playerId === p.playerId;
   const alvo = sel?.kind === 'court' && !expulso;
   const s = playerMatchStats(state.players[p.playerId] || p, clockMs);
 
+  // Um expulso não volta a entrar, portanto também não se arrasta.
+  const pega = (!expulso && arrasto?.pegar({ tipo: 'bench', playerId: p.playerId })) || {};
+  const aSerArrastado = arrasto?.origem?.playerId === p.playerId;
+
   return (
     <button
       className={`pcard pcard--bench ${selecionado ? 'is-in' : ''} ${alvo ? 'is-target' : ''} ${
         expulso ? 'is-expelled' : ''
-      }`}
+      } ${pega.className || ''} ${aSerArrastado ? 'is-a-arrastar' : ''}`}
+      onPointerDown={pega.onPointerDown}
+      onPointerMove={pega.onPointerMove}
+      onPointerUp={pega.onPointerUp}
+      onPointerCancel={pega.onPointerCancel}
+      onClickCapture={pega.onClickCapture}
       onClick={() => on.tapBench(p)}
     >
       <div className="pcard__top">
