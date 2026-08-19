@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { POSITIONS } from '@/domain/constants.js';
 import { positionShort } from '@/lib/format.js';
 import { useT } from '@/lib/i18n/index.js';
+import useArrasto from '@/lib/arrastar.js';
 
 export function countFilled(lineup) {
   return Object.values(lineup).filter(Boolean).length;
@@ -19,6 +20,18 @@ export function countFilled(lineup) {
 export default function CourtPicker({ candidates, lineup, onChange }) {
   const t = useT();
   const [sel, setSel] = useState(null); // { kind: 'bench', playerId } | { kind: 'slot', pos }
+
+  // O mesmo gesto do jogo: arrastar em vez de tocar duas vezes. Aqui não há
+  // validação nenhuma a fazer — montar o cinco é mexer num objecto — por isso
+  // reaproveitam-se directamente o `colocar` e o `trocar`.
+  const arrasto = useArrasto((origem, destino) => {
+    if (destino?.tipo !== 'slot') return;
+    setSel(null);
+    if (origem.tipo === 'bench') return onChange(colocar(lineup, destino.pos, origem.playerId));
+    if (origem.tipo === 'slot' && origem.pos !== destino.pos) {
+      return onChange(trocar(lineup, origem.pos, destino.pos));
+    }
+  });
 
   const usados = new Set(Object.values(lineup).filter(Boolean));
   const banco = candidates.filter((c) => !usados.has(c.playerId));
@@ -82,6 +95,10 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
           const p = candidates.find((c) => c.playerId === pid);
           const selecionado = sel?.kind === 'slot' && sel.pos === pos;
           const alvo = sel?.kind === 'bench' || (sel?.kind === 'slot' && sel.pos !== pos);
+          // Um lugar é as duas coisas: arrasta-se para trocar com outro, e
+          // recebe quem vier do banco.
+          const pega = p ? arrasto.pegar({ tipo: 'slot', playerId: p.playerId, pos }) : {};
+          const solta = arrasto.alvo({ tipo: 'slot', pos });
           return (
             <button
               key={pos}
@@ -92,9 +109,18 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
                 p ? 'is-filled' : 'is-empty',
                 selecionado ? 'is-selected' : '',
                 alvo ? 'is-target' : '',
+                pega.className || '',
+                solta.className,
+                arrasto.origem?.pos === pos ? 'is-a-arrastar' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
+              data-largar={solta['data-largar']}
+              onPointerDown={pega.onPointerDown}
+              onPointerMove={pega.onPointerMove}
+              onPointerUp={pega.onPointerUp}
+              onPointerCancel={pega.onPointerCancel}
+              onClickCapture={pega.onClickCapture}
               onClick={() => tocarPosicao(pos)}
             >
               <span className="slot__pos">{positionShort(pos)}</span>
@@ -132,7 +158,9 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
         <h3 className="section section--tight">{t('campo.banco', { n: banco.length })}</h3>
         <div className="chiprow">
           {banco.length ? (
-            banco.map((p) => (
+            banco.map((p) => {
+              const pega = arrasto.pegar({ tipo: 'bench', playerId: p.playerId });
+              return (
               <button
                 key={p.playerId}
                 type="button"
@@ -140,14 +168,22 @@ export default function CourtPicker({ candidates, lineup, onChange }) {
                   'chip',
                   sel?.kind === 'bench' && sel.playerId === p.playerId ? 'is-selected' : '',
                   sel?.kind === 'slot' ? 'is-target' : '',
+                  pega.className,
+                  arrasto.origem?.playerId === p.playerId ? 'is-a-arrastar' : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
+                onPointerDown={pega.onPointerDown}
+                onPointerMove={pega.onPointerMove}
+                onPointerUp={pega.onPointerUp}
+                onPointerCancel={pega.onPointerCancel}
+                onClickCapture={pega.onClickCapture}
                 onClick={() => tocarBanco(p.playerId)}
               >
                 <strong>{p.number}</strong> {p.name}
               </button>
-            ))
+              );
+            })
           ) : (
             <span className="muted">{t('campo.todosEmCampo')}</span>
           )}
