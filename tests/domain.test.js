@@ -1128,6 +1128,8 @@ test('5v4 da época: saldo, tempo e quem lá esteve', () => {
   assert.equal(pp.golosContra, 1, 'o golo aos 9 minutos ficou de fora');
   assert.equal(pp.saldo, 0);
   assert.equal(pp.mediaPorJogoMs, 3 * MIN);
+  assert.equal(pp.jogosTotal, 1);
+  assert.equal(pp.percentagemJogos, 100, 'o único jogo teve 5v4');
 
   // O p6 entrou exactamente com o 5v4 e saiu com ele: leva os três minutos.
   const p6 = pp.jogadores.find((j) => j.playerId === 'p6');
@@ -1207,4 +1209,35 @@ test('no intervalo não há relógio para acertar', () => {
   const antes = buildMatchState(match, ctx.squad, ctx.events).elapsedMatchMs;
   const st = step(ctx, (s) => A.adjustClock(s, 60_000, T0 + 21 * MIN), T0 + 21 * MIN);
   assert.equal(st.elapsedMatchMs, antes, 'ignorado, como os outros eventos de relógio');
+});
+
+test('a percentagem de jogos com 5v4 ignora os que ainda não começaram', () => {
+  // Um jogo por jogar não é "um jogo sem 5v4": é um jogo que ainda não houve.
+  // Contá-lo puxava a percentagem para baixo por uma razão sem nada que ver
+  // com futsal.
+  const comCtx = { squad: squadComPosicoes(), events: [] };
+  step(comCtx, (s) => A.startFirstHalf(s, T0), T0);
+  step(
+    comCtx,
+    (s) => A.substitute(s, { playerOutId: 'p1', playerInId: 'p6', position: 'GOALKEEPER' }, T0 + 5 * MIN),
+    T0 + 5 * MIN
+  );
+  const comCincoQuatro = buildMatchState(match, comCtx.squad, comCtx.events);
+
+  // Um jogo jogado sem 5v4 nenhum.
+  const semCtx = { squad: squadComPosicoes(), events: [] };
+  const semCincoQuatro = step(semCtx, (s) => A.startFirstHalf(s, T0), T0);
+
+  // E um por começar: nem sequer tem eventos.
+  const porJogar = buildMatchState(match, squadComPosicoes(), []);
+
+  const pp = powerPlayAggregate([
+    { state: comCincoQuatro },
+    { state: semCincoQuatro },
+    { state: porJogar },
+  ]);
+
+  assert.equal(pp.jogosCom, 1);
+  assert.equal(pp.jogosTotal, 2, 'o que não começou fica de fora da conta');
+  assert.equal(pp.percentagemJogos, 50);
 });

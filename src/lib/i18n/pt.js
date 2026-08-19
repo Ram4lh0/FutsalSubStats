@@ -468,6 +468,8 @@ export default {
   'stats.detalhes5v4': 'Guarda-redes avançado',
   'stats.golosEm5v4': 'Golos em 5v4',
   'stats.sofridosEm5v4': 'Sofridos em 5v4',
+  'stats.percentagem5v4': 'Jogos com 5v4',
+  'stats.deJogos': '{com} de {total}',
   'stats.mediaPorJogo5v4': 'Média por jogo',
   'stats.saldo5v4': 'Saldo',
   'stats.periodos5v4': '{n} períodos em {jogos} jogos',
