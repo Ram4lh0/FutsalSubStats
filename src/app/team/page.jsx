@@ -9,7 +9,8 @@ import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import DataTable from '@/components/DataTable.jsx';
 import { StatCard, Empty, Ved } from '@/components/bits.jsx';
-import { clubAggregate } from '@/domain/stats.js';
+import { clubAggregate, powerPlayAggregate } from '@/domain/stats.js';
+import Destaques from '@/components/stats/Destaques.jsx';
 import { fmt } from '@/domain/clock.js';
 import { rotas } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
@@ -39,6 +40,7 @@ function Stats({ entries, roster, clubId, teamId }) {
     () => Object.values(agg.perPlayer).sort((a, b) => b.courtMs - a.courtMs || a.number - b.number),
     [agg]
   );
+  const pp = useMemo(() => powerPlayAggregate(entries), [entries]);
 
   return (
     <>
@@ -58,6 +60,11 @@ function Stats({ entries, roster, clubId, teamId }) {
         <Empty>{t('stats.semJogadores')}</Empty>
       ) : (
         <>
+          {/* A leitura de relance, antes da tabela. A tabela responde a tudo mas
+              não responde a nada depressa: para saber quem marcou mais era
+              preciso percorrer catorze colunas a comparar números à mão. */}
+          <Destaques linhas={linhas} pp={pp} />
+
           <h2 className="section">{t('stats.porJogador')}</h2>
           <DataTable players>
             <thead>
