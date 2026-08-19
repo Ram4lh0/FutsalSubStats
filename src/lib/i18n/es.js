@@ -85,6 +85,11 @@ export default {
     'Los partidos, las plantillas y las estadísticas se guardan en este dispositivo y se sincronizan con tu cuenta. Puedes llevártelos cuando quieras.',
   'definicoes.copiaTransferida': 'Copia descargada.',
   'definicoes.politica': 'Política de privacidad',
+  'definicoes.versao': 'Versión',
+  'definicoes.versaoApp': 'App {v}',
+  'definicoes.versaoPacote': 'Paquete {v}',
+  'definicoes.versaoOriginal': 'de origen',
+  'definicoes.versaoTexto': 'Si informas de un problema, indica estos números. Son los que dicen qué código se está ejecutando en este móvil.',
   'definicoes.apagarConta': 'Eliminar la cuenta',
   'definicoes.apagarContaTexto':
     'Eliminar la cuenta borra todo: los clubes, las categorías, las plantillas, los partidos y el historial de cada uno, aquí y en el servidor. No queda ninguna copia y no hay vuelta atrás.',

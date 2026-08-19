@@ -27,6 +27,7 @@ import { rotas } from '@/lib/routes.js';
 import { esquecerDono } from '@/lib/data/owner.js';
 import { useT, useIdioma, useLocale, definirIdioma, IDIOMAS } from '@/lib/i18n/index.js';
 import { syncLabel } from '@/lib/format.js';
+import { versoes } from '@/lib/atualizacoes.js';
 
 export default function AccountPage() {
   return (
@@ -44,6 +45,17 @@ function Definicoes() {
   const { toast, confirmar } = useUI();
   const { user, userId, deleteAccount, signOut } = useAuth();
   const [confirmacao, setConfirmacao] = useState('');
+
+  // As versões do plugin de atualizações. `null` fora do invólucro nativo — no
+  // browser não há casca nem pacote, e a secção não chega a aparecer.
+  const [vs, setVs] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    versoes().then((r) => vivo && setVs(r));
+    return () => {
+      vivo = false;
+    };
+  }, []);
   const [aApagar, setAApagar] = useState(false);
   const [estado, setEstado] = useState({ status: sync.SYNC.LOCAL, pending: 0 });
 
@@ -246,6 +258,23 @@ function Definicoes() {
           </button>
         </div>
       </div>
+
+      {/* A versão, para quem tiver de reportar um problema.
+          Aparece só no telemóvel: no browser não há casca nem pacote, e uma
+          secção vazia é pior do que secção nenhuma. */}
+      {vs ? (
+        <div className="card">
+          <h2 className="section">{t('definicoes.versao')}</h2>
+          <p className="mono">
+            {t('definicoes.versaoApp', { v: vs.casca || '?' })}
+            {' · '}
+            {t('definicoes.versaoPacote', {
+              v: !vs.pacote || vs.pacote === 'builtin' ? t('definicoes.versaoOriginal') : vs.pacote,
+            })}
+          </p>
+          <p className="muted small">{t('definicoes.versaoTexto')}</p>
+        </div>
+      ) : null}
 
       <h2 className="section">{t('definicoes.apagarConta')}</h2>
       <div className="card card--danger">

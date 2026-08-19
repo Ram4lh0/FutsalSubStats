@@ -86,6 +86,11 @@ export default {
     'Matches, rosters and statistics are stored on this device and synced with your account. You can take them with you at any time.',
   'definicoes.copiaTransferida': 'Copy downloaded.',
   'definicoes.politica': 'Privacy policy',
+  'definicoes.versao': 'Version',
+  'definicoes.versaoApp': 'App {v}',
+  'definicoes.versaoPacote': 'Bundle {v}',
+  'definicoes.versaoOriginal': 'as shipped',
+  'definicoes.versaoTexto': 'If you report a problem, quote these numbers. They are what says which code is running on this phone.',
   'definicoes.apagarConta': 'Delete account',
   'definicoes.apagarContaTexto':
     'Deleting your account removes everything: clubs, age groups, rosters, matches and the history of each one, here and on the server. No copy is kept and there is no way back.',

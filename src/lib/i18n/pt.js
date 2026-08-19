@@ -87,6 +87,11 @@ export default {
     'Os jogos, os planteis e as estatísticas ficam guardados neste aparelho e sincronizados com a tua conta. Podes levá-los contigo a qualquer momento.',
   'definicoes.copiaTransferida': 'Cópia transferida.',
   'definicoes.politica': 'Política de privacidade',
+  'definicoes.versao': 'Versão',
+  'definicoes.versaoApp': 'App {v}',
+  'definicoes.versaoPacote': 'Pacote {v}',
+  'definicoes.versaoOriginal': 'de origem',
+  'definicoes.versaoTexto': 'Se reportares um problema, diz estes números. São eles que dizem que código está a correr neste telemóvel.',
   'definicoes.apagarConta': 'Apagar a conta',
   'definicoes.apagarContaTexto':
     'Apagar a conta remove tudo: os clubes, os escalões, os planteis, os jogos e o histórico de cada um, aqui e no servidor. Não fica nenhuma cópia e não há forma de recuperar.',
