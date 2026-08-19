@@ -229,3 +229,94 @@ export function clubAggregate(entries, roster = []) {
 
   return agg;
 }
+
+/* ------------------------------------------------------------------- 5v4 */
+
+/** Sobreposição entre dois intervalos, em milissegundos. Nunca negativa. */
+function cruzamento(aIni, aFim, bIni, bFim) {
+  return Math.max(0, Math.min(aFim, bFim) - Math.max(aIni, bIni));
+}
+
+/**
+ * O guarda-redes avançado ao longo da época.
+ *
+ * O 5v4 é a jogada mais arriscada do futsal: tira-se o guarda-redes para ter
+ * mais um jogador de campo, e um erro é golo na baliza deserta. Um treinador
+ * quer saber duas coisas — se lhe está a correr bem, e quem costuma estar em
+ * campo quando acontece.
+ *
+ * Daí o saldo, e não só os golos marcados: em 5v4 o que interessa é a
+ * diferença. Marcar quatro e sofrer cinco é mau negócio, e a soma isolada dos
+ * golos marcados esconderia isso.
+ *
+ * O tempo por jogador sai do cruzamento das entradas dele com as janelas de
+ * 5v4. Quem entra a meio de uma leva só a parte que jogou, que é o que faz o
+ * número ser comparável entre jogadores.
+ */
+export function powerPlayAggregate(entries) {
+  const perPlayer = {};
+  let periodos = 0;
+  let totalMs = 0;
+  let golosA = 0;
+  let golosContra = 0;
+  let jogosCom = 0;
+
+  for (const { state } of entries) {
+    const clockMs = state.elapsedMatchMs;
+    const janelas = powerPlayPeriods(state, clockMs).map((x) => ({
+      ini: x.startMatchMs,
+      fim: x.endMatchMs ?? clockMs,
+    }));
+    if (!janelas.length) continue;
+
+    jogosCom += 1;
+    periodos += janelas.length;
+    totalMs += janelas.reduce((a, j) => a + Math.max(0, j.fim - j.ini), 0);
+
+    for (const g of state.goals || []) {
+      // Fim exclusivo, como no `emCampoAos`: um golo no instante exacto em que o
+      // guarda-redes volta já não é um golo em 5v4.
+      const dentro = janelas.some((j) => g.matchElapsedMs >= j.ini && g.matchElapsedMs < j.fim);
+      if (!dentro) continue;
+      if (g.team === 'US') golosA += 1;
+      else golosContra += 1;
+    }
+
+    for (const p of Object.values(state.players)) {
+      const ms = (p.stints || []).reduce(
+        (soma, s) =>
+          soma +
+          janelas.reduce(
+            (x, j) => x + cruzamento(s.startMatchMs, s.endMatchMs ?? clockMs, j.ini, j.fim),
+            0
+          ),
+        0
+      );
+      if (!ms) continue;
+      const acc = (perPlayer[p.playerId] ||= {
+        playerId: p.playerId,
+        name: p.name,
+        number: p.number,
+        ms: 0,
+        jogos: 0,
+      });
+      acc.ms += ms;
+      acc.jogos += 1;
+      acc.name = p.name;
+      acc.number = p.number;
+    }
+  }
+
+  return {
+    periodos,
+    totalMs,
+    jogosCom,
+    golosA,
+    golosContra,
+    saldo: golosA - golosContra,
+    // Média por jogo **em que houve 5v4**, e não por jogo da época: dividir por
+    // jogos sem 5v4 nenhum dava um número que não descreve nada.
+    mediaPorJogoMs: jogosCom ? Math.round(totalMs / jogosCom) : 0,
+    jogadores: Object.values(perPlayer).sort((a, b) => b.ms - a.ms || a.number - b.number),
+  };
+}
