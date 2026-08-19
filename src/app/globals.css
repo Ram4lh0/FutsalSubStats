@@ -1216,3 +1216,21 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
    que sobra em vez de deformar, e o fundo escuro tapa a transparência dos PNG
    de logótipo, que de outra forma ficariam ilegíveis sobre o cartão. */
 .club-card__crest--foto { object-fit: cover; background: var(--card-2); }
+
+/* Os destaques da época: os tops por categoria e o cartão do 5v4.
+   Cartões mais estreitos do que os de estatística — cabem três nomes e pouco
+   mais, e num telemóvel ficam dois por linha em vez de um só. */
+.grid--destaques { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 18px; }
+.destaque { margin-bottom: 0; padding: 14px; }
+.destaque__topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.destaque__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+/* Dentro da janela a lista pode ser longa: ganha altura máxima e desliza. O
+   `overscroll-behavior` fica no eixo horizontal apenas, pela mesma razão das
+   tabelas — ao alto tem de poder entregar o gesto à janela. */
+.destaque__lista--completa { max-height: min(60vh, 460px); overflow-y: auto; overscroll-behavior-x: contain; padding-right: 4px; }
+.destaque__linha { display: flex; align-items: baseline; gap: 10px; }
+.destaque__pos { flex: none; width: 1.4rem; color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.destaque__nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.destaque__valor { flex: none; font-weight: 700; }
+.destaque .stat__value { margin: 0 0 2px; text-align: left; font-size: 1.5rem; font-weight: 700; }
+.destaque .btn--block { margin-top: 12px; }
