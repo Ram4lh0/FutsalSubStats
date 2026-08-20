@@ -49,6 +49,7 @@ export function Scoreboard({ state, ourName, opponentName, ourFull, opponentFull
         side="is-right"
         interactive={interactive}
         on={on}
+        extra={interactive ? <RivalOut state={state} on={on} /> : null}
       />
       <FoulsCell state={state} team="US" side="is-left" interactive={interactive} on={on} />
       <FoulsCell state={state} team="THEM" side="is-right" interactive={interactive} on={on} />
@@ -56,7 +57,7 @@ export function Scoreboard({ state, ourName, opponentName, ourFull, opponentFull
   );
 }
 
-function ScoreCell({ team, score, side, interactive, on }) {
+function ScoreCell({ team, score, side, interactive, on, extra }) {
   return (
     <div className={`scoreboard__score ${side}`}>
       {interactive ? (
@@ -74,7 +75,50 @@ function ScoreCell({ team, score, side, interactive, on }) {
           +
         </button>
       ) : null}
+      {extra}
     </div>
+  );
+}
+
+/**
+ * Expulsos do adversário, encostado ao resultado deles.
+ *
+ * Era uma faixa a toda a largura por baixo do marcador, e ocupava mais ecrã do
+ * que o assunto merece: passam jogos inteiros sem ninguém ser expulso do outro
+ * lado. Aqui vive ao lado do número a que diz respeito, e num telemóvel cai para
+ * a linha de baixo, que é onde há espaço.
+ *
+ * Continua a ter de existir, e pequeno não quer dizer acessório: a app não vê o
+ * banco deles, e é este número que decide se um golo sofrido devolve ou não um
+ * jogador nosso. Com 4 contra 4 ninguém repõe.
+ */
+function RivalOut({ state, on }) {
+  const n = state.opponentExpulsions || 0;
+  return (
+    <span
+      className={`rivalout ${n ? 'is-on' : ''}`}
+      title={n ? t('vivo.jogamCom', { n: MAX_ON_COURT - n }) : t('vivo.jogamComCinco')}
+    >
+      <span className="rivalout__lbl">{t('vivo.expAdvCurto')}</span>
+      <span className="rivalout__linha">
+        <button
+          className="rivalout__b"
+          aria-label={t('vivo.menosExpulsao')}
+          disabled={!n}
+          onClick={() => on.opponentExpulsion(-1)}
+        >
+          −
+        </button>
+        <span className="rivalout__n">{n}</span>
+        <button
+          className="rivalout__b"
+          aria-label={t('vivo.maisExpulsao')}
+          onClick={() => on.opponentExpulsion(1)}
+        >
+          +
+        </button>
+      </span>
+    </span>
   );
 }
 
@@ -117,56 +161,56 @@ export function ClockBox({ state, periodDurationMs, periodLabel, running, now, o
     <div className="clockbox">
       <span className="clockbox__period">{periodLabel}</span>
       <div className="clockbox__linha">
-        <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(p.periodMs)}</span>
-        {/* Acertar o relógio, para quando a paragem foi tarde ou o retomar foi
-            cedo. Ao lado do número e não noutro sítio: é o número que está
-            errado e é ali que se olha.
-
-            Pequenos de propósito. Isto usa-se uma vez por jogo, se tanto, e a
-            mão do treinador está no campo e nas substituições — botões grandes
-            aqui só aumentavam a hipótese de lhes tocar sem querer. */}
+        {/* Os de tirar à esquerda, os de somar à direita, e o relógio ao meio.
+            É a leitura natural de uma linha do tempo: para trás fica atrás, para
+            a frente fica à frente. Com os quatro do mesmo lado era preciso ler o
+            sinal de cada um antes de carregar, e isto usa-se com o jogo a
+            decorrer. */}
         {on?.adjustClock ? (
-          <span className="clockadj" aria-label={t('vivo.acertarRelogio')}>
-            <span className="clockadj__par">
-              <button
-                type="button"
-                className="clockadj__b"
-                title={t('vivo.maisMinuto')}
-                aria-label={t('vivo.maisMinuto')}
-                onClick={() => on.adjustClock(60_000)}
-              >
-                +1m
-              </button>
-              <button
-                type="button"
-                className="clockadj__b"
-                title={t('vivo.menosMinuto')}
-                aria-label={t('vivo.menosMinuto')}
-                onClick={() => on.adjustClock(-60_000)}
-              >
-                −1m
-              </button>
-            </span>
-            <span className="clockadj__par">
-              <button
-                type="button"
-                className="clockadj__b"
-                title={t('vivo.maisSegundo')}
-                aria-label={t('vivo.maisSegundo')}
-                onClick={() => on.adjustClock(1000)}
-              >
-                +1s
-              </button>
-              <button
-                type="button"
-                className="clockadj__b"
-                title={t('vivo.menosSegundo')}
-                aria-label={t('vivo.menosSegundo')}
-                onClick={() => on.adjustClock(-1000)}
-              >
-                −1s
-              </button>
-            </span>
+          <span className="clockadj">
+            <button
+              type="button"
+              className="clockadj__b"
+              title={t('vivo.menosDezSegundos')}
+              aria-label={t('vivo.menosDezSegundos')}
+              onClick={() => on.adjustClock(-10_000)}
+            >
+              −10s
+            </button>
+            <button
+              type="button"
+              className="clockadj__b"
+              title={t('vivo.menosSegundo')}
+              aria-label={t('vivo.menosSegundo')}
+              onClick={() => on.adjustClock(-1000)}
+            >
+              −1s
+            </button>
+          </span>
+        ) : null}
+
+        <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(p.periodMs)}</span>
+
+        {on?.adjustClock ? (
+          <span className="clockadj">
+            <button
+              type="button"
+              className="clockadj__b"
+              title={t('vivo.maisDezSegundos')}
+              aria-label={t('vivo.maisDezSegundos')}
+              onClick={() => on.adjustClock(10_000)}
+            >
+              +10s
+            </button>
+            <button
+              type="button"
+              className="clockadj__b"
+              title={t('vivo.maisSegundo')}
+              aria-label={t('vivo.maisSegundo')}
+              onClick={() => on.adjustClock(1000)}
+            >
+              +1s
+            </button>
           </span>
         ) : null}
       </div>
@@ -326,8 +370,17 @@ export function Bench({ state, sel, clockMs, on, arrasto }) {
   const cols = lista.length <= 6 ? Math.max(1, lista.length) : Math.ceil(lista.length / 2);
   const noBanco = lista.filter((p) => p.status === PLAYER_MATCH_STATUS.ON_BENCH).length;
 
+  // O banco inteiro recebe quem vem do campo. Largar em cima de um suplente diz
+  // logo quem entra; largar no espaço à volta é sair sem ter decidido, e aí a
+  // app pergunta. As duas coisas são o mesmo gesto, com um passo a mais ou a
+  // menos — e é o `closest` do arrasto que escolhe o alvo mais interior.
+  const solta = (arrasto?.origem?.tipo === 'court' && arrasto.alvo({ tipo: 'bench' })) || {};
+
   return (
-    <section className="bench">
+    <section
+      className={`bench ${solta.className || ''}`}
+      data-largar={solta['data-largar']}
+    >
       <div className="bench__head">
         <h2>{t('vivo.banco', { n: noBanco })}</h2>
         {sel?.kind === 'court' ? (
@@ -361,15 +414,18 @@ function BenchCard({ p, state, sel, clockMs, on, arrasto }) {
   const alvo = sel?.kind === 'court' && !expulso;
   const s = playerMatchStats(state.players[p.playerId] || p, clockMs);
 
-  // Um expulso não volta a entrar, portanto também não se arrasta.
+  // Um expulso não volta a entrar, portanto nem se arrasta nem recebe ninguém.
   const pega = (!expulso && arrasto?.pegar({ tipo: 'bench', playerId: p.playerId })) || {};
+  const recebe = !expulso && arrasto?.origem?.tipo === 'court';
+  const solta = (recebe && arrasto?.alvo({ tipo: 'bench', playerId: p.playerId })) || {};
   const aSerArrastado = arrasto?.origem?.playerId === p.playerId;
 
   return (
     <button
       className={`pcard pcard--bench ${selecionado ? 'is-in' : ''} ${alvo ? 'is-target' : ''} ${
         expulso ? 'is-expelled' : ''
-      } ${pega.className || ''} ${aSerArrastado ? 'is-a-arrastar' : ''}`}
+      } ${pega.className || ''} ${solta.className || ''} ${aSerArrastado ? 'is-a-arrastar' : ''}`}
+      data-largar={solta['data-largar']}
       onPointerDown={pega.onPointerDown}
       onPointerMove={pega.onPointerMove}
       onPointerUp={pega.onPointerUp}
@@ -468,42 +524,6 @@ function CardChips({ p, state }) {
 
 /* --------------------------------------------------------------- sanções */
 
-/**
- * Expulsões do adversário. Não têm cronómetro nem nomes — o que interessa é o
- * número, porque é ele que decide se um golo sofrido devolve ou não um jogador
- * nosso. Com 4 contra 4 ninguém repõe; a app só sabe isso se alguém lhe disser
- * quantos são eles.
- */
-function OpponentExpulsions({ state, on }) {
-  const n = state.opponentExpulsions || 0;
-  return (
-    <div className={`penalty penalty--rival ${n ? 'is-on' : ''}`}>
-      <span className="penalty__who">{t('vivo.expulsosAdversario')}</span>
-      <div className="rivalcount">
-        <button
-          className="foulbtn"
-          aria-label={t('vivo.menosExpulsao')}
-          disabled={!n}
-          onClick={() => on.opponentExpulsion(-1)}
-        >
-          −
-        </button>
-        <span className="rivalcount__n">{n}</span>
-        <button
-          className="foulbtn foulbtn--add"
-          aria-label={t('vivo.maisExpulsao')}
-          onClick={() => on.opponentExpulsion(1)}
-        >
-          +
-        </button>
-      </div>
-      <span className="penalty__label">
-        {n ? t('vivo.jogamCom', { n: MAX_ON_COURT - n }) : t('vivo.jogamComCinco')}
-      </span>
-    </div>
-  );
-}
-
 /** Cartões por baixo do campo, um por jogador expulso com sanção por cumprir. */
 export function Penalties({ state, clockMs, penaltyMs, on }) {
   const abertas = openPenalties(state, clockMs, penaltyMs);
@@ -540,7 +560,6 @@ export function Penalties({ state, clockMs, penaltyMs, on }) {
           </div>
         )
       )}
-      <OpponentExpulsions state={state} on={on} />
     </aside>
   );
 }

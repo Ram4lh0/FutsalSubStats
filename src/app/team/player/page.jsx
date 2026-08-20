@@ -151,11 +151,27 @@ function Ficha() {
               <th className="num" title={t('ficha.assistencias')}>
                 {t('ficha.assistCurto')}
               </th>
+              {/* As participações, jogo a jogo. Estavam no resumo de cima como um
+                  total da época, e um total esconde precisamente o que aqui se
+                  vem procurar: em que jogos é que a equipa produziu com ele
+                  dentro, e em quais é que sofreu. */}
+              <th className="num" title={t('stats.partGTitulo')}>
+                {t('ficha.partGolosCurto')}
+              </th>
+              <th className="num" title={t('stats.partGSTitulo')}>
+                {t('ficha.partSofridosCurto')}
+              </th>
               {guardaRedes ? (
                 <th className="num" title={t('stats.sofridosTitulo')}>
                   {t('ficha.sofridosCurto')}
                 </th>
               ) : null}
+              <th className="num" title={t('stats.faltas')}>
+                {t('ficha.faltasCurto')}
+              </th>
+              <th className="num" title={t('stats.faltasSofridas')}>
+                {t('ficha.faltasSofridasCurto')}
+              </th>
               <th className="num" title={t('ficha.cartoesAmarelos')}>
                 {t('ficha.amarelosCurto')}
               </th>
@@ -163,7 +179,10 @@ function Ficha() {
                 {t('ficha.vermelhosCurto')}
               </th>
               <th className="num">{t('ficha.emCampo')}</th>
-              <th />
+              {/* A coluna do botão fica com a folga toda: sem isto o browser
+                  reparte-a por todas, e o resultado acabava a meio metro do
+                  nome do adversário a que pertence. */}
+              <th className="col--elastico" />
             </tr>
           </thead>
           <tbody>
@@ -176,11 +195,15 @@ function Ficha() {
                 </td>
                 <td className="num mono">{row.goals}</td>
                 <td className="num mono">{row.assists}</td>
+                <td className="num mono">{row.goalShare}</td>
+                <td className="num mono">{row.concededShare}</td>
                 {guardaRedes ? <td className="num mono">{row.conceded}</td> : null}
+                <td className="num mono">{row.fouls}</td>
+                <td className="num mono">{row.foulsSuffered}</td>
                 <td className="num mono">{row.yellows}</td>
                 <td className="num mono">{row.reds}</td>
                 <td className="num mono">{fmt(row.courtMs)}</td>
-                <td className="right">
+                <td className="right col--elastico">
                   <button
                     className="btn btn--tiny btn--ghost"
                     onClick={() =>
