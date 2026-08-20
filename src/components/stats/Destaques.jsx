@@ -10,7 +10,7 @@
 // é o que se guarda de cabeça, e um botão para a lista inteira quando o terceiro
 // não chega.
 
-import { StatCard } from '@/components/bits.jsx';
+import { StatCard, DiffCard } from '@/components/bits.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import { fmt } from '@/domain/clock.js';
 import { useT } from '@/lib/i18n/index.js';
@@ -120,13 +120,9 @@ function Cartao5v4({ pp }) {
             <div className="grid grid--stats">
               <StatCard label={t('stats.golosEm5v4')} value={pp.golosA} />
               <StatCard label={t('stats.sofridosEm5v4')} value={pp.golosContra} />
-              {/* O saldo é o número que decide se a jogada compensa, e por isso
-                  é o único pintado: verde acima de zero, vermelho abaixo. */}
-              <StatCard
-                label={t('stats.saldo5v4')}
-                value={pp.saldo > 0 ? `+${pp.saldo}` : pp.saldo}
-                kind={pp.saldo > 0 ? 'win' : pp.saldo < 0 ? 'loss' : undefined}
-              />
+              {/* A diferença é o número que decide se a jogada compensa, e por
+                  isso é a única pintada: verde acima de zero, vermelho abaixo. */}
+              <DiffCard label={t('stats.diferenca')} value={pp.saldo} />
               <StatCard
                 label={t('stats.mediaPorJogo5v4')}
                 value={fmt(pp.mediaPorJogoMs)}

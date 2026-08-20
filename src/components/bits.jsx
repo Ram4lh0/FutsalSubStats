@@ -74,6 +74,27 @@ export function StatCard({ label, value, hint, kind, onClick }) {
   );
 }
 
+/**
+ * Diferença de golos: com sinal e pintada.
+ *
+ * É o único número destas grelhas que tem lado bom e lado mau — os outros são
+ * contagens, e um 12 não é melhor nem pior do que um 3 sem se saber de quê. Aqui
+ * o zero é a fronteira, e a cor poupa a leitura do sinal.
+ *
+ * O `+` à frente das positivas é a outra metade: sem ele, um 3 e um −3 só se
+ * distinguem por um traço fino que se perde de relance.
+ */
+export function DiffCard({ label, value, hint }) {
+  return (
+    <StatCard
+      label={label}
+      value={value > 0 ? `+${value}` : value}
+      hint={hint}
+      kind={value > 0 ? 'win' : value < 0 ? 'loss' : undefined}
+    />
+  );
+}
+
 export function Field({ label, hint, children }) {
   return (
     <label className="field">

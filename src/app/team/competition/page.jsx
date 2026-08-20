@@ -9,8 +9,9 @@ import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import MatchList from '@/components/MatchList.jsx';
 import DataTable from '@/components/DataTable.jsx';
-import { StatCard, Empty, Ved } from '@/components/bits.jsx';
-import { clubAggregate } from '@/domain/stats.js';
+import { StatCard, DiffCard, Empty, Ved } from '@/components/bits.jsx';
+import { clubAggregate, powerPlayAggregate } from '@/domain/stats.js';
+import Destaques from '@/components/stats/Destaques.jsx';
 import { fmt } from '@/domain/clock.js';
 import { rotas } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
@@ -50,6 +51,10 @@ function Detalhe({ entries, roster, competitions, clubId, teamId, competitionId 
         .sort((a, b) => b.courtMs - a.courtMs || a.number - b.number),
     [agg]
   );
+  // O 5v4 contado só com os jogos desta prova. É onde a pergunta faz mais
+  // sentido: contra os mesmos adversários, e sob o mesmo regulamento, saber se
+  // a jogada compensa é uma resposta e não uma média de coisas diferentes.
+  const pp = useMemo(() => powerPlayAggregate(meus), [meus]);
 
   if (!competicao) return <Empty>{t('stats.provaNaoEncontrada')}</Empty>;
 
@@ -72,8 +77,13 @@ function Detalhe({ entries, roster, competitions, clubId, teamId, competitionId 
         <StatCard label={t('stats.ved')} value={<Ved v={agg.wins} e={agg.draws} d={agg.losses} />} />
         <StatCard label={t('stats.golosMarcados')} value={agg.goalsFor} />
         <StatCard label={t('stats.golosSofridos')} value={agg.goalsAgainst} />
-        <StatCard label={t('stats.diferenca')} value={agg.goalsFor - agg.goalsAgainst} />
+        <DiffCard label={t('stats.diferenca')} value={agg.goalsFor - agg.goalsAgainst} />
       </div>
+
+      {/* Os mesmos destaques da aba do escalão, mas fechados nesta prova.
+          O melhor marcador da época e o melhor marcador do campeonato podem
+          perfeitamente não ser o mesmo, e é essa a razão de esta página existir. */}
+      {linhas.length ? <Destaques linhas={linhas} pp={pp} /> : null}
 
       <h2 className="section">{t('stats.jogos')}</h2>
       {meus.length ? (

@@ -8,7 +8,7 @@
 -- que sai o tempo de jogo de cada jogador, o erro contamina tudo o que a app
 -- serve para responder.
 --
--- Daí quatro botões pequenos para somar ou tirar um segundo e um minuto.
+-- Daí quatro botões pequenos para somar ou tirar dez segundos e um segundo.
 --
 -- ## Porque é que é um evento, e não um acerto silencioso
 --

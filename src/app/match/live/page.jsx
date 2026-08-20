@@ -61,8 +61,7 @@ const OWN_GOAL = '__OWN_GOAL__';
  */
 function rotuloPasso(ms) {
   const sinal = ms > 0 ? '+' : '\u2212';
-  const abs = Math.abs(ms);
-  return abs >= 60_000 ? `${sinal}${abs / 60_000} min` : `${sinal}${abs / 1000} s`;
+  return `${sinal}${Math.abs(ms) / 1000} s`;
 }
 
 export default function LivePage() {
@@ -352,16 +351,30 @@ function Live() {
   }
 
   /**
-   * Largar um jogador em cima de um lugar do campo.
+   * Largar um jogador.
    *
    * Repete as decisões do toque, e não inventa nenhuma: do banco para um lugar
-   * ocupado é uma substituição, do banco para um lugar vazio é uma entrada, e de
-   * um lugar para outro é uma troca de posição. Quem valida continua a ser o
-   * `V.validate*`, como em qualquer outro caminho.
+   * ocupado é uma substituição, do banco para um lugar vazio é uma entrada, de
+   * um lugar para outro é uma troca de posição, e do campo para o banco é sair.
+   * Quem valida continua a ser o `V.validate*`, como em qualquer outro caminho.
    */
-  function largar(origem, destino) {
-    if (destino?.tipo !== 'court') return;
+  async function largar(origem, destino) {
+    if (!destino) return;
     setSel(null);
+
+    // Do campo para fora. Em cima de um suplente já diz quem entra; no espaço à
+    // volta falta essa metade, e é o que a janela pergunta. Não há forma de sair
+    // sem entrar ninguém — em futsal joga-se a cinco, e a única maneira de ficar
+    // reduzido é uma expulsão, que tem caminho próprio.
+    if (destino.tipo === 'bench') {
+      if (origem.tipo !== 'court') return;
+      if (destino.playerId) return doSubstitution(origem.playerId, destino.playerId, origem.pos);
+      const entra = await pickReplacement(ui, state, origem.pos);
+      if (entra) await doSubstitution(origem.playerId, entra, origem.pos);
+      return;
+    }
+
+    if (destino.tipo !== 'court') return;
 
     if (origem.tipo === 'bench') {
       const ocupante = state.court[destino.pos];
