@@ -319,7 +319,7 @@ export function painelDoAtleta(
       totalMs: linhaMinutos?.ms || 0,
       mediaJogadorMs: linhaMinutos?.mediaMs || 0,
       mediaEquipaMs: min.media,
-      diferencaMs: (linhaMinutos?.mediaMs || 0) - min.media,
+      diferencaMs: (linhaMinutos?.ms || 0) - min.media,
       abaixo: Boolean(linhaMinutos?.abaixo),
     },
     utilizacao,
@@ -332,7 +332,7 @@ export function painelDoAtleta(
       segunda: partes[2].map(comMedia),
       comDados: comDadosPeriodo,
     },
-    ultimos: ultimos.slice(-quantos),
+    ultimos: ultimos.slice(-quantos).reverse(),
     disciplina: disc,
   };
 }

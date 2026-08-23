@@ -184,7 +184,7 @@ test('o painel do atleta resume minutos, utilizacao, impacto e ultimos jogos', (
   assert.equal(r.disciplina.faltas, 1);
   assert.equal(r.disciplina.sofridas, 1);
   assert.equal(r.disciplina.amarelos, 1);
-  assert.equal(r.ultimos[1].convocado, false);
+  assert.equal(r.ultimos[0].convocado, false);
 });
 
 test('o painel do guarda-redes separa golos sofridos por periodo', () => {
