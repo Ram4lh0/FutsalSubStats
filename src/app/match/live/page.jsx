@@ -53,17 +53,6 @@ import useArrasto from '@/lib/arrastar.js';
 
 const OWN_GOAL = '__OWN_GOAL__';
 
-/**
- * O passo do acerto, para a mensagem de confirmação: `+1 min`, `−1 s`.
- *
- * O sinal de menos é o de subtracção (−), e não o hífen do teclado: com o hífen
- * e um número ao lado, à pressa, lê-se como parte da palavra.
- */
-function rotuloPasso(ms) {
-  const sinal = ms > 0 ? '+' : '\u2212';
-  return `${sinal}${Math.abs(ms) / 1000} s`;
-}
-
 export default function LivePage() {
   return (
     <Pagina>
@@ -163,12 +152,24 @@ function Live() {
   const ourName = clubShort(club);
   const rivalName = opponentShort(match);
 
-  /** Grava um evento e recalcula o jogo. Toda a mutação passa por aqui. */
-  async function commit(event, mensagem, { sync = 'defer' } = {}) {
+  /**
+   * Grava um evento e recalcula o jogo. Toda a mutação passa por aqui.
+   *
+   * Não anuncia nada. Anunciava: cada golo, cada substituição, cada falta
+   * levantava uma mensagem no fundo do ecrã a dizer o que tinha acabado de
+   * acontecer. Num jogo a sério são dezenas delas, e todas a repetir o que já
+   * se estava a ver — o cartão mudou de sítio, o número subiu. Uma confirmação
+   * que só confirma o óbvio tapa o ecrã e treina o olho a ignorar o sítio onde
+   * aparecem os avisos que interessam.
+   *
+   * Continuam a aparecer duas coisas: os erros, e as consequências que ninguém
+   * pediu — o segundo amarelo que expulsa, o golo sofrido que liberta um
+   * jogador, a sanção que chegou ao fim.
+   */
+  async function commit(event, { sync = 'defer' } = {}) {
     await events.append(event, { sync });
     setSel(null);
     const novo = await recarregar();
-    if (mensagem) toast(mensagem, 'ok');
     return novo?.state;
   }
 
@@ -185,13 +186,13 @@ function Live() {
    * popup deixa apenas um golo por atribuir (corrigível no resumo).
    */
   async function scoreFor(p) {
-    const st = await commit(A.teamGoalBy(state, p.playerId), t('acao.goloDe', { nome: p.name }));
+    const st = await commit(A.teamGoalBy(state, p.playerId));
     const golo = lastTeamGoal(st);
     if (golo) await askAssist(st, golo, p.playerId);
   }
 
   async function addTeamGoal() {
-    const st = await commit(A.goal(state, EVENT.TEAM_GOAL_ADDED), t('acao.golo'));
+    const st = await commit(A.goal(state, EVENT.TEAM_GOAL_ADDED));
     const golo = lastTeamGoal(st);
     if (!golo) return;
 
@@ -210,7 +211,7 @@ function Live() {
         { sync: 'defer' }
       );
       await recarregar();
-      return toast(t('acao.autogoloFeito'), 'ok');
+      return;
     }
     if (!scorerId) return;
     await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, scorerId }), {
@@ -231,7 +232,6 @@ function Live() {
       sync: 'defer',
     });
     const depois = await recarregar();
-    toast(t('acao.assistenciaDe', { nome: depois.state.players[assistId]?.name || '—' }), 'ok');
   }
 
   /**
@@ -295,7 +295,6 @@ function Live() {
     });
     const depois = await recarregar();
     const nome = depois.state.players[playerId]?.name || '—';
-    toast(nossa ? t('acao.faltaDe', { nome }) : t('acao.faltaSofridaPor', { nome }), 'ok');
   }
 
   function removeFoul(team) {
@@ -311,10 +310,7 @@ function Live() {
     const erro = canStartPenalty(state, playerId);
     if (erro) return toast(mensagemErro(erro), 'error');
     unlockAudio(); // o toque do utilizador é o que permite tocar o aviso depois
-    await commit(
-      A.startPenalty(state, { playerId, durationMs: penaltyMs() }),
-      t('acao.contagemIniciada', { n: Math.round(penaltyMs() / 60000) })
-    );
+    await commit(A.startPenalty(state, { playerId, durationMs: penaltyMs() }));
   }
 
   /* ------------------------------------------------------------ interação */
@@ -407,8 +403,7 @@ function Live() {
     const de = state.players[playerId].position;
     if (de === toPosition) return setSel(null);
     await commit(
-      A.changePosition(state, { playerId, fromPosition: de, toPosition }),
-      t('acao.posicaoAlterada')
+      A.changePosition(state, { playerId, fromPosition: de, toPosition })
     );
   }
 
@@ -418,8 +413,7 @@ function Live() {
     const erro = V.validateReplacement(state, { playerInId, position });
     if (erro) return toast(mensagemErro(erro), 'error');
     await commit(
-      A.replaceAfterExpulsion(state, { playerInId, position }),
-      t('acao.entraEmCampo', { nome: state.players[playerInId].name })
+      A.replaceAfterExpulsion(state, { playerInId, position })
     );
   }
 
@@ -439,12 +433,8 @@ function Live() {
       );
       if (!ok) return;
     }
-    await commit(
-      A.yellowCard(state, { playerId: p.playerId }),
-      temAmarelo
-        ? t('acao.expulsoPorAmarelos', { nome: p.name })
-        : t('acao.amareloPara', { nome: p.name })
-    );
+    await commit(A.yellowCard(state, { playerId: p.playerId }));
+    if (temAmarelo) toast(t('acao.expulsoPorAmarelos', { nome: p.name }), 'ok', 8000);
   }
 
   async function aplicarVermelho(p) {
@@ -453,7 +443,7 @@ function Live() {
       { okLabel: t('acao.vermelho') }
     );
     if (!ok) return;
-    await commit(A.redCard(state, { playerId: p.playerId }), t('acao.expulso', { nome: p.name }));
+    await commit(A.redCard(state, { playerId: p.playerId }));
   }
 
   function cardItems(p, close) {
@@ -645,7 +635,7 @@ function Live() {
       { okLabel: t('acao.terminarPrimeira'), danger: false }
     );
     if (!ok) return;
-    await commit(A.finishFirstHalf(state), t('acao.intervalo'), { sync: 'defer' });
+    await commit(A.finishFirstHalf(state), { sync: 'defer' });
   }
 
   async function startSecondHalf(lineup) {
@@ -659,7 +649,6 @@ function Live() {
     if (erro) return toast(mensagemErro(erro), 'error');
     await events.append(A.startSecondHalf(novo.state), { sync: 'defer' });
     await recarregar();
-    toast(t('acao.comecouSegunda'), 'ok');
   }
 
   async function finishGame() {
@@ -691,7 +680,7 @@ function Live() {
     await events.append(A.finishMatch(state), { sync: 'defer' });
     const fresco = await loadMatch(matchId);
     await matches.update(matchId, { teamFouls: foulsTotal(fresco.state, 'US') }, { sync: 'defer' });
-    await sync.saveNow(userId, user?.email);
+    sync.saveNow(userId, user?.email);
     router.push(rotas.jogoResumo(matchId));
   }
 
@@ -723,12 +712,8 @@ function Live() {
     startPenalty,
     // Acertar o relógio. O passo vem em milissegundos e pode ser negativo; o
     // reducer é que trava para não passar do zero.
-    adjustClock: (deltaMs) =>
-      commit(A.adjustClock(state, deltaMs, Date.now()), t('vivo.relogioAcertado', {
-        passo: rotuloPasso(deltaMs),
-      }), { sync: 'defer' }),
-    togglePowerPlay: (ligar) =>
-      commit(A.setPowerPlay(state, ligar), ligar ? '5v4 a contar.' : '5v4 terminado.'),
+    adjustClock: (deltaMs) => commit(A.adjustClock(state, deltaMs, Date.now()), { sync: 'defer' }),
+    togglePowerPlay: (ligar) => commit(A.setPowerPlay(state, ligar)),
     opponentExpulsion: (delta) => commit(A.opponentExpulsion(state, delta)),
   };
 
@@ -862,7 +847,6 @@ function Live() {
             await events.append(A.undoEvent(state, undoable), { sync: 'defer' });
             setSel(null);
             await recarregar();
-            toast(t('acao.acaoDesfeita'), 'ok');
           }}
         >
           {undoable

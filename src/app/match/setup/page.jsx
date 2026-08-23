@@ -136,10 +136,10 @@ function Preparacao() {
         competition: form.competition,
           notes: form.notes,
       });
-      await sync.saveNow(userId, user?.email);
+      sync.saveNow(userId, user?.email);
       toast(t('prep.dadosGuardados'), 'ok');
     } catch (err) {
-      toast(t('prep.dadosGuardadosLocal', { erro: err.message }), 'error');
+      toast(t('prep.naoGuardou', { erro: err.message }), 'error');
     } finally {
       setAGuardar(false);
     }
@@ -172,7 +172,7 @@ function Preparacao() {
           initialLocation: inverso[p.id] ? LOCATION.COURT : LOCATION.BENCH,
         }))
     );
-    await sync.saveNow(userId, user?.email);
+    sync.saveNow(userId, user?.email);
     if (!silencioso) toast(t('prep.guardada'), 'ok');
     return true;
   }
@@ -183,7 +183,11 @@ function Preparacao() {
     const erro = canStartFirstHalf(fresco.state);
     if (erro) return toast(mensagemErro(erro), 'error');
     await events.append(startFirstHalf(fresco.state, Date.now()));
-    await sync.saveNow(userId, user?.email);
+    // Sem `await`, e é o ponto todo: o evento já está gravado no aparelho e o
+    // jogo começou. Esperar pelo servidor aqui era esperar pelo pavilhão ter
+    // rede — e o árbitro não espera. A fila leva-o quando puder, e continua a
+    // levá-lo se entretanto se sair deste ecrã.
+    sync.saveNow(userId, user?.email);
     router.push(rotas.jogoAoVivo(matchId));
   }
 

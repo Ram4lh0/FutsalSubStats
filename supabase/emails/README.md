@@ -35,12 +35,19 @@ pessoa carregar em "mostrar imagens". Um email cuja identidade depende de um
 logótipo bloqueado chega vazio. Aqui a marca é texto e uma linha verde — aparece
 sempre, à primeira, em todo o lado.
 
-**Têm sempre o código de seis dígitos, mesmo quando já têm botão.** Não é
+**Quatro dos seis levam o código de seis dígitos, mesmo tendo botão.** Não é
 repetição. Os filtros de segurança de algumas empresas (e o Outlook com Safe
 Links) **abrem os links das mensagens antes de as entregar**, para os verificar.
 Como estes links só servem uma vez, quando a pessoa carrega já foi gasto e a app
 diz que expirou — sem nada que explique porquê. O código não se gasta a ser
-lido, e é a saída quando isso acontece.
+lido, e é a saída quando isso acontece: a página `/password` aceita-o.
+
+**O convite e a recuperação não o levam.** São os dois emails que chegam a quem
+ainda não conhece a app, e uma caixa com seis dígitos grandes ao lado de um
+botão verde faz a pessoa parar a decidir entre duas coisas quando só há uma a
+fazer. Nesses dois o aviso do fim diz o que fazer se o link falhar — pedir
+outro — que resolve o caso raro sem estorvar o caso comum. Há um teste que
+prende as duas metades desta regra.
 
 **Não dizem quantas horas duram.** O prazo é uma definição do projeto
 (*Authentication → Emails → Email OTP Expiration*) e muda sem que ninguém se

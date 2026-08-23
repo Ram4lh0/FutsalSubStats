@@ -75,11 +75,11 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
     try {
       if (playerId) await players.update(playerId, form);
       else await players.create(teamId, form);
-      await sync.saveNow(userId, user?.email);
+      sync.saveNow(userId, user?.email);
       toast(t('jogador.guardado'), 'ok');
       router.push(rotas.plantel(clubId, teamId));
     } catch (err) {
-      toast(t('jogador.guardadoLocal', { erro: err.message }), 'error');
+      toast(t('jogador.naoGuardou', { erro: err.message }), 'error');
     } finally {
       setAGuardar(false);
     }

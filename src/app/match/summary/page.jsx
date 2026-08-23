@@ -106,6 +106,7 @@ function Resumo() {
   }
   const tabela = matchStatsTable(state, Date.now());
   const r = matchResult(state);
+  const totalConvocados = Object.keys(state.players).length;
 
   async function corrigirResultado() {
     if (
@@ -129,9 +130,33 @@ function Resumo() {
     ));
     if (valor == null) return;
     await matches.update(matchId, { notes: valor });
-    await sync.saveNow(userId, user?.email);
-    ui.toast('Notas guardadas e sincronizadas.', 'ok');
+    sync.saveNow(userId, user?.email);
+    ui.toast(t('resumo.notasGuardadas'), 'ok');
     carregar();
+  }
+
+  /**
+   * Apagar o jogo a partir do resumo.
+   *
+   * Aqui o aviso é mais forte do que o da preparação, e de propósito: um jogo
+   * por começar não tem nada lá dentro, este tem os quarenta minutos todos —
+   * golos, substituições, tempos de cada jogador. E não desaparece só deste
+   * ecrã: sai das estatísticas do escalão e da prova, e da ficha de cada um dos
+   * jogadores que jogaram.
+   *
+   * Arquivar, e não apagar: o `remove` limpava só este aparelho e o jogo
+   * reaparecia na descarga seguinte.
+   */
+  async function apagarJogo() {
+    const ok = await ui.confirmar(t('resumo.confirmaApagar'), {
+      okLabel: t('prep.apagarJogo'),
+      title: t('prep.apagarJogo'),
+    });
+    if (!ok) return;
+    await matches.archive(matchId);
+    sync.saveNow(userId, user?.email);
+    ui.toast(t('prep.jogoApagado'), 'ok');
+    router.push(back || rotas.jogos(match.clubId, match.teamId));
   }
 
   /** Sair da experiência: os dados fictícios não ficam no aparelho. */
@@ -239,7 +264,7 @@ function Resumo() {
         {...(back
           ? { backTo: back }
           : state.status === MATCH_STATUS.FINISHED
-            ? { homeTo: rotas.dashboard() }
+            ? { homeTo: rotas.clube(match.clubId) }
             : { backTo: rotas.jogos(match.clubId, match.teamId) })}
         actions={
           <>
@@ -316,7 +341,9 @@ function Resumo() {
             p2: foulsInPeriod(state, 'US', 2),
           })}
         />
-        <StatCard label={t('resumo.convocados')} value={Object.keys(state.players).length} />
+        {totalConvocados < 12 ? (
+          <StatCard label={t('resumo.convocados')} value={totalConvocados} kind="loss" />
+        ) : null}
         {/* 5v4: só aparece se tiver havido. Num jogo em que nunca se jogou com
             guarda-redes avançado, um cartão a zeros era ruído. */}
         {pp.count ? (
@@ -401,6 +428,20 @@ function Resumo() {
           <p className="card notes">{match.notes}</p>
         </>
       ) : null}
+
+      {/* Apagar fica aqui em baixo, e não na fila de botões do topo.
+          Lá em cima ficava encostado ao "Notas" e ao "Corrigir resultado", que
+          se usam a seguir a um jogo com o telemóvel na mão — e o único botão da
+          página que não tem volta a dar não pode estar à distância de um dedo
+          mal assente. Quem o vem procurar desce até ao fim; quem não o procura
+          nunca lá tropeça. */}
+      {emDemo() ? null : (
+        <div className="resumo__apagar">
+          <button className="btn btn--tiny btn--ghost btn--danger" onClick={apagarJogo}>
+            {t('prep.apagarJogo')}
+          </button>
+        </div>
+      )}
     </>
   );
 }

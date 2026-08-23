@@ -73,6 +73,7 @@ function Shell({ clubId, teamId, children }) {
     { label: t('escalao.jogos'), to: rotas.jogos(clubId, teamId) },
     { label: t('escalao.competicoes'), to: rotas.competicoes(clubId, teamId) },
     { label: t('escalao.estatisticas'), to: rotas.escalao(clubId, teamId) },
+    { label: t('escalao.painel'), to: rotas.painelEscalao(clubId, teamId) },
   ];
 
   return (

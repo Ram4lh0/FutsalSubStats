@@ -104,25 +104,48 @@ function SyncBridge() {
     sync.setRemote(supabase());
   }, []);
 
+  // ## Porque é que não há aqui um temporizador
+  //
+  // Havia: um `setInterval` de **três segundos** que mandava descarregar tudo
+  // outra vez. Com a app aberta eram vinte descargas completas por minuto — e
+  // cada uma trazia clubes, escalões, plantéis, jogos, convocatórias e a linha
+  // de eventos inteira, porque a descarga não sabia perguntar «o que mudou».
+  //
+  // Numa época de vinte jogos isso é perto de um megabyte de cada vez. Um
+  // separador esquecido aberto uma tarde gastava gigabytes — e não era só a
+  // conta do Supabase: era a bateria e os dados móveis do treinador, à beira do
+  // campo, a descarregar a mesma coisa vinte vezes por minuto.
+  //
+  // Não faz falta nenhum. A app já volta a sincronizar quando a rede regressa,
+  // quando a janela ganha o foco, quando a app volta para a frente e quando
+  // alguma coisa muda aqui dentro. Um relógio a bater no vazio não acrescenta
+  // nada a isso: só repete o que já foi respondido.
   useEffect(() => {
     if (!userId) return;
 
     let vivo = true;
+    let aAtualizar = false;
     const sincronizar = () => {
       sync.pendingCount();
       return sync.flush(userId, user?.email);
     };
     const atualizar = async () => {
-      if (isLive) {
-        await sync.pendingCount();
-        return;
-      }
+      if (aAtualizar) return;
+      aAtualizar = true;
       try {
-        await sync.pull(userId);
-      } catch {
-        /* sem rede: fica para depois */
+        if (isLive) {
+          await sync.pendingCount();
+          return;
+        }
+        try {
+          await sync.pull(userId);
+        } catch {
+          /* sem rede: fica para depois */
+        }
+        return await sincronizar();
+      } finally {
+        aAtualizar = false;
       }
-      return sincronizar();
     };
     (async () => {
       // A base deste aparelho é de uma conta de cada vez. Se a última a usá-lo
@@ -134,23 +157,29 @@ function SyncBridge() {
       if (vivo) await atualizar();
     })();
 
+    // Uma alteração local só precisa de ser **enviada**. Antes chamava o
+    // `atualizar`, que descarrega primeiro — cada golo apontado puxava a época
+    // inteira do servidor antes de mandar uma linha.
+    const aoMudarLocal = () => sincronizar();
     const aoVoltar = () => atualizar();
     const aoFocar = () => {
       if (document.visibilityState === 'visible') atualizar();
     };
+    // Descarga incremental: normalmente vem vazia, mas apanha eventos que
+    // acabaram de chegar ao servidor depois da primeira abertura deste aparelho.
+    const intervalo = setInterval(atualizar, 15000);
     window.addEventListener('online', aoVoltar);
     window.addEventListener('focus', aoVoltar);
     document.addEventListener('visibilitychange', aoFocar);
-    window.addEventListener(sync.DATA_CHANGED_EVENT, aoVoltar);
-    const timer = isLive ? null : setInterval(aoVoltar, 3000);
+    window.addEventListener(sync.DATA_CHANGED_EVENT, aoMudarLocal);
 
     return () => {
       vivo = false;
+      clearInterval(intervalo);
       window.removeEventListener('online', aoVoltar);
       window.removeEventListener('focus', aoVoltar);
       document.removeEventListener('visibilitychange', aoFocar);
-      window.removeEventListener(sync.DATA_CHANGED_EVENT, aoVoltar);
-      if (timer) clearInterval(timer);
+      window.removeEventListener(sync.DATA_CHANGED_EVENT, aoMudarLocal);
     };
   }, [userId, user?.email, isLive]);
 

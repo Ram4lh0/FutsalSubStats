@@ -164,7 +164,7 @@ function Roster({ team, entries, roster, clubId, teamId }) {
       if (!ok) return;
 
       const r = await players.replaceRoster(teamId, jogadores);
-      await sync.saveNow(userId, user?.email);
+      sync.saveNow(userId, user?.email);
       setVersao((v) => v + 1);
       toast(t('plantelCsv.feito', r), 'ok', 8000);
     } catch (e) {

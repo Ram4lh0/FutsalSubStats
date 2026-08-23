@@ -8,7 +8,8 @@ import TeamShell from '@/components/TeamShell.jsx';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import DataTable from '@/components/DataTable.jsx';
-import { StatCard, DiffCard, Empty, Ved } from '@/components/bits.jsx';
+import { StatCard, Empty, Ved } from '@/components/bits.jsx';
+import CartaoGolos from '@/components/stats/CartaoGolos.jsx';
 import { clubAggregate, powerPlayAggregate } from '@/domain/stats.js';
 import Destaques from '@/components/stats/Destaques.jsx';
 import { fmt } from '@/domain/clock.js';
@@ -44,16 +45,14 @@ function Stats({ entries, roster, clubId, teamId }) {
 
   return (
     <>
-      <div className="grid grid--stats">
+      <div className="grid grid--stats stats__resumo">
         <StatCard
           label={t('stats.jogos')}
           value={agg.matches}
           hint={t('stats.terminados', { n: agg.finished })}
         />
         <StatCard label={t('stats.ved')} value={<Ved v={agg.wins} e={agg.draws} d={agg.losses} />} />
-        <StatCard label={t('stats.golosMarcados')} value={agg.goalsFor} />
-        <StatCard label={t('stats.golosSofridos')} value={agg.goalsAgainst} />
-        <DiffCard label={t('stats.diferenca')} value={agg.goalsFor - agg.goalsAgainst} />
+        <CartaoGolos marcados={agg.goalsFor} sofridos={agg.goalsAgainst} />
       </div>
 
       {!linhas.length ? (

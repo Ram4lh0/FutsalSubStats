@@ -64,6 +64,11 @@ export function subscribe(fn) {
   return () => listeners.delete(fn);
 }
 
+/** O estado agora, para quem precisa de o ler uma vez e não de o seguir. */
+export function estadoAtual() {
+  return estado;
+}
+
 export function notifyLocalChange() {
   pendingCount();
   if (typeof window === 'undefined') return;
@@ -372,10 +377,144 @@ export async function push(userId, email) {
  * são pisadas: o que está no dispositivo é mais recente por definição, porque
  * ainda nem chegou lá acima.
  */
+/* --------------------------------------------------- a marca de água */
+
+/**
+ * Até onde é que já descarregámos, tabela a tabela.
+ *
+ * ## Porque é que a marca vem do servidor e não do relógio daqui
+ *
+ * A tentação é guardar `Date.now()` no fim de cada descarga. Não serve: o
+ * relógio do telemóvel e o do servidor não estão acertados, e bastam uns
+ * segundos de diferença para uma linha escrita nesse intervalo nunca mais ser
+ * pedida. A marca é o maior `updated_at` que **veio nas linhas**, que é um
+ * instante medido pelo mesmo relógio que as carimbou.
+ *
+ * ## Porque é que é uma marca por tabela, e não uma só
+ *
+ * Uma descarga são sete perguntas seguidas, e o mundo não pára entre elas. Com
+ * uma marca única — o maior carimbo de todas as tabelas — uma linha escrita
+ * numa tabela **depois** de a pergunta dela já ter passado, mas com um carimbo
+ * mais antigo do que o de outra tabela perguntada a seguir, ficava para trás da
+ * marca e não voltava a ser pedida. Perdia-se em silêncio.
+ *
+ * Com uma marca por tabela isso não acontece: cada tabela é comparada consigo
+ * própria. Uma linha escrita depois da sua pergunta tem forçosamente um carimbo
+ * maior do que o que essa pergunta devolveu, e entra na descarga seguinte.
+ */
+const CHAVE_MARCA = 'futsal-sync-desde';
+
+// Cópia em memória, para quando não há `localStorage` — um browser em modo
+// restrito, ou os testes.
+let marcasEmMemoria = {};
+
+function marcasDe(userId) {
+  if (!userId) return {};
+  try {
+    const bruto = window.localStorage.getItem(`${CHAVE_MARCA}:${userId}`);
+    if (bruto) return JSON.parse(bruto);
+  } catch {
+    /* sem localStorage, ou lixo lá dentro: vale o que está em memória */
+  }
+  return marcasEmMemoria[userId] || {};
+}
+
+function guardarMarcas(userId, marcas) {
+  if (!userId) return;
+  marcasEmMemoria[userId] = marcas;
+  try {
+    window.localStorage.setItem(`${CHAVE_MARCA}:${userId}`, JSON.stringify(marcas));
+  } catch {
+    /* fica só em memória */
+  }
+}
+
+/**
+ * Esquecer as marcas: a próxima descarga volta a trazer tudo.
+ *
+ * Serve o "limpar dispositivo" e o apagar da conta — depois de deitar a base
+ * fora, uma descarga incremental não traria nada e o ecrã ficava vazio.
+ */
+export function esquecerMarca(userId) {
+  if (userId) delete marcasEmMemoria[userId];
+  else marcasEmMemoria = {};
+  try {
+    if (userId) window.localStorage.removeItem(`${CHAVE_MARCA}:${userId}`);
+  } catch {
+    /* não havia nada para tirar */
+  }
+}
+
+/**
+ * Quantas linhas o servidor devolve de uma vez, e quantas nós pedimos.
+ *
+ * O PostgREST tem um tecto configurado no projecto (mil, por omissão) e **corta
+ * em silêncio**: devolve as primeiras mil linhas com um `200 OK`, exactamente
+ * como devolveria uma lista completa. Não há erro, não há aviso.
+ *
+ * Enquanto a descarga trazia tudo de cada vez, isto era um bug adormecido: uma
+ * época com mais de mil eventos chegava truncada, mas chegava sempre igual.
+ * Com a marca de água passaria a ser perda de dados a sério — a marca avançava
+ * com o carimbo mais alto das mil que vieram, e as que ficaram de fora nunca
+ * mais seriam pedidas.
+ *
+ * Daí pedir por páginas até vir uma incompleta. Uma época a sério — vinte jogos,
+ * quatro mil eventos — são quatro pedidos em vez de um, e chegam os quatro mil.
+ */
+const PAGINA = 1000;
+
+/**
+ * Corre uma consulta até ao fim, página a página.
+ *
+ * `fazer(de, ate)` tem de devolver a consulta já montada com o intervalo.
+ */
+async function todas(fazer) {
+  const linhas = [];
+  for (let de = 0; ; de += PAGINA) {
+    const { data, error } = await fazer(de, de + PAGINA - 1);
+    if (error) throw error;
+    const lote = data || [];
+    linhas.push(...lote);
+    // Uma página incompleta é a última. Uma página cheia pode ser a última
+    // também — nesse caso a volta seguinte vem vazia e pára aqui na mesma.
+    if (lote.length < PAGINA) return linhas;
+  }
+}
+
+/** O maior `updated_at` de um lote, comparado como texto ISO (que ordena bem). */
+function maiorData(linhas, ateAgora) {
+  let maior = ateAgora;
+  for (const l of linhas || []) {
+    const d = l.updated_at || l.created_at;
+    if (d && (!maior || d > maior)) maior = d;
+  }
+  return maior;
+}
+
 export async function pull(userId) {
   const sb = supabase();
   if (!sb || !userId) return { pulled: 0 };
   let total = 0;
+
+  const marcas = marcasDe(userId);
+  const novas = { ...marcas };
+
+  /**
+   * Pede uma tabela inteira: só o que mudou, e por páginas.
+   *
+   * `montar()` devolve a consulta de raiz — é chamada uma vez por página, porque
+   * o construtor do Supabase guarda estado e não se pode reutilizar.
+   */
+  const trazer = async (tabela, montar) => {
+    const linhas = await todas((de, ate) => {
+      const q = montar();
+      // Só filtra quando há por onde: sem marca para aquela tabela, a consulta
+      // traz tudo — que é o que um aparelho novo precisa.
+      return (marcas[tabela] ? q.gt('updated_at', marcas[tabela]) : q).range(de, ate);
+    });
+    novas[tabela] = maiorData(linhas, marcas[tabela]);
+    return linhas;
+  };
 
   // A licença decide quantos escalões se podem criar, e a app tem de a saber sem
   // rede. Vem primeiro porque é a resposta mais barata e a que menos depende do
@@ -390,54 +529,85 @@ export async function pull(userId) {
   // uma lista vazia — a app abria sem clube nenhum e sem nada que explicasse
   // porquê. O servidor já sabe quem pode ver o quê; a pergunta certa é "o que é
   // que eu posso ver", não "o que é que eu criei".
-  const { data: clubes, error: e1 } = await sb.from('clubs').select('*');
-  if (e1) throw e1;
-  total += await merge(db.STORES.clubs, (clubes || []).map(clubMapper.fromRow));
+  const clubes = await trazer('clubs', () => sb.from('clubs').select('*'));
+  total += await merge(db.STORES.clubs, clubes.map(clubMapper.fromRow));
 
-  const ids = (clubes || []).map((c) => c.id);
+  // Daqui para baixo os ids são os de casa: a descarga pode ter trazido zero
+  // clubes e haver jogos novos à mesma.
+  const ids = (await db.all(db.STORES.clubs)).map((c) => c.id);
   if (!ids.length) return { pulled: total };
 
-  const { data: escaloes, error: e1b } = await sb.from('teams').select('*').in('club_id', ids);
-  if (e1b) throw e1b;
-  total += await merge(db.STORES.teams, (escaloes || []).map(teamMapper.fromRow));
-  await marcarNiveis(sb, userId, clubes || [], escaloes || []);
+  const escaloes = await trazer('teams', () =>
+    sb.from('teams').select('*').in('club_id', ids)
+  );
+  total += await merge(db.STORES.teams, escaloes.map(teamMapper.fromRow));
 
-  const escalaoIds = (escaloes || []).map((t) => t.id);
+  // Os níveis de acesso são calculados sobre o retrato completo, e não só sobre
+  // o que mudou agora: um escalão que não mexeu continua a precisar do seu.
+  await marcarNiveis(
+    sb,
+    userId,
+    (await db.all(db.STORES.clubs)).map((c) => ({ id: c.id, owner_id: c.ownerId })),
+    (await db.all(db.STORES.teams)).map((t) => ({ id: t.id, club_id: t.clubId }))
+  );
+
+  const escalaoIds = (await db.all(db.STORES.teams)).map((t) => t.id);
   if (escalaoIds.length) {
-    const { data: comps, error: e1c } = await sb
-      .from('competitions')
-      .select('*')
-      .in('team_id', escalaoIds);
-    if (e1c) throw e1c;
-    total += await merge(db.STORES.competitions, (comps || []).map(competitionMapper.fromRow));
+    const comps = await trazer('competitions', () =>
+      sb.from('competitions').select('*').in('team_id', escalaoIds)
+    );
+    total += await merge(db.STORES.competitions, comps.map(competitionMapper.fromRow));
   }
 
-  const { data: jogadores, error: e2 } = await sb.from('players').select('*').in('club_id', ids);
-  if (e2) throw e2;
-  total += await merge(db.STORES.players, (jogadores || []).map(playerMapper.fromRow));
+  const jogadores = await trazer('players', () =>
+    sb.from('players').select('*').in('club_id', ids)
+  );
+  total += await merge(db.STORES.players, jogadores.map(playerMapper.fromRow));
 
-  const { data: jogos, error: e3 } = await sb.from('matches').select('*').in('club_id', ids);
-  if (e3) throw e3;
-  total += await merge(db.STORES.matches, (jogos || []).map(matchMapper.fromRow));
+  const jogos = await trazer('matches', () =>
+    sb.from('matches').select('*').in('club_id', ids)
+  );
+  total += await merge(db.STORES.matches, jogos.map(matchMapper.fromRow));
 
-  const jogoIds = (jogos || []).map((m) => m.id);
-  if (!jogoIds.length) return { pulled: total };
+  const jogoIds = (await db.all(db.STORES.matches)).map((m) => m.id);
+  if (!jogoIds.length) {
+    guardarMarcas(userId, novas);
+    if (total) notifyDataUpdated();
+    return { pulled: total };
+  }
 
-  const { data: convocados, error: e4 } = await sb
-    .from('match_squad')
-    .select('*')
-    .in('match_id', jogoIds);
-  if (e4) throw e4;
-  total += await merge(db.STORES.matchSquad, (convocados || []).map(squadMapper.fromRow));
+  const convocados = await trazer('match_squad', () =>
+    sb.from('match_squad').select('*').in('match_id', jogoIds)
+  );
+  total += await merge(db.STORES.matchSquad, convocados.map(squadMapper.fromRow));
 
-  const { data: eventos, error: e5 } = await sb
-    .from('match_events')
-    .select('*')
-    .in('match_id', jogoIds)
-    .order('seq', { ascending: true });
-  if (e5) throw e5;
-  total += await merge(db.STORES.matchEvents, (eventos || []).map(eventMapper.fromRow));
+  // Ordenado por `updated_at`: com páginas, a ordem tem de ser a mesma em que
+  // se corta, senão a página 2 podia repetir linhas da 1 e saltar outras.
+  let eventos;
+  try {
+    eventos = await trazer('match_events', () =>
+      sb
+        .from('match_events')
+        .select('*')
+        .in('match_id', jogoIds)
+        .order('updated_at', { ascending: true })
+    );
+  } catch (err) {
+    if (!/updated_at|42703|column .* does not exist/i.test(`${err?.code || ''} ${err?.message || err}`)) {
+      throw err;
+    }
+    eventos = await todas((de, ate) =>
+      sb
+        .from('match_events')
+        .select('*')
+        .in('match_id', jogoIds)
+        .order('seq', { ascending: true })
+        .range(de, ate)
+    );
+  }
+  total += await merge(db.STORES.matchEvents, eventos.map(eventMapper.fromRow));
 
+  guardarMarcas(userId, novas);
   if (total) notifyDataUpdated();
   return { pulled: total };
 }
@@ -623,6 +793,10 @@ export async function flush(userId, email) {
  */
 export async function resetLocal(userId) {
   await db.clearAll();
+  // A marca tem de ir com a base. Sem isto, a descarga a seguir pedia só o que
+  // mudou desde ontem — e a app abria vazia, com o histórico todo do lado de lá
+  // e nada deste.
+  esquecerMarca(userId);
   const r = await pull(userId);
   await pendingCount();
   notifyLocalChange();
@@ -653,14 +827,44 @@ export async function pendingCount() {
   return n;
 }
 
+/**
+ * Tentar enviar agora, sem prender ninguém.
+ *
+ * ## Porque é que isto deixou de rebentar
+ *
+ * Esta função lançava uma excepção quando não havia rede. Quem a chamava fazia
+ * `await sync.saveNow(...)` antes de continuar, e a excepção levava o resto do
+ * caminho com ela — incluindo o `router.push` que abria o jogo. O resultado era
+ * o pior que uma app offline-first pode fazer: **não se conseguia começar um
+ * jogo dentro de um pavilhão sem rede**, que é exactamente o sítio onde ela
+ * tinha de funcionar.
+ *
+ * O erro de fundo era tratar o servidor como parte do caminho. Não é. Os dados
+ * já estão gravados no aparelho quando isto é chamado; o envio é uma
+ * consequência, não uma condição. Falta de rede não é uma falha — é o estado
+ * normal de metade dos pavilhões deste país.
+ *
+ * Por isso agora **nunca lança**. Devolve o que aconteceu, para quem quiser
+ * decidir alguma coisa com isso (o sair da conta quer), e a fila trata do resto
+ * sozinha: o `flush` reagenda-se, e o `providers.jsx` volta a tentar mal haja
+ * rede, foco, ou uma mudança nos dados.
+ *
+ * @returns {Promise<{guardado: boolean, status: string, pendentes: number}>}
+ *   `guardado` é verdadeiro só quando chegou mesmo ao servidor.
+ */
 export async function saveNow(userId, email) {
-  await pendingCount();
-  const result = await flush(userId, email);
-  if (estado.status === SYNC.ERROR || estado.status === SYNC.OFFLINE) {
-    throw new Error(estado.error?.message || estado.status);
+  // Defensivo até ao fim: a maior parte de quem chama isto já nem espera pelo
+  // resultado, e uma promessa recusada sem ninguém a ouvir derruba a app em
+  // vez de adiar um envio.
+  try {
+    await pendingCount();
+    await flush(userId, email);
+  } catch (err) {
+    console.warn('sincronização adiada:', err?.message || err);
   }
-  if (estado.status === SYNC.LOCAL && userId) {
-    throw new Error(t('auth.semServidor'));
-  }
-  return result;
+  return {
+    guardado: estado.status === SYNC.SYNCED,
+    status: estado.status,
+    pendentes: estado.pending,
+  };
 }
