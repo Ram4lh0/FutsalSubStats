@@ -253,7 +253,6 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
         <div className="grid grid--stats painelv__metricas-atleta">
           <StatCard label={t('stats.tempoTotal')} value={fmt(min.totalMs)} />
           <StatCard label={t('painelv.mediaAtleta')} value={fmt(min.mediaJogadorMs)} />
-          <StatCard label={t('painelv.mediaEquipa')} value={fmt(min.mediaEquipaMs)} />
           <StatCard
             label={t('painelv.diferencaMedia')}
             value={fmtAssinado(min.diferencaMs)}
@@ -264,12 +263,12 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
           linhas={[
             {
               rotulo: dados.jogador.name,
-              valor: min.mediaJogadorMs,
-              texto: fmt(min.mediaJogadorMs),
+              valor: min.totalMs,
+              texto: fmt(min.totalMs),
               alerta: min.abaixo,
             },
             {
-              rotulo: t('painelv.mediaEquipa'),
+              rotulo: t('painelv.mediaTempoTotalPlantel'),
               valor: min.mediaEquipaMs,
               texto: fmt(min.mediaEquipaMs),
             },
@@ -283,7 +282,6 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
           <StatCard label={t('painelv.utilizado')} value={u.utilizado} hint={`${u.percentagemUtilizacao}%`} />
           <StatCard label={t('painelv.titular')} value={u.titular} />
           <StatCard label={t('painelv.entrouBanco')} value={u.banco} />
-          <StatCard label={t('painelv.entradas')} value={u.entradas} />
           <StatCard label={t('painelv.mediaEntrada')} value={fmt(u.mediaEntradaMs)} />
         </div>
       </Bloco>
