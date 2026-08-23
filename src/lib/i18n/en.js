@@ -1048,6 +1048,15 @@ export default {
   'resultado.empate': 'Draw',
   'resultado.semJogos': 'No matches recorded',
 
+  /* ------------------------------------------------------- store update */
+  'atualizacaoLoja.titulo': 'New version available',
+  'atualizacaoLoja.texto':
+    'There is a new version on the Play Store. Update to get the latest fixes.',
+  'atualizacaoLoja.instalada': 'Installed version: {versao}',
+  'atualizacaoLoja.nova': 'New version: {versao}',
+  'atualizacaoLoja.abrir': 'Update on Play Store',
+  'atualizacaoLoja.depois': 'Not now',
+
   /* -------------------------------------------------------------- common */
   'comum.apelido': 'Short name (optional)',
   'comum.aGuardar': 'Saving…',
