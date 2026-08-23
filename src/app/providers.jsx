@@ -93,9 +93,9 @@ function LiveChrome() {
 /**
  * Liga a fila ao servidor e mantém-na a andar.
  *
- * Três momentos pedem uma tentativa de envio: entrar na conta, voltar a haver
- * rede, e de minuto a minuto. Nada disto interrompe o que está no ecrã — se
- * falhar, fica para a próxima.
+ * Quatro momentos pedem uma tentativa: entrar na conta, voltar a haver rede,
+ * voltar à app e alterar dados neste dispositivo. Nada disto interrompe o que
+ * está no ecrã — se falhar, fica para a próxima.
  */
 function SyncBridge() {
   const { userId, user } = useAuth();
@@ -169,9 +169,6 @@ function SyncBridge() {
     const aoFocar = () => {
       if (document.visibilityState === 'visible') atualizar();
     };
-    // Descarga incremental: normalmente vem vazia, mas apanha eventos que
-    // acabaram de chegar ao servidor depois da primeira abertura deste aparelho.
-    const intervalo = setInterval(atualizar, 15000);
     window.addEventListener('online', aoVoltar);
     window.addEventListener('focus', aoVoltar);
     document.addEventListener('visibilitychange', aoFocar);
@@ -179,7 +176,6 @@ function SyncBridge() {
 
     return () => {
       vivo = false;
-      clearInterval(intervalo);
       window.removeEventListener('online', aoVoltar);
       window.removeEventListener('focus', aoVoltar);
       document.removeEventListener('visibilitychange', aoFocar);
