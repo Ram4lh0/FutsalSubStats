@@ -822,7 +822,6 @@ function Live() {
           state={state}
           periodDurationMs={match.periodDurationMs}
           periodLabel={periodLabel}
-          running={aCorrer}
           now={now}
           // Só no jogo cronometrado. No corrido o relógio é uma referência, não
           // uma contagem oficial, e não há paragens onde alguém se possa enganar.
