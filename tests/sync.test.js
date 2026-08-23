@@ -149,7 +149,7 @@ async function limpar() {
 async function cenario() {
   const clube = await clubs.create({ name: 'Patameiras', shortName: 'PAT' });
   const escalao = await teams.create(clube.id, { name: 'Séniores', timing: 'UNTIMED' });
-  const prova = await competitions.create(escalao.id, { name: 'Campeonato' });
+  const prova = (await competitions.listByTeam(escalao.id)).find((c) => c.name === 'Campeonato');
   const jogador = await players.create(escalao.id, { name: 'Zef', shirtNumber: 7 });
   const jogo = await matches.create(escalao.id, {
     opponentName: 'Adversário',
@@ -186,7 +186,7 @@ test('a fila envia tudo por ordem e limpa a marca de pendente', async () => {
   assert.equal(servidor.tabelas.clubs[0].short_name, 'PAT', 'o apelido viaja');
   assert.equal(servidor.tabelas.teams.length, 1, 'o escalão subiu');
   assert.equal(servidor.tabelas.teams[0].club_id, clube.id);
-  assert.equal(servidor.tabelas.competitions.length, 1, 'a competição subiu');
+  assert.equal(servidor.tabelas.competitions.length, 3, 'as competições subiram');
   assert.equal(servidor.tabelas.players[0].club_id, clube.id);
   assert.ok(servidor.tabelas.players[0].team_id, 'o jogador pertence a um escalão');
   assert.ok(servidor.tabelas.matches[0].team_id, 'o jogo pertence a um escalão');
@@ -702,6 +702,17 @@ test('com licença de treinador, o segundo escalão é recusado', async () => {
   );
 });
 
+test('um escalão novo nasce com as competições base', async () => {
+  await limpar();
+  const clube = await clubs.create({ name: 'Com provas base' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+
+  assert.deepEqual(
+    (await competitions.listByTeam(escalao.id)).map((c) => c.name),
+    ['Campeonato', 'Jogos de Treino', 'Taça']
+  );
+});
+
 test('com licença de clube, criam-se os escalões todos', async () => {
   await limpar();
   const clube = await clubs.create({ name: 'Com licença' });
@@ -1131,11 +1142,11 @@ test('a competição apagada sai da lista e sobe arquivada', async () => {
 
   const clube = await clubs.create({ name: 'Com provas' });
   const escalao = await teams.create(clube.id, { name: 'Séniores' });
-  const prova = await competitions.create(escalao.id, { name: 'Campeonato' });
+  const prova = (await competitions.listByTeam(escalao.id)).find((c) => c.name === 'Campeonato');
   await push(UTILIZADOR, 'treinador@exemplo.pt');
 
   await competitions.archive(prova.id);
-  assert.equal((await competitions.listByTeam(escalao.id)).length, 0);
+  assert.equal((await competitions.listByTeam(escalao.id)).length, 2);
 
   await push(UTILIZADOR, 'treinador@exemplo.pt');
   assert.ok(
@@ -1150,7 +1161,7 @@ test('e os jogos dessa competição ficam sem prova, não apagados', async () =>
   await limpar();
   const clube = await clubs.create({ name: 'Com provas' });
   const escalao = await teams.create(clube.id, { name: 'Séniores' });
-  const prova = await competitions.create(escalao.id, { name: 'Taça' });
+  const prova = (await competitions.listByTeam(escalao.id)).find((c) => c.name === 'Taça');
   const jogo = await matches.create(escalao.id, {
     opponentName: 'Adversário',
     competitionId: prova.id,

@@ -25,6 +25,11 @@ const now = () => Date.now();
 // Tudo o que se escreve nasce por enviar. O `dirty` só cai quando o servidor
 // confirmar — se a app fechar a meio, a linha continua na fila.
 const stamp = (o) => ({ ...o, createdAt: o.createdAt ?? now(), updatedAt: now(), dirty: true });
+const DEFAULT_COMPETITIONS = [
+  { name: 'Campeonato', shortName: 'Camp.' },
+  { name: 'Taça', shortName: 'Taça' },
+  { name: 'Jogos de Treino', shortName: 'Treino' },
+];
 
 /* ---------------------------------------------------------------- perfil */
 
@@ -217,6 +222,9 @@ export const teams = {
       archivedAt: null,
     });
     await db.put(db.STORES.teams, row);
+    for (const prova of DEFAULT_COMPETITIONS) {
+      await competitions.create(row.id, prova);
+    }
     notifyLocalChange();
     return row;
   },
