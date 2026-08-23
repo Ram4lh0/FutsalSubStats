@@ -1,0 +1,8 @@
+{
+  "android": {
+    "appId": "com.futsalsubstats.app",
+    "latestVersion": "1.2",
+    "playStoreUrl": "https://play.google.com/store/apps/details?id=com.futsalsubstats.app",
+    "notes": "Nova versão disponível com melhorias no dashboard, sincronização e aviso de atualização."
+  }
+}

@@ -1053,6 +1053,15 @@ export default {
   'resultado.empate': 'Empate',
   'resultado.semJogos': 'Sem jogos registados',
 
+  /* --------------------------------------------------- atualização loja */
+  'atualizacaoLoja.titulo': 'Nova versão disponível',
+  'atualizacaoLoja.texto':
+    'Já existe uma nova versão na Play Store. Atualiza para receber as últimas correções.',
+  'atualizacaoLoja.instalada': 'Versão instalada: {versao}',
+  'atualizacaoLoja.nova': 'Nova versão: {versao}',
+  'atualizacaoLoja.abrir': 'Atualizar na Play Store',
+  'atualizacaoLoja.depois': 'Agora não',
+
   /* -------------------------------------------------------------- comum */
   'comum.apelido': 'Apelido (opcional)',
   'comum.aGuardar': 'A guardar…',
