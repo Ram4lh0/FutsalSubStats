@@ -491,6 +491,19 @@ test('um vermelho directo expulsa e conta um vermelho', () => {
   assert.equal(countOnCourt(st), 4);
 });
 
+test('um vermelho no banco expulsa sem abrir sanção', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const st = step(ctx, (s) => A.redCard(s, { playerId: 'p6' }, T0 + 2 * MIN), T0 + 2 * MIN);
+  const s6 = playerMatchStats(st.players.p6, 2 * MIN, { cards: st.cards });
+
+  assert.equal(s6.reds, 1);
+  assert.equal(s6.expulsions, 1);
+  assert.equal(st.players.p6.status, PLAYER_MATCH_STATUS.EXPELLED);
+  assert.equal(countOnCourt(st), 5, 'a equipa não fica reduzida por vermelho no banco');
+  assert.equal(penaltyBoard(st, 2 * MIN).length, 0);
+});
+
 test('anular o segundo amarelo devolve o jogador ao campo', () => {
   const ctx = { squad: makeSquad(), events: [] };
   step(ctx, (s) => A.startFirstHalf(s, T0), T0);
