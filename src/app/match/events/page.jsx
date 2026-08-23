@@ -60,8 +60,9 @@ function Historico() {
       { okLabel: t('historico.anular') }
     );
     if (!ok) return;
-    await events.markUndone(e.id);
-    await events.append(A.undoEvent(state, e));
+    const syncMode = de === 'live' ? 'defer' : 'immediate';
+    await events.markUndone(e.id, null, { sync: syncMode });
+    await events.append(A.undoEvent(state, e), { sync: syncMode });
     toast(t('historico.eventoAnulado'), 'ok');
     carregar();
   }

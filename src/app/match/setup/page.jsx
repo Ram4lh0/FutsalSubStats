@@ -182,12 +182,10 @@ function Preparacao() {
     const fresco = await loadMatch(matchId);
     const erro = canStartFirstHalf(fresco.state);
     if (erro) return toast(mensagemErro(erro), 'error');
-    await events.append(startFirstHalf(fresco.state, Date.now()));
-    // Sem `await`, e é o ponto todo: o evento já está gravado no aparelho e o
-    // jogo começou. Esperar pelo servidor aqui era esperar pelo pavilhão ter
-    // rede — e o árbitro não espera. A fila leva-o quando puder, e continua a
-    // levá-lo se entretanto se sair deste ecrã.
-    sync.saveNow(userId, user?.email);
+    await events.append(startFirstHalf(fresco.state, Date.now()), { sync: 'defer' });
+    // A partir daqui é jogo ao vivo: fica local até ao apito final. A preparação
+    // já foi enviada; os acontecimentos do jogo seguem todos juntos quando se
+    // carrega em "Terminar jogo".
     router.push(rotas.jogoAoVivo(matchId));
   }
 
