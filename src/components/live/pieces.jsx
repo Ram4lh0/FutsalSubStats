@@ -155,7 +155,7 @@ function FoulsCell({ state, team, side, interactive, on }) {
  * configurada — o árbitro é que manda. Passado o limite, o número fica âmbar e a
  * linha de baixo troca a contagem decrescente por quanto tempo já vai a mais.
  */
-export function ClockBox({ state, periodDurationMs, periodLabel, running, now, on }) {
+export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
   const p = periodProgress(state, periodDurationMs, now);
   return (
     <div className="clockbox">
@@ -222,9 +222,6 @@ export function ClockBox({ state, periodDurationMs, periodLabel, running, now, o
               total: fmt(p.matchMs),
             })
           : t('vivo.faltam', { resta: fmt(p.remainingMs), total: fmt(p.matchMs) })}
-      </span>
-      <span className={`pill ${running ? 'pill--live' : 'pill--paused'}`}>
-        {running ? t('vivo.aCorrer') : t('vivo.parado')}
       </span>
     </div>
   );
