@@ -26,7 +26,6 @@
 //
 //   $env:SUPABASE_SERVICE_ROLE_KEY = "..."   (PowerShell, só nesta sessão)
 
-import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -36,6 +35,7 @@ const RAIZ = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '
 const OUT = join(RAIZ, 'out');
 const TMP = join(RAIZ, '.pacotes');
 const BALDE = 'pacotes';
+const CAPACITOR = JSON.parse(readFileSync(join(RAIZ, 'capacitor.config.json'), 'utf8'));
 
 /* ------------------------------------------------------------ argumentos */
 
@@ -89,18 +89,39 @@ const zip = join(TMP, `bundle-${versao}.zip`);
 rmSync(zip, { force: true });
 
 console.log(`A empacotar out/ → ${zip}`);
-if (process.platform === 'win32') {
-  execFileSync(
-    'powershell',
-    ['-NoProfile', '-Command', `Compress-Archive -Path "${OUT}\\*" -DestinationPath "${zip}" -Force`],
-    { stdio: 'inherit' }
-  );
-} else {
-  execFileSync('zip', ['-r', '-q', zip, '.'], { cwd: OUT, stdio: 'inherit' });
+const argsCapgo = [
+  '--yes',
+  '@capgo/cli',
+  'bundle',
+  'zip',
+  CAPACITOR.appId,
+  '--path',
+  OUT,
+  '--bundle',
+  versao,
+  '--name',
+  zip,
+  '--json',
+  '--no-code-check',
+];
+const saidaCapgo = process.platform === 'win32'
+  ? execFileSync('cmd.exe', ['/d', '/s', '/c', 'npx.cmd', ...argsCapgo], {
+      cwd: RAIZ,
+      encoding: 'utf8',
+    })
+  : execFileSync('npx', argsCapgo, { cwd: RAIZ, encoding: 'utf8' });
+
+let infoCapgo;
+try {
+  infoCapgo = JSON.parse(saidaCapgo.slice(saidaCapgo.indexOf('{')));
+} catch {
+  console.error(saidaCapgo);
+  console.error('Não consegui ler a resposta da CLI do Capgo.');
+  process.exit(1);
 }
 
 const conteudo = readFileSync(zip);
-const checksum = createHash('sha256').update(conteudo).digest('hex');
+const checksum = infoCapgo.checksum;
 const tamanhoMB = (conteudo.length / 1024 / 1024).toFixed(2);
 console.log(`  ${tamanhoMB} MB · sha256 ${checksum.slice(0, 16)}…`);
 
