@@ -16,6 +16,7 @@
 // limpar, guarda-se uma cópia num ficheiro — e quem chama avisa.
 
 import * as db from './local.js';
+import { esquecerMarca } from './sync.js';
 
 const CHAVE = 'futsal-dono';
 
@@ -87,6 +88,15 @@ export async function garantirDono(novoDono) {
 
   const perdidas = await porEnviar();
   await db.clearAll();
+  // As marcas de água vão com a base, e as de **toda a gente**.
+  //
+  // Sem isto havia um caminho que deixava a app vazia: o treinador entra e
+  // descarrega tudo (marca guardada), empresta o telemóvel a um colega que entra
+  // na conta dele (base limpa), e volta a entrar na sua. A base foi limpa outra
+  // vez, mas a marca dele continuava lá — a descarga seguinte pedia só o que
+  // mudou desde ontem e não trazia nada. Época inteira no servidor, ecrã em
+  // branco no telemóvel.
+  esquecerMarca();
   marcarDono(novoDono);
   return { trocou: true, perdidas };
 }

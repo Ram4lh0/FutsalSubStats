@@ -301,6 +301,8 @@ function CourtCard({ pos, p, state, sel, clockMs, on, arrasto }) {
         <span
           className="pcard__goal"
           title="Golo deste jogador"
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             on.scoreFor(p);

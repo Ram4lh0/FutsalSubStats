@@ -18,6 +18,7 @@
     "android:icones": "node tools/android-icones.mjs",
     "emails": "node tools/emails.mjs",
     "convidar": "node tools/convidar.mjs",
+    "codigo": "node tools/codigo.mjs",
     "publicar:pacote": "node tools/publicar-bundle.mjs",
     "painel": "node tools/painel/servidor.mjs",
     "arte:loja": "python tools/arte-da-loja.py"

@@ -50,7 +50,37 @@ function Lugar({ i, p, valor }) {
   );
 }
 
-function CartaoTop({ etiqueta, linhas, chave }) {
+/**
+ * Um top 3 de uma coluna qualquer.
+ *
+ * Exportado porque o painel de gráficos precisa exactamente do mesmo cartão
+ * para as faltas e os cartões: mesma forma, mesmo `+` para a lista inteira. Duas
+ * cópias do mesmo desenho divergiam à terceira alteração.
+ *
+ * Serve qualquer lista cujos elementos tenham `playerId`, `name`, `number` e a
+ * coluna pedida.
+ */
+/**
+ * Pinta a última palavra do título com a cor do cartão.
+ *
+ * "Mais amarelos" com tudo amarelo lê-se como um aviso; o que se quer é que a
+ * palavra *amarelos* seja da cor dos cartões de que fala, e o resto do título
+ * fique como qualquer outro. Vai sempre a última palavra porque é aí que a cor
+ * está nas três línguas — "Mais amarelos", "Most yellows", "Más amarillas".
+ */
+function comCor(titulo, cor) {
+  if (!cor) return titulo;
+  const i = titulo.lastIndexOf(' ');
+  if (i < 0) return <span className={`cartao-cor cartao-cor--${cor}`}>{titulo}</span>;
+  return (
+    <>
+      {titulo.slice(0, i + 1)}
+      <span className={`cartao-cor cartao-cor--${cor}`}>{titulo.slice(i + 1)}</span>
+    </>
+  );
+}
+
+export function CartaoTop({ etiqueta, linhas, chave, cor }) {
   const t = useT();
   const ui = useUI();
   const ordenadas = ordenar(linhas, chave);
@@ -75,7 +105,7 @@ function CartaoTop({ etiqueta, linhas, chave }) {
   return (
     <div className="card destaque">
       <div className="destaque__topo">
-        <span className="stat__label">{titulo}</span>
+        <span className="stat__label">{comCor(titulo, cor)}</span>
         {/* O `+` só aparece quando há mais do que os três à vista. Sem isso era
             um botão que abre uma janela a repetir o que já está no cartão. */}
         {ordenadas.length > 3 ? (

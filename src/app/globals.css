@@ -179,9 +179,6 @@ ul { padding: 0; list-style: none; }
 .appbar__right { display: flex; align-items: center; gap: 10px; }
 .appbar__build { font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .sync { font-size: 0.72rem; letter-spacing: 0.04em; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); }
-.sync--ok { color: var(--primary); border-color: rgba(34, 197, 94, 0.4); }
-.sync--pending { color: var(--warn); border-color: rgba(245, 158, 11, 0.4); }
-.sync--offline { color: var(--danger); border-color: rgba(239, 68, 68, 0.4); }
 /* Em experiência: fica claro na barra que nada disto está a ser guardado. */
 .sync--demo { color: var(--info); border-color: rgba(56, 189, 248, 0.5); font-weight: 700; }
 
@@ -254,9 +251,45 @@ ul { padding: 0; list-style: none; }
 .section { font-size: 1.05rem; margin: 22px 0 10px; }
 .section--tight { margin: 0; }
 
-.tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); margin-bottom: 18px; overflow-x: auto; }
-.tab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 12px 16px; color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap; }
+/* As abas de um escalão: Plantel, Jogos, Competições, Estatísticas, Gráficos.
+ *
+ * ## Porque é que dobram em vez de deslizarem
+ *
+ * Deslizavam: `overflow-x: auto` e uma fila que saía pela direita. Num
+ * telemóvel ao alto as cinco não cabem, e a última ficava fora do ecrã — sem
+ * seta, sem sombra, sem nada que dissesse que havia mais. A aba dos Gráficos
+ * tinha acabado de ser feita e, para quem tinha o telemóvel na mão, não
+ * existia.
+ *
+ * Uma barra que desliza só funciona quando se vê que ela desliza. Aqui não se
+ * via, e a solução é não haver deslize nenhum: as abas dobram para a linha de
+ * baixo e ficam todas à vista de uma vez.
+ *
+ * O `flex: 1 1 auto` é o que faz a segunda linha não ficar a meio: as duas que
+ * sobram esticam-se e ocupam a largura toda, em vez de ficarem encolhidas à
+ * esquerda com um vazio ao lado. Num ecrã largo, onde cabem todas numa linha,
+ * nada disto se nota — cada aba fica com o tamanho do seu nome mais a folga. */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+.tab { flex: 0 1 auto; background: none; border: 0; border-bottom: 3px solid transparent; padding: 12px 16px; color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap; }
 .tab.is-active { color: var(--text); border-bottom-color: var(--primary); }
+/* Só onde a fila pode dobrar é que as abas esticam. Num ecrã largo cabem todas
+   e ficam com o tamanho do nome, encostadas à esquerda, como sempre estiveram —
+   esticadas por mil e quatrocentos píxeis pareciam outra coisa. */
+@media (max-width: 900px) {
+  .tab { flex: 1 1 auto; }
+}
+/* Num ecrã estreito aperta-se o espaço à volta do nome antes de dobrar a fila:
+   com menos folga cabem três por linha em vez de duas, e as cinco resolvem-se
+   em duas linhas. */
+@media (max-width: 560px) {
+  .tabs { gap: 4px; }
+  .tab { padding: 10px 10px; font-size: 0.92rem; }
+  .stats__resumo .golcard {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(240px, 100%);
+  }
+}
 
 /* ------------------------------------------------------------------ cartões */
 
@@ -308,15 +341,33 @@ ul { padding: 0; list-style: none; }
 .grid--cards.grid--um { grid-template-columns: minmax(0, 420px); justify-content: center; }
 .grid--stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 8px; }
 
+@media (min-width: 700px) and (orientation: landscape) {
+  .painelv__metricas-atleta .stat:last-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(260px, 100%);
+  }
+}
+
+.stats__resumo .stat__label,
+.grid--destaques .stat__label,
+.painelv .stat__label,
+.painelv__bloco > .section {
+  font-weight: 800;
+}
+
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
-.stat__label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+/* O título de um cartão de estatística. A negrito: em maiúsculas pequenas e na
+   cor apagada, ficava mais leve do que o texto normal à volta e a grelha lia-se
+   como uma mancha só. O peso é o que separa o rótulo do número. */
+.stat__label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 /* O valor ao centro, e a etiqueta encostada à esquerda em cima.
    Uma grelha de cinco cartões com números de larguras diferentes — `10`, `-7`,
    `3/4/3` — fica desalinhada ao alto se todos encostarem à esquerda; ao centro,
    é o meio de cada cartão que os alinha. A etiqueta fica onde estava: é ela que
    se lê a percorrer a fila, e para isso tem de começar sempre no mesmo sítio. */
 .stat__value { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; }
-.stat__hint { font-size: 0.8rem; color: var(--muted); }
+.stat__hint { margin-top: auto; font-size: 0.8rem; color: var(--muted); }
 /* Cartão que abre o detalhe por trás: é um botão, mas mantém o desenho do resto
    da grelha — nada de o fazer parecer um controlo diferente. */
 .stat--clickable { text-align: left; color: inherit; font: inherit; cursor: pointer; }
@@ -395,6 +446,15 @@ ul { padding: 0; list-style: none; }
 /* Nas tabelas de jogadores o número sozinho não diz nada — o nome vai junto.
    O deslocamento da segunda coluna é a largura real da primeira, medida depois
    de a tabela entrar no ecrã (--col1). */
+/* Tabelas compactas sem coluna fixa: evita a primeira coluna tapar o Resultado no telemovel. */
+.tablewrap--nofreeze .table th:nth-child(1),
+.tablewrap--nofreeze .table td:nth-child(1) {
+  position: static;
+  left: auto;
+  z-index: auto;
+}
+.tablewrap--nofreeze .table thead th:nth-child(1) { position: sticky; top: 0; z-index: 3; }
+
 .table--who th:nth-child(2), .table--who td:nth-child(2) { position: sticky; left: var(--col1, 56px); z-index: 2; }
 .table--who td:nth-child(2) { background: var(--card); }
 .table--who th:nth-child(2) { background: var(--bg-2); z-index: 4; }
@@ -411,6 +471,8 @@ ul { padding: 0; list-style: none; }
 .table thead th { box-shadow: inset 0 -1px 0 var(--line); border-bottom: 0; }
 .table th.num, .table td.num { text-align: right; }
 .table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: var(--bg-2); }
+.table th.is-yellow { color: var(--warn); }
+.table th.is-red { color: var(--danger); }
 .table tbody tr:last-child td { border-bottom: 0; }
 .table tr.is-muted td { opacity: 0.55; }
 .table tr.is-undone td { opacity: 0.45; text-decoration: line-through; }
@@ -521,6 +583,10 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .counter { font-weight: 700; font-variant-numeric: tabular-nums; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); }
 .counter.is-full { color: var(--warn); border-color: var(--warn); }
 
+/* O apagar do resumo: afastado do resto e encostado à direita, onde não se
+   carrega sem se querer. */
+.resumo__apagar { display: flex; justify-content: flex-end; margin-top: 28px; }
+
 .notes { white-space: pre-wrap; }
 .readonly { min-height: var(--touch); display: flex; align-items: center; padding: 0 14px; background: var(--bg-2); border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); }
 
@@ -541,7 +607,12 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .stepper__item.is-active { color: var(--text); border-color: var(--primary); }
 .stepper__item.is-done { color: var(--primary); }
 .stepper__n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--card-2); font-size: 0.75rem; }
-.wizard__nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+/* A fila de botões do assistente — Voltar, Continuar, Guardar — encostada ao
+   fundo do ecrã, como a barra da preparação. Ver `.barra-fixa`. */
+.wizard__nav { justify-content: space-between; }
+/* O espaço que a barra tapa. Sem isto o último jogador da lista ficava
+   permanentemente escondido por baixo dos botões, e não havia como o ver. */
+.wizard { padding-bottom: 96px; }
 
 .pickgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
 .pick { display: grid; grid-template-columns: 42px 1fr; grid-template-rows: auto auto; gap: 2px 10px; align-items: center; text-align: left; min-height: 62px; padding: 10px 12px; background: var(--card-2); border: 2px solid var(--line); border-radius: 12px; cursor: pointer; }
@@ -562,9 +633,21 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .review dt { color: var(--muted); }
 .review dd { font-weight: 600; }
 
-/* Barra de preparação: fixa ao fundo do ecrã e opaca de ponta a ponta. Nada
-   passa por baixo dela — o conteúdo desaparece na borda superior da barra. */
-.setup__footer {
+/* Barra de botões fixa ao fundo do ecrã, opaca de ponta a ponta. Nada passa
+ * por baixo dela — o conteúdo desaparece na borda superior.
+ *
+ * Serve a preparação do jogo e o assistente de jogo novo: em ambos há uma lista
+ * de catorze jogadores por cima, e o botão que interessa ficava sempre para lá
+ * do fim do ecrã. Deslizar até ao fundo para confirmar é o género de coisa que
+ * não custa nada da primeira vez e irrita a partir da terceira.
+ *
+ * O `max(10px, var(--seguro-baixo))` é o que a torna dinâmica no Android: em
+ * telemóveis com a barra de navegação sempre à vista, o sistema diz-nos quanto
+ * espaço ela ocupa e a barra sobe o suficiente para não ficar por baixo dela;
+ * em gestos, sem barra nenhuma, fica só com os 10px. O valor vem do plugin de
+ * barras de sistema, que o injecta como variável no `<html>`. */
+.setup__footer,
+.wizard__nav {
   position: fixed;
   left: 0;
   right: 0;
@@ -1054,15 +1137,65 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 
 /* ------------------------------------------------------------------ modais */
 
-.backdrop { position: fixed; inset: 0; background: rgba(3, 8, 18, 0.7); backdrop-filter: blur(3px); display: grid; place-items: center; padding: 20px; z-index: 50; }
-.modal { width: min(560px, 100%); max-height: 88vh; display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
+/* A margem de baixo respeita a barra de navegação do Android: com ela à vista,
+   uma janela alta encostava-lhe e os botões ficavam meio tapados. */
+.backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(3, 8, 18, 0.7); backdrop-filter: blur(3px);
+  display: grid; place-items: center;
+  padding: max(20px, var(--seguro-cima)) max(20px, var(--seguro-dir))
+           max(20px, var(--seguro-baixo)) max(20px, var(--seguro-esq));
+}
+.modal { width: min(560px, 100%); min-width: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
 .modal--wide { width: min(880px, 100%); }
 .modal__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
 .modal__head h2 { font-size: 1.1rem; }
 .modal__x { background: none; border: 0; font-size: 1.2rem; color: var(--muted); cursor: pointer; width: 40px; height: 40px; }
-.modal__body { padding: 18px; overflow: auto; }
+.modal__body { padding: 18px; overflow: auto; min-width: 0; }
+
+/* ## Porque é que a janela leva `min-width: 0` (e o corpo dela também)
+ *
+ * `width: min(560px, 100%)` não é o fim da história. A janela é um item de uma
+ * grelha (o `.backdrop`), e um item de grelha tem largura mínima automática:
+ * nunca encolhe abaixo do conteúdo mais largo que tiver dentro. A tabela das
+ * faltas tem seis colunas — mais larga do que um telemóvel — e era ela a mandar:
+ * a janela crescia até caber a tabela toda, saía do ecrã pela direita, e o
+ * `.tablewrap` lá dentro nunca chegava a transbordar. Sem transbordo não há
+ * deslize: o dedo arrastava e a tabela não se mexia, porque não havia para onde.
+ *
+ * Com o mínimo a zero a janela fica pela largura do ecrã, a tabela passa a ser
+ * maior do que a caixa que a segura, e o deslize horizontal volta a existir. */
 .modal__text { line-height: 1.5; }
-.modal__foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--line); }
+/* A fila de botões de uma janela: Confirmar, Continuar, Voltar.
+ *
+ * Fica colada ao fundo da janela, e não no fim do conteúdo.
+ *
+ * Não tinha estilo nenhum — era um `footer` solto dentro do corpo, que descia
+ * com o texto. Numa janela curta ninguém dava por isso; numa lista de catorze
+ * jogadores, ou na correção de um resultado com muitos golos, era preciso
+ * deslizar até ao fim para encontrar o botão de confirmar. O `sticky` resolve
+ * sem tirar espaço: enquanto houver conteúdo por baixo, os botões flutuam; ao
+ * chegar ao fim, assentam onde sempre estiveram.
+ *
+ * As margens negativas encostam-no às paredes da janela, e o `bottom` negativo
+ * anula o espaço que o corpo deixa por baixo — sem isso ficava um risco de
+ * fundo visível debaixo dos botões. */
+.modal__actions {
+  position: sticky;
+  bottom: -18px;
+  z-index: 1;
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap;
+  margin: 18px -18px -18px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--card);
+}
+/* Um botão sozinho — "Fechar" — não tem com quem se alinhar à direita e fica
+   melhor a ocupar a fila toda no telemóvel. */
+@media (max-width: 480px) {
+  .modal__actions { justify-content: stretch; }
+  .modal__actions .btn { flex: 1 1 auto; }
+}
 
 .menu { display: flex; flex-direction: column; gap: 8px; }
 .menu__item { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 16px; background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; cursor: pointer; text-align: left; font-weight: 600; }
@@ -1146,6 +1279,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .setup__footer { flex-direction: column; align-items: stretch; }
   .setup__buttons { margin-left: 0; }
   .setup__buttons .btn { flex: 1; }
+  /* No telemóvel os botões repartem a largura em vez de se encostarem às
+     pontas: assim nenhum fica longe do polegar. */
+  .wizard__nav .btn { flex: 1 1 auto; }
   .page__actions { width: 100%; }
 
   .table { white-space: nowrap; }
@@ -1259,6 +1395,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .clocktoggle { width: 88px; height: 88px; font-size: 0.78rem; border-radius: 20px; }
   .floatbtn { width: 104px; height: 92px; font-size: 0.76rem; border-radius: 20px; }
   .setup__spacer { height: 132px; }
+  .wizard { padding-bottom: 132px; }
   .clocktoggle__icon { font-size: 1.4rem; }
   .live__bar { padding-right: 100px; }
   .tablewrap { max-height: none; }
@@ -1360,3 +1497,382 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 }
 /* Um clone com animação a decorrer ficava a piscar na mão. */
 .fantasma * { animation: none !important; transition: none !important; }
+
+/* ------------------------------------------------------- painel visual */
+
+/* Um bloco por pergunta, e as perguntas em coluna: ao contrário de uma grelha
+   de cartões, aqui cada gráfico precisa de largura para se ler, e lado a lado
+   num telemóvel não se lia nenhum. Em ecrã largo passam a dois. */
+.painelv { display: grid; gap: 16px; }
+/* O mesmo mínimo automático, agora nos gráficos.
+ *
+ * Cada bloco é um item de grelha, e um item de grelha não encolhe abaixo do
+ * conteúdo. Bastava uma legenda comprida ou uma linha de números lá dentro para
+ * a coluna crescer — e, num telemóvel, para o painel inteiro ficar mais largo do
+ * que o ecrã, com os gráficos cortados à direita. Com o mínimo a zero é o
+ * conteúdo que se ajusta à coluna, e não o contrário. */
+.painelv, .painelv__bloco, .painelv__partes, .painelv__tops { min-width: 0; }
+.painelv > *, .painelv__bloco > *, .painelv__partes > *, .painelv__tops > * { min-width: 0; }
+@media (min-width: 1100px) { .painelv { grid-template-columns: 1fr 1fr; align-items: start; } }
+.painelv__bloco { display: flex; flex-direction: column; gap: 10px; }
+.painelv__parte { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+.painelv__partes { display: flex; flex-direction: column; gap: 12px; }
+.painelv__lados { margin-top: 4px; }
+/* Os nomes de quem está a jogar pouco. Âmbar e não vermelho: é um reparo para
+   o treino da semana, não um erro. */
+.painelv__aviso { color: var(--warn); font-size: 0.88rem; }
+
+/* O desenho estica à largura disponível; a altura vem do `viewBox`. */
+.graf { width: 100%; height: auto; display: block; overflow: visible; }
+.graf__eixo { stroke: var(--line); stroke-width: 1; }
+.graf__marcados { fill: var(--primary); }
+.graf__sofridos { fill: var(--danger); opacity: 0.85; }
+.graf__assistencias { fill: var(--info); opacity: 0.9; }
+/* A linha da escada fica cinzenta: quem tem cor são os pontos, um por jogo. A
+   linha é só o caminho entre eles. */
+.graf__linha { fill: none; stroke: var(--line); stroke-width: 2; stroke-linejoin: round; }
+.graf__ponto { fill: var(--card); stroke: var(--muted); stroke-width: 1.5; }
+.graf__ponto.is-v { stroke: var(--primary); }
+.graf__ponto.is-d { stroke: var(--danger); }
+
+.legenda { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--muted); }
+.legenda__cor { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.legenda__cor--marcados { background: var(--primary); }
+.legenda__cor--sofridos { background: var(--danger); margin-left: 10px; }
+.legenda__cor--assistencias { background: var(--info); margin-left: 10px; }
+
+/* A fita dos últimos jogos. Desliza ao lado quando não couber, em vez de
+   embrulhar: uma série lê-se numa linha só ou deixa de ser uma série. */
+.fita {
+  list-style: none; margin: 0; padding: 0 0 4px;
+  display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  overflow-x: auto; overscroll-behavior-x: contain;
+}
+.fita__item { display: grid; justify-items: center; gap: 2px; min-width: 0; }
+/* O quadrado é um botão: abre o resumo daquele jogo. Continua a parecer um
+   quadrado — o que muda é o cursor, o realce ao passar por cima e o anel de
+   foco de quem anda pelo teclado. */
+.fita__marca {
+  width: 30px; height: 30px; border-radius: 9px;
+  display: grid; place-items: center;
+  font-weight: 800; font-size: 0.85rem; color: var(--primary-ink);
+  border: 0; padding: 0; font-family: inherit; cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.fita__marca:hover { filter: brightness(1.12); }
+.fita__marca:active { transform: scale(0.94); }
+.fita__marca:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.fita__marca.is-v { background: var(--primary); }
+.fita__marca.is-e { background: var(--warn); }
+.fita__marca.is-d { background: var(--danger); color: #fff; }
+.fita__placar { font-size: 0.78rem; color: var(--text); }
+.fita__adv { font-size: 0.68rem; color: var(--muted); max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Cheia em casa, vazia fora. */
+.fita__onde { width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--muted); }
+.fita__onde.is-casa { background: var(--muted); }
+
+/* Os filtros do painel: competição e tipo de jogo. Ocupam a largura toda por
+   cima dos blocos, e não dentro de um deles — mandam em todos. */
+.painelv__filtros { grid-column: 1 / -1; }
+.filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.filtros__grupo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.filtros__grupo--acao { margin-left: auto; }
+.filtros__rotulo { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; }
+.filtros__select { width: min(260px, 100%); min-height: 32px; padding-block: 5px; }
+.chip {
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  border-radius: 999px; padding: 5px 12px; font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; min-height: 32px;
+}
+.chip:hover { color: var(--text); }
+.chip.is-on { background: var(--primary); color: var(--primary-ink); border-color: transparent; }
+
+/* A zona sensível de cada faixa. Invisível, mas é ela que apanha o dedo — as
+   colunas em si são finas de mais para se lhes acertar. */
+.graf__toque { fill: transparent; cursor: pointer; }
+.graf__faixaG.is-activa .graf__toque { fill: rgba(255, 255, 255, 0.05); }
+
+/* A frase que aparece por baixo do gráfico com a faixa debaixo do dedo.
+   Altura reservada mesmo quando está vazia: sem isso, o gráfico saltava para
+   cima e para baixo à passagem do rato. */
+.painelv__detalhe { min-height: 1.3rem; font-size: 0.82rem; margin-top: 2px; }
+.painelv__detalhe--m { color: var(--primary); font-weight: 600; }
+.painelv__detalhe--s { color: var(--danger); font-weight: 600; }
+
+
+/* Os três tops da disciplina, sempre lado a lado.
+   O `grid--destaques` dos tops das Estatísticas pede 220px por cartão, e dentro
+   de um bloco que já é meia página isso dava um por linha. Aqui as colunas são
+   três de largura igual — `minmax(0, 1fr)` e não `1fr` porque uma coluna de
+   grelha recusa-se a encolher abaixo do conteúdo, e um nome comprido esticava a
+   sua coluna à custa das outras duas. */
+.painelv__tops { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* Num bloco de meia página quatro colunas ficam estreitas de mais para um nome:
+   passam a duas em cima e duas em baixo. */
+@media (max-width: 1400px) { .painelv__tops { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Ao alto num telemóvel três colunas não cabem: passam a uma. */
+@media (max-width: 560px) { .painelv__tops { grid-template-columns: 1fr; } }
+/* Mais apertados do que os tops das Estatísticas, que têm a página toda. */
+.painelv__tops .destaque { padding: 12px; }
+.painelv__tops .destaque__pos { width: 1rem; font-size: 0.72rem; }
+.painelv__tops .destaque__linha { gap: 6px; font-size: 0.9rem; }
+
+/* Só a palavra da cor é que leva a cor.
+   "Mais amarelos" todo amarelo lia-se como um alerta do próprio cartão; assim
+   é só a palavra a dizer de que cartões fala. O amarelo escurece um pouco em
+   tema claro — o `--warn` sobre branco quase não se vê. */
+.cartao-cor--amarelo { color: var(--warn); }
+.cartao-cor--vermelho { color: var(--danger); }
+@media (prefers-color-scheme: light) {
+  .cartao-cor--amarelo { color: #b45309; }
+}
+
+/* O select da competição com o botão de criar uma ao lado.
+   O select leva o espaço todo que sobra: os nomes das provas são longos
+   ("Campeonato Distrital da AF Lisboa") e é ele que precisa de o mostrar. */
+.comprova { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.comprova .input { flex: 1 1 12rem; min-width: 0; }
+.comprova .btn { flex: none; white-space: nowrap; }
+/* Num ecrã estreito não cabem os dois lado a lado: o botão passa para baixo,
+   com a largura toda. Metade de "Criar competição" cortada era pior. */
+@media (max-width: 560px) {
+  .comprova .input { flex: 1 1 100%; }
+  .comprova .btn { flex: 1 1 100%; }
+}
+
+/* O cartão de casa/fora: o V/E/D à esquerda, os golos numa coluna à direita.
+   `align-items: stretch` desfaz a centragem do `.stat`, que é o que mandava o
+   V/E/D para o meio do cartão. */
+.ladocard { align-items: stretch; }
+.ladocard__linha { display: flex; align-items: center; gap: 16px; margin-top: 2px; }
+/* O V/E/D fica com o espaço que sobra e centrado nele. Encostado à esquerda,
+   como estava, ficava a olhar para a parede — e a coluna dos golos, que tem
+   largura fixa, não precisa de o empurrar até lá. */
+.ladocard .ved { flex: 1; justify-content: center; }
+.ladocard .ved { --ved-num: 1.1ch; font-size: 1.5rem; }
+.ladocard .ved i { font-size: 1rem; }
+/* Uma linha por número: nome à esquerda, valor à direita, alinhados pela base.
+   Maiores do que a linha de apoio que estava aqui — são valores, não notas de
+   rodapé — mas menores do que o V/E/D, que é o resumo. */
+.ladocard__golos { display: grid; gap: 3px; margin: 0; }
+.ladocard__golos > div { display: flex; align-items: baseline; justify-content: flex-end; gap: 8px; }
+.ladocard__golos dt { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.ladocard__golos dd { margin: 0; font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
+.ladocard__golos dd.is-v { color: var(--primary); }
+.ladocard__golos dd.is-d { color: var(--danger); }
+
+/* O cartão dos golos nas grelhas de estatísticas: os três números empilhados,
+   sem o V/E/D ao lado. A lista encosta à esquerda, que aqui não há mais nada
+   para dividir o espaço com ela. */
+@media (max-width: 560px) and (orientation: portrait) {
+  .painelv__lados.grid--stats { grid-template-columns: 1fr; gap: 10px; }
+  .painelv__lados .stat { min-height: 0; padding: 12px; }
+  .ladocard__linha {
+    display: grid;
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+    align-items: center;
+    gap: 12px;
+  }
+  .ladocard .ved {
+    justify-content: flex-start;
+    font-size: 1.35rem;
+    min-width: 0;
+  }
+  .ladocard .ved i { font-size: 0.86rem; }
+  .ladocard__golos { gap: 5px; min-width: 0; }
+  .ladocard__golos > div {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: end;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .ladocard__golos dt {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+  }
+  .ladocard__golos dd {
+    min-width: 2ch;
+    font-size: 1.05rem;
+  }
+}
+
+.golcard .ladocard__golos { margin-top: 2px; }
+.golcard .ladocard__golos > div { justify-content: space-between; }
+
+/* ---------------------------------------------- barras horizontais (HTML) */
+
+/* Nome · carril · valor. Em HTML e não em SVG: ver o comentário no componente.
+   O resumo é que num SVG o texto estica com o desenho, e num telemóvel um nome
+   de 13 unidades saía a nove píxeis. */
+.barras { display: flex; flex-direction: column; gap: 8px; }
+.barras__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.barras__linha { display: grid; grid-template-columns: minmax(0, 7.5rem) 1fr auto; align-items: center; gap: 10px; }
+.barras__nome { font-size: 0.86rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barras__carril { position: relative; height: 18px; border-radius: 6px; background: rgba(255, 255, 255, 0.05); }
+.barras__cheio { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 6px; background: var(--primary); }
+.barras__cheio.is-alerta { background: var(--warn); }
+/* A linha da média, repetida em cada carril. Aos bocados, que é como se desenha
+   uma linha de referência de qualquer maneira. */
+.barras__carril.is-ref::after {
+  content: '';
+  position: absolute; top: -2px; bottom: -2px; left: var(--ref, -100px);
+  border-left: 1px dashed var(--muted);
+}
+.barras__valor { font-size: 0.84rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.barras__legenda { font-size: 0.72rem; color: var(--muted); text-align: center; margin: 0; }
+
+/* No telemóvel o nome vai para cima da barra: numa coluna de 7rem, «Rodrigo
+   Rodrigues» ficava cortado, e a barra ficava com metade do ecrã. */
+@media (max-width: 560px) {
+  .barras__lista { gap: 12px; }
+  .barras__linha {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'nome valor' 'carril carril';
+    row-gap: 4px;
+    column-gap: 8px;
+  }
+  .barras__nome { grid-area: nome; text-align: left; }
+  .barras__valor { grid-area: valor; }
+  .barras__carril { grid-area: carril; }
+}
+
+/* ------------------------------------------- colunas espelhadas + eixo */
+
+/* Altura fixa e `preserveAspectRatio: none`: o desenho estica para a caixa em
+   vez de encolher com a largura. Não tem texto lá dentro, por isso não há nada
+   a ficar pequeno — e num telemóvel as colunas mantêm a altura que precisam
+   para se comparar. */
+.colunas { display: flex; flex-direction: column; gap: 3px; }
+.colunas .graf { height: 168px; }
+.colunas__eixo {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+}
+.colunas__eixo li { text-align: center; font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.colunas__eixo li.is-activa { color: var(--text); font-weight: 700; }
+
+/* -------------------------------------------------------------- impressão */
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  :root {
+    color-scheme: light;
+    --bg: #fff;
+    --bg-2: #f8fafc;
+    --card: #fff;
+    --card-2: #f8fafc;
+    --text: #0f172a;
+    --muted: #475569;
+    --line: #cbd5e1;
+    --primary: #16a34a;
+    --primary-ink: #052e16;
+    --danger: #dc2626;
+    --warn: #b45309;
+    --info: #0284c7;
+    --shadow: none;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  html,
+  body,
+  .app,
+  .view {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: var(--text) !important;
+  }
+
+  .appbar,
+  .tabs,
+  .page__actions,
+  .page__headmain > .btn,
+  .painelv__filtros,
+  .no-print {
+    display: none !important;
+  }
+
+  .view {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .page__head {
+    margin-bottom: 6mm;
+    break-after: avoid;
+  }
+
+  .page__title {
+    color: var(--text) !important;
+    font-size: 18pt;
+  }
+
+  .page__sub {
+    color: var(--muted) !important;
+  }
+
+  .tabbody {
+    display: block;
+  }
+
+  .painelv {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 5mm;
+  }
+
+  .painelv__bloco {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 0;
+    padding: 5mm;
+  }
+
+  .card,
+  .stat,
+  .tablewrap {
+    background: #fff !important;
+    border-color: var(--line) !important;
+  }
+
+  .grid--stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3mm;
+  }
+
+  .painelv__tops {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fita,
+  .tablewrap {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  .table th,
+  .table td {
+    position: static !important;
+  }
+
+  .graf {
+    max-height: 42mm;
+  }
+}

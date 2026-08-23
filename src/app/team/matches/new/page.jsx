@@ -9,7 +9,7 @@ import useRouteParams from '@/lib/useRouteParams.js';
 import PageHead from '@/components/PageHead.jsx';
 import CourtPicker, { countFilled } from '@/components/CourtPicker.jsx';
 import { Empty, Field } from '@/components/bits.jsx';
-import { useUI } from '@/lib/ui.jsx';
+import { useUI, Dialog } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { confirmarPoucosConvocados } from '@/lib/squad.js';
 import { clubs, teams, competitions, players, matches, squad, events } from '@/lib/data/repository.js';
@@ -42,7 +42,8 @@ function Assistente() {
   const t = useT();
   const { clubId, teamId } = useRouteParams();
   const router = useRouter();
-  const { toast, confirmar } = useUI();
+  const ui = useUI();
+  const { toast, confirmar } = ui;
   const { userId, user } = useAuth();
 
   const [club, setClub] = useState(null);
@@ -130,20 +131,38 @@ function Assistente() {
         />
         <Empty
           action={
-            <button
-              className="btn btn--primary"
-              onClick={() => router.push(rotas.competicaoNova(clubId, teamId))}
-            >
+            <button className="btn btn--primary" onClick={criarProva}>
               Criar competição
             </button>
           }
         >
           Este escalão ainda não tem competições. Todo o jogo pertence a uma — campeonato, taça ou
-          particulares — para as estatísticas de cada prova ficarem separadas. Crie a primeira na aba
-          Competições.
+          particulares — para as estatísticas de cada prova ficarem separadas. Crie aqui a primeira e
+          continue.
         </Empty>
       </>
     );
+  }
+
+  /**
+   * Criar uma prova sem sair daqui.
+   *
+   * Quem está a marcar um jogo contra uma equipa nova descobre a meio que a
+   * prova ainda não existe. Mandá-lo à aba das Competições era perder o
+   * adversário, a data e o local já escritos — e voltar a começar. Aqui a prova
+   * nasce numa janela e fica logo escolhida.
+   *
+   * A janela pede só o nome. A abreviatura e o resto editam-se depois, na aba
+   * própria: quem está a meio de marcar um jogo quer despachar isto.
+   */
+  async function criarProva() {
+    const nome = await ui.open((close) => <NovaProva onClose={close} />);
+    if (!nome) return;
+    const prova = await competitions.create(teamId, { name: nome });
+    sync.saveNow(userId, user?.email);
+    setProvas((lista) => [...lista, prova].sort((a, b) => a.name.localeCompare(b.name, 'pt')));
+    setInfo((i) => ({ ...i, competitionId: prova.id }));
+    toast(t('novo.provaCriada', { nome: prova.name }), 'ok');
   }
 
   const campo = (k) => ({
@@ -215,11 +234,11 @@ function Assistente() {
         })
       );
 
-      await sync.saveNow(userId, user?.email);
+      sync.saveNow(userId, user?.email);
       toast(t('novo.criado'), 'ok');
       router.push(abrir ? rotas.jogoPreparar(jogo.id) : rotas.jogos(clubId, teamId));
     } catch (err) {
-      toast(t('novo.criadoLocal', { erro: err.message }), 'error');
+      toast(t('novo.naoCriou', { erro: err.message }), 'error');
     } finally {
       setAGuardar(false);
     }
@@ -292,14 +311,24 @@ function Assistente() {
                 label={t('prep.competicao')}
                 hint={provas.length ? t('novo.competicaoDica') : t('novo.semCompeticoes')}
               >
-                <select className="input" {...campo('competitionId')}>
-                  <option value="">{t('novo.escolherCompeticao')}</option>
-                  {provas.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="comprova">
+                  <select className="input" {...campo('competitionId')}>
+                    <option value="">{t('novo.escolherCompeticao')}</option>
+                    {provas.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={criarProva}
+                    title={t('novo.criarProva')}
+                  >
+                    {t('novo.criarProvaCurto')}
+                  </button>
+                </div>
               </Field>
               <Field label={t('prep.tipoJogo')} hint={t('novo.tipoJogoDica')}>
                 <select className="input" {...campo('timing')}>
@@ -501,4 +530,42 @@ function dataHoraPorOmissao() {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 16);
+}
+
+/**
+ * A janela de criar uma prova a partir do jogo novo.
+ *
+ * Fecha com o nome, ou com `null` se se desistir. O botão de confirmar só
+ * acende com alguma coisa escrita — uma prova sem nome não se distingue de
+ * outra na lista.
+ */
+function NovaProva({ onClose }) {
+  const t = useT();
+  const [nome, setNome] = useState('');
+  const limpo = nome.trim();
+
+  return (
+    <Dialog title={t('novo.criarProva')} onClose={() => onClose(null)}>
+      <Field label={t('competicao.nome')} hint={t('novo.criarProvaDica')}>
+        <input
+          className="input"
+          autoFocus
+          value={nome}
+          maxLength={60}
+          onChange={(e) => setNome(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && limpo) onClose(limpo);
+          }}
+        />
+      </Field>
+      <footer className="modal__actions">
+        <button className="btn btn--ghost" onClick={() => onClose(null)}>
+          {t('comum.cancelar')}
+        </button>
+        <button className="btn btn--primary" disabled={!limpo} onClick={() => onClose(limpo)}>
+          {t('competicoes.criar')}
+        </button>
+      </footer>
+    </Dialog>
+  );
 }

@@ -7,7 +7,16 @@ import assert from 'node:assert/strict';
 
 import * as db from '../src/lib/data/local.js';
 import { clubs, teams, competitions, players, matches, squad, events, loadMatch } from '../src/lib/data/repository.js';
-import { flush, push, pull, setRemote } from '../src/lib/data/sync.js';
+import {
+  flush,
+  push,
+  pull,
+  setRemote,
+  saveNow,
+  stop,
+  esquecerMarca,
+  SYNC,
+} from '../src/lib/data/sync.js';
 import { restore, dump } from '../src/lib/data/repository.js';
 import * as A from '../src/domain/actions.js';
 import { EVENT, LOCATION } from '../src/domain/constants.js';
@@ -15,7 +24,7 @@ import { EVENT, LOCATION } from '../src/domain/constants.js';
 const UTILIZADOR = '11111111-1111-4111-8111-111111111111';
 
 /** Servidor de mentira: guarda o que recebe e conta as chamadas. */
-function servidorFalso({ falhaEm } = {}) {
+function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
   const tabelas = {
     profiles: [], clubs: [], teams: [], competitions: [],
     players: [], matches: [], match_squad: [], match_events: [],
@@ -23,14 +32,18 @@ function servidorFalso({ falhaEm } = {}) {
     // acessos por escalão.
     team_access: [],
   };
-  const chamadas = { upserts: 0, rpc: 0 };
+  const chamadas = { upserts: 0, rpc: 0, selects: 0 };
 
   const query = (nome) => ({
     upsert(rows) {
       if (falhaEm === nome) return Promise.resolve({ error: new Error('sem rede') });
       chamadas.upserts += 1;
       // O Supabase aceita uma linha ou uma lista; o duplo faz o mesmo.
-      for (const r of Array.isArray(rows) ? rows : [rows]) {
+      for (const bruta of Array.isArray(rows) ? rows : [rows]) {
+        // No servidor a coluna tem `default now()` e um gatilho a actualizá-la.
+        // Sem isto aqui, a descarga incremental não teria por onde se guiar e os
+        // testes passariam a medir outra coisa.
+        const r = { updated_at: new Date().toISOString(), ...bruta };
         const i = tabelas[nome].findIndex((x) => x.id === r.id);
         if (i >= 0) tabelas[nome][i] = r;
         else tabelas[nome].push(r);
@@ -38,16 +51,64 @@ function servidorFalso({ falhaEm } = {}) {
       return Promise.resolve({ error: null });
     },
     select() {
+      // O `gt` é filtrado a sério, e não ignorado como os outros: é ele que a
+      // descarga incremental usa, e um duplo que o ignorasse deixava passar
+      // exactamente o erro que estes testes existem para apanhar.
+      let desde = null;
+      let coluna = null;
+      let de = null;
+      let ate = null;
+      let erro = null;
+      const linhas = () => {
+        chamadas.selects += 1;
+        let out = tabelas[nome] || [];
+        if (desde) out = out.filter((r) => (r.updated_at || r.created_at || '') > desde);
+        if (coluna) {
+          out = [...out].sort((a, b) => String(a[coluna]).localeCompare(String(b[coluna])));
+        }
+        // O `range` corta a sério, como o PostgREST: é o que faz a paginação ser
+        // mesmo posta à prova em vez de fingida.
+        if (de != null) out = out.slice(de, ate + 1);
+        return out;
+      };
       const res = {
-        data: tabelas[nome],
+        get data() {
+          return linhas();
+        },
         error: null,
         eq: () => res,
         in: () => res,
-        order: () => res,
+        order: (col) => {
+          coluna = col;
+          return res;
+        },
+        range: (a, b) => {
+          de = a;
+          ate = b;
+          return res;
+        },
+        gt: (_col, valor) => {
+          if (nome === 'match_events' && semUpdatedAtEventos && _col === 'updated_at') {
+            erro = Object.assign(new Error('column match_events.updated_at does not exist'), {
+              code: '42703',
+            });
+          }
+          desde = valor;
+          return res;
+        },
         // O `trazerLicenca` pede uma linha só. Sem isto, o duplo não tinha
         // resposta e o `catch` engolia a falha — o teste passaria sem testar.
         maybeSingle: () => Promise.resolve({ data: (tabelas[nome] || [])[0] ?? null, error: null }),
-        then: (fn) => Promise.resolve({ data: tabelas[nome] || [], error: null }).then(fn),
+        then: (fn) => Promise.resolve(erro ? { data: null, error: erro } : { data: linhas(), error: null }).then(fn),
+      };
+      const orderOriginal = res.order;
+      res.order = (col) => {
+        if (nome === 'match_events' && semUpdatedAtEventos && col === 'updated_at') {
+          erro = Object.assign(new Error('column match_events.updated_at does not exist'), {
+            code: '42703',
+          });
+        }
+        return orderOriginal(col);
       };
       return res;
     },
@@ -66,7 +127,12 @@ function servidorFalso({ falhaEm } = {}) {
       if (tabelas.match_events.some((e) => e.client_event_id === payload.client_event_id)) {
         return { error: null };
       }
-      tabelas.match_events.push({ ...payload, seq: tabelas.match_events.length + 1 });
+      tabelas.match_events.push({
+        ...payload,
+        seq: tabelas.match_events.length + 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
       return { error: null };
     },
   };
@@ -74,6 +140,10 @@ function servidorFalso({ falhaEm } = {}) {
 
 async function limpar() {
   await db.clearAll();
+  // A marca de água anda com a base: uma base vazia e uma marca antiga fariam a
+  // descarga seguinte dizer "não mudou nada" a um aparelho que não tem nada. É
+  // o que o `resetLocal` faz a sério, e é preciso aqui pela mesma razão.
+  esquecerMarca();
 }
 
 async function cenario() {
@@ -1089,4 +1159,280 @@ test('e os jogos dessa competição ficam sem prova, não apagados', async () =>
   await competitions.archive(prova.id);
   assert.equal((await matches.get(jogo.id)).competitionId, null);
   assert.equal((await matches.listByTeam(escalao.id)).length, 1, 'o jogo desapareceu');
+});
+
+/* ===================================================================
+   Guardar sem rede
+   ===================================================================
+
+   O `saveNow` lançava quando não havia ligação, e quem o chamava fazia
+   `await` antes de continuar — por isso a excepção levava com ela o resto
+   do caminho, incluindo o `router.push` que abria o jogo. Não se conseguia
+   começar um jogo num pavilhão sem rede, que é o único sítio onde esta app
+   tem mesmo de funcionar.
+
+   Estes testes prendem a regra nova: gravar é local, enviar é uma
+   consequência, e a consequência nunca pode travar a gravação. */
+
+test('sem servidor nenhum, guardar não atira e diz que não subiu', async () => {
+  await limpar();
+  setRemote(null);
+  await cenario();
+
+  const r = await saveNow(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(r.guardado, false, 'não chegou ao servidor');
+  assert.equal(r.status, SYNC.LOCAL);
+  stop();
+});
+
+test('com o servidor a recusar, guardar também não atira', async () => {
+  await limpar();
+  setRemote(servidorFalso({ falhaEm: 'clubs' }));
+  await cenario();
+
+  const r = await saveNow(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(r.guardado, false);
+  assert.ok(r.pendentes > 0, 'e conta o que ficou por enviar');
+  stop();
+});
+
+test('sem rede declarada pelo aparelho, o estado é offline e não é erro', async () => {
+  await limpar();
+  // Em Node o `navigator` existe e só tem leitura, por isso troca-se a
+  // propriedade e repõe-se no fim — mexer no global de um teste que corre ao
+  // lado dos outros é sempre emprestado, nunca dado.
+  const antes = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', {
+    value: { onLine: false },
+    configurable: true,
+  });
+  try {
+    setRemote(servidorFalso());
+    await cenario();
+    const r = await saveNow(UTILIZADOR, 'treinador@exemplo.pt');
+    assert.equal(r.guardado, false);
+    assert.equal(r.status, SYNC.OFFLINE);
+  } finally {
+    if (antes) Object.defineProperty(globalThis, 'navigator', antes);
+    else delete globalThis.navigator;
+    stop();
+  }
+});
+
+test('com servidor a responder, guardar confirma e esvazia a fila', async () => {
+  await limpar();
+  setRemote(servidorFalso());
+  await cenario();
+
+  const r = await saveNow(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(r.guardado, true);
+  assert.equal(r.pendentes, 0);
+});
+
+test('um jogo começado sem rede sobe inteiro quando a rede volta', async () => {
+  await limpar();
+  setRemote(null);
+  const { jogo } = await cenario();
+
+  // O que a página do jogo faz ao carregar em "Começar": grava o evento e
+  // pede para guardar. Sem rede, a segunda parte não pode estragar a primeira.
+  const antesDoStart = await loadMatch(jogo.id);
+  await events.append(A.startFirstHalf(antesDoStart.state, Date.now()));
+  const semRede = await saveNow(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(semRede.guardado, false);
+
+  // O jogo arrancou à mesma, aqui no aparelho.
+  const local = await loadMatch(jogo.id);
+  assert.equal(local.state.currentPeriod, 1, 'a primeira parte começou sem rede');
+
+  // Chega a rede: sobe tudo, incluindo o evento de arranque.
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const comRede = await saveNow(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(comRede.guardado, true);
+  assert.equal(comRede.pendentes, 0);
+
+  const tipos = servidor.tabelas.match_events.map((e) => e.event_type);
+  assert.ok(tipos.includes(EVENT.FIRST_HALF_STARTED), 'o arranque chegou ao servidor');
+});
+
+/* ===================================================================
+   Descarga incremental
+   ===================================================================
+
+   A descarga trazia tudo, sempre — sete `select *` sem filtro nenhum — e havia
+   um temporizador a mandá-la fazer isso de três em três segundos. Numa época de
+   vinte jogos são gigabytes de tráfego por tarde, para responder quase sempre
+   "não mudou nada".
+
+   Estes testes prendem as duas metades da correcção: a segunda descarga tem de
+   vir vazia, e o que mudar entretanto tem de vir na mesma. */
+
+/** Data ISO daqui a `n` segundos, para carimbar linhas do servidor à mão. */
+const daqui = (n) => new Date(Date.now() + n * 1000).toISOString();
+
+test('a segunda descarga não traz nada, se nada mudou', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  await cenario();
+  await push(UTILIZADOR);
+
+  // Da primeira vez, um dispositivo novo traz tudo.
+  await limpar();
+  const primeira = await pull(UTILIZADOR);
+  assert.ok(primeira.pulled > 0, 'a primeira descarga traz o que lá está');
+
+  // Da segunda, o servidor não tem nada de novo para dizer.
+  const segunda = await pull(UTILIZADOR);
+  assert.equal(segunda.pulled, 0, 'a segunda não devia trazer linha nenhuma');
+});
+
+test('mas traz o que mudou depois da última vez', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { clube } = await cenario();
+  await push(UTILIZADOR);
+
+  await limpar();
+  await pull(UTILIZADOR);
+  assert.equal((await pull(UTILIZADOR)).pulled, 0, 'e antes de mexer, nada');
+
+  // Alguém mudou o nome noutro dispositivo, e o servidor carimbou a linha.
+  const i = servidor.tabelas.clubs.findIndex((c) => c.id === clube.id);
+  servidor.tabelas.clubs[i] = {
+    ...servidor.tabelas.clubs[i],
+    name: 'Nome novo',
+    updated_at: daqui(60),
+  };
+
+  const r = await pull(UTILIZADOR);
+  assert.equal(r.pulled, 1, 'só a linha que mudou');
+  assert.equal((await clubs.get(clube.id)).name, 'Nome novo');
+});
+
+test('esquecer a marca faz voltar a trazer tudo', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  await cenario();
+  await push(UTILIZADOR);
+
+  await limpar();
+  await pull(UTILIZADOR);
+  assert.equal((await pull(UTILIZADOR)).pulled, 0);
+
+  // É o que o "limpar dispositivo" faz: sem isto, a base ficava vazia e a
+  // descarga a seguir não trazia nada, por já ter dado o histórico por visto.
+  await limpar();
+  assert.ok((await pull(UTILIZADOR)).pulled > 0, 'depois de esquecer, traz tudo');
+});
+
+test('sem clubes por mudar, os jogos novos chegam à mesma', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao, clube } = await cenario();
+  await push(UTILIZADOR);
+
+  await limpar();
+  await pull(UTILIZADOR);
+
+  // Um jogo novo, sem tocar no clube. Antes, os ids dos clubes saíam da própria
+  // descarga: com o clube a não mudar, a lista vinha vazia e a app nem chegava a
+  // perguntar pelos jogos.
+  servidor.tabelas.matches.push({
+    id: '99999999-9999-4999-8999-999999999999',
+    club_id: clube.id,
+    team_id: escalao.id,
+    opponent_name: 'Jogo de outro aparelho',
+    status: 'DRAFT',
+    updated_at: daqui(60),
+  });
+
+  const r = await pull(UTILIZADOR);
+  assert.equal(r.pulled, 1, 'o jogo novo tinha de vir, e só ele');
+});
+
+test('servidor antigo sem updated_at nos eventos ainda descarrega o resultado', async () => {
+  await limpar();
+  const servidor = servidorFalso({ semUpdatedAtEventos: true });
+  setRemote(servidor);
+  const { jogo } = await cenario();
+
+  const antes = await loadMatch(jogo.id);
+  await events.append(A.startFirstHalf(antes.state, Date.now()));
+  const aMeio = await loadMatch(jogo.id);
+  await events.append(A.goal(aMeio.state, EVENT.TEAM_GOAL_ADDED));
+  const comGolo = await loadMatch(jogo.id);
+  await events.append(A.finishFirstHalf(comGolo.state));
+  const aoIntervalo = await loadMatch(jogo.id);
+  await events.append(A.setSecondHalfLineup(aoIntervalo.state, {}, Date.now()));
+  const comCincoDaSegunda = await loadMatch(jogo.id);
+  await events.append(A.startSecondHalf(comCincoDaSegunda.state, Date.now()));
+  const segundaParte = await loadMatch(jogo.id);
+  await events.append(A.finishMatch(segundaParte.state));
+  await push(UTILIZADOR);
+
+  await limpar();
+  setRemote(servidor);
+  await pull(UTILIZADOR);
+
+  assert.equal((await db.all(db.STORES.matchEvents)).length, servidor.tabelas.match_events.length);
+  const local = await loadMatch(jogo.id);
+  assert.equal(local.state.status, 'FINISHED');
+  assert.equal(local.state.teamScore, 1);
+});
+
+test('uma época com mais de mil eventos chega inteira', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+
+  const { clube, escalao, jogo } = await cenario();
+  await push(UTILIZADOR);
+
+  // O PostgREST corta nas mil linhas e devolve 200 na mesma. Sem paginação, uma
+  // época a sério chegava truncada — e, com a marca de água, o que ficasse de
+  // fora nunca mais seria pedido.
+  for (let i = 0; i < 2500; i++) {
+    servidor.tabelas.match_events.push({
+      id: `ev-${i}`,
+      match_id: jogo.id,
+      seq: 1000 + i,
+      event_type: 'TEAM_FOUL_ADDED',
+      period: 1,
+      match_elapsed_ms: i * 10,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: new Date(Date.UTC(2026, 0, 1, 0, 0, i)).toISOString(),
+    });
+  }
+
+  await limpar();
+  await pull(UTILIZADOR);
+
+  const cá = (await db.all(db.STORES.matchEvents)).length;
+  assert.ok(cá >= 2500, `só chegaram ${cá} eventos dos 2500`);
+});
+
+test('e a segunda descarga continua a não trazer nada', async () => {
+  // O par do teste anterior: paginar não pode estragar a marca de água.
+  const servidor = servidorFalso();
+  await limpar();
+  setRemote(servidor);
+  await cenario();
+  await push(UTILIZADOR);
+  for (let i = 0; i < 1500; i++) {
+    servidor.tabelas.match_events.push({
+      id: `x-${i}`,
+      match_id: servidor.tabelas.matches[0].id,
+      seq: 5000 + i,
+      event_type: 'TEAM_FOUL_ADDED',
+      updated_at: new Date(Date.UTC(2026, 0, 2, 0, 0, i)).toISOString(),
+    });
+  }
+  await limpar();
+  await pull(UTILIZADOR);
+  assert.equal((await pull(UTILIZADOR)).pulled, 0, 'a segunda passagem devia vir vazia');
 });

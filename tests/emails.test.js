@@ -43,13 +43,31 @@ test('as variáveis estão escritas como o Supabase as lê', () => {
   }
 });
 
-test('todos levam o código de seis dígitos', () => {
-  // A razão está no README: os filtros de segurança de algumas empresas abrem os
-  // links das mensagens antes de as entregar, e como estes links só servem uma
-  // vez, chegam gastos. O código não se gasta a ser lido — sem ele, essa pessoa
-  // fica sem saída nenhuma.
+// Os dois emails que chegam a quem ainda não conhece a app não levam código: o
+// botão fica sozinho em destaque, e o aviso do fim diz o que fazer se o link
+// falhar. Nos outros quatro o código fica, porque aí quem lê já usa a app — e a
+// reautenticação nem sequer tem link.
+const SEM_CODIGO = new Set(['2-convite.html', '5-recuperar-palavra-passe.html']);
+
+test('o convite e a recuperação não têm código nenhum', () => {
+  for (const n of SEM_CODIGO) {
+    assert.doesNotMatch(ler(n), /\{\{ \.Token \}\}/, `${n} ainda tem o código`);
+  }
+});
+
+test('os outros levam o código, que é a saída para um link já gasto', () => {
+  // Os filtros de segurança de algumas empresas abrem os links das mensagens
+  // antes de as entregar, e como estes links só servem uma vez, chegam gastos.
+  // O código não se gasta a ser lido, e o ecrã `/password/` aceita-o.
   for (const n of ficheiros) {
+    if (SEM_CODIGO.has(n)) continue;
     assert.match(ler(n), /\{\{ \.Token \}\}/, `${n} não tem o código`);
+  }
+});
+
+test('quem não tem código tem um botão, senão ficava sem saída nenhuma', () => {
+  for (const n of SEM_CODIGO) {
+    assert.match(ler(n), /TokenHash/, `${n} não tem link nenhum`);
   }
 });
 

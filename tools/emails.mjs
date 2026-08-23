@@ -98,12 +98,24 @@ const botao = (texto, url) => `
 /**
  * O código de seis dígitos.
  *
- * Está em todos os emails, mesmo nos que já têm botão, e não é redundância. Os
- * filtros de segurança de algumas empresas abrem os links das mensagens antes de
- * as entregar, para os verificar. Como estes links só servem uma vez, quando a
- * pessoa carrega o link já foi gasto e a app diz que expirou — sem nada no email
- * a explicar porquê. O código não se gasta a ser lido, por isso é a saída para
- * quando isso acontece.
+ * ## Porque é que existe
+ *
+ * Os filtros de segurança de algumas empresas abrem os links das mensagens antes
+ * de as entregar, para os verificar. Como estes links só servem uma vez, quando
+ * a pessoa carrega no botão já foi gasto e a app diz que expirou. O código não
+ * se gasta a ser lido, e o ecrã `/password/` aceita-o — é a saída para esse
+ * caso.
+ *
+ * ## Porque é que saiu do convite e da recuperação
+ *
+ * São os dois emails que chegam a quem ainda não conhece a app. Uma caixa com
+ * seis dígitos grandes ao lado de um botão verde faz a pessoa parar a decidir
+ * entre duas coisas quando só há uma a fazer — e a escolha errada é a que dá
+ * mais trabalho. Nesses dois, o aviso do fim diz o que fazer se o link falhar,
+ * que é o que resolve o caso raro sem estorvar o caso comum.
+ *
+ * Fica nos outros quatro: aí quem lê já usa a app, e a reautenticação nem sequer
+ * tem link.
  */
 const codigo = (rotulo) => `
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 22px">
@@ -241,9 +253,8 @@ const emails = {
         `Carrega no botão para escolheres a tua palavra-passe. Feito isso, instalas a app no telemóvel e entras com este email e a palavra-passe que escolheste.`
       ),
       botao('Escolher a minha palavra-passe', ecraPalavraPasse('invite')),
-      codigo('Ou escreve este código na app'),
       aviso(
-        `Se este convite expirar, responde a este email e enviamos outro. Se não estavas à espera dele, podes ignorá-lo.`
+        `Se o botão disser que o convite expirou, responde a este email e enviamos outro. Se não estavas à espera dele, podes ignorá-lo.`
       ),
     ].join('\n'),
   },
@@ -292,9 +303,8 @@ const emails = {
         `Alguém pediu para repor a palavra-passe da conta <strong>{{ .Email }}</strong> no <strong>FutsalSubStats</strong>. Se foste tu, carrega no botão e escolhe uma nova.`
       ),
       botao('Escolher palavra-passe nova', ecraPalavraPasse('recovery')),
-      codigo('Ou escreve este código na app'),
       aviso(
-        `Se não foste tu, ignora este email: a palavra-passe atual continua a funcionar e ninguém a consegue mudar sem abrir este link.`
+        `Se não foste tu, ignora este email: a palavra-passe atual continua a funcionar e ninguém a consegue mudar sem abrir este link. Se o botão disser que expirou, pede outro no ecrã de entrada.`
       ),
     ].join('\n'),
   },

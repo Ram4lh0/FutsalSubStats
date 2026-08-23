@@ -71,6 +71,30 @@ function Definicoes() {
     toast(t('sinc.aReenviar'), 'ok');
   }
 
+  /**
+   * Sair da conta, com uma paragem pelo meio se houver coisas por enviar.
+   *
+   * Sair não apaga nada — mas a base deste aparelho é de um dono de cada vez, e
+   * quem entrar a seguir com outra conta encontra-a a ser limpa. O que já subiu
+   * volta do servidor; o que estava na fila é que não volta de lado nenhum.
+   *
+   * Por isso tenta-se enviar primeiro, em silêncio. Só se não der é que se
+   * pergunta — e a pergunta diz o número, que é o que permite decidir entre
+   * "são duas correções, deixa lá" e "é o jogo inteiro de ontem".
+   */
+  async function sair() {
+    const r = await sync.saveNow(userId, user?.email);
+    if (!r.guardado && r.pendentes > 0) {
+      const ok = await confirmar(t('definicoes.sairComFila', { n: r.pendentes }), {
+        okLabel: t('definicoes.sairMesmo'),
+        title: t('barra.logout'),
+      });
+      if (!ok) return;
+    }
+    await signOut();
+    router.push(rotas.login());
+  }
+
   const email = user?.email || '';
   const podeApagar = confirmacao.trim().toLowerCase() === email.toLowerCase();
 
@@ -131,6 +155,7 @@ function Definicoes() {
       // aparelho deixa de ter dono — o próximo a entrar começa do zero.
       await db.clearAll();
       esquecerDono();
+      sync.esquecerMarca(userId);
       toast(t('definicoes.contaApagada'), 'ok');
       router.replace(rotas.login());
     } catch (e) {
@@ -147,13 +172,7 @@ function Definicoes() {
         subtitle={email}
         backTo={rotas.dashboard()}
         actions={
-          <button
-            className="btn btn--ghost"
-            onClick={async () => {
-              await signOut();
-              router.push(rotas.login());
-            }}
-          >
+          <button className="btn btn--ghost btn--danger" onClick={sair}>
             {t('barra.logout')}
           </button>
         }
@@ -208,10 +227,17 @@ function Definicoes() {
           </div>
         </dl>
         {estado.error ? (
-          <pre className="error">
-            {estado.error.message}
-            {estado.error.codigo ? `\n\n${t('comum.codigo', { codigo: estado.error.codigo })}` : ''}
-          </pre>
+          <>
+            {/* Antes da linha técnica, a frase que interessa a quem não a vai
+                perceber: os dados estão cá, o que falhou foi o envio. */}
+            <p className="muted small">{t('sinc.erroTexto')}</p>
+            <pre className="error">
+              {estado.error.message}
+              {estado.error.codigo
+                ? `\n\n${t('comum.codigo', { codigo: estado.error.codigo })}`
+                : ''}
+            </pre>
+          </>
         ) : null}
         <div className="form__actions">
           <button className="btn btn--ghost" onClick={reenviarTudo}>

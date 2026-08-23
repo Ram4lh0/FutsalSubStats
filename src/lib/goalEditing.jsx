@@ -199,7 +199,7 @@ export async function editGoal(ui, { matchId, goal, syncUser = null }) {
   const patch = await goalDialog(ui, antes.state, goal);
   if (!patch) return false;
   await events.append(A.attributeGoal(antes.state, { targetEventId: goal.eventId, ...patch }));
-  if (syncUser) await sync.saveNow(syncUser.userId, syncUser.email);
+  if (syncUser) sync.saveNow(syncUser.userId, syncUser.email);
   ui.toast(goal.team === 'US' ? t('golos.atualizado') : t('golos.sofridoAtualizado'), 'ok');
   return true;
 }
@@ -297,7 +297,7 @@ export async function correctScore(ui, { matchId, ourName, opponentName, syncUse
     await events.append(A.attributeGoal(snap.state, { targetEventId: goal.eventId, ...patch }));
   }
 
-  if (syncUser) await sync.saveNow(syncUser.userId, syncUser.email);
+  if (syncUser) sync.saveNow(syncUser.userId, syncUser.email);
   ui.toast(t('golos.correcoesGuardadas'), 'ok');
   return true;
 }
