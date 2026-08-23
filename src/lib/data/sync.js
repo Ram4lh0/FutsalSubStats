@@ -157,6 +157,38 @@ export async function push(userId, email) {
   const sb = supabase();
   if (!sb || !userId) return { pushed: 0 };
 
+  let total = 0;
+
+  const { adotados, orfaos } = await sanearOrfaos();
+  if (adotados || orfaos.players.size || orfaos.matches.size) {
+    console.warn(
+      `sobras do modelo antigo: ${adotados} adotadas por um escalão, ` +
+        `${orfaos.players.size + orfaos.matches.size} sem escalão onde encaixar.`
+    );
+  }
+
+  const clubesSujos = await dirtyRows(db.STORES.clubs);
+  const escaloesSujos = await dirtyRows(db.STORES.teams);
+  const competicoesSujas = await dirtyRows(db.STORES.competitions);
+  const jogadoresSujos = await dirtyRows(db.STORES.players);
+  const jogosSujos = await dirtyRows(db.STORES.matches);
+  const convocadosSujosBase = await dirtyRows(db.STORES.matchSquad);
+  const eventos = (await db.all(db.STORES.matchEvents))
+    .filter((e) => !e.syncedAt)
+    .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
+
+  if (
+    !clubesSujos.length &&
+    !escaloesSujos.length &&
+    !competicoesSujas.length &&
+    !jogadoresSujos.length &&
+    !jogosSujos.length &&
+    !convocadosSujosBase.length &&
+    !eventos.length
+  ) {
+    return { pushed: 0 };
+  }
+
   // A fila corre de poucos em poucos segundos, e uma dessas passagens pode
   // apanhar o utilizador a sair. Quando chegasse ao servidor a sessão já não
   // existia, e a primeira escrita — o perfil — era recusada pela segurança por
@@ -192,16 +224,6 @@ export async function push(userId, email) {
     }
   }
 
-  let total = 0;
-
-  const { adotados, orfaos } = await sanearOrfaos();
-  if (adotados || orfaos.players.size || orfaos.matches.size) {
-    console.warn(
-      `sobras do modelo antigo: ${adotados} adotadas por um escalão, ` +
-        `${orfaos.players.size + orfaos.matches.size} sem escalão onde encaixar.`
-    );
-  }
-
   // O clube aponta para uma linha em `profiles`. Ela é criada por um gatilho
   // quando a conta nasce, mas contas criadas antes do gatilho existir ficariam
   // sem perfil — e o clube seria recusado por chave estrangeira. Garantir aqui
@@ -217,16 +239,10 @@ export async function push(userId, email) {
   // segurança do Postgres verifica, e é por aí que rebentava quando se
   // restaurava um backup: as linhas antigas não estavam marcadas como pendentes,
   // e o jogo novo chegava ao servidor sem clube nenhum onde assentar.
-  const jogadoresSujos = await dirtyRows(db.STORES.players);
-  const jogosSujos = await dirtyRows(db.STORES.matches);
-  const eventos = (await db.all(db.STORES.matchEvents))
-    .filter((e) => !e.syncedAt)
-    .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
-
   // Uma convocatória que aponte para um jogador que não pode subir também não
   // sobe: chegaria ao servidor sem o jogador a que se refere. O jogo fica para
   // trás inteiro, em vez de ir pela metade.
-  const convocadosSujos = (await dirtyRows(db.STORES.matchSquad)).filter(
+  const convocadosSujos = convocadosSujosBase.filter(
     (c) => !orfaos.players.has(c.playerId) && !orfaos.matches.has(c.matchId)
   );
 
@@ -247,7 +263,7 @@ export async function push(userId, email) {
   const competicoesNecessarias = new Set(jogos.map((m) => m.competitionId).filter(Boolean));
   const competicoes = await comPais(
     db.STORES.competitions,
-    await dirtyRows(db.STORES.competitions),
+    competicoesSujas,
     competicoesNecessarias
   );
 
@@ -256,7 +272,7 @@ export async function push(userId, email) {
     ...jogos.map((m) => m.teamId),
     ...competicoes.map((c) => c.teamId),
   ]);
-  const escaloes = await comPais(db.STORES.teams, await dirtyRows(db.STORES.teams), escaloesNecessarios);
+  const escaloes = await comPais(db.STORES.teams, escaloesSujos, escaloesNecessarios);
 
   const clubesNecessarios = new Set([
     ...jogadores.map((p) => p.clubId),
@@ -277,7 +293,7 @@ export async function push(userId, email) {
   //
   // Um clube que não é nosso já está no servidor — foi de lá que veio. Não há
   // nada para enviar.
-  const clubes = (await comPais(db.STORES.clubs, await dirtyRows(db.STORES.clubs), clubesNecessarios))
+  const clubes = (await comPais(db.STORES.clubs, clubesSujos, clubesNecessarios))
     .filter((c) => !c.ownerId || c.ownerId === userId);
 
   if (clubes.length) {
@@ -445,6 +461,46 @@ export function esquecerMarca(userId) {
   }
 }
 
+const TABELAS_COM_MARCA = [
+  'profiles',
+  'clubs',
+  'teams',
+  'competitions',
+  'players',
+  'matches',
+  'match_squad',
+  'match_events',
+];
+
+/**
+ * Pergunta leve: antes de descarregar sete tabelas, pergunta só as marcas máximas
+ * que existem no servidor. A resposta tem poucas linhas e quase não gasta egress.
+ */
+export async function hasRemoteChanges(userId) {
+  const sb = supabase();
+  if (!sb || !userId) return false;
+
+  const marcas = marcasDe(userId);
+  if (!Object.keys(marcas).length) return true;
+
+  try {
+    const { data, error } = await sb.rpc('sync_watermarks');
+    if (error) throw error;
+    if (!Array.isArray(data)) return true;
+
+    const remotas = new Map(data.map((r) => [r.tabela, r.marca]));
+    for (const tabela of TABELAS_COM_MARCA) {
+      const remota = remotas.get(tabela);
+      if (!remota) continue;
+      if (!marcas[tabela] || remota > marcas[tabela]) return true;
+    }
+    return false;
+  } catch {
+    // Servidor antigo: volta ao comportamento seguro, que é descarregar.
+    return true;
+  }
+}
+
 /**
  * Quantas linhas o servidor devolve de uma vez, e quantas nós pedimos.
  *
@@ -519,7 +575,8 @@ export async function pull(userId) {
   // A licença decide quantos escalões se podem criar, e a app tem de a saber sem
   // rede. Vem primeiro porque é a resposta mais barata e a que menos depende do
   // resto: se tudo o que vem a seguir falhar, ao menos isto ficou actualizado.
-  await trazerLicenca(sb, userId);
+  const perfil = await trazerLicenca(sb, userId);
+  if (perfil) novas.profiles = maiorData([perfil], marcas.profiles);
 
   // Sem `owner_id`: quem filtra é a segurança por linha do servidor.
   //
@@ -629,16 +686,19 @@ async function trazerLicenca(sb, userId) {
   try {
     const { data, error } = await sb
       .from('profiles')
-      .select('licenca')
+      .select('licenca, updated_at, created_at')
       .eq('id', userId)
       .maybeSingle();
-    if (error || !data?.licenca) return;
+    if (error || !data) return null;
 
     const atual = (await db.all(db.STORES.profile))[0];
-    if (atual?.licenca === data.licenca) return;
-    await db.put(db.STORES.profile, { ...(atual || { id: userId }), licenca: data.licenca });
+    if (data.licenca && atual?.licenca !== data.licenca) {
+      await db.put(db.STORES.profile, { ...(atual || { id: userId }), licenca: data.licenca });
+    }
+    return data;
   } catch {
     // Servidor antigo, sem a coluna. A app continua com o que tinha.
+    return null;
   }
 }
 
@@ -819,7 +879,14 @@ export function stop() {
 }
 
 export async function pendingCount() {
-  const stores = [db.STORES.clubs, db.STORES.players, db.STORES.matches, db.STORES.matchSquad];
+  const stores = [
+    db.STORES.clubs,
+    db.STORES.teams,
+    db.STORES.competitions,
+    db.STORES.players,
+    db.STORES.matches,
+    db.STORES.matchSquad,
+  ];
   let n = 0;
   for (const s of stores) n += (await dirtyRows(s)).length;
   n += (await db.all(db.STORES.matchEvents)).filter((e) => !e.syncedAt).length;

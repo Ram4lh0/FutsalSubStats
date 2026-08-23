@@ -11,6 +11,7 @@ import {
   flush,
   push,
   pull,
+  hasRemoteChanges,
   setRemote,
   saveNow,
   stop,
@@ -121,8 +122,28 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
     tabelas,
     chamadas,
     from: query,
-    async rpc(_fn, { payload }) {
+    async rpc(fn, { payload } = {}) {
       chamadas.rpc += 1;
+      if (fn === 'sync_watermarks') {
+        const maior = (nome) =>
+          (tabelas[nome] || []).reduce((m, r) => {
+            const d = r.updated_at || r.created_at || null;
+            return d && (!m || d > m) ? d : m;
+          }, null);
+        return {
+          data: [
+            { tabela: 'profiles', marca: maior('profiles') },
+            { tabela: 'clubs', marca: maior('clubs') },
+            { tabela: 'teams', marca: maior('teams') },
+            { tabela: 'competitions', marca: maior('competitions') },
+            { tabela: 'players', marca: maior('players') },
+            { tabela: 'matches', marca: maior('matches') },
+            { tabela: 'match_squad', marca: maior('match_squad') },
+            { tabela: 'match_events', marca: maior('match_events') },
+          ],
+          error: null,
+        };
+      }
       // Como no servidor: o mesmo client_event_id não entra duas vezes.
       if (tabelas.match_events.some((e) => e.client_event_id === payload.client_event_id)) {
         return { error: null };
@@ -1297,6 +1318,26 @@ test('a segunda descarga não traz nada, se nada mudou', async () => {
   // Da segunda, o servidor não tem nada de novo para dizer.
   const segunda = await pull(UTILIZADOR);
   assert.equal(segunda.pulled, 0, 'a segunda não devia trazer linha nenhuma');
+});
+
+test('a pergunta leve evita selects quando nada mudou', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { clube } = await cenario();
+  await push(UTILIZADOR);
+
+  await limpar();
+  await pull(UTILIZADOR);
+
+  const selectsAntes = servidor.chamadas.selects;
+  assert.equal(await hasRemoteChanges(UTILIZADOR), false, 'as marcas iguais não pedem descarga');
+  assert.equal(servidor.chamadas.selects, selectsAntes, 'não devia tocar nas tabelas grandes');
+
+  const i = servidor.tabelas.clubs.findIndex((c) => c.id === clube.id);
+  servidor.tabelas.clubs[i] = { ...servidor.tabelas.clubs[i], updated_at: daqui(60) };
+
+  assert.equal(await hasRemoteChanges(UTILIZADOR), true, 'uma marca maior pede descarga');
 });
 
 test('mas traz o que mudou depois da última vez', async () => {
