@@ -710,7 +710,7 @@ export default {
   'vivo.ppAuto': 'Portero-jugador: hay un jugador de pista bajo palos. Toca para desactivar.',
   'vivo.ppManual': 'Contando 5v4. Toca para terminar.',
   'vivo.ppDesligado': 'Toca para marcar que el portero está jugando como quinto.',
-  'vivo.expAdvCurto': 'EXP. RIV',
+  'vivo.expAdvCurto': 'EXPULSADOS RIV.',
   'vivo.menosExpulsao': 'Una expulsión menos del rival',
   'vivo.maisExpulsao': 'Una expulsión más del rival',
   'vivo.jogamCom': 'Juegan con {n}',
