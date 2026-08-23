@@ -341,7 +341,7 @@ ul { padding: 0; list-style: none; }
 .grid--cards.grid--um { grid-template-columns: minmax(0, 420px); justify-content: center; }
 .grid--stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 8px; }
 
-@media (min-width: 700px) and (orientation: landscape) {
+@media (min-width: 700px) {
   .painelv__metricas-atleta .stat:last-child {
     grid-column: 1 / -1;
     justify-self: center;
@@ -1514,6 +1514,15 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .painelv, .painelv__bloco, .painelv__partes, .painelv__tops { min-width: 0; }
 .painelv > *, .painelv__bloco > *, .painelv__partes > *, .painelv__tops > * { min-width: 0; }
 @media (min-width: 1100px) { .painelv { grid-template-columns: 1fr 1fr; align-items: start; } }
+@media print, (min-width: 900px) and (orientation: landscape) {
+  .painelv--atleta { grid-template-columns: 1fr 1fr; align-items: start; }
+  .painelv--atleta .painelv__bloco--minutos-atleta { order: 1; }
+  .painelv--atleta .painelv__bloco--utilizacao-atleta { order: 2; }
+  .painelv--atleta .painelv__bloco--impacto-atleta { order: 3; }
+  .painelv--atleta .painelv__bloco--ultimos-atleta { order: 4; }
+  .painelv--atleta .painelv__bloco--periodos-atleta { order: 5; }
+  .painelv--atleta .painelv__bloco--disciplina-atleta { order: 6; }
+}
 .painelv__bloco { display: flex; flex-direction: column; gap: 10px; }
 .painelv__parte { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
 .painelv__partes { display: flex; flex-direction: column; gap: 12px; }
@@ -1612,6 +1621,17 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 @media (max-width: 1400px) { .painelv__tops { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* Ao alto num telemóvel três colunas não cabem: passam a uma. */
 @media (max-width: 560px) { .painelv__tops { grid-template-columns: 1fr; } }
+@media (max-width: 560px) and (orientation: portrait) {
+  .painelv__disciplina-resumo .stat:last-child {
+    justify-self: center;
+    width: min(230px, 100%);
+  }
+
+  .painelv__impacto-atleta .stat__label {
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+}
 /* Mais apertados do que os tops das Estatísticas, que têm a página toda. */
 .painelv__tops .destaque { padding: 12px; }
 .painelv__tops .destaque__pos { width: 1rem; font-size: 0.72rem; }
@@ -1749,6 +1769,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
    para se comparar. */
 .colunas { display: flex; flex-direction: column; gap: 3px; }
 .colunas .graf { height: 168px; }
+.colunas--simples .graf { height: 96px; }
 .colunas__eixo {
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr));
@@ -1761,23 +1782,23 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 @media print {
   @page {
     size: A4 landscape;
-    margin: 10mm;
+    margin: 0;
   }
 
   :root {
-    color-scheme: light;
-    --bg: #fff;
-    --bg-2: #f8fafc;
-    --card: #fff;
-    --card-2: #f8fafc;
-    --text: #0f172a;
-    --muted: #475569;
-    --line: #cbd5e1;
-    --primary: #16a34a;
+    color-scheme: dark;
+    --bg: #0b1220;
+    --bg-2: #111c30;
+    --card: #16233b;
+    --card-2: #1d2d49;
+    --text: #eaf1ff;
+    --muted: #91a4c4;
+    --line: #2a3d5f;
+    --primary: #22c55e;
     --primary-ink: #052e16;
-    --danger: #dc2626;
-    --warn: #b45309;
-    --info: #0284c7;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --info: #38bdf8;
     --shadow: none;
   }
 
@@ -1795,7 +1816,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
-    background: #fff !important;
+    background: var(--bg) !important;
     color: var(--text) !important;
   }
 
@@ -1810,7 +1831,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 
   .view {
     max-width: none !important;
-    padding: 0 !important;
+    padding: 10mm !important;
   }
 
   .page__head {
@@ -1848,7 +1869,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .card,
   .stat,
   .tablewrap {
-    background: #fff !important;
+    background: var(--card) !important;
     border-color: var(--line) !important;
   }
 

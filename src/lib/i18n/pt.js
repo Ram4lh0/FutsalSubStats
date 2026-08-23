@@ -243,7 +243,7 @@ export default {
   'painelv.impacto': 'Impacto',
   'painelv.golosEquipaEmCampo': 'Golos da equipa em campo',
   'painelv.sofridosEquipaEmCampo': 'Sofridos da equipa em campo',
-  'painelv.saldoComAtleta': 'Saldo Particip. Marcados/Sofridos',
+  'painelv.saldoComAtleta': 'Saldo Participação Marcados/Sofridos',
   'painelv.sofridosBaliza': 'Sofridos à baliza',
   'painelv.golosAssistenciasPeriodo': 'Golos e assistências por período',
   'painelv.sofridosBalizaPeriodo': 'Golos sofridos por período',
