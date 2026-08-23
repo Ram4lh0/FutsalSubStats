@@ -1519,8 +1519,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .painelv--atleta .painelv__bloco--minutos-atleta { order: 1; }
   .painelv--atleta .painelv__bloco--utilizacao-atleta { order: 2; }
   .painelv--atleta .painelv__bloco--impacto-atleta { order: 3; }
-  .painelv--atleta .painelv__bloco--ultimos-atleta { order: 4; }
-  .painelv--atleta .painelv__bloco--periodos-atleta { order: 5; }
+  .painelv--atleta .painelv__bloco--periodos-atleta { order: 4; }
+  .painelv--atleta .painelv__bloco--ultimos-atleta { order: 5; }
   .painelv--atleta .painelv__bloco--disciplina-atleta { order: 6; }
 }
 .painelv__bloco { display: flex; flex-direction: column; gap: 10px; }
@@ -1627,9 +1627,19 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
     width: min(230px, 100%);
   }
 
-  .painelv__impacto-atleta .stat__label {
-    overflow-wrap: anywhere;
-    hyphens: auto;
+  .painelv__impacto-atleta .stat:nth-child(5) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(280px, 100%);
+  }
+
+  .painelv__impacto-atleta .stat:nth-child(5) .stat__label {
+    text-align: center;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
   }
 }
 /* Mais apertados do que os tops das Estatísticas, que têm a página toda. */

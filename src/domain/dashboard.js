@@ -190,6 +190,12 @@ export function painelDoAtleta(
     ? { ...noPlantel, ...nosJogos, ...linhaMinutos }
     : noPlantel || nosJogos || null;
   if (!jogador) return null;
+  const guardaRedes =
+    normalizePosition(jogador.preferredPosition) === 'GOALKEEPER' ||
+    entries.some(({ state }) => {
+      const p = jogadorDaEntrada(state, playerId);
+      return normalizePosition(p?.preferredPosition) === 'GOALKEEPER';
+    });
 
   const jogosTerminados = terminados(entries);
   const nFaixas = Math.max(1, Math.ceil(parteMs / faixaMs));
@@ -258,13 +264,16 @@ export function painelDoAtleta(
 
     const primeira = state.firstHalfMs || 0;
     for (const g of state.goals || []) {
-      if (g.scorerId !== playerId && g.assistId !== playerId && g.goalkeeperId !== playerId) continue;
+      const marcou = g.scorerId === playerId;
+      const assistiu = g.assistId === playerId;
+      const sofreuComoGuardaRedes = guardaRedes && g.team === 'THEM' && g.goalkeeperId === playerId;
+      if (!marcou && !assistiu && !sofreuComoGuardaRedes) continue;
       const parte = g.period === 2 ? 2 : 1;
       const naParte = parte === 2 ? g.matchElapsedMs - primeira : g.matchElapsedMs;
       const i = Math.min(nFaixas - 1, Math.max(0, Math.floor(naParte / faixaMs)));
-      if (g.scorerId === playerId) partes[parte][i].golos += 1;
-      if (g.assistId === playerId) partes[parte][i].assistencias += 1;
-      if (g.team === 'THEM' && g.goalkeeperId === playerId) partes[parte][i].sofridosBaliza += 1;
+      if (marcou) partes[parte][i].golos += 1;
+      if (assistiu) partes[parte][i].assistencias += 1;
+      if (sofreuComoGuardaRedes) partes[parte][i].sofridosBaliza += 1;
       comDadosPeriodo = true;
     }
 
@@ -294,16 +303,6 @@ export function painelDoAtleta(
   impacto.saldo = impacto.golosEquipa - impacto.sofridosEquipa;
   disc.faltasPorJogo = disc.jogos ? disc.faltas / disc.jogos : 0;
   disc.sofridasPorJogo = disc.jogos ? disc.sofridas / disc.jogos : 0;
-  const guardaRedes =
-    normalizePosition(jogador.preferredPosition) === 'GOALKEEPER' ||
-    impacto.sofridosBaliza > 0 ||
-    jogosTerminados.some(({ state }) => {
-      const p = jogadorDaEntrada(state, playerId);
-      return (
-        normalizePosition(p?.preferredPosition) === 'GOALKEEPER' ||
-        (p?.stints || []).some((st) => st.startingPosition === 'GOALKEEPER')
-      );
-    });
 
   const comMedia = (f) => ({
     ...f,

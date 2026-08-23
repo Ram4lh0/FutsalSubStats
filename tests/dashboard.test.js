@@ -216,6 +216,32 @@ test('o painel do guarda-redes separa golos sofridos por periodo', () => {
   assert.equal(r.periodos.primeira[1].golos, 0);
 });
 
+test('um jogador de campo que foi à baliza não vira guarda-redes no dashboard', () => {
+  const campo = {
+    ...emCampo('p6', 'Rams', 6, 40 * MIN),
+    preferredPosition: 'FIXO',
+    stints: [{ startMatchMs: 0, endMatchMs: 40 * MIN, startingPosition: 'GOALKEEPER' }],
+  };
+
+  const r = painelDoAtleta(
+    [
+      jogo({
+        jogadores: { p6: campo },
+        golos: [
+          { team: 'THEM', period: 1, matchElapsedMs: 4 * MIN, goalkeeperId: 'p6' },
+        ],
+      }),
+    ],
+    [{ id: 'p6', name: 'Rams', shirtNumber: 6, preferredPosition: 'FIXO' }],
+    'p6',
+    { parteMs: 20 * MIN }
+  );
+
+  assert.equal(r.guardaRedes, false);
+  assert.equal(r.impacto.sofridosBaliza, 1);
+  assert.equal(r.periodos.comDados, false);
+});
+
 /* -------------------------------------------------------------- faixas */
 
 test('os golos caem na faixa certa, e a segunda parte conta do seu início', () => {
