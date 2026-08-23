@@ -901,7 +901,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .pcard__cards { display: inline-flex; gap: 3px; flex: none; }
 /* Nada nesta linha encolhe. Sem isto o "G" ficava oval e o selo do 5v4 cortado
    quando o cartão do guarda-redes fica apertado. */
-.pcard__num, .pcard__pos, .pcard__goal, .pcard__more, .ppchip { flex: none; }
+.pcard__num, .pcard__pos, .pcard__goal, .pcard__more, .pcard__discipline, .pcard__quickfoul, .ppchip { flex: none; }
 .menu__item--yellow { border-color: rgba(250, 204, 21, 0.5); }
 .menu__item .cardchip { margin-right: 4px; }
 
@@ -912,11 +912,19 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .ppchip.is-auto { cursor: default; }
 .ppchip:not(.is-auto):active { transform: scale(0.92); }
 
-.pcard__goal { margin-left: auto; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: var(--primary-ink); font-size: 0.8rem; font-weight: 800; }
-.pcard__goal:active { transform: scale(0.9); }
+.pcard__discipline { margin-left: auto; width: 28px; height: 28px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; gap: 2px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); }
+.pcard__discipline .cardchip { width: 8px; height: 14px; margin: 0; }
+.pcard__discipline:active { transform: scale(0.92); background: rgba(255, 255, 255, 0.1); }
+.pcard__goal,
+.pcard__quickfoul { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; }
+.pcard__goal { position: absolute; right: 10px; bottom: 8px; background: var(--primary); color: var(--primary-ink); box-shadow: 0 2px 8px rgba(34, 197, 94, 0.24); }
+.pcard__quickfoul { background: #f59e0b; color: #1f1300; }
+.pcard__goal:active,
+.pcard__quickfoul:active { transform: scale(0.9); }
 .pcard__more { display: inline-grid; place-items: center; width: 30px; height: 28px; font-size: 1.2rem; line-height: 1; color: var(--muted); border-radius: 8px; }
 .pcard__more:active { background: rgba(255, 255, 255, 0.08); }
-.pcard--bench .pcard__more { margin-left: auto; }
+.pcard--bench .pcard__discipline { margin-left: auto; }
+.pcard--bench .pcard__more { margin-left: 0; }
 .pcard__name { font-weight: 600; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* A marca de expulso fica na sua própria linha, por baixo do minuto: ao lado do
    número não cabia e transbordava do cartão. */
@@ -1269,8 +1277,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .penalties { width: auto; flex-direction: row; flex-wrap: wrap; }
   .penalty { flex: 1 1 160px; }
 
-  .live__head { grid-template-columns: 1fr; gap: 4px; padding: 6px 10px 7px; }
-  .clockbox { gap: 0; margin-top: -2px; }
+  .live__head { grid-template-columns: 1fr; gap: 2px; padding: 6px 10px 7px; }
+  .clockbox { gap: 0; margin-top: -8px; }
   .clockbox__time { font-size: clamp(1.85rem, 10vw, 2.35rem); }
   .clockbox__hint { line-height: 1.1; }
   /* Em vertical o selo passa para baixo das faltas do adversário, encostado à
@@ -1280,11 +1288,11 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
      nosso número deixava de estar à mesma altura do deles — que é a única coisa
      que um marcador tem mesmo de acertar. Fora do fluxo, não mexe em nada; o
      espaço para ele vem do `padding-bottom`. */
-  .scoreboard { position: relative; row-gap: 1px; padding-bottom: 24px; }
+  .scoreboard { position: relative; row-gap: 1px; padding-bottom: 22px; }
   .scoreboard__score { gap: 6px; }
   .scoreboard__fouls { padding: 0 6px; }
-  .rivalout { position: absolute; right: 0; bottom: 0; margin-left: 0; }
-  .live__controls { gap: 8px; margin-top: 2px; }
+  .rivalout { position: absolute; right: 0; bottom: -5px; margin-left: 0; }
+  .live__controls { gap: 8px; margin-top: 0; }
   .live__controls .btn--big {
     min-height: 36px;
     padding: 6px 12px;
@@ -1375,9 +1383,12 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .court .pcard__num { font-size: 1rem; }
   .court .pcard__pos { font-size: 0.56rem; }
   .court .pcard__name { font-size: 0.86rem; }
-  .court .pcard__goal { width: 24px; height: 24px; font-size: 0.7rem; }
+  .court .pcard__goal { right: 8px; bottom: 6px; width: 24px; height: 24px; font-size: 0.7rem; }
+  .court .pcard__discipline { width: 24px; height: 24px; border-radius: 8px; }
+  .court .pcard__discipline .cardchip { width: 7px; height: 12px; }
+  .court .pcard__quickfoul { width: 24px; height: 24px; font-size: 0.7rem; }
   .court .pcard__more { width: 24px; height: 24px; }
-  .court .pcard__times { gap: 0; }
+  .court .pcard__times { gap: 0; padding-right: 28px; }
   .court .pcard__t { font-size: 0.66rem; }
   .court .pcard__times .pcard__t:first-child { display: none; }
   .slot__clear { top: 4px; right: 4px; }

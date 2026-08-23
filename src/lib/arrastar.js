@@ -203,6 +203,7 @@ export default function useArrasto(aoLargar) {
       // ponteiro antes de chegarmos ao limiar.
       className: 'arrastavel',
       onPointerDown: (e) => {
+        if (e.target?.closest?.('[data-no-drag]')) return;
         // Só o botão principal do rato. O direito abre menus de contexto e o do
         // meio cola texto — nenhum dos dois é um arrasto.
         if (e.button != null && e.button !== 0) return;

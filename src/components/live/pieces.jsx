@@ -299,25 +299,33 @@ function CourtCard({ pos, p, state, sel, clockMs, on, arrasto }) {
         {pos === 'GOALKEEPER' ? <PowerPlayChip state={state} on={on} /> : null}
         <CardChips p={p} state={state} />
         <span
-          className="pcard__goal"
-          title="Golo deste jogador"
+          className="pcard__discipline"
+          title={t('acao.cartaoAmarelo')}
+          data-no-drag
           onPointerDown={(e) => e.stopPropagation()}
           onPointerUp={(e) => e.stopPropagation()}
+          onPointerCancel={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
-            on.scoreFor(p);
+            on.cardMenu(pos, p);
           }}
         >
-          G
+          <span className="cardchip cardchip--yellow" />
+          <span className="cardchip cardchip--red" />
         </span>
         <span
-          className="pcard__more"
+          className="pcard__quickfoul"
+          title={t('acao.quemFezFalta')}
+          data-no-drag
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
+          onPointerCancel={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
-            on.courtMenu(pos, p);
+            on.foulFor(p);
           }}
         >
-          ⋯
+          F
         </span>
       </div>
       <div className="pcard__name">{p.name}</div>
@@ -327,6 +335,20 @@ function CourtCard({ pos, p, state, sel, clockMs, on, arrasto }) {
           {t('vivo.emJogoHa', { tempo: fmt(s.currentStintMs ?? 0) })}
         </span>
       </div>
+      <span
+        className="pcard__goal"
+        title="Golo deste jogador"
+        data-no-drag
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
+        onPointerCancel={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          on.scoreFor(p);
+        }}
+      >
+        G
+      </span>
       {selecionado ? <span className="pcard__flag">{t('vivo.aSair')}</span> : null}
     </button>
   );
@@ -438,8 +460,29 @@ function BenchCard({ p, state, sel, clockMs, on, arrasto }) {
       <div className="pcard__top">
         <span className="pcard__num">{p.number}</span>
         <CardChips p={p} state={state} />
+        {expulso ? null : (
+          <span
+            className="pcard__discipline"
+            title={t('acao.cartaoAmarelo')}
+            data-no-drag
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onPointerCancel={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              on.cardMenu(null, p);
+            }}
+          >
+            <span className="cardchip cardchip--yellow" />
+            <span className="cardchip cardchip--red" />
+          </span>
+        )}
         <span
           className="pcard__more"
+          data-no-drag
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
+          onPointerCancel={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             on.benchMenu(p);

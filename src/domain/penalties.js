@@ -31,6 +31,7 @@ export function penaltyBoard(state, clockMs, defaultDurationMs = PENALTY_DURATIO
   const out = [];
   for (const player of Object.values(state.players)) {
     if (player.status !== PLAYER_MATCH_STATUS.EXPELLED) continue;
+    if (player.penaltyRequired === false) continue;
 
     const mine = state.penalties.filter((p) => p.playerId === player.playerId);
     const last = mine[mine.length - 1] || null;
@@ -100,6 +101,7 @@ export function canStartPenalty(state, playerId) {
   const player = state.players[playerId];
   if (!player) return { chave: 'validacao.naoConvocado' };
   if (player.status !== PLAYER_MATCH_STATUS.EXPELLED) return { chave: 'validacao.naoEstaExpulso' };
+  if (player.penaltyRequired === false) return { chave: 'validacao.naoEstaExpulso' };
   if (state.penalties.some((p) => p.playerId === playerId))
     return { chave: 'validacao.contagemJaIniciada' };
   return null;

@@ -297,6 +297,25 @@ function Live() {
     const nome = depois.state.players[playerId]?.name || '—';
   }
 
+  async function foulFor(p) {
+    const st = await commit(A.foul(state, EVENT.TEAM_FOUL_ADDED));
+    const n = foulsInPeriod(st, 'US');
+    if (n > FOUL_LIMIT) {
+      await tenMetreAlert(ui, {
+        beneficia: rivalName,
+        faltou: ourName,
+        n,
+      });
+    }
+
+    const ultima = [...st.fouls].reverse().find((f) => f.team === 'US');
+    if (!ultima) return;
+    await events.append(A.attributeFoul(st, { targetEventId: ultima.eventId, playerId: p.playerId }), {
+      sync: 'defer',
+    });
+    await recarregar();
+  }
+
   function removeFoul(team) {
     if (foulsInPeriod(state, team) === 0) return;
     return commit(
@@ -518,6 +537,27 @@ function Live() {
     ));
   }
 
+  function cardMenu(pos, p) {
+    ui.open((close) => (
+      <Dialog title={`#${p.number} ${p.name}`} onClose={() => close(null)}>
+        <div className="menu">
+          {cardItems(p, () => close(null))}
+          {pos ? (
+            <button
+              className="menu__item"
+              onClick={() => {
+                close(null);
+                courtMenu(pos, p);
+              }}
+            >
+              {t('acao.maisAcoes')}
+            </button>
+          ) : null}
+        </div>
+      </Dialog>
+    ));
+  }
+
   function benchMenu(p) {
     const podeEntrar =
       p.status === PLAYER_MATCH_STATUS.ON_BENCH &&
@@ -707,6 +747,8 @@ function Live() {
     tapBench,
     tapEmpty,
     scoreFor,
+    foulFor,
+    cardMenu,
     courtMenu,
     benchMenu,
     startPenalty,

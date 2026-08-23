@@ -73,11 +73,13 @@ function closeAllStints(state, ev, reason) {
 function expel(state, ev, playerId) {
   const p = state.players[playerId];
   if (!p || p.status === PLAYER_MATCH_STATUS.EXPELLED) return;
+  const estavaEmCampo = p.status === PLAYER_MATCH_STATUS.ON_COURT;
   closeStint(state, playerId, ev, STINT_END_REASON.EXPELLED);
   clearFromCourt(state, playerId);
   p.status = PLAYER_MATCH_STATUS.EXPELLED;
   p.position = null;
   p.expelledAtMatchMs = ev.matchElapsedMs;
+  p.penaltyRequired = estavaEmCampo;
 }
 
 /* ------------------------------------------------------------------- 5v4 */
@@ -221,6 +223,7 @@ export function buildMatchState(match, squad, events) {
           : PLAYER_MATCH_STATUS.ON_BENCH,
       position: row.initialLocation === LOCATION.COURT ? row.initialPosition : null,
       expelledAtMatchMs: null,
+      penaltyRequired: null,
       availableFromMs: 0,
       stints: [],
     };
