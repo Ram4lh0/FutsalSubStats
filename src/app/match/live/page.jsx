@@ -680,7 +680,7 @@ function Live() {
     await events.append(A.finishMatch(state), { sync: 'defer' });
     const fresco = await loadMatch(matchId);
     await matches.update(matchId, { teamFouls: foulsTotal(fresco.state, 'US') }, { sync: 'defer' });
-    sync.saveNow(userId, user?.email);
+    await sync.saveNow(userId, user?.email);
     router.push(rotas.jogoResumo(matchId));
   }
 

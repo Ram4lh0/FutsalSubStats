@@ -164,7 +164,10 @@ function SyncBridge() {
     // Uma alteração local só precisa de ser **enviada**. Antes chamava o
     // `atualizar`, que descarrega primeiro — cada golo apontado puxava a época
     // inteira do servidor antes de mandar uma linha.
-    const aoMudarLocal = () => sincronizar();
+    const aoMudarLocal = () => {
+      if (isLive) return sync.pendingCount();
+      return sincronizar();
+    };
     const aoVoltar = () => atualizar();
     const aoFocar = () => {
       if (document.visibilityState === 'visible') atualizar();
