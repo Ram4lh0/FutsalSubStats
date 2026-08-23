@@ -113,22 +113,26 @@ export function ColunasEspelhadas({
   classeB = 'sofridos',
 }) {
   const LARGURA = 480;
+  const temBaixo = Boolean(chaveB);
   const META = 74; // altura de cada metade
-  const EIXO = META + 12;
-  const ALTURA = META * 2 + 16;
+  const EIXO = META + (temBaixo ? 12 : 8);
+  const ALTURA = temBaixo ? META * 2 + 16 : META + 16;
   const passo = LARGURA / Math.max(1, faixas.length);
   const largura = Math.max(6, passo - 10);
-  const maximo = Math.max(1, ...faixas.map((f) => Math.max(f[chaveA] || 0, f[chaveB] || 0)));
+  const maximo = Math.max(
+    1,
+    ...faixas.map((f) => Math.max(f[chaveA] || 0, temBaixo ? f[chaveB] || 0 : 0))
+  );
   const y = escala(maximo, META - 6);
 
   return (
-    <div className="colunas">
+    <div className={`colunas ${temBaixo ? '' : 'colunas--simples'}`.trim()}>
     <svg className="graf" viewBox={`0 0 ${LARGURA} ${ALTURA}`} role="img" preserveAspectRatio="none">
       <line x1={0} x2={LARGURA} y1={EIXO} y2={EIXO} className="graf__eixo" />
       {faixas.map((f, i) => {
         const cx = i * passo + passo / 2;
         const valorA = f[chaveA] || 0;
-        const valorB = f[chaveB] || 0;
+        const valorB = temBaixo ? f[chaveB] || 0 : 0;
         const hA = y(valorA);
         const hC = y(valorB);
         const activa = escolhida === i;
@@ -161,7 +165,7 @@ export function ColunasEspelhadas({
                 className={`graf__${classeA}`}
               />
             ) : null}
-            {valorB > 0 ? (
+            {temBaixo && valorB > 0 ? (
               <rect
                 x={cx - largura / 2}
                 y={EIXO}

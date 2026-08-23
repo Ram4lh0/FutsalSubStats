@@ -59,9 +59,9 @@ function Conteudo() {
 }
 
 /** Um bloco do painel: título e forma. Sem legendas por baixo do título. */
-function Bloco({ titulo, children }) {
+function Bloco({ titulo, children, className = '' }) {
   return (
-    <section className="card painelv__bloco">
+    <section className={`card painelv__bloco ${className}`.trim()}>
       <h2 className="section section--tight">{titulo}</h2>
       {children}
     </section>
@@ -249,7 +249,7 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
 
   return (
     <>
-      <Bloco titulo={t('painelv.atletaMinutos', { nome: dados.jogador.name })}>
+      <Bloco titulo={t('painelv.atletaMinutos', { nome: dados.jogador.name })} className="painelv__bloco--minutos-atleta">
         <div className="grid grid--stats painelv__metricas-atleta">
           <StatCard label={t('stats.tempoTotal')} value={fmt(min.totalMs)} />
           <StatCard label={t('painelv.mediaAtleta')} value={fmt(min.mediaJogadorMs)} />
@@ -277,7 +277,7 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
         />
       </Bloco>
 
-      <Bloco titulo={t('painelv.utilizacao')}>
+      <Bloco titulo={t('painelv.utilizacao')} className="painelv__bloco--utilizacao-atleta">
         <div className="grid grid--stats">
           <StatCard label={t('painelv.convocado')} value={u.convocado} hint={t('painelv.emJogos', { n: u.jogos })} />
           <StatCard label={t('painelv.utilizado')} value={u.utilizado} hint={`${u.percentagemUtilizacao}%`} />
@@ -288,8 +288,8 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
         </div>
       </Bloco>
 
-      <Bloco titulo={t('painelv.impacto')}>
-        <div className="grid grid--stats">
+      <Bloco titulo={t('painelv.impacto')} className="painelv__bloco--impacto-atleta">
+        <div className="grid grid--stats painelv__impacto-atleta">
           <StatCard label={t('stats.golos')} value={imp.golos} />
           <StatCard label={t('stats.assistencias')} value={imp.assistencias} />
           <StatCard label={t('painelv.golosEquipaEmCampo')} value={imp.golosEquipa} />
@@ -303,7 +303,7 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
         </div>
       </Bloco>
 
-      <Bloco titulo={t(guardaRedes ? 'painelv.sofridosBalizaPeriodo' : 'painelv.golosAssistenciasPeriodo')}>
+      <Bloco titulo={t(guardaRedes ? 'painelv.sofridosBalizaPeriodo' : 'painelv.golosAssistenciasPeriodo')} className="painelv__bloco--periodos-atleta">
         {dados.periodos.comDados ? (
           <div className="painelv__partes">
             <div>
@@ -312,7 +312,7 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
                 faixas={dados.periodos.primeira}
                 etiquetas={etiquetas}
                 chaveA={guardaRedes ? 'sofridosBaliza' : 'golos'}
-                chaveB={guardaRedes ? 'naoUsado' : 'assistencias'}
+                chaveB={guardaRedes ? null : 'assistencias'}
                 classeA={guardaRedes ? 'sofridos' : 'marcados'}
                 classeB="assistencias"
                 escolhida={faixaAtiva.parte === 1 ? faixaAtiva.i : null}
@@ -326,7 +326,7 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
                 faixas={dados.periodos.segunda}
                 etiquetas={etiquetas}
                 chaveA={guardaRedes ? 'sofridosBaliza' : 'golos'}
-                chaveB={guardaRedes ? 'naoUsado' : 'assistencias'}
+                chaveB={guardaRedes ? null : 'assistencias'}
                 classeA={guardaRedes ? 'sofridos' : 'marcados'}
                 classeB="assistencias"
                 escolhida={faixaAtiva.parte === 2 ? faixaAtiva.i : null}
@@ -352,7 +352,7 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
         )}
       </Bloco>
 
-      <Bloco titulo={t('painelv.ultimosJogosAtleta')}>
+      <Bloco titulo={t('painelv.ultimosJogosAtleta')} className="painelv__bloco--ultimos-atleta">
         {dados.ultimos.length ? (
           <DataTable tight className="tablewrap--nofreeze">
             <thead>
@@ -390,7 +390,7 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
         )}
       </Bloco>
 
-      <Bloco titulo={t('painelv.disciplina')}>
+      <Bloco titulo={t('painelv.disciplina')} className="painelv__bloco--disciplina-atleta">
         {disc.jogos ? (
           <div className="grid grid--stats">
             <StatCard label={t('painelv.faltasFeitas')} value={disc.faltas} hint={disc.faltasPorJogo.toFixed(1)} />
@@ -529,7 +529,7 @@ function Painel({ club, team, entries, roster, competitions }) {
   const semJogos = !forma.length && !min.linhas.length;
 
   return (
-    <div className="painelv">
+    <div className={`painelv ${atletaId ? 'painelv--atleta' : ''}`.trim()}>
       <div className="painelv__filtros">
         <Filtros
           provas={provas}
@@ -647,7 +647,7 @@ function Painel({ club, team, entries, roster, competitions }) {
           <Bloco titulo={t('painelv.disciplina')}>
             {disc.jogos ? (
               <>
-                <div className="grid grid--stats">
+                <div className="grid grid--stats painelv__disciplina-resumo">
                   <StatCard
                     label={t('painelv.faltasPorJogo')}
                     value={disc.mediaPorJogo.toFixed(1)}
