@@ -14,7 +14,7 @@ import { Empty } from '@/components/bits.jsx';
 import { Dialog, useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import Halftime from '@/components/live/Halftime.jsx';
-import { Scoreboard, ClockBox, Court, Bench, Penalties, clockMsOf } from '@/components/live/pieces.jsx';
+import { Scoreboard, ClockBox, RivalOut, Court, Bench, Penalties, clockMsOf } from '@/components/live/pieces.jsx';
 import {
   pickPlayer,
   pickReplacement,
@@ -827,6 +827,7 @@ function Live() {
           // uma contagem oficial, e não há paragens onde alguém se possa enganar.
           on={timing === MATCH_TIMING.TIMED ? on : null}
         />
+        <RivalOut state={state} on={on} />
         <div className="live__controls">
           {/* No jogo cronometrado a pausa vive no canto inferior direito, ao
               alcance do polegar; aqui em cima seria um segundo botão igual. */}

@@ -745,7 +745,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
    deslizar, cada uma por si. */
 .live--pause { grid-template-rows: auto minmax(0, 1fr); height: 100%; }
 
-.live__head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 14px; }
+.live__head { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 14px; }
 .live__head > * { min-width: 0; }
 /* Grelha nós · traço · adversário, com três linhas: nome, golos, faltas.
    O traço está fixo na linha dos golos, por isso alinha sempre com eles. */
@@ -802,6 +802,14 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   /* O traço separava dois números que agora estão em lados opostos do relógio. */
   .scoreboard__dash { display: none; }
   .live__head > .clockbox { grid-column: 2; grid-row: 1 / -1; }
+  .live__head > .rivalout {
+    position: static;
+    grid-column: 2;
+    grid-row: 1 / -1;
+    justify-self: end;
+    align-self: center;
+    transform: translateX(calc(100% + 10px));
+  }
   .live__head > .live__controls { grid-column: 4; grid-row: 1 / -1; }
   .scoreboard__name { max-width: 16vw; }
 }
@@ -855,23 +863,24 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 
 /* Expulsões do adversário: um contador, sem cronómetro. Discreto enquanto está
    a zero — só ganha cor quando eles ficam mesmo reduzidos. */
-/* Expulsos do adversário: colado ao resultado deles, e pequeno.
+/* Expulsos do adversário: pequeno e perto do relógio.
  *
  * Era uma faixa a toda a largura por baixo do marcador — mais ecrã do que o
- * assunto merece, num sítio que num telemóvel é o mais caro que há. Passa a
- * viver ao lado do número a que diz respeito.
+ * assunto merece, num sítio que num telemóvel é o mais caro que há. Agora vive
+ * à direita do tempo, encostado à borda do card nos ecrãs estreitos.
  *
  * A caixa tem largura mínima para o `0` e o `1` não fazerem o marcador saltar
  * de lado quando o número muda. */
 .rivalout {
   display: inline-flex; flex-direction: column; align-items: center; gap: 1px;
-  margin-left: 6px; padding: 2px 6px;
+  position: absolute; right: 10px; top: 50%; transform: translateY(-42%);
+  margin-left: 0; padding: 3px 6px;
   border: 1px solid var(--line); border-radius: 9px;
   opacity: 0.65;
 }
 /* Enquanto houver algum, deixa de ser um pormenor: acende e fica opaco. */
 .rivalout.is-on { opacity: 1; border-color: var(--info); background: rgba(56, 189, 248, 0.1); }
-.rivalout__lbl { font-size: 0.52rem; letter-spacing: 0.08em; color: var(--muted); line-height: 1; }
+.rivalout__lbl { font-size: 0.48rem; letter-spacing: 0.06em; color: var(--muted); line-height: 1; white-space: nowrap; }
 .rivalout__linha { display: flex; align-items: center; gap: 2px; }
 .rivalout__n { min-width: 1.1ch; text-align: center; font-size: 0.9rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .rivalout.is-on .rivalout__n { color: var(--info); }
@@ -1281,17 +1290,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .clockbox { gap: 0; margin-top: -8px; }
   .clockbox__time { font-size: clamp(1.85rem, 10vw, 2.35rem); }
   .clockbox__hint { line-height: 1.1; }
-  /* Em vertical o selo passa para baixo das faltas do adversário, encostado à
-     direita.
-     Sai do fluxo em vez de mudar de linha dentro da célula do resultado: aí
-     engordava a linha dos golos, e como as linhas da grelha são partilhadas, o
-     nosso número deixava de estar à mesma altura do deles — que é a única coisa
-     que um marcador tem mesmo de acertar. Fora do fluxo, não mexe em nada; o
-     espaço para ele vem do `padding-bottom`. */
-  .scoreboard { position: relative; row-gap: 1px; padding-bottom: 22px; }
+  .scoreboard { position: relative; row-gap: 1px; }
   .scoreboard__score { gap: 6px; }
   .scoreboard__fouls { padding: 0 6px; }
-  .rivalout { position: absolute; right: 0; bottom: -5px; margin-left: 0; }
   .live__controls { gap: 8px; margin-top: 0; }
   .live__controls .btn--big {
     min-height: 36px;

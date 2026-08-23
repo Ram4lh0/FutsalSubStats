@@ -710,7 +710,7 @@ export default {
   'vivo.ppAuto': 'Flying goalkeeper: an outfield player is in goal. Tap to switch off.',
   'vivo.ppManual': 'Counting 5v4. Tap to end.',
   'vivo.ppDesligado': 'Tap to mark that the goalkeeper is playing as the fifth outfield player.',
-  'vivo.expAdvCurto': 'OPP. OFF',
+  'vivo.expAdvCurto': 'OPPONENT OFF',
   'vivo.menosExpulsao': 'One fewer opponent sent off',
   'vivo.maisExpulsao': 'One more opponent sent off',
   'vivo.jogamCom': 'They play with {n}',

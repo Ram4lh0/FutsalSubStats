@@ -49,7 +49,6 @@ export function Scoreboard({ state, ourName, opponentName, ourFull, opponentFull
         side="is-right"
         interactive={interactive}
         on={on}
-        extra={interactive ? <RivalOut state={state} on={on} /> : null}
       />
       <FoulsCell state={state} team="US" side="is-left" interactive={interactive} on={on} />
       <FoulsCell state={state} team="THEM" side="is-right" interactive={interactive} on={on} />
@@ -57,7 +56,7 @@ export function Scoreboard({ state, ourName, opponentName, ourFull, opponentFull
   );
 }
 
-function ScoreCell({ team, score, side, interactive, on, extra }) {
+function ScoreCell({ team, score, side, interactive, on }) {
   return (
     <div className={`scoreboard__score ${side}`}>
       {interactive ? (
@@ -75,7 +74,6 @@ function ScoreCell({ team, score, side, interactive, on, extra }) {
           +
         </button>
       ) : null}
-      {extra}
     </div>
   );
 }
@@ -92,7 +90,7 @@ function ScoreCell({ team, score, side, interactive, on, extra }) {
  * banco deles, e é este número que decide se um golo sofrido devolve ou não um
  * jogador nosso. Com 4 contra 4 ninguém repõe.
  */
-function RivalOut({ state, on }) {
+export function RivalOut({ state, on }) {
   const n = state.opponentExpulsions || 0;
   return (
     <span

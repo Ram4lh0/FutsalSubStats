@@ -712,7 +712,7 @@ export default {
   'vivo.ppAuto': 'Guarda-redes avançado: está um jogador de campo à baliza. Toque para desligar.',
   'vivo.ppManual': 'A contar 5v4. Toque para terminar.',
   'vivo.ppDesligado': 'Toque para marcar que o guarda-redes está a jogar como quinto.',
-  'vivo.expAdvCurto': 'EXP. ADV',
+  'vivo.expAdvCurto': 'EXPULSOS DO ADV.',
   'vivo.menosExpulsao': 'Menos uma expulsão do adversário',
   'vivo.maisExpulsao': 'Mais uma expulsão do adversário',
   'vivo.jogamCom': 'Jogam com {n}',
