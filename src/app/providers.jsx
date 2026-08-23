@@ -140,7 +140,9 @@ function SyncBridge() {
           return;
         }
         try {
-          await sync.pull(userId);
+          if (await sync.hasRemoteChanges(userId)) {
+            await sync.pull(userId);
+          }
         } catch {
           /* sem rede: fica para depois */
         }
