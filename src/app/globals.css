@@ -1269,7 +1269,10 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .penalties { width: auto; flex-direction: row; flex-wrap: wrap; }
   .penalty { flex: 1 1 160px; }
 
-  .live__head { grid-template-columns: 1fr; }
+  .live__head { grid-template-columns: 1fr; gap: 4px; padding: 6px 10px 7px; }
+  .clockbox { gap: 0; margin-top: -2px; }
+  .clockbox__time { font-size: clamp(1.85rem, 10vw, 2.35rem); }
+  .clockbox__hint { line-height: 1.1; }
   /* Em vertical o selo passa para baixo das faltas do adversário, encostado à
      direita.
      Sai do fluxo em vez de mudar de linha dentro da célula do resultado: aí
@@ -1277,12 +1280,14 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
      nosso número deixava de estar à mesma altura do deles — que é a única coisa
      que um marcador tem mesmo de acertar. Fora do fluxo, não mexe em nada; o
      espaço para ele vem do `padding-bottom`. */
-  .scoreboard { position: relative; padding-bottom: 34px; }
+  .scoreboard { position: relative; row-gap: 1px; padding-bottom: 24px; }
+  .scoreboard__score { gap: 6px; }
+  .scoreboard__fouls { padding: 0 6px; }
   .rivalout { position: absolute; right: 0; bottom: 0; margin-left: 0; }
-  .live__controls { gap: 8px; }
+  .live__controls { gap: 8px; margin-top: 2px; }
   .live__controls .btn--big {
-    min-height: 40px;
-    padding: 8px 12px;
+    min-height: 36px;
+    padding: 6px 12px;
     font-size: 0.86rem;
     border-radius: 12px;
   }
