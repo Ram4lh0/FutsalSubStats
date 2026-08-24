@@ -31,9 +31,6 @@ export async function handleClubStaffInvite(request: Request, env: ClubStaffEnv)
   const actor = await userFromToken(env, userToken);
   if (!actor?.id) return json({ error: "invalid_session" }, 401);
 
-  const actorProfile = await findProfileById(env, actor.id);
-  if (actorProfile?.licenca !== "clube") return json({ error: "club_license_required" }, 403);
-
   const ownsClub = await userOwnsClub(env, actor.id, clubId);
   if (!ownsClub) return json({ error: "not_club_owner" }, 403);
 
