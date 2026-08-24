@@ -84,3 +84,7 @@
 .claim-field input:focus{border-color:rgba(34,197,94,.65);box-shadow:0 0 0 4px rgba(34,197,94,.12)}
 .claim-error{color:#fecaca!important}
 .claim-modal .button{width:100%;margin-top:18px}
+.price-card h3{margin-bottom:8px}
+.plan-price{display:flex;align-items:baseline;gap:8px;margin:0 0 18px}
+.plan-price strong{font-size:34px;line-height:1;font-weight:800;letter-spacing:-.04em}
+.plan-price span{color:var(--muted);font-size:12px;font-weight:700}
