@@ -357,7 +357,7 @@ ul { padding: 0; list-style: none; }
 .prose .section:first-child { margin-top: 0; }
 
 /* Entrada do jogo de experiência, no ecrã de início de sessão. */
-.auth__demo { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 18px; }
+.auth__demo { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 8px; }
 .btn--demo { border-color: rgba(56, 189, 248, 0.58); background: rgba(56, 189, 248, 0.14); color: #d9f3ff; box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.12); }
 .btn--demo:hover { background: rgba(56, 189, 248, 0.2); border-color: rgba(125, 211, 252, 0.78); }
 
