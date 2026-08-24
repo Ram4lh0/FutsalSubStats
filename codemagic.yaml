@@ -134,6 +134,10 @@ workflows:
       cocoapods: default
       groups:
         - appstore
+      ios_signing:
+        certificates:
+          - certificate: futsalsubstats-ios-p12
+            environment_variable: IOS_CERTIFICATE_PATH
       vars:
         BUNDLE_ID: "com.futsalsubstats.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
@@ -160,15 +164,25 @@ workflows:
 
       - name: Set up signing
         script: |
-          # Vai buscar/cria os ficheiros de assinatura na Apple e aplica
-          # explicitamente o perfil App Store ao projeto principal.
-          keychain initialize
+          # O certificado .p12 com a chave privada é carregado automaticamente
+          # pelo bloco ios_signing acima. Aqui criamos/obtemos o profile App Store
+          # e aplicamo-lo explicitamente ao target da app.
+          security find-identity -v -p codesigning || true
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
-          keychain add-certificates
+
+          PROFILE_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          PROFILE=$(find "$PROFILE_DIR" -name "*.mobileprovision" -type f | head -n 1)
+          if [ -z "$PROFILE" ]; then
+            echo "ERRO: não foi criado/obtido nenhum provisioning profile App Store."
+            exit 1
+          fi
+          echo "Using provisioning profile: $PROFILE"
+
           xcode-project use-profiles \
             --project "$XCODE_PROJECT" \
+            --profile "$PROFILE" \
             --archive-method app-store \
             --code-signing-setup-verbose-logging
 
