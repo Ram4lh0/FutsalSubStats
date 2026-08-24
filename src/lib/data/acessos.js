@@ -25,6 +25,7 @@ import { t } from '../i18n/index.js';
 
 /** Os dois níveis. `ver` mostra tudo; `editar` deixa registar jogos e mexer no plantel. */
 export const NIVEIS = ['ver', 'editar'];
+const API_URL = String(process.env.NEXT_PUBLIC_FUTSAL_API_URL || 'https://futsalsubstats.r4m.workers.dev').replace(/\/+$/, '');
 
 function ligacao() {
   const sb = supabase();
@@ -73,6 +74,53 @@ export async function listarParaEscalao(clubId, teamId) {
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
 }
 
+/** A equipa técnica associada ao clube, para aparecer antes de distribuir escalões. */
+export async function listarEquipaTecnica(clubId) {
+  const { data: membros, error } = await ligacao()
+    .from('club_members')
+    .select('user_id, profiles ( id, name, email )')
+    .eq('club_id', clubId);
+  if (error) throw error;
+
+  return (membros || [])
+    .map((m) => ({
+      userId: m.user_id,
+      nome: m.profiles?.name || m.profiles?.email || m.user_id,
+      email: m.profiles?.email || '',
+    }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
+}
+
+/**
+ * Convida ou associa um treinador ao clube.
+ *
+ * Criar utilizadores no Supabase é ação de admin; por isso passa pelo Worker,
+ * que valida o token desta sessão e só aceita se for o dono do clube.
+ */
+export async function adicionarTreinadorAoClube({ clubId, email, accessToken }) {
+  if (!accessToken) {
+    const erro = new Error('sem sessão');
+    erro.chave = 'equipaTecnica.semSessao';
+    throw erro;
+  }
+
+  const response = await fetch(`${API_URL}/api/club/staff/invite`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ clubId, email }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.ok) {
+    const erro = new Error(data?.error || 'invite_failed');
+    erro.codigo = data?.error || response.status;
+    throw erro;
+  }
+  return data;
+}
+
 /** Dar acesso, ou mudar o nível de quem já o tinha. */
 export async function darAcesso(teamId, userId, nivel) {
   if (!NIVEIS.includes(nivel)) throw new Error(`nível desconhecido: ${nivel}`);
@@ -95,6 +143,11 @@ export async function tirarAcesso(teamId, userId) {
 export function explicar(erro) {
   const m = String(erro?.message || '').toLowerCase();
   if (erro?.chave) return t(erro.chave);
+  if (m.includes('invalid_email')) return t('equipaTecnica.emailInvalido');
+  if (m.includes('club_license_required')) return t('equipaTecnica.soLicencaClube');
+  if (m.includes('not_club_owner')) return t('equipaTecnica.soAdmin');
+  if (m.includes('missing_session') || m.includes('invalid_session')) return t('equipaTecnica.semSessao');
+  if (m.includes('invite_failed')) return t('equipaTecnica.conviteFalhou');
   if (m.includes('row-level security') || m.includes('policy')) return t('acessos.semAutorizacao');
   if (m.includes('failed to fetch') || m.includes('networkerror')) return t('acessos.semRede');
   return erro?.message || t('comum.semDetalhes');

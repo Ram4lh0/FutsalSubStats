@@ -12,7 +12,7 @@
 // fácil não é carregar por engano: pede-se o email escrito à mão, que é
 // deliberadamente chato de fazer sem querer.
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Pagina from '@/components/Pagina.jsx';
 import PageHead from '@/components/PageHead.jsx';
@@ -21,7 +21,8 @@ import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import * as db from '@/lib/data/local.js';
 import * as sync from '@/lib/data/sync.js';
-import { clubs, dump, restore, markAllPending } from '@/lib/data/repository.js';
+import { clubs, dump, restore, markAllPending, profile } from '@/lib/data/repository.js';
+import { adicionarTreinadorAoClube, listarEquipaTecnica, explicar as explicarAcesso } from '@/lib/data/acessos.js';
 import { downloadJson, pickFile } from '@/lib/data/exporter.js';
 import { rotas } from '@/lib/routes.js';
 import { esquecerDono } from '@/lib/data/owner.js';
@@ -43,8 +44,16 @@ function Definicoes() {
   const idioma = useIdioma();
   const locale = useLocale();
   const { toast, confirmar } = useUI();
-  const { user, userId, deleteAccount, signOut } = useAuth();
+  const { session, user, userId, deleteAccount, signOut } = useAuth();
   const [confirmacao, setConfirmacao] = useState('');
+  const [equipaTecnica, setEquipaTecnica] = useState({
+    pronto: false,
+    clube: null,
+    membros: [],
+    erro: null,
+  });
+  const [emailTecnico, setEmailTecnico] = useState('');
+  const [aConvidar, setAConvidar] = useState(false);
 
   // As versões do plugin de atualizações. `null` fora do invólucro nativo — no
   // browser não há casca nem pacote, e a secção não chega a aparecer.
@@ -61,6 +70,40 @@ function Definicoes() {
 
   useEffect(() => sync.subscribe(setEstado), []);
 
+  const carregarEquipaTecnica = useCallback(async () => {
+    if (!userId) {
+      setEquipaTecnica({ pronto: true, clube: null, membros: [], erro: null });
+      return;
+    }
+
+    const perfil = await profile.get();
+    const licenca = perfil?.licenca || 'treinador';
+    const lista = await clubs.list();
+    const clube = licenca === 'clube'
+      ? lista.find((c) => !c.ownerId || c.ownerId === userId) || null
+      : null;
+
+    if (!clube) {
+      setEquipaTecnica({ pronto: true, clube: null, membros: [], erro: null });
+      return;
+    }
+
+    try {
+      setEquipaTecnica({
+        pronto: true,
+        clube,
+        membros: await listarEquipaTecnica(clube.id),
+        erro: null,
+      });
+    } catch (e) {
+      setEquipaTecnica({ pronto: true, clube, membros: [], erro: explicarAcesso(e) });
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    carregarEquipaTecnica();
+  }, [carregarEquipaTecnica]);
+
   /**
    * Reenviar tudo do zero. Resolve os casos em que o servidor tem metade das
    * coisas e o dispositivo julga que já enviou o resto.
@@ -69,6 +112,31 @@ function Definicoes() {
     await markAllPending();
     await sync.flush(userId, user?.email);
     toast(t('sinc.aReenviar'), 'ok');
+  }
+
+  async function adicionarTecnico(event) {
+    event.preventDefault();
+    if (!equipaTecnica.clube || aConvidar) return;
+    setAConvidar(true);
+    try {
+      const r = await adicionarTreinadorAoClube({
+        clubId: equipaTecnica.clube.id,
+        email: emailTecnico,
+        accessToken: session?.access_token,
+      });
+      setEmailTecnico('');
+      await carregarEquipaTecnica();
+      toast(
+        r.newAccount
+          ? t('equipaTecnica.conviteEnviado', { email: r.email })
+          : t('equipaTecnica.associado', { email: r.email }),
+        'ok'
+      );
+    } catch (e) {
+      toast(explicarAcesso(e), 'error');
+    } finally {
+      setAConvidar(false);
+    }
   }
 
   /**
@@ -177,6 +245,45 @@ function Definicoes() {
           </button>
         }
       />
+
+      {equipaTecnica.clube ? (
+        <div className="card">
+          <h2 className="section section--tight">{t('equipaTecnica.titulo')}</h2>
+          <p className="muted">{t('equipaTecnica.texto')}</p>
+
+          <form className="form__actions form__actions--left" onSubmit={adicionarTecnico}>
+            <input
+              className="input"
+              type="email"
+              value={emailTecnico}
+              placeholder={t('equipaTecnica.emailPlaceholder')}
+              autoComplete="email"
+              onChange={(e) => setEmailTecnico(e.target.value)}
+            />
+            <button className="btn btn--primary" disabled={aConvidar || !emailTecnico.trim()}>
+              {aConvidar ? t('equipaTecnica.aAdicionar') : t('equipaTecnica.adicionar')}
+            </button>
+          </form>
+
+          {equipaTecnica.erro ? (
+            <p className="error">{equipaTecnica.erro}</p>
+          ) : equipaTecnica.membros.length ? (
+            <ul className="list">
+              {equipaTecnica.membros.map((m) => (
+                <li key={m.userId} className="list__row">
+                  <div>
+                    <strong>{m.nome}</strong>
+                    {m.email && m.email !== m.nome ? <p className="muted small">{m.email}</p> : null}
+                  </div>
+                  <span className="pill">{t('equipaTecnica.treinador')}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted small">{t('equipaTecnica.semTreinadores')}</p>
+          )}
+        </div>
+      ) : null}
 
       {/* O idioma fica em primeiro lugar de propósito: quem abre esta página sem
           perceber a língua em que ela está precisa de encontrar isto sem ler
