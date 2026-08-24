@@ -319,27 +319,29 @@ function Definicoes() {
                   : t('equipaTecnica.verLista', { n: equipaTecnica.membros.length })}
               </button>
               {mostrarTecnicos ? (
-                <ul className="list stafflist__items">
+                <ul className="stafflist__items">
                   {equipaTecnica.membros.map((m) => (
-                    <li key={m.userId} className="list__row">
-                      <div>
-                        <strong>{m.nome}</strong>
-                        {m.email && m.email !== m.nome ? <p className="muted small">{m.email}</p> : null}
+                    <li key={m.userId} className="staffmember">
+                      <div className="staffmember__main">
+                        <div className="staffmember__identity">
+                          <strong>{m.nome}</strong>
+                          {m.email && m.email !== m.nome ? <p className="muted small">{m.email}</p> : null}
+                        </div>
+                        <div className="staffmember__meta">
+                          <span className="pill">{t('equipaTecnica.treinador')}</span>
+                          <span className="pill pill--subtle">
+                            {m.contaPorConvite ? t('equipaTecnica.contaPorConvite') : t('equipaTecnica.contaPropria')}
+                          </span>
+                        </div>
                       </div>
-                      <div className="stafflist__actions">
-                        <span className="pill">{t('equipaTecnica.treinador')}</span>
-                        <span className="pill pill--subtle">
-                          {m.contaPorConvite ? t('equipaTecnica.contaPorConvite') : t('equipaTecnica.contaPropria')}
-                        </span>
-                        <button
-                          type="button"
-                          className="btn btn--ghost btn--danger stafflist__remove"
-                          disabled={aRemoverTecnico === m.userId}
-                          onClick={() => removerTecnico(m)}
-                        >
-                          {aRemoverTecnico === m.userId ? t('equipaTecnica.aRemover') : t('equipaTecnica.remover')}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--danger stafflist__remove"
+                        disabled={aRemoverTecnico === m.userId}
+                        onClick={() => removerTecnico(m)}
+                      >
+                        {aRemoverTecnico === m.userId ? t('equipaTecnica.aRemover') : t('equipaTecnica.remover')}
+                      </button>
                     </li>
                   ))}
                 </ul>
