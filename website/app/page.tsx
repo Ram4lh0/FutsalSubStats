@@ -138,6 +138,69 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
   </div>;
 }
 
+function DashboardShowcase({ t }: { t: (typeof translations)[Language] }) {
+  const players = [
+    ["Fábio Tavares", "96:42", 100, "green"],
+    ["Titi", "62:38", 66, "green"],
+    ["Serginho", "59:30", 62, "green"],
+    ["Diogo Magalhães", "21:06", 28, "green"],
+    ["Hermínio", "15:02", 19, "amber"],
+  ] as const;
+  const form = [["V", "2-1"], ["V", "1-0"], ["E", "0-0"], ["D", "1-2"], ["V", "3-0"]] as const;
+  return <section className="dashboard-section">
+    <div className="dashboard-copy reveal">
+      <span className="section-number">03</span>
+      <p>{t.dashboards.kicker}</p>
+      <h2>{t.dashboards.title}</h2>
+      <p>{t.dashboards.intro}</p>
+      <ul>{t.dashboards.points.map((point) => <li key={point}><Icon name="check"/>{point}</li>)}</ul>
+    </div>
+    <div className="dashboard-showcase reveal" aria-label={t.dashboards.kicker}>
+      <article className="dashboard-card dashboard-card--team">
+        <div className="dashboard-card-head"><span>{t.dashboards.teamTitle}</span><small>Seniores · 2026/27</small></div>
+        <div className="dash-card-title">{t.dashboards.rotation}</div>
+        <div className="dash-bars">
+          {players.map(([name, time, width, tone]) => <div className="dash-bar-row" key={name}>
+            <span>{name}</span><i><b className={tone} style={{ width: `${width}%` }}/></i><em>{time}</em>
+          </div>)}
+          <small>{t.dashboards.average}</small>
+        </div>
+        <div className="dash-card-title compact">{t.dashboards.form}</div>
+        <div className="dash-form">
+          {form.map(([result, score], index) => <span key={`${result}-${score}-${index}`} className={result === "D" ? "loss" : result === "E" ? "draw" : ""}><b>{result}</b><small>{score}</small></span>)}
+        </div>
+        <div className="dash-mini-grid">
+          <span><small>{t.dashboards.discipline}</small><b>1.3</b><em>faltas/jogo</em></span>
+          <span><small>Amarelos</small><b className="amber-text">6</b><em>35 jogos</em></span>
+          <span><small>Vermelhos</small><b className="red-text">2</b><em>35 jogos</em></span>
+        </div>
+      </article>
+      <article className="dashboard-card dashboard-card--player">
+        <div className="dashboard-card-head"><span>{t.dashboards.playerTitle}</span><small>Diogo Magalhães</small></div>
+        <div className="dash-metric-row">
+          <span><small>{t.dashboards.minutes}</small><b>21:06</b></span>
+          <span><small>Tempo por jogo</small><b>00:48</b></span>
+          <span className="negative"><small>Diferença</small><b>-13:58</b></span>
+        </div>
+        <div className="dash-player-bars">
+          <span>Diogo <i><b style={{ width: "34%" }}/></i><em>21:06</em></span>
+          <span>Plantel <i><b style={{ width: "78%" }}/></i><em>35:04</em></span>
+        </div>
+        <div className="dash-card-title compact">{t.dashboards.impact}</div>
+        <div className="dash-impact">
+          <span><small>Golos</small><b>11</b></span>
+          <span><small>Assist.</small><b>17</b></span>
+          <span><small>Saldo</small><b className="green-text">+15</b></span>
+        </div>
+        <div className="dash-card-title compact">{t.dashboards.lastMatches}</div>
+        <div className="dash-games">
+          {[["24/08", "Notas", "6-3", "Titular"], ["24/08", "Teste", "3-0", "Titular"], ["23/08", "Piii", "0-0", "Não convocado"]].map((row) => <span key={row.join("-")}>{row.map((cell, index) => <b key={`${cell}-${index}`} className={index === 3 ? "pill" : ""}>{cell}</b>)}</span>)}
+        </div>
+      </article>
+    </div>
+  </section>;
+}
+
 /**
  * O sistema do aparelho, ou nada.
  *
@@ -372,9 +435,11 @@ export default function Home() {
       <div className="stats-panel reveal"><div className="panel-bar"><div><i/><i/><i/></div><span>{t.results.season}</span><small>{t.results.export}</small></div><div className="stats-head"><div><small>{t.results.games}</small><b>18</b></div><div className="record-stat"><small>V / E / D</small><b>12 / 2 / 4</b></div><div><small>{t.results.goals}</small><b>74</b></div></div><div className="player-table-scroll"><div className="player-table"><div className="table-header"><span>Nº</span><span>{t.results.player}</span><span>{t.results.goalsShort}</span><span>{t.results.assists}</span><span>{t.results.goalPart}</span><span>{t.results.concededPart}</span><span>{t.results.cards}</span><span>{t.results.entries}</span><span>{t.results.average}</span></div>{[["4","André Costa","16","11","44","19","3","09","31:42"],["5","Pedro Lima","14","07","39","22","2","08","28:19"],["9","Nuno Teixeira","11","12","35","17","1","07","26:55"],["2","Tiago Nunes","08","04","28","15","4","06","22:16"]].map((row,index) => <div className="table-row" key={row[1]}>{row.map((value,column) => column===0?<span className="jersey" key={column}>{value}</span>:column===1?<b key={column}>{value}</b>:<span className={column===8?"mono":""} key={column}>{value}</span>)}<i style={{width:`${88-index*13}%`}}/></div>)}</div></div></div>
     </section>
 
-    <section className="offline-section" id="offline"><div className="offline-glow"/><div className="offline-visual reveal"><div className="signal-rings"><i/><i/><i/></div><div className="offline-device"><span className="offline-notch"/><span className="offline-icon"><Icon name="wifi"/><b>{t.offline.local}</b></span><small>{t.offline.device}</small></div><div className="sync-path"><i/><i/><i/></div><div className="data-card data-one"><Icon name="folder"/><span><b>{t.offline.saved}</b><small>{t.offline.device}</small></span><Icon name="check"/></div><div className="data-card data-two"><Icon name="chart"/><span><b>{t.offline.synced}</b><small>{t.offline.connection}</small></span><Icon name="check"/></div></div><div className="offline-copy reveal"><span className="section-number">03</span><p>{t.offline.kicker}</p><h2>{t.offline.title}</h2><p>{t.offline.text}</p><div className="offline-detail"><Icon name="shield"/><div><b>{t.offline.privacyTitle}</b><span>{t.offline.privacyText}</span></div></div></div></section>
+    <DashboardShowcase t={t}/>
 
-    <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">04</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><div className="plan-price"><del>{plan.oldPrice}</del><strong>{plan.price}</strong><span>{t.licenses.perSeason}</span></div><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul><button className="button" type="button" disabled={checkoutLoading !== null} onClick={() => handleLicenseCheckout(type, plan.name)}>{checkoutLoading === type ? t.licenses.buying : t.licenses.buy}<Icon name="arrow"/></button></article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><button type="button" className="button" onClick={handleInstall}>{t.licenses.installNow}<Icon name="arrow"/></button></div></div></section>
+    <section className="offline-section" id="offline"><div className="offline-glow"/><div className="offline-visual reveal"><div className="signal-rings"><i/><i/><i/></div><div className="offline-device"><span className="offline-notch"/><span className="offline-icon"><Icon name="wifi"/><b>{t.offline.local}</b></span><small>{t.offline.device}</small></div><div className="sync-path"><i/><i/><i/></div><div className="data-card data-one"><Icon name="folder"/><span><b>{t.offline.saved}</b><small>{t.offline.device}</small></span><Icon name="check"/></div><div className="data-card data-two"><Icon name="chart"/><span><b>{t.offline.synced}</b><small>{t.offline.connection}</small></span><Icon name="check"/></div></div><div className="offline-copy reveal"><span className="section-number">04</span><p>{t.offline.kicker}</p><h2>{t.offline.title}</h2><p>{t.offline.text}</p><div className="offline-detail"><Icon name="shield"/><div><b>{t.offline.privacyTitle}</b><span>{t.offline.privacyText}</span></div></div></div></section>
+
+    <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">05</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><div className="plan-price"><del>{plan.oldPrice}</del><strong>{plan.price}</strong><span>{t.licenses.perSeason}</span></div><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul><button className="button" type="button" disabled={checkoutLoading !== null} onClick={() => handleLicenseCheckout(type, plan.name)}>{checkoutLoading === type ? t.licenses.buying : t.licenses.buy}<Icon name="arrow"/></button></article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><button type="button" className="button" onClick={handleInstall}>{t.licenses.installNow}<Icon name="arrow"/></button></div></div></section>
 
     <section className="contact-section" id="contact"><div className="contact-card reveal"><div><p>{t.contact.kicker}</p><h2>{t.contact.title}</h2><span>{t.contact.text}</span></div><a className="button" href={emailHref}><Icon name="mail"/>{t.contact.button}</a><small>{CONTACT_EMAIL}</small></div></section>
     <section className="faq-section"><div className="faq-heading reveal"><p>{t.faq.kicker}</p><h2>{t.faq.title}</h2></div><div className="faq-list reveal">{t.faq.items.map((item)=><details key={item.question}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
