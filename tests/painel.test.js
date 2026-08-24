@@ -18,6 +18,9 @@ import {
   estado,
   convidar,
   mudarLicenca,
+  removerLicenca,
+  associarClube,
+  desassociarClube,
 } from '../tools/painel/api.mjs';
 import { hostAceite, chaveDoPedido, chaveCorrecta } from '../tools/painel/guardas.mjs';
 
@@ -120,6 +123,11 @@ function supabaseFalso(tabelas) {
         res.count = linhas.length;
         return res;
       },
+      in(coluna, valores) {
+        linhas = linhas.filter((l) => valores.includes(l[coluna]));
+        res.count = linhas.length;
+        return res;
+      },
       is(coluna, valor) {
         linhas = linhas.filter((l) => (l[coluna] ?? null) === valor);
         res.count = linhas.length;
@@ -139,6 +147,26 @@ function supabaseFalso(tabelas) {
       upsert(linha) {
         tabelas[nome].push(linha);
         return Promise.resolve({ error: null });
+      },
+      delete() {
+        const filtros = [];
+        return {
+          eq(coluna, valor) {
+            filtros.push((l) => l[coluna] === valor);
+            for (let i = tabelas[nome].length - 1; i >= 0; i -= 1) {
+              if (filtros.every((f) => f(tabelas[nome][i]))) tabelas[nome].splice(i, 1);
+            }
+            return this;
+          },
+          in(coluna, valores) {
+            filtros.push((l) => valores.includes(l[coluna]));
+            for (let i = tabelas[nome].length - 1; i >= 0; i -= 1) {
+              if (filtros.every((f) => f(tabelas[nome][i]))) tabelas[nome].splice(i, 1);
+            }
+            return Promise.resolve({ error: null });
+          },
+          then: (resolver) => resolver({ error: null }),
+        };
       },
       then: (resolver) => resolver({ data: linhas, error: null, count: linhas.length }),
     };
@@ -268,16 +296,11 @@ test('convidar com clube associa à parte', async () => {
   );
 });
 
-test('uma licença de clube não se associa ao clube de outra pessoa', async () => {
-  // Quem tem licença de clube cria o seu na app. Associá-lo ao de outro dava-lhe
-  // um clube que não é dele, e continuava a poder criar o seu — dois na lista,
-  // que é o que a app foi feita para não ter.
+test('o painel admin pode criar uma licença de clube já associada a outro clube', async () => {
   const sb = supabaseFalso(cenario());
-  await assert.rejects(
-    () => convidar(sb, { email: 'gerente2@clube.pt', licenca: 'clube', clubeId: 'c-a' }),
-    /própria|próprio/
-  );
-  assert.deepEqual(sb.chamadas.convites, [], 'o convite saiu antes de a recusa acontecer');
+  const r = await convidar(sb, { email: 'gerente2@clube.pt', licenca: 'clube', clubeId: 'c-a' });
+  assert.equal(r.licenca, 'clube');
+  assert.ok(sb.chamadas.convites.includes('gerente2@clube.pt'));
 });
 
 test('mudar a licença do gerente para treinador é recusado — tem dois escalões', async () => {
@@ -297,6 +320,39 @@ test('mas a ana sobe a clube sem problema', async () => {
 
   assert.equal(r.licenca, 'clube');
   assert.equal(dados.profiles.find((p) => p.id === 'u-ana').licenca, 'clube');
+});
+
+test('a validade pode ser actualizada sem trocar o tipo de licença', async () => {
+  const dados = cenario();
+  const r = await mudarLicenca(supabaseFalso(dados), {
+    userId: 'u-ana',
+    licenca: 'treinador',
+    validade: '2027-06-30',
+  });
+
+  assert.equal(r.licenca, 'treinador');
+  assert.equal(dados.profiles.find((p) => p.id === 'u-ana').license_expires_at, '2027-06-30T23:59:59.999Z');
+});
+
+test('remover licença deixa a conta como treinador expirado', async () => {
+  const dados = cenario();
+  const r = await removerLicenca(supabaseFalso(dados), { userId: 'u-ana' });
+
+  assert.equal(r.licenca, 'treinador');
+  assert.equal(dados.profiles.find((p) => p.id === 'u-ana').license_expires_at, '1970-01-01T00:00:00.000Z');
+});
+
+test('associar e desassociar clube mexe em membros e acessos', async () => {
+  const dados = cenario();
+  const sb = supabaseFalso(dados);
+  dados.club_members = [];
+
+  await associarClube(sb, { userId: 'u-ana', clubeId: 'c-a' });
+  assert.ok(dados.club_members.some((m) => m.user_id === 'u-ana' && m.club_id === 'c-a'));
+
+  await desassociarClube(sb, { userId: 'u-ana', clubeId: 'c-a' });
+  assert.equal(dados.club_members.some((m) => m.user_id === 'u-ana' && m.club_id === 'c-a'), false);
+  assert.equal(dados.team_access.some((a) => a.user_id === 'u-ana'), false);
 });
 
 test('uma conta que não existe dá uma mensagem clara', async () => {

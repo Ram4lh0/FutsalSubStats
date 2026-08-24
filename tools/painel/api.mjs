@@ -10,6 +10,26 @@
 
 export const LICENCAS = ['treinador', 'clube'];
 
+export function fimDaEpoca(hoje = new Date()) {
+  const ano = hoje.getUTCMonth() >= 6 ? hoje.getUTCFullYear() + 1 : hoje.getUTCFullYear();
+  return `${ano}-06-30T23:59:59.999Z`;
+}
+
+export function normalizarValidade(validade, hoje = new Date()) {
+  const v = String(validade || '').trim();
+  if (!v) return fimDaEpoca(hoje);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return `${v}T23:59:59.999Z`;
+
+  const data = new Date(v);
+  if (Number.isNaN(data.getTime())) throw new Error(`Validade inválida: ${validade}`);
+  return data.toISOString();
+}
+
+export function licencaActiva(validade, agora = new Date()) {
+  if (!validade) return true;
+  return Date.parse(validade) >= agora.getTime();
+}
+
 /* ------------------------------------------------------------- validações */
 
 /**
@@ -76,7 +96,7 @@ export function podeMudarLicenca({ de, para, escaloesActivos }) {
  */
 export async function estado(sb) {
   const [perfis, clubes, escaloes, membros, acessos, jogos] = await Promise.all([
-    sb.from('profiles').select('id, email, licenca, created_at').order('email'),
+    sb.from('profiles').select('id, email, licenca, license_expires_at, created_at').order('email'),
     sb.from('clubs').select('id, name, owner_id, archived_at'),
     sb.from('teams').select('id, name, club_id, archived_at'),
     sb.from('club_members').select('club_id, user_id'),
@@ -135,6 +155,8 @@ export async function estado(sb) {
       id: p.id,
       email: p.email || '(sem email)',
       licenca: p.licenca || 'treinador',
+      validade: p.license_expires_at || null,
+      activo: licencaActiva(p.license_expires_at),
       criadaEm: p.created_at || null,
       clube: meuClube ? { id: meuClube.id, nome: meuClube.name } : null,
       escaloes: meusEscaloes.map((t) => t.name),
@@ -158,6 +180,8 @@ export async function estado(sb) {
       contas: contas.length,
       comLicencaClube: contas.filter((c) => c.licenca === 'clube').length,
       comLicencaTreinador: contas.filter((c) => c.licenca === 'treinador').length,
+      licencasActivas: contas.filter((c) => c.activo).length,
+      licencasExpiradas: contas.filter((c) => !c.activo).length,
       semClube: contas.filter((c) => !c.clube && !c.associadoA.length).length,
       clubes: clubesActivos.length,
       escaloes: escaloesActivos.length,
@@ -177,21 +201,13 @@ export async function estado(sb) {
  * mesma razão — não queremos saber as palavras-passe dos nossos clientes, nem
  * que elas viajem por WhatsApp.
  */
-export async function convidar(sb, { email, licenca, clubeId }) {
+export async function convidar(sb, { email, licenca, clubeId, validade }) {
   const endereco = normalizar(email);
 
   if (!emailValido(endereco)) throw new Error(`Isto não parece um email: ${email}`);
   if (!LICENCAS.includes(licenca)) throw new Error(`Licença desconhecida: ${licenca}.`);
 
-  // Associar um clube só faz sentido para a licença de Treinador.
-  //
-  // Quem tem licença de Clube é dono do seu, e cria-o na app quando entrar pela
-  // primeira vez. Associá-lo ao clube de outra pessoa dava-lhe um clube que não
-  // é dele — e continuava a poder criar o seu, ficando com dois na lista, que é
-  // exactamente o que a app foi feita para não ter.
-  if (licenca === 'clube' && clubeId) {
-    throw new Error('Uma licença de clube traz o seu próprio clube. Associar só se aplica a treinadores.');
-  }
+  const license_expires_at = normalizarValidade(validade);
 
   let userId = null;
   let novaConta = true;
@@ -217,7 +233,10 @@ export async function convidar(sb, { email, licenca, clubeId }) {
     userId = data.user.id;
   }
 
-  const { error: erroLicenca } = await sb.from('profiles').update({ licenca }).eq('id', userId);
+  const { error: erroLicenca } = await sb
+    .from('profiles')
+    .update({ licenca, license_expires_at })
+    .eq('id', userId);
   if (erroLicenca) throw new Error(`Conta criada, mas a licença não ficou: ${erroLicenca.message}`);
 
   if (clubeId) {
@@ -231,6 +250,7 @@ export async function convidar(sb, { email, licenca, clubeId }) {
     userId,
     email: endereco,
     licenca,
+    validade: license_expires_at,
     novaConta,
     mensagem: novaConta
       ? `Convite enviado para ${endereco}, com licença ${licenca}.`
@@ -245,10 +265,10 @@ export async function convidar(sb, { email, licenca, clubeId }) {
  * `podeMudarLicenca` precisa de saber para recusar uma descida que deixaria a
  * conta num estado que a app nunca produziria.
  */
-export async function mudarLicenca(sb, { userId, licenca }) {
+export async function mudarLicenca(sb, { userId, licenca, validade, forcar = false }) {
   const { data: perfil, error } = await sb
     .from('profiles')
-    .select('id, email, licenca')
+    .select('id, email, licenca, license_expires_at')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -271,20 +291,124 @@ export async function mudarLicenca(sb, { userId, licenca }) {
     escaloesActivos = count || 0;
   }
 
-  const veredicto = podeMudarLicenca({
-    de: perfil.licenca || 'treinador',
-    para: licenca,
-    escaloesActivos,
-  });
-  if (!veredicto.ok) throw new Error(veredicto.porque);
+  const mesmaLicencaComValidadeNova = (perfil.licenca || 'treinador') === licenca && validade !== undefined;
+  if (!forcar && !mesmaLicencaComValidadeNova) {
+    const veredicto = podeMudarLicenca({
+      de: perfil.licenca || 'treinador',
+      para: licenca,
+      escaloesActivos,
+    });
+    if (!veredicto.ok) throw new Error(veredicto.porque);
+  } else if (!LICENCAS.includes(licenca)) {
+    throw new Error(`Licença desconhecida: ${licenca}.`);
+  }
 
-  const { error: erroEscrita } = await sb.from('profiles').update({ licenca }).eq('id', userId);
+  const patch = { licenca };
+  if (validade !== undefined) patch.license_expires_at = normalizarValidade(validade);
+
+  const { error: erroEscrita } = await sb.from('profiles').update(patch).eq('id', userId);
   if (erroEscrita) throw new Error(erroEscrita.message);
 
   return {
     userId,
     email: perfil.email,
     licenca,
+    validade: patch.license_expires_at ?? perfil.license_expires_at ?? null,
     mensagem: `${perfil.email} passou a ter licença ${licenca}.`,
+  };
+}
+
+export async function removerLicenca(sb, { userId }) {
+  const { data: perfil, error } = await sb
+    .from('profiles')
+    .select('id, email')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!perfil) throw new Error('Não há conta nenhuma com esse identificador.');
+
+  const expirada = '1970-01-01T00:00:00.000Z';
+  const { error: erroEscrita } = await sb
+    .from('profiles')
+    .update({ licenca: 'treinador', license_expires_at: expirada })
+    .eq('id', userId);
+  if (erroEscrita) throw new Error(erroEscrita.message);
+
+  return {
+    userId,
+    email: perfil.email,
+    licenca: 'treinador',
+    validade: expirada,
+    mensagem: `Licença removida de ${perfil.email}. A conta ficou como treinador expirado.`,
+  };
+}
+
+async function garantirConta(sb, userId) {
+  const { data, error } = await sb
+    .from('profiles')
+    .select('id, email')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Não há conta nenhuma com esse identificador.');
+  return data;
+}
+
+async function garantirClube(sb, clubeId) {
+  const { data, error } = await sb
+    .from('clubs')
+    .select('id, name, owner_id, archived_at')
+    .eq('id', clubeId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data || data.archived_at) throw new Error('Não há clube activo com esse identificador.');
+  return data;
+}
+
+export async function associarClube(sb, { userId, clubeId }) {
+  const [perfil, clube] = await Promise.all([garantirConta(sb, userId), garantirClube(sb, clubeId)]);
+
+  const { error } = await sb
+    .from('club_members')
+    .upsert({ club_id: clube.id, user_id: perfil.id }, { onConflict: 'club_id,user_id' });
+  if (error) throw new Error(error.message);
+
+  return {
+    userId: perfil.id,
+    clubeId: clube.id,
+    mensagem: `${perfil.email} ficou associado ao clube ${clube.name}.`,
+  };
+}
+
+export async function desassociarClube(sb, { userId, clubeId }) {
+  const [perfil, clube] = await Promise.all([garantirConta(sb, userId), garantirClube(sb, clubeId)]);
+
+  const { data: escaloes, error: erroEscaloes } = await sb
+    .from('teams')
+    .select('id')
+    .eq('club_id', clube.id);
+  if (erroEscaloes) throw new Error(erroEscaloes.message);
+
+  const ids = (escaloes || []).map((t) => t.id);
+  if (ids.length) {
+    const { error: erroAcessos } = await sb
+      .from('team_access')
+      .delete()
+      .eq('user_id', perfil.id)
+      .in('team_id', ids);
+    if (erroAcessos) throw new Error(erroAcessos.message);
+  }
+
+  const { error } = await sb
+    .from('club_members')
+    .delete()
+    .eq('club_id', clube.id)
+    .eq('user_id', perfil.id);
+  if (error) throw new Error(error.message);
+
+  return {
+    userId: perfil.id,
+    clubeId: clube.id,
+    mensagem: `${perfil.email} deixou de estar associado ao clube ${clube.name}.`,
   };
 }
