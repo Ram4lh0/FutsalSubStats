@@ -427,7 +427,7 @@ export default function Home() {
 
     <section className="statement reveal" id="experience"><p>{t.statement.kicker}</p><h2>{t.statement.title} <span>{t.statement.highlight}</span></h2></section>
 
-    <section className="feature-story" id="features"><div className="section-heading reveal"><span className="section-number">01</span><div><p>{t.features.kicker}</p><h2>{t.features.title}</h2></div><p className="section-intro">{t.features.intro}</p></div>
+    <section className="feature-story" id="features"><div className="section-heading reveal"><span className="section-number">01</span><div><p>{t.features.kicker}</p><h2>{t.features.title}</h2></div></div>
       <div className="feature-grid">{(["swap","clock","ball","clock","swap"] as IconName[]).map((icon,index) => { const item=t.features.items[index]; return <article className={`feature-card reveal card-${index+1}`} key={item.title}><span className="feature-icon"><Icon name={icon}/></span><span className="feature-tag">{item.tag}</span><h3>{item.title}</h3><p>{item.text}</p></article>; })}</div>
     </section>
 
