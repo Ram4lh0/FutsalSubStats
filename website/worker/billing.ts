@@ -36,12 +36,15 @@ type StripeCheckoutSession = {
 
 type ProfileRow = { id: string; email: string | null; licenca?: LicensePlan | null };
 type InvitedUser = { id?: string; email?: string | null };
+type PurchaseStatus = "pending" | "paid" | "unmatched" | "failed" | "expired";
 type PurchaseRow = {
   stripe_session_id: string;
+  stripe_payment_intent_id?: string | null;
+  stripe_customer_id?: string | null;
   email: string;
   account_email?: string | null;
   plan: LicensePlan;
-  status: "pending" | "paid" | "unmatched" | "failed";
+  status: PurchaseStatus;
   license_expires_at?: string | null;
 };
 
@@ -120,7 +123,8 @@ export async function handleStripeWebhook(request: Request, env: BillingEnv): Pr
   if (
     event.type === "checkout.session.completed" ||
     event.type === "checkout.session.async_payment_succeeded" ||
-    event.type === "checkout.session.async_payment_failed"
+    event.type === "checkout.session.async_payment_failed" ||
+    event.type === "checkout.session.expired"
   ) {
     const session = event.data?.object;
     if (session?.id) await processCheckoutSession(env, session, event.type, rawBody);
@@ -153,7 +157,7 @@ export async function handleStripeClaim(request: Request, env: BillingEnv): Prom
     purchase = await findPurchaseBySession(env, sessionId);
   }
 
-  if (!purchase || purchase.status === "failed") return json({ error: "purchase_not_available" }, 404);
+  if (!purchase || purchase.status === "failed" || purchase.status === "expired") return json({ error: "purchase_not_available" }, 404);
   if (purchase.status === "paid" && purchase.account_email && purchase.account_email.toLowerCase() !== accountEmail) {
     return json({ error: "already_claimed" }, 409);
   }
@@ -162,11 +166,14 @@ export async function handleStripeClaim(request: Request, env: BillingEnv): Prom
   const account = await ensureAccountForLicenseEmail(env, accountEmail, purchase.plan);
   if (!account) return json({ error: "invite_failed" }, 502);
 
-  await patchProfile(env, account.id, {
+  const profilePatch: Record<string, unknown> = {
     licenca: purchase.plan,
     license_expires_at: expiresAt,
     stripe_last_checkout_session_id: sessionId,
-  });
+  };
+  if (purchase.stripe_customer_id) profilePatch.stripe_customer_id = purchase.stripe_customer_id;
+  if (purchase.stripe_payment_intent_id) profilePatch.stripe_last_payment_intent_id = purchase.stripe_payment_intent_id;
+  await patchProfile(env, account.id, profilePatch);
   await markPurchaseClaimed(env, sessionId, accountEmail, account.id, expiresAt);
 
   return json({
@@ -181,6 +188,16 @@ export async function handleStripeClaim(request: Request, env: BillingEnv): Prom
 async function processCheckoutSession(env: BillingEnv, session: StripeCheckoutSession, eventType: string, raw: string) {
   const plan = normalizarPlano(session.metadata?.plan);
   const email = (session.customer_details?.email || session.customer_email || "").trim().toLowerCase();
+  if (eventType === "checkout.session.expired") {
+    await upsertPurchase(env, session, {
+      email: email || "sem-email@stripe.local",
+      plan: plan || "treinador",
+      status: "expired",
+      raw,
+    });
+    return;
+  }
+
   if (!plan || !email) {
     await upsertPurchase(env, session, {
       email: email || "sem-email@stripe.local",
@@ -261,7 +278,7 @@ async function retrieveCheckoutSession(env: BillingEnv, sessionId: string): Prom
 async function findPurchaseBySession(env: BillingEnv, sessionId: string): Promise<PurchaseRow | null> {
   const base = supabaseBase(env);
   const response = await fetch(
-    `${base}/rest/v1/license_purchases?stripe_session_id=eq.${encodeURIComponent(sessionId)}&select=stripe_session_id,email,account_email,plan,status,license_expires_at&limit=1`,
+    `${base}/rest/v1/license_purchases?stripe_session_id=eq.${encodeURIComponent(sessionId)}&select=stripe_session_id,stripe_payment_intent_id,stripe_customer_id,email,account_email,plan,status,license_expires_at&limit=1`,
     { headers: supabaseHeaders(env) }
   );
   if (!response.ok) throw new Error(`purchase lookup failed: ${response.status}`);
@@ -301,7 +318,7 @@ async function upsertPurchase(
   options: {
     email: string;
     plan: LicensePlan;
-    status: "pending" | "paid" | "unmatched" | "failed";
+    status: PurchaseStatus;
     expiresAt?: string;
     raw: string;
   }
