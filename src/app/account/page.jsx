@@ -83,11 +83,15 @@ function Definicoes() {
       return;
     }
 
-    const lista = await clubs.list();
     const perfil = await profile.get();
+    if (perfil?.licenca !== 'clube') {
+      setEquipaTecnica({ pronto: true, clube: null, membros: [], erro: null });
+      return;
+    }
+
+    const lista = await clubs.list();
     const clube = lista.find((c) => c.ownerId === userId)
-      || lista.find((c) => !c.ownerId)
-      || (perfil?.licenca === 'clube' ? lista[0] : null);
+      || lista.find((c) => !c.ownerId && c.dirty);
 
     if (!clube) {
       setEquipaTecnica({ pronto: true, clube: null, membros: [], erro: null });
