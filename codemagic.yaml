@@ -16,11 +16,11 @@
 #
 #  1. Integração App Store Connect em Teams → Integrations → Developer Portal.
 #     A integração usada por este projeto chama-se `FutsalSubStats`.
-#  2. Grupo de variáveis `appstore` com CERTIFICATE_PRIVATE_KEY, contendo a
-#     chave privada PEM do certificado Apple Distribution.
+#  2. Grupo de variáveis `appstore` com APP_STORE_APPLE_ID — o número da app em
+#     App Store Connect.
 #
-#  O provisioning profile App Store é criado/obtido automaticamente durante a
-#  build através da API da Apple.
+#  O certificado Apple Distribution e o provisioning profile App Store têm de
+#  estar disponíveis em Code signing identities.
 
 workflows:
   web-pwa-ci:
@@ -164,8 +164,6 @@ workflows:
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --strict-match-identifier \
-            --create \
-            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --certificates-dir "$CERTIFICATES_DIR" \
             --profiles-dir "$PROFILES_DIR" \
             --verbose
