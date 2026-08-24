@@ -326,25 +326,85 @@ ul { padding: 0; list-style: none; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.stafflist { margin-top: 12px; }
+.stafflist { margin-top: 14px; }
 .stafflist__toggle {
-  background: rgba(4, 34, 24, 0.72);
-  border-color: rgba(134, 214, 164, 0.38);
+  background: rgba(4, 34, 24, 0.62);
+  border-color: rgba(134, 214, 164, 0.34);
 }
-.stafflist__items { margin-top: 10px; }
-.stafflist__items .list__row {
+.stafflist__items {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.staffmember {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 12px;
-  background: rgba(4, 34, 24, 0.55);
-  border-color: rgba(134, 214, 164, 0.22);
+  padding: 12px 12px 12px 14px;
+  border: 1px solid rgba(134, 214, 164, 0.22);
+  border-radius: 14px;
+  background: rgba(5, 29, 22, 0.42);
 }
-.stafflist__actions {
+.staffmember__main {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+.staffmember__identity {
+  min-width: 0;
+}
+.staffmember__identity strong,
+.staffmember__identity p {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.staffmember__meta {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
-.stafflist__remove { padding: 8px 12px; }
+.stafflist__remove {
+  min-height: 46px;
+  padding: 8px 12px;
+}
+@media (max-width: 560px) {
+  .card--staff {
+    padding: 16px;
+  }
+  .staffcard__head {
+    align-items: flex-start;
+  }
+  .card--staff .form__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .card--staff .input,
+  .card--staff .btn--primary {
+    width: 100%;
+    max-width: none;
+  }
+  .stafflist__toggle {
+    width: 100%;
+  }
+  .staffmember {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+  .staffmember__meta .pill {
+    max-width: 100%;
+  }
+  .stafflist__remove {
+    width: 100%;
+  }
+}
 /* Cartão dentro de outro — usado para a caixa do ficheiro de exemplo dentro da
    janela de importação. Mais discreto e mais apertado, para se ler como um à
    parte e não como uma segunda secção. */
