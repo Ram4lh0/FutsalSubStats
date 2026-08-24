@@ -50,7 +50,7 @@ export async function listarParaEscalao(clubId, teamId) {
 
   const { data: membros, error: e1 } = await sb
     .from('club_members')
-    .select('user_id, profiles ( id, name, email )')
+    .select('user_id, profiles!club_members_user_id_fkey ( id, name, email )')
     .eq('club_id', clubId);
   if (e1) throw e1;
 
@@ -78,13 +78,13 @@ export async function listarParaEscalao(clubId, teamId) {
 export async function listarEquipaTecnica(clubId) {
   let query = ligacao()
     .from('club_members')
-    .select('user_id, apagar_conta_ao_remover, profiles ( id, name, email )')
+    .select('user_id, apagar_conta_ao_remover, profiles!club_members_user_id_fkey ( id, name, email )')
     .eq('club_id', clubId);
   let { data: membros, error } = await query;
   if (error && /apagar_conta_ao_remover|schema cache|column/i.test(String(error.message || ''))) {
     ({ data: membros, error } = await ligacao()
       .from('club_members')
-      .select('user_id, profiles ( id, name, email )')
+      .select('user_id, profiles!club_members_user_id_fkey ( id, name, email )')
       .eq('club_id', clubId));
   }
   if (error) throw error;
