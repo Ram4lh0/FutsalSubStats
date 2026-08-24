@@ -307,6 +307,35 @@ ul { padding: 0; list-style: none; }
   max-width: 360px;
   background: rgba(8, 23, 36, 0.76);
 }
+.staffcard__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.staffcard__license {
+  flex: none;
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.24), rgba(245, 158, 11, 0.14));
+  color: #fde68a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.stafflist { margin-top: 12px; }
+.stafflist__toggle {
+  background: rgba(4, 34, 24, 0.72);
+  border-color: rgba(134, 214, 164, 0.38);
+}
+.stafflist__items { margin-top: 10px; }
+.stafflist__items .list__row {
+  background: rgba(4, 34, 24, 0.55);
+  border-color: rgba(134, 214, 164, 0.22);
+}
 /* Cartão dentro de outro — usado para a caixa do ficheiro de exemplo dentro da
    janela de importação. Mais discreto e mais apertado, para se ler como um à
    parte e não como uma segunda secção. */
