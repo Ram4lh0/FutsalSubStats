@@ -76,12 +76,11 @@ function Definicoes() {
       return;
     }
 
-    const perfil = await profile.get();
-    const licenca = perfil?.licenca || 'treinador';
     const lista = await clubs.list();
-    const clube = licenca === 'clube'
-      ? lista.find((c) => !c.ownerId || c.ownerId === userId) || null
-      : null;
+    const perfil = await profile.get();
+    const clube = lista.find((c) => c.ownerId === userId)
+      || lista.find((c) => !c.ownerId)
+      || (perfil?.licenca === 'clube' ? lista[0] : null);
 
     if (!clube) {
       setEquipaTecnica({ pronto: true, clube: null, membros: [], erro: null });
@@ -247,7 +246,7 @@ function Definicoes() {
       />
 
       {equipaTecnica.clube ? (
-        <div className="card">
+        <div className="card card--staff">
           <h2 className="section section--tight">{t('equipaTecnica.titulo')}</h2>
           <p className="muted">{t('equipaTecnica.texto')}</p>
 
