@@ -56,7 +56,7 @@ export default {
   'login.jaTenhoConta': 'I already have an account',
   'login.aLigar': 'Connecting…',
   'login.ou': 'or',
-  'login.experimentar': 'Try it without an account',
+  'login.experimentar': 'Try DEMO',
   'login.aPreparar': 'Getting ready…',
   'login.experimentarDica': 'A full match with a made-up team, to see how it works.',
   'login.aceitaPolitica': 'By creating an account you accept the ',

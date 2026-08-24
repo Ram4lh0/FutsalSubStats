@@ -357,8 +357,9 @@ ul { padding: 0; list-style: none; }
 .prose .section:first-child { margin-top: 0; }
 
 /* Entrada do jogo de experiência, no ecrã de início de sessão. */
-.auth__demo { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
-.auth__ou { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.auth__demo { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 18px; }
+.btn--demo { border-color: rgba(56, 189, 248, 0.58); background: rgba(56, 189, 248, 0.14); color: #d9f3ff; box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.12); }
+.btn--demo:hover { background: rgba(56, 189, 248, 0.2); border-color: rgba(125, 211, 252, 0.78); }
 
 /* Convite a criar conta, no fim da experiência. Fica acima de tudo o resto
    porque é a única coisa que se pede a quem chegou ali. */

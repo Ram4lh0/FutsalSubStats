@@ -196,8 +196,7 @@ export default function LoginPage() {
         {/* Experimentar antes de decidir. O jogo é o mesmo código do jogo a
             sério — só a equipa é que é inventada. */}
         <div className="auth__demo">
-          <span className="auth__ou">{t('login.ou')}</span>
-          <button className="btn btn--block" type="button" onClick={experimentar} disabled={aMontar}>
+          <button className="btn btn--block btn--demo" type="button" onClick={experimentar} disabled={aMontar}>
             {aMontar ? t('login.aPreparar') : t('login.experimentar')}
           </button>
           <span className="field__hint">{t('login.experimentarDica')}</span>

@@ -57,7 +57,7 @@ export default {
   'login.jaTenhoConta': 'Já tenho conta',
   'login.aLigar': 'A ligar…',
   'login.ou': 'ou',
-  'login.experimentar': 'Experimentar sem criar conta',
+  'login.experimentar': 'Experimentar DEMO',
   'login.aPreparar': 'A preparar…',
   'login.experimentarDica': 'Um jogo completo com uma equipa fictícia, para ver como funciona.',
   'login.aceitaPolitica': 'Ao criar conta aceita a ',
