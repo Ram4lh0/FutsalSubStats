@@ -139,9 +139,6 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         NEXT_TELEMETRY_DISABLED: "1"
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.futsalsubstats.app
 
     cache:
       cache_paths:
