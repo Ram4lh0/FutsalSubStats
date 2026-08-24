@@ -28,6 +28,51 @@ function findLastIndex(arr, pred) {
   return -1;
 }
 
+function encontrarGoloLegado(state, md) {
+  const candidatos = state.goals.filter((g) => {
+    if (md.matchElapsedMs != null && g.matchElapsedMs !== md.matchElapsedMs) return false;
+    if (md.period != null && g.period !== md.period) return false;
+    if ('goalkeeperId' in md) return g.team === 'THEM';
+    return g.team === 'US';
+  });
+  if (candidatos.length) return candidatos[candidatos.length - 1];
+  return [...state.goals].reverse().find((g) => {
+    if ('assistId' in md && g.assistId) return false;
+    if ('scorerId' in md && g.scorerId) return false;
+    return 'goalkeeperId' in md ? g.team === 'THEM' : g.team === 'US';
+  }) || null;
+}
+
+function encontrarFaltaLegada(state) {
+  return [...state.fouls].reverse().find((f) => !f.playerId) || null;
+}
+
+function eventosDesfeitos(events) {
+  const porId = new Map(events.map((e) => [e.id, e]));
+  const desfeitos = new Set();
+  const ordenados = events.slice().sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
+  for (const ev of ordenados) {
+    if (ev.eventType !== EVENT.EVENT_UNDONE) continue;
+    const alvo = ev.metadata?.targetEventId;
+    if (alvo && porId.has(alvo)) {
+      desfeitos.add(alvo);
+      continue;
+    }
+    const tipo = ev.metadata?.targetType;
+    if (!tipo) continue;
+    const candidato = [...ordenados]
+      .filter((e) =>
+        (e.seq ?? 0) < (ev.seq ?? 0) &&
+        e.eventType === tipo &&
+        !e.undoneAt &&
+        !desfeitos.has(e.id)
+      )
+      .at(-1);
+    if (candidato) desfeitos.add(candidato.id);
+  }
+  return desfeitos;
+}
+
 function emptyCourt() {
   const c = {};
   for (const p of POSITIONS) c[p] = null;
@@ -236,12 +281,7 @@ export function buildMatchState(match, squad, events) {
   // própria linha, ou por existir um EVENT_UNDONE que aponta para ele. As duas
   // contam — assim o estado é o mesmo venha ele do dispositivo ou do servidor,
   // onde só os eventos viajam.
-  const undone = new Set(
-    events
-      .filter((e) => e.eventType === EVENT.EVENT_UNDONE)
-      .map((e) => e.metadata?.targetEventId)
-      .filter(Boolean)
-  );
+  const undone = eventosDesfeitos(events);
 
   const ordered = events
     .filter((e) => !e.undoneAt && !undone.has(e.id) && e.eventType !== EVENT.EVENT_UNDONE)
@@ -573,7 +613,8 @@ function applyEvent(state, ev) {
     // Os eventos são imutáveis, por isso a atribuição é um evento novo que
     // completa o anterior — o histórico fica com as duas linhas.
     case EVENT.GOAL_ATTRIBUTED: {
-      const goal = state.goals.find((g) => g.eventId === md.targetEventId);
+      const goal = state.goals.find((g) => g.eventId === md.targetEventId)
+        || encontrarGoloLegado(state, md);
       if (!goal) break;
       if ('scorerId' in md) goal.scorerId = md.scorerId || null;
       if ('assistId' in md) goal.assistId = md.assistId || null;
@@ -662,7 +703,8 @@ function applyEvent(state, ev) {
     // Como nos golos: o contador sobe no instante do toque e o autor vem a
     // seguir, num evento que completa o anterior sem o reescrever.
     case EVENT.FOUL_ATTRIBUTED: {
-      const f = state.fouls.find((x) => x.eventId === md.targetEventId);
+      const f = state.fouls.find((x) => x.eventId === md.targetEventId)
+        || encontrarFaltaLegada(state, md);
       if (f) f.playerId = md.playerId || null;
       break;
     }

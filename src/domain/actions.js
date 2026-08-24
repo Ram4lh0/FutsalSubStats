@@ -16,8 +16,9 @@ export function uid() {
 
 export function makeEvent(state, eventType, extra = {}, now = Date.now()) {
   const c = readClock(state, now);
+  const id = uid();
   return {
-    id: uid(),
+    id,
     matchId: state.matchId,
     eventType,
     period: extra.period ?? state.currentPeriod,
@@ -30,7 +31,7 @@ export function makeEvent(state, eventType, extra = {}, now = Date.now()) {
     teamScoreSnapshot: state.teamScore,
     opponentScoreSnapshot: state.opponentScore,
     metadata: extra.metadata ?? {},
-    clientEventId: uid(),
+    clientEventId: id,
     createdBy: extra.createdBy ?? null,
     createdAt: now,
     undoneAt: null,
