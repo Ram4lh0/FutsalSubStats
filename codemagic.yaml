@@ -160,14 +160,17 @@ workflows:
 
       - name: Set up signing
         script: |
-          # Instala os perfis que o Codemagic foi buscar à Apple e escreve-os
-          # no projeto, para o xcodebuild não ter de adivinhar.
+          # Vai buscar/cria os ficheiros de assinatura na Apple e aplica
+          # explicitamente o perfil App Store ao projeto principal.
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
-          xcode-project use-profiles
+          xcode-project use-profiles \
+            --project "$XCODE_PROJECT" \
+            --archive-method app-store \
+            --code-signing-setup-verbose-logging
 
       - name: Bump build number
         script: |
@@ -182,7 +185,9 @@ workflows:
         script: |
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+            --scheme "$XCODE_SCHEME" \
+            --config Release \
+            --archive-flags "-destination 'generic/platform=iOS'"
 
     artifacts:
       - build/ios/ipa/*.ipa
