@@ -318,9 +318,9 @@ ul { padding: 0; list-style: none; }
   align-self: flex-start;
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(250, 204, 21, 0.5);
-  background: linear-gradient(135deg, rgba(250, 204, 21, 0.24), rgba(245, 158, 11, 0.14));
-  color: #fde68a;
+  border: 1px solid rgba(125, 211, 252, 0.46);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(37, 99, 235, 0.12));
+  color: #bae6fd;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
