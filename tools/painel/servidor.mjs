@@ -46,7 +46,14 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { clienteAdmin } from '../chave-de-servico.mjs';
-import { estado, convidar, mudarLicenca } from './api.mjs';
+import {
+  estado,
+  convidar,
+  mudarLicenca,
+  removerLicenca,
+  associarClube,
+  desassociarClube,
+} from './api.mjs';
 import { hostAceite, chaveDoPedido, chaveCorrecta } from './guardas.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -101,13 +108,28 @@ const servidor = createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && caminho === '/api/convidar') {
-      const { email, licenca, clubeId } = await corpoJson(req);
-      return responder(res, 200, await convidar(sb, { email, licenca, clubeId: clubeId || null }));
+      const { email, licenca, clubeId, validade } = await corpoJson(req);
+      return responder(res, 200, await convidar(sb, { email, licenca, clubeId: clubeId || null, validade }));
     }
 
     if (req.method === 'POST' && caminho === '/api/licenca') {
-      const { userId, licenca } = await corpoJson(req);
-      return responder(res, 200, await mudarLicenca(sb, { userId, licenca }));
+      const { userId, licenca, validade, forcar } = await corpoJson(req);
+      return responder(res, 200, await mudarLicenca(sb, { userId, licenca, validade, forcar: Boolean(forcar) }));
+    }
+
+    if (req.method === 'POST' && caminho === '/api/remover-licenca') {
+      const { userId } = await corpoJson(req);
+      return responder(res, 200, await removerLicenca(sb, { userId }));
+    }
+
+    if (req.method === 'POST' && caminho === '/api/associar-clube') {
+      const { userId, clubeId } = await corpoJson(req);
+      return responder(res, 200, await associarClube(sb, { userId, clubeId }));
+    }
+
+    if (req.method === 'POST' && caminho === '/api/desassociar-clube') {
+      const { userId, clubeId } = await corpoJson(req);
+      return responder(res, 200, await desassociarClube(sb, { userId, clubeId }));
     }
 
     return responder(res, 404, { erro: 'Não há nada aqui.' });
