@@ -686,14 +686,22 @@ async function trazerLicenca(sb, userId) {
   try {
     const { data, error } = await sb
       .from('profiles')
-      .select('licenca, updated_at, created_at')
+      .select('licenca, license_expires_at, updated_at, created_at')
       .eq('id', userId)
       .maybeSingle();
     if (error || !data) return null;
 
     const atual = (await db.all(db.STORES.profile))[0];
-    if (data.licenca && atual?.licenca !== data.licenca) {
-      await db.put(db.STORES.profile, { ...(atual || { id: userId }), licenca: data.licenca });
+    const licenseExpiresAt = data.license_expires_at ? Date.parse(data.license_expires_at) : null;
+    if (
+      (data.licenca && atual?.licenca !== data.licenca) ||
+      atual?.licenseExpiresAt !== licenseExpiresAt
+    ) {
+      await db.put(db.STORES.profile, {
+        ...(atual || { id: userId }),
+        licenca: data.licenca || atual?.licenca,
+        licenseExpiresAt,
+      });
     }
     return data;
   } catch {
