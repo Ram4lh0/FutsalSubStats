@@ -173,7 +173,11 @@ export async function push(userId, email) {
   const jogadoresSujos = await dirtyRows(db.STORES.players);
   const jogosSujos = await dirtyRows(db.STORES.matches);
   const convocadosSujosBase = await dirtyRows(db.STORES.matchSquad);
-  const eventos = (await db.all(db.STORES.matchEvents))
+  const todosEventosLocais = await db.all(db.STORES.matchEvents);
+  const idsEstaveisDeEventos = new Map(
+    todosEventosLocais.map((e) => [e.id, e.clientEventId || e.id])
+  );
+  const eventos = todosEventosLocais
     .filter((e) => !e.syncedAt)
     .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
 
@@ -369,7 +373,9 @@ export async function push(userId, email) {
   const jogosEnviaveis = new Set(jogos.map((m) => m.id));
   for (const ev of eventos) {
     if (!jogosEnviaveis.has(ev.matchId)) continue;
-    const { error } = await sb.rpc('append_match_event', { payload: eventMapper.toPayload(ev) });
+    const { error } = await sb.rpc('append_match_event', {
+      payload: eventMapper.toPayload(normalizarReferenciasDeEvento(ev, idsEstaveisDeEventos)),
+    });
     if (error) throw etiqueta(error, 'match_events');
     if (ev.undoneAt) {
       // O "desfazer" viaja como marca na linha original; o EVENT_UNDONE que o
@@ -384,6 +390,13 @@ export async function push(userId, email) {
   }
 
   return { pushed: total };
+}
+
+function normalizarReferenciasDeEvento(ev, idsEstaveisDeEventos) {
+  const target = ev.metadata?.targetEventId;
+  const estavel = target ? idsEstaveisDeEventos.get(target) : null;
+  if (!estavel || estavel === target) return ev;
+  return { ...ev, metadata: { ...ev.metadata, targetEventId: estavel } };
 }
 
 /* ------------------------------------------------------------- descarga */

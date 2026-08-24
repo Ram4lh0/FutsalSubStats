@@ -23,6 +23,14 @@ import * as A from '../src/domain/actions.js';
 import { EVENT, LOCATION } from '../src/domain/constants.js';
 
 const UTILIZADOR = '11111111-1111-4111-8111-111111111111';
+const LEGACY_GOAL_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const STABLE_GOAL_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const LEGACY_ASSIST_EVENT_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const STABLE_ASSIST_EVENT_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const LEGACY_FOUL_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const STABLE_FOUL_ID = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+const LEGACY_FOUL_ATTRIBUTION_ID = '99999999-aaaa-4aaa-8aaa-999999999999';
+const STABLE_FOUL_ATTRIBUTION_ID = '88888888-bbbb-4bbb-8bbb-888888888888';
 
 /** Servidor de mentira: guarda o que recebe e conta as chamadas. */
 function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
@@ -145,7 +153,12 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
         };
       }
       // Como no servidor: o mesmo client_event_id não entra duas vezes.
-      if (tabelas.match_events.some((e) => e.client_event_id === payload.client_event_id)) {
+      const existente = tabelas.match_events.find((e) => e.client_event_id === payload.client_event_id);
+      if (existente) {
+        if (existente.match_id === payload.match_id && existente.event_type === payload.event_type) {
+          existente.metadata = { ...(existente.metadata || {}), ...(payload.metadata || {}) };
+          existente.updated_at = new Date().toISOString();
+        }
         return { error: null };
       }
       tabelas.match_events.push({
@@ -296,6 +309,182 @@ test('num dispositivo novo, descarregar traz tudo', async () => {
   assert.equal((await players.listByClub(clube.id)).length, 1);
   assert.equal((await matches.listByClub(clube.id)).length, 1);
   assert.equal((await events.listByMatch(jogo.id)).length, 1);
+});
+
+test('assistencias sobrevivem ao envio e descarga com eventos antigos', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao, jogador, jogo } = await cenario();
+  const assistente = await players.create(escalao.id, { name: 'Assistente', shirtNumber: 10 });
+  await squad.replace(jogo.id, [
+    {
+      playerId: jogador.id,
+      playerNameSnapshot: jogador.name,
+      shirtNumberSnapshot: jogador.shirtNumber,
+      initialLocation: LOCATION.BENCH,
+    },
+    {
+      playerId: assistente.id,
+      playerNameSnapshot: assistente.name,
+      shirtNumberSnapshot: assistente.shirtNumber,
+      initialLocation: LOCATION.BENCH,
+    },
+  ]);
+
+  const inicial = await loadMatch(jogo.id);
+  await events.append(A.startFirstHalf(inicial.state, Date.now()));
+  const comInicio = await loadMatch(jogo.id);
+  await events.append({
+    ...A.teamGoalBy(comInicio.state, jogador.id, Date.now()),
+    id: LEGACY_GOAL_ID,
+    clientEventId: STABLE_GOAL_ID,
+  });
+  const comGolo = await loadMatch(jogo.id);
+  await events.append({
+    ...A.attributeGoal(comGolo.state, {
+      targetEventId: LEGACY_GOAL_ID,
+      assistId: assistente.id,
+    }),
+    id: LEGACY_ASSIST_EVENT_ID,
+    clientEventId: STABLE_ASSIST_EVENT_ID,
+  });
+
+  assert.equal((await loadMatch(jogo.id)).state.goals[0].assistId, assistente.id);
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  const atribuido = servidor.tabelas.match_events.find((e) => e.client_event_id === STABLE_ASSIST_EVENT_ID);
+  assert.equal(atribuido.metadata.targetEventId, STABLE_GOAL_ID);
+
+  await limpar();
+  setRemote(servidor);
+  await pull(UTILIZADOR);
+
+  const novoDispositivo = await loadMatch(jogo.id);
+  assert.equal(novoDispositivo.state.goals[0].eventId, STABLE_GOAL_ID);
+  assert.equal(novoDispositivo.state.goals[0].assistId, assistente.id);
+});
+
+test('faltas atribuidas sobrevivem ao envio e descarga com eventos antigos', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { jogador, jogo } = await cenario();
+
+  const inicial = await loadMatch(jogo.id);
+  await events.append(A.startFirstHalf(inicial.state, Date.now()));
+  const comInicio = await loadMatch(jogo.id);
+  await events.append({
+    ...A.foul(comInicio.state, EVENT.TEAM_FOUL_ADDED, Date.now()),
+    id: LEGACY_FOUL_ID,
+    clientEventId: STABLE_FOUL_ID,
+  });
+  const comFalta = await loadMatch(jogo.id);
+  await events.append({
+    ...A.attributeFoul(comFalta.state, {
+      targetEventId: LEGACY_FOUL_ID,
+      playerId: jogador.id,
+    }),
+    id: LEGACY_FOUL_ATTRIBUTION_ID,
+    clientEventId: STABLE_FOUL_ATTRIBUTION_ID,
+  });
+
+  assert.equal((await loadMatch(jogo.id)).state.fouls[0].playerId, jogador.id);
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  const atribuido = servidor.tabelas.match_events.find((e) => e.client_event_id === STABLE_FOUL_ATTRIBUTION_ID);
+  assert.equal(atribuido.metadata.targetEventId, STABLE_FOUL_ID);
+
+  await limpar();
+  setRemote(servidor);
+  await pull(UTILIZADOR);
+
+  const novoDispositivo = await loadMatch(jogo.id);
+  assert.equal(novoDispositivo.state.fouls[0].eventId, STABLE_FOUL_ID);
+  assert.equal(novoDispositivo.state.fouls[0].playerId, jogador.id);
+});
+
+test('reenviar evento ja existente corrige metadata no servidor', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao, jogador, jogo } = await cenario();
+  const assistente = await players.create(escalao.id, { name: 'Assistente', shirtNumber: 10 });
+
+  const inicial = await loadMatch(jogo.id);
+  await events.append(A.startFirstHalf(inicial.state, Date.now()));
+  const comInicio = await loadMatch(jogo.id);
+  await events.append({
+    ...A.teamGoalBy(comInicio.state, jogador.id, Date.now()),
+    id: LEGACY_GOAL_ID,
+    clientEventId: STABLE_GOAL_ID,
+  });
+  const comGolo = await loadMatch(jogo.id);
+  await events.append({
+    ...A.attributeGoal(comGolo.state, {
+      targetEventId: LEGACY_GOAL_ID,
+      assistId: assistente.id,
+    }),
+    id: LEGACY_ASSIST_EVENT_ID,
+    clientEventId: STABLE_ASSIST_EVENT_ID,
+  });
+
+  servidor.tabelas.match_events.push({
+    id: STABLE_ASSIST_EVENT_ID,
+    match_id: jogo.id,
+    seq: 20,
+    event_type: EVENT.GOAL_ATTRIBUTED,
+    period: 1,
+    match_elapsed_ms: 0,
+    period_elapsed_ms: 0,
+    metadata: { targetEventId: LEGACY_GOAL_ID, assistId: assistente.id },
+    client_event_id: STABLE_ASSIST_EVENT_ID,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  const corrigido = servidor.tabelas.match_events.find((e) => e.client_event_id === STABLE_ASSIST_EVENT_ID);
+  assert.equal(corrigido.metadata.targetEventId, STABLE_GOAL_ID);
+});
+
+test('desfazer sobrevive ao envio e descarga com eventos antigos', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { jogo } = await cenario();
+
+  const inicial = await loadMatch(jogo.id);
+  await events.append(A.startFirstHalf(inicial.state, Date.now()));
+  const comInicio = await loadMatch(jogo.id);
+  const golo = {
+    ...A.goal(comInicio.state, EVENT.TEAM_GOAL_ADDED, Date.now()),
+    id: LEGACY_GOAL_ID,
+    clientEventId: STABLE_GOAL_ID,
+  };
+  await events.append(golo);
+  const comGolo = await loadMatch(jogo.id);
+  assert.equal(comGolo.state.teamScore, 1);
+  await events.append({
+    ...A.undoEvent(comGolo.state, golo, Date.now()),
+    id: LEGACY_ASSIST_EVENT_ID,
+    clientEventId: STABLE_ASSIST_EVENT_ID,
+  });
+
+  assert.equal((await loadMatch(jogo.id)).state.teamScore, 0);
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  const undo = servidor.tabelas.match_events.find((e) => e.client_event_id === STABLE_ASSIST_EVENT_ID);
+  assert.equal(undo.metadata.targetEventId, STABLE_GOAL_ID);
+
+  await limpar();
+  setRemote(servidor);
+  await pull(UTILIZADOR);
+
+  const novoDispositivo = await loadMatch(jogo.id);
+  assert.equal(novoDispositivo.state.teamScore, 0);
+  assert.equal(novoDispositivo.state.goals.length, 0);
 });
 
 test('um backup restaurado sobe inteiro, com clube e tudo', async () => {

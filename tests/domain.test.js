@@ -386,6 +386,25 @@ test('golos guardam marcador e assistência, atribuídos depois do apito', () =>
   assert.equal(playerMatchStats(after.players.p5, clockMs, { goals: after.goals }).goals, 0);
 });
 
+test('atribuições antigas sem id estável ainda ligam ao golo e à falta', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+
+  let st = step(ctx, (s) => A.teamGoalBy(s, 'p5', T0 + 3 * MIN), T0 + 3 * MIN);
+  ctx.events.at(-1).id = 'golo-estavel';
+  st = buildMatchState(match, ctx.squad, ctx.events);
+  step(ctx, (s) => A.attributeGoal(s, { targetEventId: 'golo-local-antigo', assistId: 'p3' }, T0 + 3.2 * MIN), T0 + 3.2 * MIN);
+  st = buildMatchState(match, ctx.squad, ctx.events);
+  assert.equal(st.goals[0].assistId, 'p3');
+
+  step(ctx, (s) => A.foul(s, EVENT.TEAM_FOUL_ADDED, T0 + 5 * MIN), T0 + 5 * MIN);
+  ctx.events.at(-1).id = 'falta-estavel';
+  st = buildMatchState(match, ctx.squad, ctx.events);
+  step(ctx, (s) => A.attributeFoul(s, { targetEventId: 'falta-local-antiga', playerId: 'p2' }, T0 + 5.1 * MIN), T0 + 5.1 * MIN);
+  st = buildMatchState(match, ctx.squad, ctx.events);
+  assert.equal(st.fouls[0].playerId, 'p2');
+});
+
 test('autogolo conta para o resultado mas não para nenhum marcador nosso', () => {
   const ctx = { squad: makeSquad(), events: [] };
   step(ctx, (s) => A.startFirstHalf(s, T0), T0);
