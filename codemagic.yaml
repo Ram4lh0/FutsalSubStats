@@ -12,20 +12,15 @@
 #  android-google-play    compila um AAB assinado e envia para a faixa interna
 #                         da Play Console. Também à mão.
 #
-#  O ios-testflight precisa de duas coisas configuradas no Codemagic:
+#  O ios-testflight precisa de:
 #
-#  1. Uma integração com a App Store Connect API — em Teams → Integrations →
-#     Developer Portal, com o Issuer ID, o Key ID e o ficheiro .p8 gerados em
-#     App Store Connect → Users and Access → Integrations. A integração usada
-#     por este projeto chama-se `FutsalSubStats`.
-#  2. O grupo de variáveis `appstore`, com APP_STORE_APPLE_ID — o número que
-#     aparece no endereço da app em App Store Connect.
+#  1. Integração App Store Connect em Teams → Integrations → Developer Portal.
+#     A integração usada por este projeto chama-se `FutsalSubStats`.
+#  2. Grupo de variáveis `appstore` com CERTIFICATE_PRIVATE_KEY, contendo a
+#     chave privada PEM do certificado Apple Distribution.
 #
-#  Para assinatura, o Codemagic usa estes reference names em Code signing identities:
-#  - certificado: futsalsubstats-ios-p12
-#  - provisioning profile App Store: futsalsubstats-appstore
-#
-#  Ver TESTFLIGHT.md para o passo a passo.
+#  O provisioning profile App Store é criado/obtido automaticamente durante a
+#  build através da API da Apple.
 
 workflows:
   web-pwa-ci:
@@ -117,13 +112,6 @@ workflows:
       - build/ios/Build/Products/Debug-iphonesimulator/FutsalSubStats.app.zip
 
   # ------------------------------------------------------------ TestFlight
-  #
-  # Compila assinado e envia. Corre-se à mão, do painel do Codemagic, quando
-  # houver alguma coisa que valha a pena instalar no iPad.
-  #
-  # O código vai DENTRO da app (ver capacitor.config.json, `webDir: out`), por
-  # isso qualquer mudança na app obriga a um build novo. No TestFlight isso são
-  # uns 20 minutos e não passa por revisão nenhuma.
   ios-testflight:
     name: FutsalSubStats iOS TestFlight
     max_build_duration: 60
@@ -138,11 +126,6 @@ workflows:
       cocoapods: default
       groups:
         - appstore
-      ios_signing:
-        provisioning_profiles:
-          - futsalsubstats-appstore
-        certificates:
-          - futsalsubstats-ios-p12
       vars:
         BUNDLE_ID: "com.futsalsubstats.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
@@ -167,6 +150,11 @@ workflows:
 
       - name: Set up signing
         script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
           security find-identity -v -p codesigning || true
           xcode-project use-profiles \
             --project "$XCODE_PROJECT" \
@@ -175,9 +163,8 @@ workflows:
 
       - name: Bump build number
         script: |
-          ULTIMO=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
           cd ios/App
-          agvtool new-version -all $(($ULTIMO + 1))
+          agvtool new-version -all "$BUILD_NUMBER"
 
       - name: Build signed archive
         script: |
