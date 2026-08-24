@@ -16,8 +16,8 @@
 #
 #  1. Uma integração com a App Store Connect API — em Teams → Integrations →
 #     Developer Portal, com o Issuer ID, o Key ID e o ficheiro .p8 gerados em
-#     App Store Connect → Users and Access → Integrations. Dá-lhe o nome
-#     `AppStoreConnect` (é o nome usado aqui em baixo).
+#     App Store Connect → Users and Access → Integrations. A integração usada
+#     por este projeto chama-se `FutsalSubStats`.
 #  2. O grupo de variáveis `appstore`, com APP_STORE_APPLE_ID — o número que
 #     aparece no endereço da app em App Store Connect.
 #
@@ -126,7 +126,7 @@ workflows:
     instance_type: mac_mini_m2
 
     integrations:
-      app_store_connect: AppStoreConnect
+      app_store_connect: FutsalSubStats
 
     environment:
       node: lts
