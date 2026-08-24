@@ -54,6 +54,7 @@ function Definicoes() {
   });
   const [emailTecnico, setEmailTecnico] = useState('');
   const [aConvidar, setAConvidar] = useState(false);
+  const [mostrarTecnicos, setMostrarTecnicos] = useState(false);
 
   // As versões do plugin de atualizações. `null` fora do invólucro nativo — no
   // browser não há casca nem pacote, e a secção não chega a aparecer.
@@ -125,6 +126,7 @@ function Definicoes() {
       });
       setEmailTecnico('');
       await carregarEquipaTecnica();
+      setMostrarTecnicos(true);
       toast(
         r.newAccount
           ? t('equipaTecnica.conviteEnviado', { email: r.email })
@@ -247,7 +249,10 @@ function Definicoes() {
 
       {equipaTecnica.clube ? (
         <div className="card card--staff">
-          <h2 className="section section--tight">{t('equipaTecnica.titulo')}</h2>
+          <div className="staffcard__head">
+            <h2 className="section section--tight">{t('equipaTecnica.titulo')}</h2>
+            <span className="staffcard__license">{t('equipaTecnica.licencaClube')}</span>
+          </div>
           <p className="muted">{t('equipaTecnica.texto')}</p>
 
           <form className="form__actions form__actions--left" onSubmit={adicionarTecnico}>
@@ -267,17 +272,31 @@ function Definicoes() {
           {equipaTecnica.erro ? (
             <p className="error">{equipaTecnica.erro}</p>
           ) : equipaTecnica.membros.length ? (
-            <ul className="list">
-              {equipaTecnica.membros.map((m) => (
-                <li key={m.userId} className="list__row">
-                  <div>
-                    <strong>{m.nome}</strong>
-                    {m.email && m.email !== m.nome ? <p className="muted small">{m.email}</p> : null}
-                  </div>
-                  <span className="pill">{t('equipaTecnica.treinador')}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="stafflist">
+              <button
+                type="button"
+                className="btn btn--ghost stafflist__toggle"
+                aria-expanded={mostrarTecnicos}
+                onClick={() => setMostrarTecnicos((v) => !v)}
+              >
+                {mostrarTecnicos
+                  ? t('equipaTecnica.esconderLista')
+                  : t('equipaTecnica.verLista', { n: equipaTecnica.membros.length })}
+              </button>
+              {mostrarTecnicos ? (
+                <ul className="list stafflist__items">
+                  {equipaTecnica.membros.map((m) => (
+                    <li key={m.userId} className="list__row">
+                      <div>
+                        <strong>{m.nome}</strong>
+                        {m.email && m.email !== m.nome ? <p className="muted small">{m.email}</p> : null}
+                      </div>
+                      <span className="pill">{t('equipaTecnica.treinador')}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           ) : (
             <p className="muted small">{t('equipaTecnica.semTreinadores')}</p>
           )}
