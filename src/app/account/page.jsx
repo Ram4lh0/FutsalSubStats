@@ -22,7 +22,12 @@ import { useAuth } from '@/lib/auth.jsx';
 import * as db from '@/lib/data/local.js';
 import * as sync from '@/lib/data/sync.js';
 import { clubs, dump, restore, markAllPending, profile } from '@/lib/data/repository.js';
-import { adicionarTreinadorAoClube, listarEquipaTecnica, explicar as explicarAcesso } from '@/lib/data/acessos.js';
+import {
+  adicionarTreinadorAoClube,
+  listarEquipaTecnica,
+  removerTreinadorDoClube,
+  explicar as explicarAcesso,
+} from '@/lib/data/acessos.js';
 import { downloadJson, pickFile } from '@/lib/data/exporter.js';
 import { rotas } from '@/lib/routes.js';
 import { esquecerDono } from '@/lib/data/owner.js';
@@ -54,6 +59,7 @@ function Definicoes() {
   });
   const [emailTecnico, setEmailTecnico] = useState('');
   const [aConvidar, setAConvidar] = useState(false);
+  const [aRemoverTecnico, setARemoverTecnico] = useState(null);
   const [mostrarTecnicos, setMostrarTecnicos] = useState(false);
 
   // As versões do plugin de atualizações. `null` fora do invólucro nativo — no
@@ -137,6 +143,31 @@ function Definicoes() {
       toast(explicarAcesso(e), 'error');
     } finally {
       setAConvidar(false);
+    }
+  }
+
+  async function removerTecnico(membro) {
+    if (!equipaTecnica.clube || aRemoverTecnico) return;
+    const emailOuNome = membro.email || membro.nome;
+    const ok = await confirmar(t('equipaTecnica.confirmaRemover', { email: emailOuNome }), {
+      okLabel: t('equipaTecnica.remover'),
+      title: t('equipaTecnica.titulo'),
+    });
+    if (!ok) return;
+
+    setARemoverTecnico(membro.userId);
+    try {
+      await removerTreinadorDoClube({
+        clubId: equipaTecnica.clube.id,
+        userId: membro.userId,
+        accessToken: session?.access_token,
+      });
+      await carregarEquipaTecnica();
+      toast(t('equipaTecnica.removido', { email: emailOuNome }), 'ok');
+    } catch (e) {
+      toast(explicarAcesso(e), 'error');
+    } finally {
+      setARemoverTecnico(null);
     }
   }
 
@@ -291,7 +322,20 @@ function Definicoes() {
                         <strong>{m.nome}</strong>
                         {m.email && m.email !== m.nome ? <p className="muted small">{m.email}</p> : null}
                       </div>
-                      <span className="pill">{t('equipaTecnica.treinador')}</span>
+                      <div className="stafflist__actions">
+                        <span className="pill">{t('equipaTecnica.treinador')}</span>
+                        <span className="pill pill--subtle">
+                          {m.contaPorConvite ? t('equipaTecnica.contaPorConvite') : t('equipaTecnica.contaPropria')}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn--ghost btn--danger stafflist__remove"
+                          disabled={aRemoverTecnico === m.userId}
+                          onClick={() => removerTecnico(m)}
+                        >
+                          {aRemoverTecnico === m.userId ? t('equipaTecnica.aRemover') : t('equipaTecnica.remover')}
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>

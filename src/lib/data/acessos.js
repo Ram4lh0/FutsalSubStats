@@ -76,10 +76,17 @@ export async function listarParaEscalao(clubId, teamId) {
 
 /** A equipa técnica associada ao clube, para aparecer antes de distribuir escalões. */
 export async function listarEquipaTecnica(clubId) {
-  const { data: membros, error } = await ligacao()
+  let query = ligacao()
     .from('club_members')
-    .select('user_id, profiles ( id, name, email )')
+    .select('user_id, apagar_conta_ao_remover, profiles ( id, name, email )')
     .eq('club_id', clubId);
+  let { data: membros, error } = await query;
+  if (error && /apagar_conta_ao_remover|schema cache|column/i.test(String(error.message || ''))) {
+    ({ data: membros, error } = await ligacao()
+      .from('club_members')
+      .select('user_id, profiles ( id, name, email )')
+      .eq('club_id', clubId));
+  }
   if (error) throw error;
 
   return (membros || [])
@@ -87,6 +94,7 @@ export async function listarEquipaTecnica(clubId) {
       userId: m.user_id,
       nome: m.profiles?.name || m.profiles?.email || m.user_id,
       email: m.profiles?.email || '',
+      contaPorConvite: Boolean(m.apagar_conta_ao_remover),
     }))
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
 }
@@ -121,6 +129,30 @@ export async function adicionarTreinadorAoClube({ clubId, email, accessToken }) 
   return data;
 }
 
+export async function removerTreinadorDoClube({ clubId, userId, accessToken }) {
+  if (!accessToken) {
+    const erro = new Error('sem sessão');
+    erro.chave = 'equipaTecnica.semSessao';
+    throw erro;
+  }
+
+  const response = await fetch(`${API_URL}/api/club/staff/remove`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ clubId, userId }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.ok) {
+    const erro = new Error(data?.error || 'remove_failed');
+    erro.codigo = data?.error || response.status;
+    throw erro;
+  }
+  return data;
+}
+
 /** Dar acesso, ou mudar o nível de quem já o tinha. */
 export async function darAcesso(teamId, userId, nivel) {
   if (!NIVEIS.includes(nivel)) throw new Error(`nível desconhecido: ${nivel}`);
@@ -148,6 +180,7 @@ export function explicar(erro) {
   if (m.includes('not_club_owner')) return t('equipaTecnica.soAdmin');
   if (m.includes('missing_session') || m.includes('invalid_session')) return t('equipaTecnica.semSessao');
   if (m.includes('invite_failed')) return t('equipaTecnica.conviteFalhou');
+  if (m.includes('remove_failed') || m.includes('member_not_found')) return t('equipaTecnica.remocaoFalhou');
   if (m.includes('row-level security') || m.includes('policy')) return t('acessos.semAutorizacao');
   if (m.includes('failed to fetch') || m.includes('networkerror')) return t('acessos.semRede');
   return erro?.message || t('comum.semDetalhes');
