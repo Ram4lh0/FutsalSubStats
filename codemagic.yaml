@@ -150,16 +150,71 @@ workflows:
 
       - name: Set up signing
         script: |
+          set -euo pipefail
+
+          SIGNING_DIR="$HOME/codemagic-signing"
+          CERTIFICATES_DIR="$SIGNING_DIR/certificates"
+          PROFILES_DIR="$SIGNING_DIR/profiles"
+
+          rm -rf "$SIGNING_DIR"
+          mkdir -p "$CERTIFICATES_DIR" "$PROFILES_DIR"
+
           keychain initialize
+
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
-          security find-identity -v -p codesigning || true
+            --strict-match-identifier \
+            --create \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
+            --certificates-dir "$CERTIFICATES_DIR" \
+            --profiles-dir "$PROFILES_DIR" \
+            --verbose
+
+          CERTIFICATE=$(find "$CERTIFICATES_DIR" -type f -name '*.p12' -print -quit)
+          PROFILE=$(find "$PROFILES_DIR" -type f \( -name '*.mobileprovision' -o -name '*.provisionprofile' \) -print -quit)
+
+          if [ -z "$CERTIFICATE" ]; then
+            echo "ERROR: Codemagic não descarregou/criou nenhum certificado .p12."
+            exit 1
+          fi
+
+          if [ -z "$PROFILE" ]; then
+            echo "ERROR: Codemagic não descarregou/criou nenhum provisioning profile App Store."
+            exit 1
+          fi
+
+          keychain add-certificates --certificate "$CERTIFICATE"
+          security find-identity -v -p codesigning
+
+          security cms -D -i "$PROFILE" > "$SIGNING_DIR/profile.plist"
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$SIGNING_DIR/profile.plist")
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$SIGNING_DIR/profile.plist")
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$SIGNING_DIR/profile.plist")
+          PROFILE_APP_ID=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$SIGNING_DIR/profile.plist")
+
+          echo "Provisioning profile: $PROFILE_NAME"
+          echo "Provisioning UUID: $PROFILE_UUID"
+          echo "Team ID: $TEAM_ID"
+          echo "Profile App ID: $PROFILE_APP_ID"
+
+          if [ "$PROFILE_APP_ID" != "$TEAM_ID.$BUNDLE_ID" ]; then
+            echo "ERROR: O provisioning profile não corresponde a $BUNDLE_ID."
+            exit 1
+          fi
+
           xcode-project use-profiles \
             --project "$XCODE_PROJECT" \
+            --profile "$PROFILE" \
             --archive-method app-store \
             --code-signing-setup-verbose-logging
+
+          echo "Build settings de assinatura depois de aplicar o profile:"
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -showBuildSettings | \
+            grep -E 'CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM|PROVISIONING_PROFILE' || true
 
       - name: Bump build number
         script: |
@@ -168,11 +223,26 @@ workflows:
 
       - name: Build signed archive
         script: |
+          set -euo pipefail
+
+          SIGNING_DIR="$HOME/codemagic-signing"
+          PROFILE_PLIST="$SIGNING_DIR/profile.plist"
+
+          if [ ! -f "$PROFILE_PLIST" ]; then
+            echo "ERROR: Não encontrei os dados do provisioning profile."
+            exit 1
+          fi
+
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$PROFILE_PLIST")
+
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
             --config Release \
-            --archive-flags "-destination 'generic/platform=iOS'"
+            --archive-flags "-destination 'generic/platform=iOS'" \
+            --archive-xcargs "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=$TEAM_ID CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE=$PROFILE_UUID PROVISIONING_PROFILE_SPECIFIER='$PROFILE_NAME'"
 
     artifacts:
       - build/ios/ipa/*.ipa
