@@ -2,8 +2,9 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { handleStripeCheckout, handleStripeClaim, handleStripeWebhook, type BillingEnv } from "./billing";
+import { handleClubStaffInvite, type ClubStaffEnv } from "./club-staff";
 
-interface Env extends BillingEnv {
+interface Env extends BillingEnv, ClubStaffEnv {
   ASSETS: Fetcher;
   DB: D1Database;
   IMAGES: {
@@ -33,6 +34,7 @@ const worker = {
     if (url.pathname === "/api/stripe/checkout") return handleStripeCheckout(request, env);
     if (url.pathname === "/api/stripe/claim") return handleStripeClaim(request, env);
     if (url.pathname === "/api/stripe/webhook") return handleStripeWebhook(request, env);
+    if (url.pathname === "/api/club/staff/invite") return handleClubStaffInvite(request, env);
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
