@@ -62,6 +62,7 @@ export function supabase() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
+        flowType: 'pkce',
         detectSessionInUrl: false,
         storageKey: 'futsal.auth',
       },
