@@ -15,7 +15,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
-  const [ready, setReady] = useState(!hasRemote());
+  const [ready, setReady] = useState(() => !hasRemote() || !temRespostaOAuthPendente());
   const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
     if (!sb) return; // modo só-dispositivo
 
     let alive = true;
+    const temOAuthPendente = temRespostaOAuthPendente();
     const aplicarSessao = (next) => {
       if (!alive) return;
       setSession(next || null);
@@ -35,7 +36,10 @@ export function AuthProvider({ children }) {
 
     sb.auth
       .getSession()
-      .then(({ data }) => aplicarSessao(data.session || null))
+      .then(({ data }) => {
+        if (temOAuthPendente && !data.session) return;
+        aplicarSessao(data.session || null);
+      })
       .catch(() => {
         if (alive) setReady(true);
       });
@@ -307,6 +311,11 @@ function dentroDoInvolucro(cap) {
 }
 
 const OAUTH_PARAMS = ['code', 'error', 'error_code', 'error_description'];
+
+function temRespostaOAuthPendente() {
+  const resposta = lerRespostaOAuth();
+  return Boolean(resposta.code || resposta.error || resposta.errorCode || resposta.errorDescription);
+}
 
 function lerRespostaOAuth() {
   if (typeof window === 'undefined') return {};
