@@ -11,8 +11,10 @@ import { teams, competitions } from '@/lib/data/repository.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import { useT } from '@/lib/i18n/index.js';
+import { MATCH_TIMING, maxSquadOf, timingOf } from '@/domain/constants.js';
+import { timingLabel } from '@/lib/format.js';
 
-const VAZIO = { name: '', shortName: '' };
+const VAZIO = { name: '', shortName: '', timing: MATCH_TIMING.UNTIMED, maxSquad: '14' };
 
 export default function CompetitionForm({ clubId, teamId, competitionId }) {
   const router = useRouter();
@@ -26,11 +28,14 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
 
   useEffect(() => {
     (async () => {
-      setTeam(await teams.get(teamId));
+      const loadedTeam = await teams.get(teamId);
+      setTeam(loadedTeam);
       if (competitionId) {
         const c = await competitions.get(competitionId);
-        if (c) setForm({ ...VAZIO, ...c });
+        if (c) setForm({ ...VAZIO, ...c, maxSquad: c.maxSquad === null ? '' : String(maxSquadOf(c)) });
         setPronto(true);
+      } else {
+        setForm((f) => ({ ...f, timing: timingOf(loadedTeam) }));
       }
     })();
   }, [teamId, competitionId]);
@@ -43,7 +48,12 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
   async function guardar(e) {
     e.preventDefault();
     if (!(form.name || '').trim()) return toast(t('competicao.precisaNome'), 'error');
-    const payload = { name: (form.name || '').trim(), shortName: (form.shortName || '').trim() || null };
+    const payload = {
+      name: (form.name || '').trim(),
+      shortName: (form.shortName || '').trim() || null,
+      timing: form.timing,
+      maxSquad: form.maxSquad === '' ? null : Number(form.maxSquad),
+    };
     if (competitionId) await competitions.update(competitionId, payload);
     else await competitions.create(teamId, payload);
     toast(t('competicao.guardada'), 'ok');
@@ -89,6 +99,24 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
               maxLength={12}
               {...campo('shortName')}
             />
+          </Field>
+        </div>
+
+        <div className="form__row">
+          <Field label={t('competicao.tipoTempo')} hint={t('competicao.tipoTempoDica')}>
+            <select className="input" {...campo('timing')}>
+              {Object.values(MATCH_TIMING).map((value) => (
+                <option key={value} value={value}>{timingLabel(value)}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label={t('competicao.maxConvocados')} hint={t('competicao.maxConvocadosDica')}>
+            <select className="input" {...campo('maxSquad')}>
+              <option value="">{t('competicao.semLimite')}</option>
+              {Array.from({ length: 18 }, (_, index) => index + 5).map((value) => (
+                <option key={value} value={value}>{value}</option>
+              ))}
+            </select>
           </Field>
         </div>
 

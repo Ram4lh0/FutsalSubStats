@@ -158,12 +158,8 @@ test('por omissão o registo está aberto', () => {
   assert.equal(registoAberto(), true, 'vazio conta como não configurado');
 });
 
-test('fecha-se com 0, false ou não — e nada mais', () => {
+test('o registo público já não pode ser fechado por um build antigo', () => {
   for (const v of ['0', 'false', 'FALSE', 'nao', 'não']) {
-    process.env.NEXT_PUBLIC_REGISTO_ABERTO = v;
-    assert.equal(registoAberto(), false, `"${v}" devia fechar`);
-  }
-  for (const v of ['1', 'true', 'sim', 'qualquer coisa']) {
     process.env.NEXT_PUBLIC_REGISTO_ABERTO = v;
     assert.equal(registoAberto(), true, `"${v}" não devia fechar`);
   }

@@ -8,6 +8,15 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
         <string>FutsalSubStats</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.futsalsubstats.app</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

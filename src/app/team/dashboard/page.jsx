@@ -527,7 +527,7 @@ function Painel({ club, team, entries, roster, competitions }) {
   const semJogos = !forma.length && !min.linhas.length;
 
   return (
-    <div className={`painelv ${atletaId ? 'painelv--atleta' : ''}`.trim()}>
+    <div className={`painelv ${atletaId ? 'painelv--atleta' : ''}`.trim()} data-tour="team-dashboard">
       <div className="painelv__filtros">
         <Filtros
           provas={provas}

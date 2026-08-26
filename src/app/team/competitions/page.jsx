@@ -42,10 +42,11 @@ function Conteudo() {
         return (
           <>
             {soLeitura ? null : (
-              <div className="toolbar">
+              <div className="toolbar" data-tour="competitions">
                 <span className="toolbar__spacer" />
                 <button
                   className="btn btn--primary"
+                  data-tour="create-competition"
                   onClick={() => router.push(rotas.competicaoNova(clubId, teamId))}
                 >
                   {t('competicoes.criar')}
@@ -69,6 +70,7 @@ function Conteudo() {
                 {t('competicoes.vazio')}
               </Empty>
             ) : (
+              <div data-tour="competitions">
               <DataTable>
                 <thead>
                   <tr>
@@ -83,6 +85,7 @@ function Conteudo() {
                     <th className="num">{t('competicoes.marcados')}</th>
                     <th className="num">{t('competicoes.sofridos')}</th>
                     <th className="num">{t('competicoes.diferenca')}</th>
+                    {soLeitura ? null : <th className="right">{t('comum.editar')}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -100,10 +103,26 @@ function Conteudo() {
                       <td className="num mono">{agg.goalsFor}</td>
                       <td className="num mono">{agg.goalsAgainst}</td>
                       <td className="num mono">{agg.goalsFor - agg.goalsAgainst}</td>
+                      {soLeitura ? null : (
+                        <td className="right">
+                          <button
+                            className="btn btn--ghost btn--tiny"
+                            type="button"
+                            aria-label={t('competicoes.editarNome', { nome: competicao.name })}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              router.push(rotas.competicaoEditar(clubId, teamId, competicao.id));
+                            }}
+                          >
+                            {t('comum.editar')}
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
               </DataTable>
+              </div>
             )}
 
             {semProva ? (

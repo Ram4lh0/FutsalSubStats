@@ -45,7 +45,7 @@ function Stats({ entries, roster, clubId, teamId }) {
 
   return (
     <>
-      <div className="grid grid--stats stats__resumo">
+      <div className="grid grid--stats stats__resumo" data-tour="team-stats">
         <StatCard
           label={t('stats.jogos')}
           value={agg.matches}

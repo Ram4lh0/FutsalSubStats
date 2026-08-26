@@ -30,10 +30,20 @@ import {
 } from '@/lib/data/acessos.js';
 import { downloadJson, pickFile } from '@/lib/data/exporter.js';
 import { rotas } from '@/lib/routes.js';
+import { startGuidedTutorial } from '@/lib/tutorial.js';
 import { esquecerDono } from '@/lib/data/owner.js';
 import { useT, useIdioma, useLocale, definirIdioma, IDIOMAS } from '@/lib/i18n/index.js';
 import { syncLabel } from '@/lib/format.js';
 import { versoes } from '@/lib/atualizacoes.js';
+import { entitlement as loadEntitlement } from '@/lib/entitlements.js';
+import {
+  STORE_PRODUCTS,
+  nativeStoreAvailable,
+  planPrice,
+  purchasePlan,
+  restorePurchases,
+  storeProducts,
+} from '@/lib/store.js';
 
 export default function AccountPage() {
   return (
@@ -61,6 +71,20 @@ function Definicoes() {
   const [aConvidar, setAConvidar] = useState(false);
   const [aRemoverTecnico, setARemoverTecnico] = useState(null);
   const [mostrarTecnicos, setMostrarTecnicos] = useState(false);
+  const [licencas, setLicencas] = useState({ status: null, products: [], loading: true });
+  const [aComprar, setAComprar] = useState(null);
+
+  const carregarLicencas = useCallback(async () => {
+    const [status, products] = await Promise.all([
+      loadEntitlement(),
+      storeProducts().catch(() => []),
+    ]);
+    setLicencas({ status: status.error ? null : status, products, loading: false });
+  }, []);
+
+  useEffect(() => {
+    if (userId) carregarLicencas();
+  }, [userId, carregarLicencas]);
 
   // As versões do plugin de atualizações. `null` fora do invólucro nativo — no
   // browser não há casca nem pacote, e a secção não chega a aparecer.
@@ -172,6 +196,36 @@ function Definicoes() {
       toast(explicarAcesso(e), 'error');
     } finally {
       setARemoverTecnico(null);
+    }
+  }
+
+  async function comprarLicenca(plano) {
+    if (aComprar || !userId) return;
+    setAComprar(plano);
+    try {
+      await purchasePlan(plano, userId);
+      await sync.pull(userId);
+      await carregarLicencas();
+      toast(t('licencas.compraConfirmada'), 'ok', 5000);
+    } catch (e) {
+      if (!/cancel/i.test(e?.message || '')) toast(t('licencas.compraFalhou', { erro: e.message }), 'error', 5200);
+    } finally {
+      setAComprar(null);
+    }
+  }
+
+  async function restaurarLicencas() {
+    if (aComprar || !userId) return;
+    setAComprar('restore');
+    try {
+      const n = await restorePurchases(userId);
+      await sync.pull(userId);
+      await carregarLicencas();
+      toast(n ? t('licencas.restauradas') : t('licencas.nadaParaRestaurar'), n ? 'ok' : 'info');
+    } catch (e) {
+      toast(t('licencas.restauroFalhou', { erro: e.message }), 'error');
+    } finally {
+      setAComprar(null);
     }
   }
 
@@ -353,6 +407,71 @@ function Definicoes() {
         </div>
       ) : null}
 
+      <section id="licencas" className="card licenses-card">
+        <div className="licenses-card__head">
+          <div>
+            <h2 className="section section--tight">{t('licencas.titulo')}</h2>
+            <p className="muted">{t('licencas.texto')}</p>
+          </div>
+          {licencas.status?.licenseActive ? (
+            <span className="pill pill--active">
+              {t('licencas.ativa', { plano: t(`licencas.${licencas.status.plan}`) })}
+            </span>
+          ) : (
+            <span className="pill">
+              {t('licencas.gratisRestantes', { n: licencas.status?.freeGamesRemaining ?? 4 })}
+            </span>
+          )}
+        </div>
+
+        <div className="license-grid">
+          {['treinador', 'clube'].map((plano) => {
+            const productId = STORE_PRODUCTS[plano];
+            const product = licencas.products.find((p) => p.id === productId);
+            const isClub = plano === 'clube';
+            return (
+              <article key={plano} className={`license-option ${isClub ? 'license-option--club' : ''}`}>
+                <div className="license-option__title">
+                  <h3>{t(`licencas.${plano}`)}</h3>
+                  {licencas.loading ? <strong>…</strong> : <LicensePrice plano={plano} product={product} />}
+                </div>
+                <p className="muted small">{t('licencas.porAnoComTeste')}</p>
+                <ul className="license-option__features">
+                  {(isClub
+                    ? ['variosTreinadores', 'cincoEscaloes', 'todasCompeticoes', 'todasEstatisticas']
+                    : ['umaConta', 'umEscalao', 'todasCompeticoes', 'estatisticasEscalao']
+                  ).map((chave) => <li key={chave}>{t(`licencas.${chave}`)}</li>)}
+                </ul>
+                {isClub ? <p className="muted small">{t('licencas.maisCinco')}</p> : null}
+                <button
+                  className="btn btn--primary"
+                  disabled={!nativeStoreAvailable() || !product || Boolean(aComprar)}
+                  onClick={() => comprarLicenca(plano)}
+                >
+                  {aComprar === plano ? t('licencas.aComprar') : t('licencas.comprar')}
+                </button>
+              </article>
+            );
+          })}
+        </div>
+        {!nativeStoreAvailable() ? <p className="muted small">{t('licencas.comprasNaApp')}</p> : null}
+        <div className="form__actions form__actions--left">
+          <button className="btn btn--ghost" disabled={Boolean(aComprar)} onClick={restaurarLicencas}>
+            {aComprar === 'restore' ? t('licencas.aRestaurar') : t('licencas.restaurar')}
+          </button>
+        </div>
+      </section>
+
+      <section className="card tutorial-settings">
+        <div>
+          <h2 className="section section--tight">{t('tutorial.titulo')}</h2>
+          <p className="muted">{t('tutorial.definicoesTexto')}</p>
+        </div>
+        <button className="btn btn--ghost" onClick={() => startGuidedTutorial(router)}>
+          {t('tutorial.repetir')}
+        </button>
+      </section>
+
       {/* O idioma fica em primeiro lugar de propósito: quem abre esta página sem
           perceber a língua em que ela está precisa de encontrar isto sem ler
           nada. Os nomes dos idiomas estão sempre no próprio idioma — "English",
@@ -500,5 +619,15 @@ function Definicoes() {
         </div>
       </div>
     </>
+  );
+}
+
+function LicensePrice({ plano, product }) {
+  const price = planPrice(plano, product);
+  return (
+    <div className="license-price">
+      <span className="license-price__old">{price.old}</span>
+      <strong>{price.current}</strong>
+    </div>
   );
 }

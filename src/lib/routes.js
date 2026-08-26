@@ -37,6 +37,7 @@ export const rotas = {
   login: () => '/login',
   dashboard: () => '/dashboard',
   conta: () => '/account',
+  tutorial: () => '/tutorial',
   privacidade: () => '/privacy',
   // Definir ou mudar a palavra-passe. É também o destino dos links do convite e
   // da recuperação — por isso tem de funcionar **sem sessão iniciada**, e os
@@ -72,6 +73,8 @@ export const rotas = {
   /* -------------------------------------------------------- competições */
   competicoes: (club, team) => comIds('/team/competitions', { club, team }),
   competicaoNova: (club, team) => comIds('/team/competitions/new', { club, team }),
+  competicaoEditar: (club, team, competition) =>
+    comIds('/team/competitions/edit', { club, team, competition }),
   competicao: (club, team, competition) =>
     comIds('/team/competition', { club, team, competition }),
 

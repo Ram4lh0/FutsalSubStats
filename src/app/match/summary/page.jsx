@@ -309,7 +309,7 @@ function Resumo() {
         }
       />
 
-      <div className="grid grid--stats">
+      <div className="grid grid--stats" data-tour="match-summary">
         <StatCard
           label={t('resumo.resultado')}
           value={`${state.teamScore} — ${state.opponentScore}`}

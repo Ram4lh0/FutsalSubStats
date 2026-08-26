@@ -9,24 +9,22 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth.jsx';
 import { useUI } from '@/lib/ui.jsx';
-import { iniciarDemo, limparDemo } from '@/lib/demo.js';
+import { limparDemo } from '@/lib/demo.js';
 import { rotas } from '@/lib/routes.js';
+import { startGuidedTutorial } from '@/lib/tutorial.js';
 import { useT } from '@/lib/i18n/index.js';
-import { registoAberto, ligacaoPedirConta } from '@/lib/registo.js';
 
 export default function LoginPage() {
   const router = useRouter();
   const t = useT();
-  const { signIn, signUp, pedirRecuperacao, session, ready, remote } = useAuth();
+  const { signIn, signUp, signInWithProvider, pedirRecuperacao, session, ready, remote } = useAuth();
   const { toast } = useUI();
-  // Com o registo por convite não há dois modos: este ecrã é só de entrada.
-  const aberto = registoAberto();
   const [modo, setModo] = useState('entrar');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [aEnviar, setAEnviar] = useState(false);
-  const [aMontar, setAMontar] = useState(false);
   const [aRecuperar, setARecuperar] = useState(false);
 
   // Já com sessão (ou sem servidor configurado), não há nada a fazer aqui.
@@ -40,28 +38,6 @@ export default function LoginPage() {
   useEffect(() => {
     limparDemo();
   }, []);
-
-  /** Monta a equipa fictícia e abre o jogo. Nada disto sai do dispositivo. */
-  async function experimentar() {
-    if (aMontar) return;
-    setAMontar(true);
-    try {
-      const { matchId, limpou, perdidas } = await iniciarDemo();
-      if (limpou) {
-        toast(
-          perdidas
-            ? t('login.donoTrocouComPerdas', { n: perdidas })
-            : t('login.donoTrocou'),
-          'ok',
-          7000
-        );
-      }
-      router.push(rotas.jogoPreparar(matchId));
-    } catch (e) {
-      setAMontar(false);
-      toast(t('login.demoFalhou', { erro: e.message }), 'error');
-    }
-  }
 
   /**
    * Pedir o email para escolher uma palavra-passe nova.
@@ -85,18 +61,34 @@ export default function LoginPage() {
   async function submeter(e) {
     e.preventDefault();
     if (!email.trim() || !password) return toast(t('login.faltaPreencher'), 'error');
+    if (modo === 'criar' && password !== passwordConfirm)
+      return toast(t('login.passwordNaoCoincide'), 'error');
     setAEnviar(true);
-    const { error } =
+    const result =
       modo === 'entrar'
         ? await signIn(email.trim(), password)
         : await signUp(email.trim(), password, nome.trim());
     setAEnviar(false);
 
-    if (error) return toast(error, 'error');
+    if (result.error) return toast(result.error, 'error');
     if (modo === 'criar') {
       toast(t('login.contaCriada'), 'ok');
+      if (result.needsConfirmation) {
+        setModo('entrar');
+        return;
+      }
+      startGuidedTutorial(router);
+      return;
     }
     router.replace(rotas.dashboard());
+  }
+
+  async function entrarCom(provider) {
+    if (aEnviar) return;
+    setAEnviar(true);
+    const { error } = await signInWithProvider(provider);
+    setAEnviar(false);
+    if (error) toast(error, 'error');
   }
 
   return (
@@ -146,6 +138,19 @@ export default function LoginPage() {
           ) : null}
         </label>
 
+        {modo === 'criar' ? (
+          <label className="field">
+            <span className="field__label">{t('login.passwordConfirm')}</span>
+            <input
+              className="input"
+              type="password"
+              value={passwordConfirm}
+              onChange={(e) => setPasswordConfirm(e.target.value)}
+              autoComplete="new-password"
+            />
+          </label>
+        ) : null}
+
         {/* Só a entrar: a quem está a criar conta não faz sentido nenhum. */}
         {modo === 'entrar' && remote ? (
           <button
@@ -159,15 +164,13 @@ export default function LoginPage() {
         ) : null}
 
         <div className="form__actions">
-          {aberto ? (
-            <button
-              className="btn btn--ghost"
-              type="button"
-              onClick={() => setModo(modo === 'entrar' ? 'criar' : 'entrar')}
-            >
-              {modo === 'entrar' ? t('login.criarConta') : t('login.jaTenhoConta')}
-            </button>
-          ) : null}
+          <button
+            className="btn btn--ghost"
+            type="button"
+            onClick={() => setModo(modo === 'entrar' ? 'criar' : 'entrar')}
+          >
+            {modo === 'entrar' ? t('login.criarConta') : t('login.jaTenhoConta')}
+          </button>
           <button className="btn btn--primary" type="submit" disabled={aEnviar}>
             {aEnviar
               ? t('login.aLigar')
@@ -177,35 +180,22 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* Com o registo fechado, quem chega aqui sem conta tem de saber o que
-            fazer a seguir. Um ecrã de entrada sem saída nenhuma é um beco. */}
-        {aberto ? null : (
-          <div className="card card--inset">
-            <p className="muted small">
-              <strong>{t('registo.fechado')}</strong> {t('registo.fechadoTexto')}
-            </p>
-            <a
-              className="btn btn--ghost btn--block"
-              href={ligacaoPedirConta(t('registo.assunto'))}
-            >
-              {t('registo.pedirConta')}
-            </a>
-          </div>
-        )}
-
-        {/* Experimentar antes de decidir. O jogo é o mesmo código do jogo a
-            sério — só a equipa é que é inventada. */}
-        <div className="auth__demo">
-          <button className="btn btn--block btn--demo" type="button" onClick={experimentar} disabled={aMontar}>
-            {aMontar ? t('login.aPreparar') : t('login.experimentar')}
+        <div className="auth__divider"><span>{t('login.ou')}</span></div>
+        <div className="auth__providers">
+          <button className="btn btn--provider" type="button" onClick={() => entrarCom('google')} disabled={aEnviar}>
+            <span className="auth__provider-icon" aria-hidden="true">G</span>
+            {t('login.google')}
           </button>
-          <span className="field__hint">{t('login.experimentarDica')}</span>
+          <button className="btn btn--provider" type="button" onClick={() => entrarCom('apple')} disabled={aEnviar}>
+            <span className="auth__provider-icon auth__provider-icon--apple" aria-hidden="true">Apple</span>
+            {t('login.apple')}
+          </button>
         </div>
 
         {/* A política tem de estar à mão ANTES de alguém criar conta, não
             escondida lá dentro depois de já ter dado os dados. */}
         <p className="muted small">
-          {modo === 'criar' && aberto ? t('login.aceitaPolitica') : t('login.consultePolitica')}
+          {modo === 'criar' ? t('login.aceitaPolitica') : t('login.consultePolitica')}
           <a
             className="link"
             onClick={() => router.push(rotas.privacidade())}

@@ -17,6 +17,7 @@ import {
   squadMapper,
   eventMapper,
 } from './mappers.js';
+import { EVENT } from '../../domain/constants.js';
 
 // Códigos, não frases. Antes o valor era o próprio texto em português, o que
 // funcionava enquanto houve uma língua só — depois seria o estado da
@@ -367,6 +368,8 @@ export async function push(userId, email) {
     total += linhas.length;
   }
 
+  await claimStartedMatches(sb, jogos, eventos);
+
   // Eventos: um a um, pela função que ignora repetições. Reenviar a fila inteira
   // depois de uma falha a meio não duplica nada. Os de jogos que ficaram para
   // trás esperam pela sua vez — chegariam a um jogo que o servidor não tem.
@@ -390,6 +393,28 @@ export async function push(userId, email) {
   }
 
   return { pushed: total };
+}
+
+async function claimStartedMatches(sb, jogos, eventos) {
+  const startedMatchIds = new Set();
+  for (const ev of eventos) {
+    if (ev.undoneAt || ev.eventType !== EVENT.FIRST_HALF_STARTED) continue;
+    startedMatchIds.add(ev.matchId);
+  }
+  if (!startedMatchIds.size) return;
+
+  const jogosEnviados = new Set(jogos.map((m) => m.id));
+  for (const matchId of startedMatchIds) {
+    if (!jogosEnviados.has(matchId)) continue;
+    const { data, error } = await sb.rpc('claim_match_start', { p_match_id: matchId });
+    if (error) throw etiqueta(error, 'free_game_starts');
+    if (data?.allowed === false) {
+      const e = new Error(data.reason || 'free_limit_reached');
+      e.chave = data.reason === 'free_limit_reached' ? 'licencas.limiteJogos' : null;
+      e.tabela = 'free_game_starts';
+      throw e;
+    }
+  }
 }
 
 function normalizarReferenciasDeEvento(ev, idsEstaveisDeEventos) {
@@ -560,7 +585,7 @@ function maiorData(linhas, ateAgora) {
   return maior;
 }
 
-export async function pull(userId) {
+export async function pull(userId, { repararJogosIncompletos = false } = {}) {
   const sb = supabase();
   if (!sb || !userId) return { pulled: 0 };
   let total = 0;
@@ -677,9 +702,45 @@ export async function pull(userId) {
   }
   total += await merge(db.STORES.matchEvents, eventos.map(eventMapper.fromRow));
 
+  if (repararJogosIncompletos) {
+    total += await repararEventosDeJogosIncompletos(sb, jogoIds);
+  }
+
   guardarMarcas(userId, novas);
   if (total) notifyDataUpdated();
   return { pulled: total };
+}
+
+async function repararEventosDeJogosIncompletos(sb, jogoIds) {
+  if (!jogoIds.length) return 0;
+
+  const eventosLocais = await db.all(db.STORES.matchEvents);
+  const porJogo = new Map();
+  for (const ev of eventosLocais) {
+    if (!porJogo.has(ev.matchId)) porJogo.set(ev.matchId, []);
+    porJogo.get(ev.matchId).push(ev);
+  }
+
+  const incompletos = jogoIds.filter((matchId) => {
+    const eventos = porJogo.get(matchId) || [];
+    return !eventos.some((ev) => ev.eventType === EVENT.MATCH_FINISHED && !ev.undoneAt);
+  });
+  if (!incompletos.length) return 0;
+
+  let total = 0;
+  for (let i = 0; i < incompletos.length; i += 100) {
+    const loteIds = incompletos.slice(i, i + 100);
+    const linhas = await todas((de, ate) =>
+      sb
+        .from('match_events')
+        .select('*')
+        .in('match_id', loteIds)
+        .order('seq', { ascending: true })
+        .range(de, ate)
+    );
+    total += await merge(db.STORES.matchEvents, linhas.map(eventMapper.fromRow));
+  }
+  return total;
 }
 
 /**
@@ -699,7 +760,7 @@ async function trazerLicenca(sb, userId) {
   try {
     const { data, error } = await sb
       .from('profiles')
-      .select('licenca, license_expires_at, updated_at, created_at')
+      .select('licenca, license_status, license_source, license_expires_at, updated_at, created_at')
       .eq('id', userId)
       .maybeSingle();
     if (error || !data) return null;
@@ -708,11 +769,15 @@ async function trazerLicenca(sb, userId) {
     const licenseExpiresAt = data.license_expires_at ? Date.parse(data.license_expires_at) : null;
     if (
       (data.licenca && atual?.licenca !== data.licenca) ||
+      atual?.licenseStatus !== data.license_status ||
+      atual?.licenseSource !== data.license_source ||
       atual?.licenseExpiresAt !== licenseExpiresAt
     ) {
       await db.put(db.STORES.profile, {
         ...(atual || { id: userId }),
         licenca: data.licenca || atual?.licenca,
+        licenseStatus: data.license_status || 'none',
+        licenseSource: data.license_source || null,
         licenseExpiresAt,
       });
     }

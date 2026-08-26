@@ -73,6 +73,8 @@ export const competitionMapper = {
     team_id: c.teamId,
     name: c.name,
     short_name: c.shortName || null,
+    timing: c.timing === 'TIMED' ? 'TIMED' : 'UNTIMED',
+    max_squad: c.maxSquad === null ? null : Number(c.maxSquad ?? 14),
     archived_at: iso(c.archivedAt),
   }),
   fromRow: (r) => ({
@@ -80,6 +82,9 @@ export const competitionMapper = {
     teamId: r.team_id,
     name: r.name,
     shortName: r.short_name,
+    timing: r.timing,
+    maxSquad:
+      r.max_squad === undefined ? 14 : r.max_squad === null ? null : Number(r.max_squad),
     archivedAt: ms(r.archived_at),
     createdAt: ms(r.created_at),
     updatedAt: ms(r.updated_at),

@@ -32,7 +32,16 @@ import { t } from '@/lib/i18n/index.js';
  * (nome · golos · faltas). Assim o traço fica sempre à altura dos números,
  * independentemente do que houver por cima e por baixo.
  */
-export function Scoreboard({ state, ourName, opponentName, ourFull, opponentFull, interactive, on }) {
+export function Scoreboard({
+  state,
+  ourName,
+  opponentName,
+  ourFull,
+  opponentFull,
+  interactive,
+  on,
+  opponentExtra = null,
+}) {
   return (
     <div className="scoreboard">
       <span className="scoreboard__name is-left" title={ourFull}>
@@ -49,14 +58,16 @@ export function Scoreboard({ state, ourName, opponentName, ourFull, opponentFull
         side="is-right"
         interactive={interactive}
         on={on}
-      />
+      >
+        {opponentExtra}
+      </ScoreCell>
       <FoulsCell state={state} team="US" side="is-left" interactive={interactive} on={on} />
       <FoulsCell state={state} team="THEM" side="is-right" interactive={interactive} on={on} />
     </div>
   );
 }
 
-function ScoreCell({ team, score, side, interactive, on }) {
+function ScoreCell({ team, score, side, interactive, on, children = null }) {
   return (
     <div className={`scoreboard__score ${side}`}>
       {interactive ? (
@@ -74,6 +85,7 @@ function ScoreCell({ team, score, side, interactive, on }) {
           +
         </button>
       ) : null}
+      {children}
     </div>
   );
 }
@@ -90,11 +102,11 @@ function ScoreCell({ team, score, side, interactive, on }) {
  * banco deles, e é este número que decide se um golo sofrido devolve ou não um
  * jogador nosso. Com 4 contra 4 ninguém repõe.
  */
-export function RivalOut({ state, on }) {
+export function RivalOut({ state, on, variant = 'standalone' }) {
   const n = state.opponentExpulsions || 0;
   return (
     <span
-      className={`rivalout ${n ? 'is-on' : ''}`}
+      className={`rivalout rivalout--${variant} ${n ? 'is-on' : ''}`}
       title={n ? t('vivo.jogamCom', { n: MAX_ON_COURT - n }) : t('vivo.jogamComCinco')}
     >
       <span className="rivalout__lbl">{t('vivo.expAdvCurto')}</span>

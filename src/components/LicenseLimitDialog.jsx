@@ -1,0 +1,66 @@
+'use client';
+
+import { Dialog } from '@/lib/ui.jsx';
+import { useT } from '@/lib/i18n/index.js';
+import { LICENSE_PRICES } from '@/lib/store.js';
+
+function Price({ plan }) {
+  const price = LICENSE_PRICES[plan];
+  return (
+    <div className="license-price">
+      <span className="license-price__old">{price.old}</span>
+      <strong>{price.current}</strong>
+    </div>
+  );
+}
+
+export default function LicenseLimitDialog({ close }) {
+  const t = useT();
+  const planos = [
+    {
+      id: 'treinador',
+      destaque: false,
+      bullets: ['umaConta', 'umEscalao', 'todasCompeticoes', 'estatisticasEscalao'],
+    },
+    {
+      id: 'clube',
+      destaque: true,
+      bullets: ['variosTreinadores', 'cincoEscaloes', 'todasCompeticoes', 'todasEstatisticas'],
+    },
+  ];
+
+  return (
+    <Dialog title={t('licencas.titulo')} onClose={() => close(false)} wide>
+      <section className="license-limit">
+        <p className="license-limit__eyebrow">{t('licencas.fimGratis')}</p>
+        <h3>{t('licencas.continuaEpoca')}</h3>
+        <p className="modal__text">{t('licencas.limiteJogos')}</p>
+      </section>
+      <div className="license-limit-grid">
+        {planos.map((plano) => (
+          <article
+            key={plano.id}
+            className={`license-limit-plan ${plano.destaque ? 'license-limit-plan--club' : ''}`}
+          >
+            {plano.destaque ? <span className="license-limit-plan__badge">{t('licencas.paraClubes')}</span> : null}
+            <div className="license-limit-plan__head">
+              <h3>{t(`licencas.${plano.id}`)}</h3>
+              <Price plan={plano.id} />
+            </div>
+            <p className="muted small">{t('licencas.porAnoComTeste')}</p>
+            <ul>
+              {plano.bullets.map((key) => (
+                <li key={key}>{t(`licencas.${key}`)}</li>
+              ))}
+            </ul>
+            {plano.id === 'clube' ? <p className="muted small">{t('licencas.maisCinco')}</p> : null}
+          </article>
+        ))}
+      </div>
+      <footer className="modal__actions">
+        <button className="btn btn--ghost" onClick={() => close(false)}>{t('comum.cancelar')}</button>
+        <button className="btn btn--primary" onClick={() => close(true)}>{t('licencas.verOpcoes')}</button>
+      </footer>
+    </Dialog>
+  );
+}

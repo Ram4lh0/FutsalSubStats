@@ -16,7 +16,13 @@ import { clubs, teams, competitions, players, matches, squad, events } from '@/l
 import * as sync from '@/lib/data/sync.js';
 import { matchCreated } from '@/domain/actions.js';
 import { validateMatchInfo, validateSquadSelection, validateLineup } from '@/domain/validation.js';
-import { MAX_SQUAD, LOCATION, MATCH_TIMING, timingOf, timingConfig } from '@/domain/constants.js';
+import {
+  LOCATION,
+  MATCH_TIMING,
+  maxSquadOf,
+  timingOf,
+  timingConfig,
+} from '@/domain/constants.js';
 import {
   dateLabel,
   positionLabel,
@@ -26,6 +32,8 @@ import {
 } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
+import { canCreateMatch } from '@/lib/entitlements.js';
+import LicenseLimitDialog from '@/components/LicenseLimitDialog.jsx';
 
 // As etapas são chaves, não frases: o nome de cada uma muda com o idioma.
 const ETAPAS = ['novo.etapaInfo', 'novo.etapaConvocados', 'novo.etapaCinco', 'novo.etapaConfirmacao'];
@@ -72,12 +80,11 @@ function Assistente() {
       setClub(await clubs.get(clubId));
       const lista = await competitions.listByTeam(teamId);
       setProvas(lista);
-      // O tipo de tempo vem preenchido com o do escalão, mas dá para mudar: um
-      // particular pode ser corrido mesmo numa equipa que joga cronometrado.
+      const inicial = lista.length === 1 ? lista[0] : null;
       setInfo((i) => ({
         ...i,
-        timing: i.timing || timingOf(t),
-        competitionId: i.competitionId || (lista.length === 1 ? lista[0].id : ''),
+        timing: timingOf(inicial || t),
+        competitionId: i.competitionId || inicial?.id || '',
       }));
       setRoster((await players.listByTeam(teamId)).filter((p) => p.isActive));
     })();
@@ -95,6 +102,8 @@ function Assistente() {
         })),
     [roster, escolhidos]
   );
+  const provaEscolhida = provas.find((c) => c.id === info.competitionId) || null;
+  const limiteConvocados = maxSquadOf(provaEscolhida);
 
   if (!roster) return <p className="muted">A carregar…</p>;
 
@@ -152,16 +161,17 @@ function Assistente() {
    * adversário, a data e o local já escritos — e voltar a começar. Aqui a prova
    * nasce numa janela e fica logo escolhida.
    *
-   * A janela pede só o nome. A abreviatura e o resto editam-se depois, na aba
-   * própria: quem está a meio de marcar um jogo quer despachar isto.
+   * A janela recolhe também as regras que todos os jogos da prova herdam.
    */
   async function criarProva() {
-    const nome = await ui.open((close) => <NovaProva onClose={close} />);
-    if (!nome) return;
-    const prova = await competitions.create(teamId, { name: nome });
+    const dados = await ui.open((close) => (
+      <NovaProva defaultTiming={timingOf(team)} onClose={close} />
+    ));
+    if (!dados) return;
+    const prova = await competitions.create(teamId, dados);
     sync.saveNow(userId, user?.email);
     setProvas((lista) => [...lista, prova].sort((a, b) => a.name.localeCompare(b.name, 'pt')));
-    setInfo((i) => ({ ...i, competitionId: prova.id }));
+    setInfo((i) => ({ ...i, competitionId: prova.id, timing: timingOf(prova) }));
     toast(t('novo.provaCriada', { nome: prova.name }), 'ok');
   }
 
@@ -181,8 +191,8 @@ function Assistente() {
         });
         return atual.filter((x) => x !== id);
       }
-      if (atual.length >= MAX_SQUAD) {
-        toast(t('validacao.muitosConvocados', { n: MAX_SQUAD }), 'error');
+      if (limiteConvocados != null && atual.length >= limiteConvocados) {
+        toast(t('validacao.muitosConvocados', { n: limiteConvocados }), 'error');
         return atual;
       }
       return [...atual, id];
@@ -193,6 +203,21 @@ function Assistente() {
     if (aGuardar) return;
     setAGuardar(true);
     try {
+      const permissao = await canCreateMatch();
+      if (!permissao.allowed) {
+        toast(
+          permissao.reason === 'free_limit_reached'
+            ? t('licencas.limiteJogos')
+            : t('licencas.redeParaCriar'),
+          'error',
+          5200
+        );
+        if (permissao.reason === 'free_limit_reached') {
+          const abrir = await ui.open((close) => <LicenseLimitDialog close={close} />);
+          if (abrir) router.push(`${rotas.conta()}#licencas`);
+        }
+        return;
+      }
       const jogo = await matches.create(teamId, {
         opponentName: info.opponentName,
         opponentShortName: info.opponentShortName,
@@ -275,7 +300,7 @@ function Assistente() {
         ))}
       </ol>
 
-      <div className="wizard">
+      <div className="wizard" data-tour="create-match">
         {etapa === 0 ? (
           <div className="card form">
             <div className="form__row">
@@ -312,7 +337,18 @@ function Assistente() {
                 hint={provas.length ? t('novo.competicaoDica') : t('novo.semCompeticoes')}
               >
                 <div className="comprova">
-                  <select className="input" {...campo('competitionId')}>
+                  <select
+                    className="input"
+                    value={info.competitionId}
+                    onChange={(event) => {
+                      const prova = provas.find((c) => c.id === event.target.value);
+                      setInfo((i) => ({
+                        ...i,
+                        competitionId: event.target.value,
+                        timing: timingOf(prova || team),
+                      }));
+                    }}
+                  >
                     <option value="">{t('novo.escolherCompeticao')}</option>
                     {provas.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -323,6 +359,7 @@ function Assistente() {
                   <button
                     type="button"
                     className="btn btn--ghost"
+                    data-tour="create-competition"
                     onClick={criarProva}
                     title={t('novo.criarProva')}
                   >
@@ -330,14 +367,8 @@ function Assistente() {
                   </button>
                 </div>
               </Field>
-              <Field label={t('prep.tipoJogo')} hint={t('novo.tipoJogoDica')}>
-                <select className="input" {...campo('timing')}>
-                  {Object.values(MATCH_TIMING).map((v) => (
-                    <option key={v} value={v}>
-                      {timingLabel(v)}
-                    </option>
-                  ))}
-                </select>
+              <Field label={t('prep.tipoJogo')} hint={t('novo.tipoJogoDaCompeticao')}>
+                <input className="input" value={timingLabel(info.timing)} readOnly />
               </Field>
             </div>
             <Field label={t('prep.notas')}>
@@ -365,8 +396,8 @@ function Assistente() {
                 onChange={(e) => setProcura(e.target.value)}
               />
               <span className="toolbar__spacer" />
-              <span className={`counter ${escolhidos.length >= MAX_SQUAD ? 'is-full' : ''}`}>
-                {escolhidos.length}/{MAX_SQUAD}
+              <span className={`counter ${limiteConvocados != null && escolhidos.length >= limiteConvocados ? 'is-full' : ''}`}>
+                {escolhidos.length}/{limiteConvocados ?? '∞'}
               </span>
             </div>
 
@@ -393,7 +424,7 @@ function Assistente() {
             </div>
 
             {nav(t('comum.voltar'), t('novo.continuar'), async () => {
-              const erro = validateSquadSelection(escolhidos);
+              const erro = validateSquadSelection(escolhidos, limiteConvocados);
               if (erro) return toast(mensagemErro(erro), 'error');
               if (!(await confirmarPoucosConvocados(confirmar, escolhidos.length))) return;
               setEtapa(2);
@@ -539,10 +570,17 @@ function dataHoraPorOmissao() {
  * acende com alguma coisa escrita — uma prova sem nome não se distingue de
  * outra na lista.
  */
-function NovaProva({ onClose }) {
+function NovaProva({ defaultTiming, onClose }) {
   const t = useT();
   const [nome, setNome] = useState('');
+  const [timing, setTiming] = useState(defaultTiming);
+  const [maxSquad, setMaxSquad] = useState('14');
   const limpo = nome.trim();
+  const concluir = () => onClose({
+    name: limpo,
+    timing,
+    maxSquad: maxSquad === '' ? null : Number(maxSquad),
+  });
 
   return (
     <Dialog title={t('novo.criarProva')} onClose={() => onClose(null)}>
@@ -554,15 +592,32 @@ function NovaProva({ onClose }) {
           maxLength={60}
           onChange={(e) => setNome(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && limpo) onClose(limpo);
+            if (e.key === 'Enter' && limpo) concluir();
           }}
         />
       </Field>
+      <div className="form__row">
+        <Field label={t('competicao.tipoTempo')}>
+          <select className="input" value={timing} onChange={(e) => setTiming(e.target.value)}>
+            {Object.values(MATCH_TIMING).map((value) => (
+              <option key={value} value={value}>{timingLabel(value)}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label={t('competicao.maxConvocados')}>
+          <select className="input" value={maxSquad} onChange={(e) => setMaxSquad(e.target.value)}>
+            <option value="">{t('competicao.semLimite')}</option>
+            {Array.from({ length: 18 }, (_, index) => index + 5).map((value) => (
+              <option key={value} value={value}>{value}</option>
+            ))}
+          </select>
+        </Field>
+      </div>
       <footer className="modal__actions">
         <button className="btn btn--ghost" onClick={() => onClose(null)}>
           {t('comum.cancelar')}
         </button>
-        <button className="btn btn--primary" disabled={!limpo} onClick={() => onClose(limpo)}>
+        <button className="btn btn--primary" disabled={!limpo} onClick={concluir}>
           {t('competicoes.criar')}
         </button>
       </footer>

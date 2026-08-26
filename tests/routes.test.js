@@ -14,6 +14,7 @@ test('os ids viajam na barra de endereço, e não no caminho', () => {
   // na altura de compilar. Um id não se conhece nessa altura.
   assert.equal(rotas.escalao('c1', 't1'), '/team?c=c1&t=t1');
   assert.equal(rotas.jogoAoVivo('m1'), '/match/live?m=m1');
+  assert.equal(rotas.competicaoEditar('c1', 't1', 'k1'), '/team/competitions/edit?c=c1&t=t1&k=k1');
   assert.equal(rotas.dashboard(), '/dashboard');
 });
 
@@ -56,6 +57,7 @@ test('e continua acesa nas páginas penduradas nela', () => {
   // as Estatísticas ficavam acesas em todos os ecrãs do escalão.
   assert.equal(abaActiva('/team/matches/new/', abas), 1);
   assert.equal(abaActiva('/team/competitions/new/', abas), 2);
+  assert.equal(abaActiva('/team/competitions/edit/', abas), 2);
   assert.equal(abaActiva('/team/players/new/', abas), 3, 'sem aba própria, fica a do escalão');
 });
 

@@ -18,7 +18,14 @@ import { donoAtual } from './owner.js';
 import { notifyLocalChange } from './sync.js';
 import { uid } from '../../domain/actions.js';
 import { buildMatchState } from '../../domain/reducer.js';
-import { LOCATION, EVENT, MATCH_TIMING, timingOf, timingConfig } from '../../domain/constants.js';
+import {
+  LOCATION,
+  EVENT,
+  MATCH_TIMING,
+  timingOf,
+  timingConfig,
+  maxSquadOf,
+} from '../../domain/constants.js';
 import { t } from '../i18n/index.js';
 
 const now = () => Date.now();
@@ -223,7 +230,7 @@ export const teams = {
     });
     await db.put(db.STORES.teams, row);
     for (const prova of DEFAULT_COMPETITIONS) {
-      await competitions.create(row.id, prova);
+      await competitions.create(row.id, { ...prova, timing: row.timing });
     }
     notifyLocalChange();
     return row;
@@ -277,6 +284,7 @@ export const competitions = {
   },
   get: (id) => db.get(db.STORES.competitions, id),
   async create(teamId, data) {
+    const team = await teams.get(teamId);
     const row = stamp({
       // Um id vindo de fora só acontece no jogo de experiência, que precisa de
       // identificadores fixos para depois se apagar a si próprio.
@@ -284,6 +292,8 @@ export const competitions = {
       teamId,
       name: (data.name || '').trim(),
       shortName: (data.shortName || '').trim() || null,
+      timing: timingOf(data?.timing ? data : team),
+      maxSquad: data.maxSquad === null ? null : maxSquadOf(data),
       archivedAt: null,
     });
     await db.put(db.STORES.competitions, row);
@@ -292,8 +302,29 @@ export const competitions = {
   },
   async update(id, patch) {
     const cur = await db.get(db.STORES.competitions, id);
-    const row = stamp({ ...cur, ...patch });
+    const normalized = {
+      ...patch,
+      ...(patch.timing != null ? { timing: timingOf(patch) } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'maxSquad')
+        ? { maxSquad: patch.maxSquad === null ? null : maxSquadOf(patch) }
+        : {}),
+    };
+    const row = stamp({ ...cur, ...normalized });
     await db.put(db.STORES.competitions, row);
+    if (patch.timing != null) {
+      for (const match of await matches.listByTeam(row.teamId)) {
+        if (match.competitionId !== id) continue;
+        const started = (await events.listByMatch(match.id)).some(
+          (e) => e.eventType === EVENT.FIRST_HALF_STARTED
+        );
+        if (!started) {
+          await matches.update(match.id, {
+            timing: row.timing,
+            periodDurationMs: timingConfig(row).periodDurationMs,
+          });
+        }
+      }
+    }
     notifyLocalChange();
     return row;
   },
@@ -458,12 +489,9 @@ export const matches = {
   },
   get: (id) => db.get(db.STORES.matches, id),
   async create(teamId, data) {
-    // O tipo de tempo vem do escalão mas pode ser mudado neste jogo — e o que
-    // fica guardado é uma cópia: mexer no escalão não reescreve jogos passados.
     const team = await teams.get(teamId);
-    const timing = data.timing === MATCH_TIMING.TIMED || data.timing === MATCH_TIMING.UNTIMED
-      ? data.timing
-      : timingOf(team);
+    const competition = data.competitionId ? await competitions.get(data.competitionId) : null;
+    const timing = timingOf(competition || team);
     const row = stamp({
       // Um id vindo de fora só acontece no jogo de experiência, que precisa de
       // identificadores fixos para depois se apagar a si próprio.
@@ -486,7 +514,14 @@ export const matches = {
   },
   async update(id, patch, { sync: syncMode = 'immediate' } = {}) {
     const cur = await db.get(db.STORES.matches, id);
-    const row = stamp({ ...cur, ...patch });
+    const nextCompetitionId = Object.prototype.hasOwnProperty.call(patch, 'competitionId')
+      ? patch.competitionId
+      : cur.competitionId;
+    const competition = nextCompetitionId ? await competitions.get(nextCompetitionId) : null;
+    const timingPatch = competition
+      ? { timing: timingOf(competition), periodDurationMs: timingConfig(competition).periodDurationMs }
+      : {};
+    const row = stamp({ ...cur, ...patch, ...timingPatch });
     await db.put(db.STORES.matches, row);
     if (syncMode !== 'defer') notifyLocalChange();
     return row;

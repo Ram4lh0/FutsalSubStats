@@ -173,6 +173,17 @@ export const PENALTY_ALERT_MS = 10 * 1000;
 export const FOUL_LIMIT = 5;
 
 export const MAX_SQUAD = 14;
+export const DEFAULT_MAX_SQUAD = MAX_SQUAD;
+
+/**
+ * `null` significa explicitamente "sem limite". Registos antigos, onde o
+ * campo ainda nem existe, mantêm o comportamento histórico de 14 atletas.
+ */
+export function maxSquadOf(entity) {
+  if (entity?.maxSquad === null) return null;
+  const value = Number(entity?.maxSquad);
+  return Number.isInteger(value) && value >= MIN_SQUAD ? value : DEFAULT_MAX_SQUAD;
+}
 /** Abaixo de cinco dá para jogar, mas a app pergunta se é mesmo isso. */
 export const MIN_SQUAD = 3;
 export const MAX_ON_COURT = 5;

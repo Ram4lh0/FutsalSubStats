@@ -1,6 +1,7 @@
 import './globals.css';
 import Providers from './providers.jsx';
 import AppBar from '@/components/AppBar.jsx';
+import GuidedTutorial from '@/components/GuidedTutorial.jsx';
 
 export const metadata = {
   title: 'FutsalSubStats',
@@ -42,6 +43,7 @@ export default function RootLayout({ children }) {
             <main className="view" id="view">
               {children}
             </main>
+            <GuidedTutorial />
           </div>
         </Providers>
       </body>

@@ -98,6 +98,7 @@ function Shell({ clubId, teamId, children }) {
               </button>
               <button
                 className="btn btn--primary"
+                data-tour="create-match"
                 onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}
               >
                 {t('escalao.novoJogo')}
@@ -106,7 +107,9 @@ function Shell({ clubId, teamId, children }) {
           )
         }
       />
-      <Tabs items={abas} />
+      <div data-tour="team-tabs">
+        <Tabs items={abas} />
+      </div>
       <div className="tabbody">{children(dados)}</div>
     </>
   );

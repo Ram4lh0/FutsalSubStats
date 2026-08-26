@@ -152,6 +152,9 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
           error: null,
         };
       }
+      if (fn === 'claim_match_start') {
+        return { data: { allowed: true, freeGamesRemaining: 3 }, error: null };
+      }
       // Como no servidor: o mesmo client_event_id não entra duas vezes.
       const existente = tabelas.match_events.find((e) => e.client_event_id === payload.client_event_id);
       if (existente) {
