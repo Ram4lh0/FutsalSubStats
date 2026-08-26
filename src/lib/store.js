@@ -6,8 +6,8 @@ export const STORE_PRODUCTS = {
 };
 
 export const LICENSE_PRICES = {
-  treinador: { old: '45€', current: '30€/ano' },
-  clube: { old: '129€', current: '100€/ano' },
+  treinador: { old: '45€', current: '35€/ano' },
+  clube: { old: '145€', current: '119,99€/ano' },
 };
 
 export function planPrice(plan, product) {
