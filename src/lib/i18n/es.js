@@ -1005,14 +1005,16 @@ export default {
   'auth.semLigacao': 'Sin conexión con el servidor.',
   'auth.backupInvalido': 'Archivo de copia de seguridad no válido.',
 
-  /* -------------------------------------------------- registro por invitación */
-  'registo.fechado': 'El registro es por invitación.',
+  /* -------------------------------------------------- registro */
+  'registo.fechado': 'Crea tu cuenta.',
   'registo.fechadoTexto':
-    'Las cuentas se crean a petición. Escríbenos y te enviamos una invitación para que elijas tu contraseña.',
-  'registo.pedirConta': 'Pedir una cuenta',
-  'registo.assunto': 'Quiero una cuenta en FutsalSubStats',
+    'Cualquier usuario puede crear una cuenta y empezar con cuatro partidos gratis.',
+  'registo.pedirConta': 'Crear cuenta',
+  'registo.assunto': 'Quiero crear una cuenta en FutsalSubStats',
   'registo.recusado':
-    'El registro es por invitación. Escribe a {email} y te enviamos una invitación para crear la cuenta.',
+    'Los registros aún están desactivados en Supabase. Activa "Allow new users to sign up" para que cualquiera pueda crear una cuenta.',
+  'registo.desligadoNoServidor':
+    'Los registros aún están desactivados en Supabase. Activa "Allow new users to sign up" para que cualquiera pueda crear una cuenta.',
 
   /* -------------------------------------------------------- exportación */
   'csv.clube': 'Club',
