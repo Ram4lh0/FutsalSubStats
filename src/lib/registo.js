@@ -1,6 +1,6 @@
 'use client';
 
-// lib/registo.js — o registo está aberto a toda a gente, ou é por convite?
+// lib/registo.js — estado do registo.
 //
 // Há duas fechaduras, e é importante não as confundir:
 //
@@ -36,19 +36,13 @@ export function registoAberto() {
   return true;
 }
 
-/** O endereço para quem quiser uma conta quando o registo está fechado. */
+/** Contacto administrativo usado por builds antigas e mensagens de suporte. */
 export const CONTACTO = 'review.futsalsubstats@gmail.com';
 
 /**
- * A ligação que abre o email já com o assunto escrito.
- *
- * Existe porque os botões de "pedir conta" espalhados pela app estavam todos a
- * levar ao ecrã de entrada, onde a pessoa tinha de encontrar sozinha o endereço
- * para onde escrever. Com o registo fechado, o ecrã de entrada não é um destino:
- * é mais um passo entre alguém que quer a app e nós.
- *
- * Um `mailto` num `<a>` e não um `router.push`: quem carrega quer escrever um
- * email, e o sítio onde isso se faz é o programa de email dele.
+ * Ligação antiga para contacto.
+ * Ficou para compatibilidade com builds antigas e pontos de contacto
+ * administrativos. A interface atual mantém o registo aberto.
  */
 export function ligacaoPedirConta(assunto) {
   return `mailto:${CONTACTO}?subject=${encodeURIComponent(assunto || '')}`;
