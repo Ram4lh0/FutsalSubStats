@@ -17,7 +17,17 @@ import { useT } from '@/lib/i18n/index.js';
 export default function LoginPage() {
   const router = useRouter();
   const t = useT();
-  const { signIn, signUp, signInWithProvider, pedirRecuperacao, session, ready, remote } = useAuth();
+  const {
+    signIn,
+    signUp,
+    signInWithProvider,
+    pedirRecuperacao,
+    session,
+    ready,
+    remote,
+    authError,
+    clearAuthError,
+  } = useAuth();
   const { toast } = useUI();
   const [modo, setModo] = useState('entrar');
   const [nome, setNome] = useState('');
@@ -38,6 +48,12 @@ export default function LoginPage() {
   useEffect(() => {
     limparDemo();
   }, []);
+
+  useEffect(() => {
+    if (!authError) return;
+    toast(authError, 'error', 8000);
+    clearAuthError?.();
+  }, [authError, clearAuthError, toast]);
 
   /**
    * Pedir o email para escolher uma palavra-passe nova.
