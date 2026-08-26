@@ -58,7 +58,10 @@ export function UIProvider({ children }) {
     [open]
   );
 
-  const value = useMemo(() => ({ toast, open, confirmar }), [toast, open, confirmar]);
+  const value = useMemo(
+    () => ({ toast, open, confirmar, dialogOpen: dialogs.length > 0 }),
+    [toast, open, confirmar, dialogs.length]
+  );
 
   return (
     <UIContext.Provider value={value}>

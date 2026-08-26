@@ -35,10 +35,20 @@ import {
   FOUL_LIMIT,
   timingOf,
   timingConfig,
+  maxSquadOf,
 } from '../src/domain/constants.js';
 
 const MIN = 60_000;
 const T0 = 1_700_000_000_000;
+
+test('o limite antigo continua em 14 e null significa sem limite', () => {
+  assert.equal(maxSquadOf({}), 14);
+  assert.equal(maxSquadOf({ maxSquad: 12 }), 12);
+  assert.equal(maxSquadOf({ maxSquad: null }), null);
+  assert.equal(V.validateSquadSelection(Array.from({ length: 15 }, (_, i) => `p${i}`))?.chave,
+    'validacao.muitosConvocados');
+  assert.equal(V.validateSquadSelection(Array.from({ length: 30 }, (_, i) => `p${i}`), null), null);
+});
 
 const match = { id: 'm1', clubId: 'c1', periodDurationMs: 20 * MIN };
 

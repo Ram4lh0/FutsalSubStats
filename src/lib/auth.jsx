@@ -39,6 +39,34 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  useEffect(() => {
+    const sb = supabase();
+    const cap = globalThis?.Capacitor;
+    const app = cap?.Plugins?.App;
+    const browser = cap?.Plugins?.Browser;
+    if (!sb || !dentroDoInvolucro(cap) || !app) return;
+
+    let listener;
+    let alive = true;
+    const finishOAuth = async (url) => {
+      if (!url?.startsWith('com.futsalsubstats.app://auth/callback')) return;
+      const code = new URL(url).searchParams.get('code');
+      if (code) await sb.auth.exchangeCodeForSession(code);
+      await browser?.close?.().catch(() => {});
+    };
+
+    app.addListener('appUrlOpen', ({ url }) => finishOAuth(url)).then((handle) => {
+      if (alive) listener = handle;
+      else handle.remove();
+    });
+    app.getLaunchUrl().then((launch) => finishOAuth(launch?.url)).catch(() => {});
+
+    return () => {
+      alive = false;
+      listener?.remove();
+    };
+  }, []);
+
   const value = useMemo(
     () => ({
       session,
@@ -57,12 +85,36 @@ export function AuthProvider({ children }) {
       async signUp(email, password, name) {
         const sb = supabase();
         if (!sb) return { error: t('auth.semServidor') };
-        const { error } = await sb.auth.signUp({
+        const { data, error } = await sb.auth.signUp({
           email,
           password,
           options: { data: { name } },
         });
-        return { error: error ? traduzir(error.message) : null };
+        return {
+          error: error ? traduzir(error.message) : null,
+          needsConfirmation: !error && !data?.session,
+        };
+      },
+
+      async signInWithProvider(provider) {
+        const sb = supabase();
+        if (!sb) return { error: t('auth.semServidor') };
+        const cap = globalThis?.Capacitor;
+        const native = dentroDoInvolucro(cap);
+        const redirectTo = native
+          ? 'com.futsalsubstats.app://auth/callback'
+          : `${window.location.origin}/login`;
+        const { data, error } = await sb.auth.signInWithOAuth({
+          provider,
+          options: { redirectTo, skipBrowserRedirect: native },
+        });
+        if (error) return { error: traduzir(error.message) };
+        if (native && data?.url) {
+          const browser = cap?.Plugins?.Browser;
+          if (!browser?.open) return { error: t('auth.semNavegador') };
+          await browser.open({ url: data.url });
+        }
+        return { error: null };
       },
 
       /**
@@ -182,6 +234,13 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth fora do AuthProvider');
   return ctx;
+}
+
+function dentroDoInvolucro(cap) {
+  if (!cap) return false;
+  if (typeof cap.isNativePlatform === 'function') return Boolean(cap.isNativePlatform());
+  if (typeof cap.getPlatform === 'function') return cap.getPlatform() !== 'web';
+  return Boolean(cap.isNative);
 }
 
 /** As mensagens do Supabase vêm em inglês; as que se vêem mais ficam em português. */

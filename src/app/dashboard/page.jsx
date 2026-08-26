@@ -140,7 +140,11 @@ function Dashboard() {
       ) : !cartoes.length ? (
         <div className="empty">
           <p>{t('painel.semClubes')}</p>
-          <button className="btn btn--primary" onClick={() => router.push(rotas.clubeNovo())}>
+          <button
+            className="btn btn--primary"
+            data-tour="create-club"
+            onClick={() => router.push(rotas.clubeNovo())}
+          >
             {t('painel.primeiroClube')}
           </button>
         </div>
@@ -193,7 +197,11 @@ function Dashboard() {
                 </div>
               </dl>
               <div className="club-card__actions">
-                <button className="btn btn--primary" onClick={() => router.push(rotas.clube(club.id))}>
+                <button
+                  className="btn btn--primary"
+                  data-tour="open-club"
+                  onClick={() => router.push(rotas.clube(club.id))}
+                >
                   {t('painel.abrirClube')}
                 </button>
               </div>

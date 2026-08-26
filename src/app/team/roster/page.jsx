@@ -235,6 +235,7 @@ function Roster({ team, entries, roster, clubId, teamId }) {
             </button>
             <button
               className="btn btn--primary"
+              data-tour="create-player"
               onClick={() => router.push(rotas.jogadorNovo(clubId, teamId))}
             >
               {t('plantel.criarJogador')}
@@ -249,6 +250,7 @@ function Roster({ team, entries, roster, clubId, teamId }) {
             roster.length || soLeitura ? null : (
               <button
                 className="btn btn--primary"
+                data-tour="create-player"
                 onClick={() => router.push(rotas.jogadorNovo(clubId, teamId))}
               >
                 {t('plantel.criarJogador')}

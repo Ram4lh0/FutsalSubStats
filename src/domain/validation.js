@@ -49,9 +49,10 @@ export function validateMatchInfo(data) {
   return null;
 }
 
-export function validateSquadSelection(playerIds) {
+export function validateSquadSelection(playerIds, maxSquad = MAX_SQUAD) {
   if (playerIds.length < MIN_SQUAD) return erro('validacao.poucosConvocados', { n: MIN_SQUAD });
-  if (playerIds.length > MAX_SQUAD) return erro('validacao.muitosConvocados', { n: MAX_SQUAD });
+  if (maxSquad != null && playerIds.length > maxSquad)
+    return erro('validacao.muitosConvocados', { n: maxSquad });
   if (new Set(playerIds).size !== playerIds.length) return erro('validacao.convocadosRepetidos');
   return null;
 }

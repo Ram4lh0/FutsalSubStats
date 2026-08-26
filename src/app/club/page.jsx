@@ -107,6 +107,7 @@ function Escaloes() {
               {podeCriarEscalao ? (
                 <button
                   className="btn btn--primary"
+                  data-tour="create-team"
                   onClick={() => router.push(rotas.escalaoNovo(clubId))}
                 >
                   {t('clube.criarEscalao')}
@@ -123,6 +124,7 @@ function Escaloes() {
             souDono ? (
               <button
                 className="btn btn--primary"
+                data-tour="create-team"
                 onClick={() => router.push(rotas.escalaoNovo(clubId))}
               >
                 {t('clube.primeiroEscalao')}
@@ -198,6 +200,7 @@ function Escaloes() {
                 </button>
                 <button
                   className="btn btn--primary"
+                  data-tour="open-team"
                   onClick={() => router.push(rotas.escalao(clubId, team.id))}
                 >
                   {t('clube.abrirEscalao')}

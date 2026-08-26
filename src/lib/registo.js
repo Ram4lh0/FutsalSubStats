@@ -30,9 +30,10 @@
  * (ou `false`) no ambiente e voltando a compilar.
  */
 export function registoAberto() {
-  const v = String(process.env.NEXT_PUBLIC_REGISTO_ABERTO ?? '').trim().toLowerCase();
-  if (!v) return true;
-  return v !== '0' && v !== 'false' && v !== 'nao' && v !== 'não';
+  // Desde a versão com quatro jogos gratuitos, qualquer pessoa pode criar
+  // conta. A variável antiga pode continuar configurada em builds já montados,
+  // mas deixou de fechar a interface e de contradizer a política do servidor.
+  return true;
 }
 
 /** O endereço para quem quiser uma conta quando o registo está fechado. */

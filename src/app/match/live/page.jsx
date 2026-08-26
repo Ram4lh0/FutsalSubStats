@@ -808,7 +808,7 @@ function Live() {
 
   return (
     <div className="live">
-      <header className="live__head">
+      <header className="live__head" data-tour="live-clock">
         <Scoreboard
           state={state}
           ourName={ourName}
@@ -817,6 +817,7 @@ function Live() {
           opponentFull={match.opponentName}
           interactive
           on={on}
+          opponentExtra={<RivalOut state={state} on={on} variant="inline" />}
         />
         <ClockBox
           state={state}
@@ -860,16 +861,18 @@ function Live() {
           não pode ficar abaixo da dobra, à espera que alguém deslize para a ver. */}
       <Penalties state={state} clockMs={clockMs} penaltyMs={penaltyMs()} on={on} />
 
-      <Court
-        state={state}
-        sel={sel}
-        clockMs={clockMs}
-        penaltyMs={penaltyMs()}
-        on={on}
-        arrasto={arrasto}
-      />
+      <div data-tour="live-court">
+        <Court
+          state={state}
+          sel={sel}
+          clockMs={clockMs}
+          penaltyMs={penaltyMs()}
+          on={on}
+          arrasto={arrasto}
+        />
 
-      <Bench state={state} sel={sel} clockMs={clockMs} on={on} arrasto={arrasto} />
+        <Bench state={state} sel={sel} clockMs={clockMs} on={on} arrasto={arrasto} />
+      </div>
 
       <footer className="live__bar">
         <button

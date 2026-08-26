@@ -19,10 +19,12 @@ import { clubs, teams, competitions, players, matches, squad, events, loadMatch 
 import * as sync from '@/lib/data/sync.js';
 import { startFirstHalf } from '@/domain/actions.js';
 import { canStartFirstHalf, validateLineup, validateSquadSelection } from '@/domain/validation.js';
-import { MAX_SQUAD, LOCATION, MATCH_STATUS, MATCH_TIMING, timingOf } from '@/domain/constants.js';
+import { LOCATION, MATCH_STATUS, maxSquadOf, timingOf } from '@/domain/constants.js';
 import { positionLabel, mensagemErro, homeAwayLabel, timingLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
+import { claimMatchStart } from '@/lib/entitlements.js';
+import LicenseLimitDialog from '@/components/LicenseLimitDialog.jsx';
 
 export default function SetupPage() {
   return (
@@ -36,7 +38,8 @@ function Preparacao() {
   const { matchId } = useRouteParams();
   const router = useRouter();
   const t = useT();
-  const { toast, confirmar } = useUI();
+  const ui = useUI();
+  const { toast, confirmar } = ui;
   const { userId, user } = useAuth();
 
   const [dados, setDados] = useState(null);
@@ -89,6 +92,8 @@ function Preparacao() {
   if (!form) return <p className="muted">{t('comum.aCarregar')}</p>;
 
   const { match, state, club, team, roster, provas } = dados;
+  const provaEscolhida = provas.find((c) => c.id === form.competitionId) || null;
+  const limiteConvocados = maxSquadOf(provaEscolhida);
   // Um jogador inativo que já esteja convocado continua a aparecer: tirá-lo da
   // lista escondia uma convocatória feita antes de ele ser desativado.
   const elegiveis = roster.filter((p) => p.isActive || escolhidos.includes(p.id));
@@ -116,8 +121,8 @@ function Preparacao() {
         });
         return atual.filter((x) => x !== p.id);
       }
-      if (atual.length >= MAX_SQUAD) {
-        toast(t('validacao.muitosConvocados', { n: MAX_SQUAD }), 'error');
+      if (limiteConvocados != null && atual.length >= limiteConvocados) {
+        toast(t('validacao.muitosConvocados', { n: limiteConvocados }), 'error');
         return atual;
       }
       return [...atual, p.id];
@@ -133,8 +138,8 @@ function Preparacao() {
         opponentShortName: (form.opponentShortName || '').trim() || null,
         scheduledAt: new Date(form.scheduledAt).getTime(),
         homeOrAway: form.homeOrAway,
-        competition: form.competition,
-          notes: form.notes,
+        competitionId: form.competitionId || null,
+        notes: form.notes,
       });
       sync.saveNow(userId, user?.email);
       toast(t('prep.dadosGuardados'), 'ok');
@@ -146,7 +151,7 @@ function Preparacao() {
   }
 
   async function persistir({ silencioso = false } = {}) {
-    const e1 = validateSquadSelection(escolhidos);
+    const e1 = validateSquadSelection(escolhidos, limiteConvocados);
     if (e1) {
       toast(mensagemErro(e1), 'error');
       return false;
@@ -182,6 +187,24 @@ function Preparacao() {
     const fresco = await loadMatch(matchId);
     const erro = canStartFirstHalf(fresco.state);
     if (erro) return toast(mensagemErro(erro), 'error');
+    // Tenta enviar a preparacao se houver rede, mas o arranque do jogo e local.
+    // A utilizacao gratuita fica registada no servidor na proxima sincronizacao.
+    sync.saveNow(userId, user?.email);
+    const permissao = await claimMatchStart(matchId);
+    if (!permissao?.allowed) {
+      toast(
+        permissao?.reason === 'free_limit_reached'
+          ? t('licencas.limiteJogos')
+          : t('licencas.redeParaComecar'),
+        'error',
+        5200
+      );
+      if (permissao?.reason === 'free_limit_reached') {
+        const abrir = await ui.open((close) => <LicenseLimitDialog close={close} />);
+        if (abrir) router.push(`${rotas.conta()}#licencas`);
+      }
+      return;
+    }
     await events.append(startFirstHalf(fresco.state, Date.now()), { sync: 'defer' });
     // A partir daqui é jogo ao vivo: fica local até ao apito final. A preparação
     // já foi enviada; os acontecimentos do jogo seguem todos juntos quando se
@@ -226,7 +249,18 @@ function Preparacao() {
           </div>
           <div className="form__row">
             <Field label={t('prep.competicao')}>
-              <select className="input" {...campo('competitionId')}>
+              <select
+                className="input"
+                value={form.competitionId}
+                onChange={(event) => {
+                  const prova = provas.find((c) => c.id === event.target.value);
+                  setForm((f) => ({
+                    ...f,
+                    competitionId: event.target.value,
+                    timing: timingOf(prova || team),
+                  }));
+                }}
+              >
                 <option value="">{t('prep.semCompeticao')}</option>
                 {provas.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -235,14 +269,8 @@ function Preparacao() {
                 ))}
               </select>
             </Field>
-            <Field label={t('prep.tipoJogo')} hint={t('prep.tipoJogoDica')}>
-              <select className="input" {...campo('timing')}>
-                {Object.values(MATCH_TIMING).map((v) => (
-                  <option key={v} value={v}>
-                    {timingLabel(v)}
-                  </option>
-                ))}
-              </select>
+            <Field label={t('prep.tipoJogo')} hint={t('novo.tipoJogoDaCompeticao')}>
+              <input className="input" value={timingLabel(form.timing)} readOnly />
             </Field>
           </div>
           <Field label={t('prep.notas')}>
@@ -256,12 +284,12 @@ function Preparacao() {
         </div>
       </details>
 
-      <section className="card">
+      <section className="card" data-tour="match-setup">
         <div className="toolbar">
           <h2 className="section section--tight">{t('prep.convocados')}</h2>
           <span className="toolbar__spacer" />
-          <span className={`counter ${escolhidos.length >= MAX_SQUAD ? 'is-full' : ''}`}>
-            {escolhidos.length}/{MAX_SQUAD}
+          <span className={`counter ${limiteConvocados != null && escolhidos.length >= limiteConvocados ? 'is-full' : ''}`}>
+            {escolhidos.length}/{limiteConvocados ?? '∞'}
           </span>
         </div>
         <div className="pickgrid">
@@ -280,7 +308,7 @@ function Preparacao() {
         </div>
       </section>
 
-      <section className="card">
+      <section className="card" data-tour="match-setup">
         <h2 className="section section--tight">{t('prep.cincoInicial')}</h2>
         <CourtPicker candidates={candidatos} lineup={lineup} onChange={setLineup} />
       </section>
