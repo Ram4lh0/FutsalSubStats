@@ -17,6 +17,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [ready, setReady] = useState(!hasRemote());
+  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
     const sb = supabase();
@@ -41,6 +42,38 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const sb = supabase();
+    if (!sb || typeof window === 'undefined') return;
+
+    const resposta = lerRespostaOAuth();
+    if (!resposta.code && !resposta.error && !resposta.errorCode && !resposta.errorDescription) return;
+
+    let alive = true;
+    (async () => {
+      try {
+        if (resposta.error || resposta.errorCode || resposta.errorDescription) {
+          setAuthError(traduzir(resposta.errorDescription || resposta.errorCode || resposta.error));
+          return;
+        }
+        const { data, error } = await sb.auth.exchangeCodeForSession(resposta.code);
+        if (!alive) return;
+        if (error) setAuthError(traduzir(error.message));
+        else {
+          setSession(data?.session || null);
+          setAuthError(null);
+        }
+      } finally {
+        limparRespostaOAuth();
+        if (alive) setReady(true);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const sb = supabase();
     const cap = globalThis?.Capacitor;
     const app = cap?.Plugins?.App;
     const browser = cap?.Plugins?.Browser;
@@ -50,8 +83,17 @@ export function AuthProvider({ children }) {
     let alive = true;
     const finishOAuth = async (url) => {
       if (!url?.startsWith('com.futsalsubstats.app://auth/callback')) return;
-      const code = new URL(url).searchParams.get('code');
-      if (code) await sb.auth.exchangeCodeForSession(code);
+      const parsed = new URL(url);
+      const error = parsed.searchParams.get('error_description')
+        || parsed.searchParams.get('error_code')
+        || parsed.searchParams.get('error');
+      if (error) setAuthError(traduzir(error));
+      const code = parsed.searchParams.get('code');
+      if (code) {
+        const { error: trocaErro } = await sb.auth.exchangeCodeForSession(code);
+        if (trocaErro) setAuthError(traduzir(trocaErro.message));
+        else setAuthError(null);
+      }
       await browser?.close?.().catch(() => {});
     };
 
@@ -71,11 +113,17 @@ export function AuthProvider({ children }) {
     () => ({
       session,
       ready,
+      authError,
       remote: hasRemote(),
       user: session?.user || null,
       userId: session?.user?.id || null,
 
+      clearAuthError() {
+        setAuthError(null);
+      },
+
       async signIn(email, password) {
+        setAuthError(null);
         const sb = supabase();
         if (!sb) return { error: t('auth.semServidor') };
         const { error } = await sb.auth.signInWithPassword({ email, password });
@@ -83,6 +131,7 @@ export function AuthProvider({ children }) {
       },
 
       async signUp(email, password, name) {
+        setAuthError(null);
         const sb = supabase();
         if (!sb) return { error: t('auth.semServidor') };
         const { data, error } = await sb.auth.signUp({
@@ -97,6 +146,8 @@ export function AuthProvider({ children }) {
       },
 
       async signInWithProvider(provider) {
+        setAuthError(null);
+        limparRespostaOAuth();
         const sb = supabase();
         if (!sb) return { error: t('auth.semServidor') };
         const cap = globalThis?.Capacitor;
@@ -104,9 +155,10 @@ export function AuthProvider({ children }) {
         const redirectTo = native
           ? 'com.futsalsubstats.app://auth/callback'
           : `${window.location.origin}/login`;
+        const queryParams = provider === 'google' ? { prompt: 'select_account' } : undefined;
         const { data, error } = await sb.auth.signInWithOAuth({
           provider,
-          options: { redirectTo, skipBrowserRedirect: native },
+          options: { redirectTo, skipBrowserRedirect: native, queryParams },
         });
         if (error) return { error: traduzir(error.message) };
         if (native && data?.url) {
@@ -190,6 +242,7 @@ export function AuthProvider({ children }) {
        * permitidos era recusado pelo servidor — assim não há lista para manter.
        */
       async pedirRecuperacao(email) {
+        setAuthError(null);
         const sb = supabase();
         if (!sb) return { error: t('auth.semServidor') };
         const { error } = await sb.auth.resetPasswordForEmail(String(email || '').trim());
@@ -224,7 +277,7 @@ export function AuthProvider({ children }) {
         return { error: null };
       },
     }),
-    [session, ready]
+    [session, ready, authError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -241,6 +294,50 @@ function dentroDoInvolucro(cap) {
   if (typeof cap.isNativePlatform === 'function') return Boolean(cap.isNativePlatform());
   if (typeof cap.getPlatform === 'function') return cap.getPlatform() !== 'web';
   return Boolean(cap.isNative);
+}
+
+const OAUTH_PARAMS = ['code', 'error', 'error_code', 'error_description'];
+
+function lerRespostaOAuth() {
+  if (typeof window === 'undefined') return {};
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams((url.hash || '').replace(/^#/, ''));
+  const get = (nome) => url.searchParams.get(nome) || hash.get(nome) || '';
+  return {
+    code: get('code'),
+    error: get('error'),
+    errorCode: get('error_code'),
+    errorDescription: get('error_description'),
+  };
+}
+
+function limparRespostaOAuth() {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  let mudou = false;
+
+  for (const param of OAUTH_PARAMS) {
+    if (url.searchParams.has(param)) {
+      url.searchParams.delete(param);
+      mudou = true;
+    }
+  }
+
+  const hash = new URLSearchParams((url.hash || '').replace(/^#/, ''));
+  for (const param of OAUTH_PARAMS) {
+    if (hash.has(param)) {
+      hash.delete(param);
+      mudou = true;
+    }
+  }
+
+  if (!mudou) return;
+  const nextHash = hash.toString();
+  window.history.replaceState(
+    window.history.state,
+    '',
+    `${url.pathname}${url.search}${nextHash ? `#${nextHash}` : ''}`
+  );
 }
 
 /** As mensagens do Supabase vêm em inglês; as que se vêem mais ficam em português. */
