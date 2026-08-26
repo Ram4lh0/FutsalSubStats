@@ -23,15 +23,25 @@ export function AuthProvider({ children }) {
     if (!sb) return; // modo só-dispositivo
 
     let alive = true;
-    sb.auth.getSession().then(({ data }) => {
+    const aplicarSessao = (next) => {
       if (!alive) return;
-      setSession(data.session || null);
+      setSession(next || null);
+      if (next) {
+        setAuthError(null);
+        limparRespostaOAuth();
+      }
       setReady(true);
-    });
+    };
+
+    sb.auth
+      .getSession()
+      .then(({ data }) => aplicarSessao(data.session || null))
+      .catch(() => {
+        if (alive) setReady(true);
+      });
 
     const { data: sub } = sb.auth.onAuthStateChange((_event, next) => {
-      setSession(next || null);
-      setReady(true);
+      aplicarSessao(next || null);
     });
     return () => {
       alive = false;
@@ -59,6 +69,7 @@ export function AuthProvider({ children }) {
         else {
           setSession(data?.session || null);
           setAuthError(null);
+          if (data?.session) limparRespostaOAuth();
         }
       } finally {
         limparRespostaOAuth();
@@ -153,7 +164,7 @@ export function AuthProvider({ children }) {
         const native = dentroDoInvolucro(cap);
         const redirectTo = native
           ? 'com.futsalsubstats.app://auth/callback'
-          : `${window.location.origin}/login`;
+          : `${window.location.origin}/`;
         const queryParams = provider === 'google' ? { prompt: 'select_account' } : undefined;
         const { data, error } = await sb.auth.signInWithOAuth({
           provider,
