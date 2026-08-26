@@ -8,14 +8,17 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth.jsx';
 import { rotas } from '@/lib/routes.js';
 
 export default function Home() {
   const router = useRouter();
+  const { ready, remote, session } = useAuth();
 
   useEffect(() => {
-    router.replace(rotas.dashboard());
-  }, [router]);
+    if (!ready) return;
+    router.replace(!remote || session ? rotas.dashboard() : rotas.login());
+  }, [ready, remote, session, router]);
 
   return <p className="muted" style={{ padding: 20 }}>A carregar…</p>;
 }
