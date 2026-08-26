@@ -174,10 +174,17 @@ workflows:
           set -euo pipefail
 
           xcode-project build-ipa \
+            -v \
+            --disable-xcpretty \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
             --config Release \
-            --archive-flags "-destination 'generic/platform=iOS'"
+            --archive-flags "-destination 'generic/platform=iOS'" \
+            --export-options-plist "$HOME/export_options.plist" || {
+              echo "xcode-project build-ipa failed. Showing xcodebuild logs:"
+              find /tmp/xcodebuild_logs -type f -name '*.log' -print -exec tail -n 200 {} \; || true
+              exit 1
+            }
 
     artifacts:
       - build/ios/ipa/*.ipa
