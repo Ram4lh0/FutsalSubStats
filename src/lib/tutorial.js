@@ -11,31 +11,51 @@ export const guidedTutorialSteps = [
     id: 'club',
     titleKey: 'tutorial.guiado.clubeTitulo',
     textKey: 'tutorial.guiado.clubeTexto',
-    target: '[data-tour="create-club"]',
+    target: '[data-tour="create-club"], [data-tour="club-save"]',
+    skipWhen: 'hasClub',
   },
   {
     id: 'team',
     titleKey: 'tutorial.guiado.escalaoTitulo',
     textKey: 'tutorial.guiado.escalaoTexto',
-    target: '[data-tour="create-team"]',
+    target: '[data-tour="create-team"], [data-tour="team-save"]',
+    skipWhen: 'hasTeam',
   },
   {
     id: 'competitions',
     titleKey: 'tutorial.guiado.competicoesTitulo',
     textKey: 'tutorial.guiado.competicoesTexto',
-    target: '[data-tour="competitions"]',
+    target: '[data-tour="create-competition"], [data-tour="edit-competition"], [data-tour="competitions"]',
   },
   {
     id: 'players',
     titleKey: 'tutorial.guiado.jogadoresTitulo',
     textKey: 'tutorial.guiado.jogadoresTexto',
-    target: '[data-tour="create-player"]',
+    target: '[data-tour="create-player"], [data-tour="player-save"]',
   },
   {
     id: 'match',
     titleKey: 'tutorial.guiado.jogoTitulo',
     textKey: 'tutorial.guiado.jogoTexto',
     target: '[data-tour="create-match"]',
+  },
+  {
+    id: 'matchSquad',
+    titleKey: 'tutorial.guiado.convocadosTitulo',
+    textKey: 'tutorial.guiado.convocadosTexto',
+    target: '[data-tour="match-squad"]',
+  },
+  {
+    id: 'matchLineup',
+    titleKey: 'tutorial.guiado.cincoTitulo',
+    textKey: 'tutorial.guiado.cincoTexto',
+    target: '[data-tour="match-lineup"]',
+  },
+  {
+    id: 'matchConfirm',
+    titleKey: 'tutorial.guiado.guardarJogoTitulo',
+    textKey: 'tutorial.guiado.guardarJogoTexto',
+    target: '[data-tour="match-save-open"]',
   },
   {
     id: 'setup',
@@ -48,18 +68,38 @@ export const guidedTutorialSteps = [
     titleKey: 'tutorial.guiado.acoesTitulo',
     textKey: 'tutorial.guiado.acoesTexto',
     target: '[data-tour="live-court"]',
+    autoHideMs: 20000,
   },
   {
     id: 'halftime',
     titleKey: 'tutorial.guiado.intervaloTitulo',
     textKey: 'tutorial.guiado.intervaloTexto',
-    target: '[data-tour="live-clock"]',
+    target: '[data-tour="halftime-summary"], [data-tour="halftime-player-stats"]',
+  },
+  {
+    id: 'liveSecond',
+    titleKey: 'tutorial.guiado.segundaParteTitulo',
+    textKey: 'tutorial.guiado.segundaParteTexto',
+    target: '[data-tour="live-court"]',
+    autoHideMs: 20000,
   },
   {
     id: 'summary',
     titleKey: 'tutorial.guiado.resumoTitulo',
     textKey: 'tutorial.guiado.resumoTexto',
     target: '[data-tour="match-summary"]',
+  },
+  {
+    id: 'summaryHome',
+    titleKey: 'tutorial.guiado.voltarEscalaoTitulo',
+    textKey: 'tutorial.guiado.voltarEscalaoTexto',
+    target: '[data-tour="summary-home"]',
+  },
+  {
+    id: 'openTeam',
+    titleKey: 'tutorial.guiado.abrirEscalaoTitulo',
+    textKey: 'tutorial.guiado.abrirEscalaoTexto',
+    target: '[data-tour="open-team"]',
   },
   {
     id: 'stats',
@@ -93,6 +133,14 @@ export function setGuidedTutorialStep(step) {
   const next = Math.max(0, Math.min(guidedTutorialSteps.length - 1, Number(step) || 0));
   window.localStorage.setItem(TUTORIAL_STEP_KEY, String(next));
   emitChange();
+}
+
+export function setGuidedTutorialStepById(id) {
+  if (typeof window === 'undefined') return;
+  if (window.localStorage.getItem(TUTORIAL_ACTIVE_KEY) !== '1') return;
+  const index = guidedTutorialSteps.findIndex((step) => step.id === id);
+  if (index < 0) return;
+  setGuidedTutorialStep(index);
 }
 
 export function stopGuidedTutorial() {

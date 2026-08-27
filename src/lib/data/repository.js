@@ -518,10 +518,14 @@ export const matches = {
       ? patch.competitionId
       : cur.competitionId;
     const competition = nextCompetitionId ? await competitions.get(nextCompetitionId) : null;
-    const timingPatch = competition
+    const hasTimingPatch = Object.prototype.hasOwnProperty.call(patch, 'timing');
+    const timingPatch = competition && !hasTimingPatch
       ? { timing: timingOf(competition), periodDurationMs: timingConfig(competition).periodDurationMs }
       : {};
-    const row = stamp({ ...cur, ...patch, ...timingPatch });
+    const normalizedPatch = hasTimingPatch
+      ? { ...patch, timing: timingOf(patch), periodDurationMs: timingConfig(patch).periodDurationMs }
+      : patch;
+    const row = stamp({ ...cur, ...normalizedPatch, ...timingPatch });
     await db.put(db.STORES.matches, row);
     if (syncMode !== 'defer') notifyLocalChange();
     return row;

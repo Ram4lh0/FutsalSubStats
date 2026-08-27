@@ -42,7 +42,7 @@ function Conteudo() {
         return (
           <>
             {soLeitura ? null : (
-              <div className="toolbar" data-tour="competitions">
+              <div className="toolbar">
                 <span className="toolbar__spacer" />
                 <button
                   className="btn btn--primary"
@@ -60,6 +60,7 @@ function Conteudo() {
                   soLeitura ? null : (
                     <button
                       className="btn btn--primary"
+                      data-tour="create-competition"
                       onClick={() => router.push(rotas.competicaoNova(clubId, teamId))}
                     >
                       {t('competicoes.primeira')}

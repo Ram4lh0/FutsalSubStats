@@ -71,63 +71,67 @@ export default function Halftime({
           })}
         </p>
 
-        <h3 className="section section--tight">{t('intervalo.golos')}</h3>
-        <GoalsTimeline
-          state={state}
-          ourName={ourName}
-          opponentName={opponentName}
-          onEdit={onEditGoal}
-        />
+        <div data-tour="halftime-summary">
+          <h3 className="section section--tight">{t('intervalo.golos')}</h3>
+          <GoalsTimeline
+            state={state}
+            ourName={ourName}
+            opponentName={opponentName}
+            onEdit={onEditGoal}
+          />
+        </div>
 
         <h3 className="section">{t('intervalo.jogadores')}</h3>
-        <DataTable tight>
-          <thead>
-            <tr>
-              <th>{t('stats.jogador')}</th>
-              <th className="num" title={t('stats.golos')}>
-                {t('ficha.golosCurto')}
-              </th>
-              <th className="num" title={t('ficha.assistencias')}>
-                {t('ficha.assistCurto')}
-              </th>
-              <th className="num" title={t('stats.sofridosTitulo')}>
-                {t('ficha.sofridosCurto')}
-              </th>
-              <th className="num" title={t('intervalo.faltasCometidas')}>
-                {t('intervalo.faltasCurto')}
-              </th>
-              <th className="num" title={t('intervalo.faltasSofridas')}>
-                {t('intervalo.faltasSofridasCurto')}
-              </th>
-              <th className="num" title={t('ficha.cartoesAmarelos')}>
-                {t('ficha.amarelosCurto')}
-              </th>
-              <th className="num" title={t('ficha.cartoesVermelhos')}>
-                {t('ficha.vermelhosCurto')}
-              </th>
-              <th className="num">{t('ficha.emCampo')}</th>
-              <th className="num">{t('intervalo.entradas')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {linhas.map((s) => (
-              <tr key={s.playerId}>
-                <td>
-                  #{s.number} {s.name}
-                </td>
-                <td className="num mono">{s.goals}</td>
-                <td className="num mono">{s.assists}</td>
-                <td className="num mono">{s.conceded}</td>
-                <td className="num mono">{s.fouls}</td>
-                <td className="num mono">{s.foulsSuffered}</td>
-                <td className="num mono">{s.yellows}</td>
-                <td className="num mono">{s.reds}</td>
-                <td className="num mono">{fmt(s.courtMs)}</td>
-                <td className="num">{s.entries}</td>
+        <div data-tour="halftime-player-stats">
+          <DataTable tight>
+            <thead>
+              <tr>
+                <th>{t('stats.jogador')}</th>
+                <th className="num" title={t('stats.golos')}>
+                  {t('ficha.golosCurto')}
+                </th>
+                <th className="num" title={t('ficha.assistencias')}>
+                  {t('ficha.assistCurto')}
+                </th>
+                <th className="num" title={t('stats.sofridosTitulo')}>
+                  {t('ficha.sofridosCurto')}
+                </th>
+                <th className="num" title={t('intervalo.faltasCometidas')}>
+                  {t('intervalo.faltasCurto')}
+                </th>
+                <th className="num" title={t('intervalo.faltasSofridas')}>
+                  {t('intervalo.faltasSofridasCurto')}
+                </th>
+                <th className="num" title={t('ficha.cartoesAmarelos')}>
+                  {t('ficha.amarelosCurto')}
+                </th>
+                <th className="num" title={t('ficha.cartoesVermelhos')}>
+                  {t('ficha.vermelhosCurto')}
+                </th>
+                <th className="num">{t('ficha.emCampo')}</th>
+                <th className="num">{t('intervalo.entradas')}</th>
               </tr>
-            ))}
-          </tbody>
-        </DataTable>
+            </thead>
+            <tbody>
+              {linhas.map((s) => (
+                <tr key={s.playerId}>
+                  <td>
+                    #{s.number} {s.name}
+                  </td>
+                  <td className="num mono">{s.goals}</td>
+                  <td className="num mono">{s.assists}</td>
+                  <td className="num mono">{s.conceded}</td>
+                  <td className="num mono">{s.fouls}</td>
+                  <td className="num mono">{s.foulsSuffered}</td>
+                  <td className="num mono">{s.yellows}</td>
+                  <td className="num mono">{s.reds}</td>
+                  <td className="num mono">{fmt(s.courtMs)}</td>
+                  <td className="num">{s.entries}</td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
+        </div>
       </div>
 
       <div className="halftime__right">

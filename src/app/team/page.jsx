@@ -44,8 +44,8 @@ function Stats({ entries, roster, clubId, teamId }) {
   const pp = useMemo(() => powerPlayAggregate(entries), [entries]);
 
   return (
-    <>
-      <div className="grid grid--stats stats__resumo" data-tour="team-stats">
+    <div className="tour-page-scope" data-tour="team-stats">
+      <div className="grid grid--stats stats__resumo">
         <StatCard
           label={t('stats.jogos')}
           value={agg.matches}
@@ -129,6 +129,6 @@ function Stats({ entries, roster, clubId, teamId }) {
           </DataTable>
         </>
       )}
-    </>
+    </div>
   );
 }

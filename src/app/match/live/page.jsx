@@ -50,6 +50,7 @@ import { t } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import useEcraAceso from '@/lib/ecraAceso.js';
 import useArrasto from '@/lib/arrastar.js';
+import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 
 const OWN_GOAL = '__OWN_GOAL__';
 
@@ -676,6 +677,7 @@ function Live() {
     );
     if (!ok) return;
     await commit(A.finishFirstHalf(state), { sync: 'defer' });
+    setGuidedTutorialStepById('halftime');
   }
 
   async function startSecondHalf(lineup) {
@@ -689,6 +691,7 @@ function Live() {
     if (erro) return toast(mensagemErro(erro), 'error');
     await events.append(A.startSecondHalf(novo.state), { sync: 'defer' });
     await recarregar();
+    setGuidedTutorialStepById('liveSecond');
   }
 
   async function finishGame() {
@@ -721,6 +724,7 @@ function Live() {
     const fresco = await loadMatch(matchId);
     await matches.update(matchId, { teamFouls: foulsTotal(fresco.state, 'US') }, { sync: 'defer' });
     await sync.saveNow(userId, user?.email);
+    setGuidedTutorialStepById('summary');
     router.push(rotas.jogoResumo(matchId));
   }
 

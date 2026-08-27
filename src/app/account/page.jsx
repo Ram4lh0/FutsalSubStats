@@ -435,7 +435,7 @@ function Definicoes() {
                   <h3>{t(`licencas.${plano}`)}</h3>
                   {licencas.loading ? <strong>…</strong> : <LicensePrice plano={plano} product={product} />}
                 </div>
-                <p className="muted small">{t('licencas.porAnoComTeste')}</p>
+                <p className="license-trial">{t('licencas.testeGratisCurto')}</p>
                 <ul className="license-option__features">
                   {(isClub
                     ? ['variosTreinadores', 'cincoEscaloes', 'todasCompeticoes', 'todasEstatisticas']

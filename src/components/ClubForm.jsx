@@ -152,7 +152,7 @@ export default function ClubForm({ clubId }) {
           <button className="btn btn--ghost" type="button" onClick={() => router.push(voltarPara)}>
             {t('comum.cancelar')}
           </button>
-          <button className="btn btn--primary" type="submit" disabled={aGuardar}>
+          <button className="btn btn--primary" type="submit" disabled={aGuardar} data-tour="club-save">
             {aGuardar ? t('comum.aGuardar') : t('comum.guardar')}
           </button>
         </div>

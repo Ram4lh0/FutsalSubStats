@@ -9,6 +9,7 @@
   --text: #eaf1ff;
   --muted: #91a4c4;
   --primary: #22c55e;
+  --green: var(--primary);
   --primary-ink: #05240f;
   --warn: #f59e0b;
   --danger: #ef4444;
@@ -45,6 +46,8 @@
 
 html {
   height: 100%;
+  min-height: 100%;
+  background: var(--bg);
 }
 
 body {
@@ -53,6 +56,8 @@ body {
      o 100vh fica como recurso para browsers antigos. */
   height: 100vh;
   height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
@@ -133,7 +138,7 @@ ul { padding: 0; list-style: none; }
 
 /* --------------------------------------------------------------- estrutura */
 
-.app { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.app { display: flex; flex-direction: column; height: 100%; min-height: 0; background-color: var(--bg); }
 
 /* O fundo: uma malha de pontos, e nada mais.
  *
@@ -390,6 +395,18 @@ ul { padding: 0; list-style: none; }
   letter-spacing: 0;
 }
 
+.license-trial {
+  align-self: flex-start;
+  margin-top: 0.65rem;
+  padding: 6px 10px;
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #bae6fd;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
 .license-option__features {
   flex: 1;
   margin: 0.9rem 0 1rem;
@@ -545,71 +562,122 @@ ul { padding: 0; list-style: none; }
 .guided-tour {
   position: fixed;
   z-index: 80;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
-  width: min(440px, calc(100vw - 24px));
+  inset: 0;
   pointer-events: none;
 }
+.guided-tour__blanket {
+  position: fixed;
+  inset: 0;
+  display: none;
+}
+.guided-tour__spotlight {
+  position: fixed;
+  border: 2px solid rgba(56, 189, 248, 0.98);
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 5px rgba(56, 189, 248, 0.14),
+    0 0 22px rgba(56, 189, 248, 0.58);
+}
 .guided-tour__panel {
+  position: fixed;
+  right: max(16px, var(--seguro-dir));
+  bottom: max(16px, var(--seguro-baixo));
+  width: min(320px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
   pointer-events: auto;
   border: 1px solid rgba(34, 197, 94, 0.44);
-  border-radius: 14px;
+  border-radius: 12px;
   background:
     linear-gradient(145deg, rgba(6, 52, 35, 0.96), rgba(11, 18, 32, 0.98));
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(148, 163, 184, 0.12) inset;
-  padding: 18px;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(148, 163, 184, 0.12) inset;
+  padding: 10px;
 }
 .guided-tour__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.guided-tour__topactions {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .guided-tour__progress {
   color: #86efac;
-  font-size: 0.72rem;
+  font-size: 0.64rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .guided-tour h2 {
-  margin: 0 0 8px;
-  font-size: 1.2rem;
+  margin: 0 0 5px;
+  font-size: 0.92rem;
+  line-height: 1.15;
 }
 .guided-tour p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.45;
+  font-size: 0.78rem;
+  line-height: 1.32;
 }
 .guided-tour__hint {
-  margin-top: 10px !important;
+  margin-top: 7px !important;
   color: #fde68a !important;
-  font-size: 0.92rem;
+  font-size: 0.78rem;
+}
+.guided-tour__hint--action {
+  color: #bae6fd !important;
+}
+.guided-tour__countdown {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 7px !important;
+  padding: 3px 7px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 999px;
+  color: #7dd3fc !important;
+  background: rgba(14, 165, 233, 0.12);
+  font-size: 0.72rem !important;
+  font-weight: 800;
 }
 .guided-tour__actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 16px;
+  margin-top: 9px;
+}
+.guided-tour .btn {
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  gap: 5px;
+}
+.guided-tour__actions .btn {
+  flex: 0 1 auto;
 }
 .guided-tour__restart {
-  margin-top: 10px;
+  margin-top: 7px;
   padding: 0;
   border: 0;
   background: transparent;
   color: #93c5fd;
   font: inherit;
-  font-size: 0.86rem;
+  font-size: 0.72rem;
   cursor: pointer;
 }
 .guided-tour-highlight {
   position: relative;
   z-index: 30;
-  outline: 2px solid rgba(34, 197, 94, 0.95);
-  outline-offset: 5px;
-  box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.12);
+  outline: 2px solid rgba(56, 189, 248, 0.98);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 7px rgba(56, 189, 248, 0.12), 0 0 20px rgba(56, 189, 248, 0.45);
   border-radius: 10px;
 }
 
@@ -640,16 +708,13 @@ ul { padding: 0; list-style: none; }
   .tutorial-inline-form { grid-template-columns: 1fr; }
   .tutorial-score span, .tutorial-clock { font-size: 2rem; }
   .guided-tour {
-    left: 12px;
-    right: 12px;
-    bottom: max(12px, env(safe-area-inset-bottom));
-    width: auto;
+    inset: 0;
   }
   .guided-tour__panel {
-    padding: 14px;
+    padding: 12px;
   }
   .guided-tour__actions .btn {
-    flex: 1 1 120px;
+    flex: 0 1 auto;
   }
 }
 .stafflist { margin-top: 14px; }
@@ -1337,6 +1402,28 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 }
 .rivalout__b:active { background: rgba(255, 255, 255, 0.12); }
 .rivalout__b:disabled { opacity: 0.3; cursor: default; }
+
+@media (max-width: 520px) {
+  .rivalout {
+    right: 6px;
+    padding: 2px 4px;
+    border-radius: 8px;
+    transform: translateY(-38%);
+  }
+  .rivalout__lbl {
+    max-width: 96px;
+    font-size: 0.44rem;
+    letter-spacing: 0.04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rivalout__b {
+    width: 16px;
+    height: 16px;
+    font-size: 0.78rem;
+  }
+  .rivalout__n { font-size: 0.82rem; }
+}
 
 /* Tablets: o contador faz parte da própria célula do resultado adversário.
    Fica imediatamente depois do botão `+`, em ambas as orientações, sem usar

@@ -34,6 +34,7 @@ import { rotas } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
 import { canCreateMatch } from '@/lib/entitlements.js';
 import LicenseLimitDialog from '@/components/LicenseLimitDialog.jsx';
+import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 
 // As etapas são chaves, não frases: o nome de cada uma muda com o idioma.
 const ETAPAS = ['novo.etapaInfo', 'novo.etapaConvocados', 'novo.etapaCinco', 'novo.etapaConfirmacao'];
@@ -72,6 +73,10 @@ function Assistente() {
   const [escolhidos, setEscolhidos] = useState([]);
   const [lineup, setLineup] = useState({});
   const [procura, setProcura] = useState('');
+
+  useEffect(() => {
+    setGuidedTutorialStepById(['match', 'matchSquad', 'matchLineup', 'matchConfirm'][etapa]);
+  }, [etapa]);
 
   useEffect(() => {
     (async () => {
@@ -213,8 +218,8 @@ function Assistente() {
           5200
         );
         if (permissao.reason === 'free_limit_reached') {
-          const abrir = await ui.open((close) => <LicenseLimitDialog close={close} />);
-          if (abrir) router.push(`${rotas.conta()}#licencas`);
+          const acao = await ui.open((close) => <LicenseLimitDialog close={close} />);
+          if (acao === 'account') router.push(`${rotas.conta()}#licencas`);
         }
         return;
       }
@@ -261,6 +266,7 @@ function Assistente() {
 
       sync.saveNow(userId, user?.email);
       toast(t('novo.criado'), 'ok');
+      if (abrir) setGuidedTutorialStepById('setup');
       router.push(abrir ? rotas.jogoPreparar(jogo.id) : rotas.jogos(clubId, teamId));
     } catch (err) {
       toast(t('novo.naoCriou', { erro: err.message }), 'error');
@@ -368,7 +374,11 @@ function Assistente() {
                 </div>
               </Field>
               <Field label={t('prep.tipoJogo')} hint={t('novo.tipoJogoDaCompeticao')}>
-                <input className="input" value={timingLabel(info.timing)} readOnly />
+                <select className="input" value={info.timing} onChange={(e) => setInfo((i) => ({ ...i, timing: e.target.value }))}>
+                  {Object.values(MATCH_TIMING).map((value) => (
+                    <option key={value} value={value}>{timingLabel(value)}</option>
+                  ))}
+                </select>
               </Field>
             </div>
             <Field label={t('prep.notas')}>
@@ -387,7 +397,7 @@ function Assistente() {
         ) : null}
 
         {etapa === 1 ? (
-          <div className="card">
+          <div className="card" data-tour="match-squad">
             <div className="toolbar">
               <input
                 className="input input--search"
@@ -433,7 +443,7 @@ function Assistente() {
         ) : null}
 
         {etapa === 2 ? (
-          <div className="card">
+          <div className="card" data-tour="match-lineup">
             <CourtPicker candidates={candidatos} lineup={lineup} onChange={setLineup} />
             <p className="muted">
               {t('novo.posicoesPreenchidas', {
@@ -481,7 +491,7 @@ function Confirmacao({
   const idsEmCampo = new Set(emCampo.map(([, v]) => v));
 
   return (
-    <div className="card">
+    <div className="card" data-tour="match-confirm">
       <dl className="review">
         <div>
           <dt>{t('prep.adversario')}</dt>
@@ -548,6 +558,7 @@ function Confirmacao({
           className="btn btn--primary"
           type="button"
           disabled={aGuardar}
+          data-tour="match-save-open"
           onClick={() => onGuardar(true)}
         >
           {aGuardar ? 'A guardar…' : 'Guardar e abrir'}

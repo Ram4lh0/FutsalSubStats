@@ -7,6 +7,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n/index.js';
+import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 
 const HOME_ICON = (
   <svg
@@ -36,7 +37,11 @@ export default function PageHead({ title, subtitle, backTo, onBack, homeTo, acti
         {homeTo ? (
           <button
             className="btn btn--ghost btn--icon btn--home"
-            onClick={() => router.push(homeTo)}
+            data-tour="summary-home"
+            onClick={() => {
+              setGuidedTutorialStepById('openTeam');
+              router.push(homeTo);
+            }}
             title={t('comum.osMeusClubes')}
             aria-label={t('comum.osMeusClubes')}
           >
