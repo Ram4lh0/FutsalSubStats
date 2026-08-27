@@ -24,6 +24,13 @@ import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import { useT, useIdioma } from '@/lib/i18n/index.js';
 
+function textoPesquisavel(valor) {
+  return String(valor ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 export default function RosterPage() {
   return (
     <Pagina>
@@ -55,6 +62,7 @@ function Roster({ team, entries, roster, clubId, teamId }) {
     active: 'ALL',
     search: '',
   });
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [versao, setVersao] = useState(0);
 
   const agg = useMemo(() => clubAggregate(entries), [entries]);
@@ -69,7 +77,7 @@ function Roster({ team, entries, roster, clubId, teamId }) {
     const tempo = (p) => agg.perPlayer[p.id]?.courtMs || 0;
     // Por posição segue a ordem do campo: GR, fixo, alas, pivot e universais.
     const posIdx = (p) => POSITIONS_ALL.indexOf(normalizePosition(p.preferredPosition));
-    const procura = filtros.search.toLowerCase();
+    const procura = textoPesquisavel(filtros.search.trim());
 
     return roster
       .filter((p) => {
@@ -79,7 +87,7 @@ function Roster({ team, entries, roster, clubId, teamId }) {
           return false;
         if (
           procura &&
-          !p.name.toLowerCase().includes(procura) &&
+          !textoPesquisavel(p.name).includes(procura) &&
           !String(p.shirtNumber).includes(procura)
         )
           return false;
@@ -188,33 +196,17 @@ function Roster({ team, entries, roster, clubId, teamId }) {
             <span className="muted"> · {t('plantel.inativos', { n: inativos })}</span>
           ) : null}
         </span>
-        <input
-          className="input input--search"
-          placeholder={t('plantel.procurar')}
-          {...campo('search')}
-        />
-        <select className="input" {...campo('position')}>
-          <option value="ALL">{t('plantel.todasPosicoes')}</option>
-          {POSITIONS_ALL.map((p) => (
-            <option key={p} value={p}>
-              {positionLabel(p)}
-            </option>
-          ))}
-        </select>
-        <select className="input" {...campo('active')}>
-          <option value="ALL">{t('plantel.ativosEInativos')}</option>
-          <option value="ACTIVE">{t('plantel.soAtivos')}</option>
-          <option value="INACTIVE">{t('plantel.soInativos')}</option>
-        </select>
-        <select className="input" {...campo('sort')}>
-          <option value="number">{t('plantel.ordenarNumero')}</option>
-          <option value="name">{t('plantel.ordenarNome')}</option>
-          <option value="position">{t('plantel.ordenarPosicao')}</option>
-          <option value="time">{t('plantel.ordenarTempo')}</option>
-        </select>
+        <button
+          className="btn btn--ghost btn--tiny"
+          type="button"
+          aria-expanded={mostrarFiltros}
+          onClick={() => setMostrarFiltros((v) => !v)}
+        >
+          {t('plantel.filtros')}
+        </button>
         <span className="toolbar__spacer" />
         <button
-          className="btn btn--ghost"
+          className="btn btn--ghost btn--tiny"
           onClick={() =>
             download(
               `plantel-${slug(team.name)}.csv`,
@@ -230,11 +222,11 @@ function Roster({ team, entries, roster, clubId, teamId }) {
             {/* Importar vive aqui, dentro do escalão, e não no menu dos clubes:
                 um plantel pertence a um escalão em concreto, e no menu dos
                 clubes não há forma de dizer a qual. */}
-            <button className="btn btn--ghost" onClick={importar}>
+            <button className="btn btn--ghost btn--tiny" onClick={importar}>
               {t('plantelCsv.importar')}
             </button>
             <button
-              className="btn btn--primary"
+              className="btn btn--primary btn--tiny"
               data-tour="create-player"
               onClick={() => router.push(rotas.jogadorNovo(clubId, teamId))}
             >
@@ -243,6 +235,34 @@ function Roster({ team, entries, roster, clubId, teamId }) {
           </>
         )}
       </div>
+      {mostrarFiltros ? (
+        <div className="toolbar toolbar--filters">
+          <input
+            className="input input--search"
+            placeholder={t('plantel.procurar')}
+            {...campo('search')}
+          />
+          <select className="input" {...campo('position')}>
+            <option value="ALL">{t('plantel.todasPosicoes')}</option>
+            {POSITIONS_ALL.map((p) => (
+              <option key={p} value={p}>
+                {positionLabel(p)}
+              </option>
+            ))}
+          </select>
+          <select className="input" {...campo('active')}>
+            <option value="ALL">{t('plantel.ativosEInativos')}</option>
+            <option value="ACTIVE">{t('plantel.soAtivos')}</option>
+            <option value="INACTIVE">{t('plantel.soInativos')}</option>
+          </select>
+          <select className="input" {...campo('sort')}>
+            <option value="number">{t('plantel.ordenarNumero')}</option>
+            <option value="name">{t('plantel.ordenarNome')}</option>
+            <option value="position">{t('plantel.ordenarPosicao')}</option>
+            <option value="time">{t('plantel.ordenarTempo')}</option>
+          </select>
+        </div>
+      ) : null}
 
       {!linhas.length ? (
         <Empty
@@ -261,7 +281,7 @@ function Roster({ team, entries, roster, clubId, teamId }) {
           {roster.length ? t('plantel.semCorrespondencia') : t('plantel.vazio')}
         </Empty>
       ) : (
-        <DataTable players>
+        <DataTable players tight>
           <thead>
             <tr>
               <th>{t('plantel.numero')}</th>

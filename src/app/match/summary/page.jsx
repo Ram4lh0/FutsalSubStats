@@ -267,7 +267,7 @@ function Resumo() {
             ? { homeTo: rotas.clube(match.clubId) }
             : { backTo: rotas.jogos(match.clubId, match.teamId) })}
         actions={
-          <>
+          <div className="summary-actions">
             <StatusBadge status={state.status} />
             <button
               className="btn btn--ghost"
@@ -305,7 +305,7 @@ function Resumo() {
                 {t('resumo.voltarAoJogo')}
               </button>
             ) : null}
-          </>
+          </div>
         }
       />
 

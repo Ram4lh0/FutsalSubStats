@@ -17,6 +17,7 @@
   --radius: 14px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --touch: 52px;
+  --nav-bottom-altura: calc(70px + var(--seguro-baixo));
 
   /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
    * navegação em baixo, os cantos redondos ao lado.
@@ -47,6 +48,7 @@
 html {
   height: 100%;
   min-height: 100%;
+  min-height: -webkit-fill-available;
   background: var(--bg);
 }
 
@@ -55,9 +57,11 @@ body {
   /* 100dvh acompanha a barra do Safari a aparecer e a desaparecer no iPhone;
      o 100vh fica como recurso para browsers antigos. */
   height: 100vh;
+  height: -webkit-fill-available;
   height: 100dvh;
   min-height: 100vh;
   min-height: 100dvh;
+  min-height: -webkit-fill-available;
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
@@ -216,6 +220,11 @@ ul { padding: 0; list-style: none; }
 .mainnav {
   pointer-events: auto;
 }
+.mainnav__sidehead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .mainnav__item,
 .mainnav__brand,
 .mainnav__live {
@@ -240,6 +249,9 @@ ul { padding: 0; list-style: none; }
 .mainnav__item.is-active {
   color: var(--info);
 }
+.mainnav__collapse {
+  display: none;
+}
 .mainnav--bottom {
   position: fixed;
   left: 0;
@@ -249,6 +261,7 @@ ul { padding: 0; list-style: none; }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
   gap: 2px;
+  min-height: var(--nav-bottom-altura);
   padding: 8px max(8px, var(--seguro-dir)) max(8px, var(--seguro-baixo)) max(8px, var(--seguro-esq));
   border-top: 1px solid rgba(42, 61, 95, 0.86);
   background: rgba(11, 18, 32, 0.96);
@@ -285,10 +298,10 @@ ul { padding: 0; list-style: none; }
   padding: 10px 20px 20px;
   padding-left: max(20px, var(--seguro-esq));
   padding-right: max(20px, var(--seguro-dir));
-  padding-bottom: max(96px, calc(var(--seguro-baixo) + 80px));
+  padding-bottom: calc(var(--nav-bottom-altura) + 22px);
   max-width: 1400px; width: 100%; margin: 0 auto;
   -webkit-overflow-scrolling: touch;
-  scroll-padding-bottom: max(96px, calc(var(--seguro-baixo) + 80px));
+  scroll-padding-bottom: calc(var(--nav-bottom-altura) + 22px);
 }
 /* No jogo ao vivo o conteúdo tenta caber no ecrã; se não couber (telemóvel em
    vertical, ecrã curto), passa a poder deslizar em vez de ficar cortado. */
@@ -373,8 +386,20 @@ ul { padding: 0; list-style: none; }
   letter-spacing: 0.08em;
 }
 .matches-actions {
-  margin-top: 10px;
+  position: sticky;
+  bottom: calc(var(--nav-bottom-altura) + 6px);
+  z-index: 25;
+  margin-top: 12px;
   align-items: center;
+  padding: 10px 0 4px;
+  background: linear-gradient(180deg, rgba(11, 18, 32, 0), var(--bg) 42%);
+}
+.summary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .section { font-size: 1.05rem; margin: 22px 0 10px; }
@@ -462,6 +487,21 @@ ul { padding: 0; list-style: none; }
 
 .licenses-card {
   scroll-margin-top: 1rem;
+}
+.profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 520px);
+}
+.profile-lang {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.profile-lang .btn {
+  min-width: 38px;
+  padding: 0 9px;
 }
 
 .licenses-card__head,
@@ -878,13 +918,59 @@ ul { padding: 0; list-style: none; }
     border-right: 1px solid var(--line);
     background: rgba(11, 18, 32, 0.96);
   }
+  .app:has(.mainnav--side.is-collapsed) {
+    padding-left: 72px;
+  }
+  .mainnav--side.is-collapsed {
+    width: 72px;
+    align-items: center;
+    padding-inline: 10px;
+  }
+  .mainnav--side.is-collapsed .mainnav__brand span,
+  .mainnav--side.is-collapsed .mainnav__item span,
+  .mainnav--side.is-collapsed .mainnav__live {
+    display: none;
+  }
+  .mainnav--side.is-collapsed .mainnav__sidehead {
+    width: 100%;
+    justify-content: center;
+  }
+  .mainnav--side.is-collapsed .mainnav__item {
+    width: 48px;
+    justify-content: center;
+    padding: 0;
+  }
+  .mainnav--side.is-collapsed .mainnav__collapse {
+    width: 42px;
+  }
   .mainnav__brand {
-    margin-bottom: 14px;
-    padding: 10px 8px 14px;
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+    padding: 10px 8px;
     color: var(--text);
     text-align: left;
     font-size: 1.04rem;
     font-weight: 900;
+  }
+  .mainnav__brand span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mainnav__collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.3rem;
+    font-weight: 800;
+    cursor: pointer;
   }
   .mainnav--side .mainnav__item {
     min-height: 46px;
@@ -913,6 +999,11 @@ ul { padding: 0; list-style: none; }
   .view {
     padding-bottom: max(32px, var(--seguro-baixo));
     scroll-padding-bottom: max(32px, var(--seguro-baixo));
+  }
+  .matches-actions {
+    position: static;
+    background: transparent;
+    padding: 0;
   }
 }
 .stafflist { margin-top: 12px; }
@@ -968,15 +1059,25 @@ ul { padding: 0; list-style: none; }
 }
 @media (max-width: 560px) {
   .card--staff {
-    padding: 14px;
+    padding: 12px;
   }
   .staffcard__head {
-    align-items: flex-start;
+    align-items: center;
+    gap: 8px;
+  }
+  .staffcard__license {
+    padding: 5px 9px;
+    font-size: 0.66rem;
+  }
+  .card--staff > .muted {
+    margin: 4px 0 8px;
+    font-size: 0.9rem;
+    line-height: 1.32;
   }
   .card--staff .form__actions {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 8px;
   }
   .card--staff .input,
   .card--staff .btn--primary {
@@ -986,15 +1087,29 @@ ul { padding: 0; list-style: none; }
   .staffmember {
     grid-template-columns: 1fr;
     align-items: stretch;
-    gap: 8px;
-    padding: 10px;
+    gap: 7px;
+    padding: 9px;
+    border-radius: 12px;
+  }
+  .staffmember__main {
+    gap: 4px;
+  }
+  .staffmember__identity strong {
+    font-size: 0.94rem;
   }
   .staffmember__meta .pill {
     max-width: 100%;
+    font-size: 0.65rem;
+    padding: 2px 8px;
   }
   .stafflist__remove {
     width: 100%;
+    min-height: 36px;
+    padding-block: 6px;
   }
+}
+.safe-scroll-tail {
+  height: calc(var(--nav-bottom-altura) + 18px);
 }
 /* Cartão dentro de outro — usado para a caixa do ficheiro de exemplo dentro da
    janela de importação. Mais discreto e mais apertado, para se ler como um à
@@ -1103,6 +1218,13 @@ ul { padding: 0; list-style: none; }
 .club-card__stats dd { font-weight: 600; text-align: right; }
 .club-card__actions { display: flex; gap: 10px; margin-top: auto; }
 .club-card__actions .btn { flex: 1; }
+.club-card__actions .btn:only-child {
+  flex: 0 1 220px;
+  margin-inline: auto;
+}
+.club-list-actions {
+  margin: -4px 0 14px;
+}
 
 .banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-radius: var(--radius); margin-bottom: 16px; }
 .banner--live { background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.4); }
@@ -1291,6 +1413,8 @@ ul { padding: 0; list-style: none; }
 select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 40px; }
 
 .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.toolbar--filters { margin-top: -6px; }
+.toolbar--filters .input { min-height: 40px; }
 .toolbar__spacer { flex: 1; }
 .toolbar__count { font-size: 0.9rem; white-space: nowrap; }
 .counter { font-weight: 700; font-variant-numeric: tabular-nums; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); }
@@ -1541,6 +1665,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .clockbox__time.is-over { color: var(--warn); }
 .clockbox__hint { font-size: 0.72rem; color: var(--muted); }
 .pill { font-size: 0.66rem; letter-spacing: 0.1em; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); }
+.pill--active { white-space: nowrap; }
 .pill--subtle {
   color: var(--muted);
   border-color: rgba(148, 163, 184, 0.34);
@@ -2034,8 +2159,80 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   :root { --touch: 48px; }
   .view { padding: 12px; }
   .page__title { font-size: 1.3rem; }
+  .page__head {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .page__headmain {
+    gap: 10px;
+  }
+  .page__sub {
+    font-size: 0.84rem;
+  }
   .grid--cards { grid-template-columns: 1fr; }
-  .card { padding: 14px; }
+  .card {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+  .section {
+    margin: 16px 0 8px;
+    font-size: 0.98rem;
+  }
+  .btn {
+    min-height: 42px;
+    padding-inline: 14px;
+  }
+  .btn--tiny {
+    min-height: 34px;
+    padding-inline: 10px;
+    font-size: 0.8rem;
+    border-radius: 9px;
+  }
+  .grid {
+    gap: 10px;
+  }
+  .grid--stats {
+    gap: 10px;
+  }
+  .stat {
+    padding: 10px 12px;
+    gap: 3px;
+    border-radius: 12px;
+  }
+  .stat__label {
+    font-size: 0.68rem;
+    letter-spacing: 0.055em;
+  }
+  .stat__value {
+    font-size: 1.3rem;
+  }
+  .stat__hint {
+    font-size: 0.74rem;
+  }
+  .tutorial-settings {
+    padding: 12px;
+    gap: 10px;
+  }
+  .tutorial-settings p,
+  .licenses-card .muted,
+  .card > .muted {
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+  .license-grid {
+    gap: 10px;
+    margin-top: 0.8rem;
+  }
+  .license-option {
+    padding: 0.85rem;
+    border-radius: 12px;
+  }
+  .license-option__features {
+    gap: 0.35rem;
+    margin: 0.55rem 0;
+    font-size: 0.86rem;
+  }
 
   /* No telemóvel os suplentes passam a embrulhar em linhas, em vez de se
      espremerem todos numa só. */
@@ -2064,8 +2261,33 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
      pontas: assim nenhum fica longe do polegar. */
   .wizard__nav .btn { flex: 1 1 auto; }
   .page__actions { width: 100%; }
+  .profile-actions { width: 100%; }
+  .profile-lang .btn { min-height: 34px; min-width: 34px; font-size: 0.75rem; }
+  .summary-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 10px;
+  }
+  .summary-actions .badge {
+    justify-self: start;
+    align-self: center;
+  }
+  .summary-actions .btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+  }
+  .summary-actions .btn--primary {
+    grid-column: 1 / -1;
+  }
 
   .table { white-space: nowrap; }
+  .table--tight th,
+  .table--tight td {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
 }
 
 /* iPhone / ecrã ao alto: campo vertical como no esquema do treinador.
@@ -2182,12 +2404,24 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .wizard { padding-bottom: 132px; }
   .clocktoggle__icon { font-size: 1.4rem; }
   .live__bar { padding-right: 100px; }
-  .tablewrap { max-height: none; }
+  .tablewrap {
+    max-height: none;
+    margin-bottom: calc(var(--nav-bottom-altura) + 18px);
+  }
 
   /* Num ecrã ao alto cabem três ou quatro colunas de estatísticas. Cada pixel
      gasto em folga é uma coluna a menos à vista, por isso as células apertam-se
      e o nome deixa de poder crescer sem limite. */
   .table th, .table td { padding: 9px 10px; }
+  .table--tight th,
+  .table--tight td {
+    padding: 5px 8px;
+    font-size: 0.78rem;
+    line-height: 1.15;
+  }
+  .table--tight td {
+    height: 36px;
+  }
   .table th { font-size: 0.68rem; letter-spacing: 0.03em; }
   .table--who td:nth-child(2) { max-width: 44vw; }
   .cellwho { gap: 6px; }
@@ -2227,6 +2461,38 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .destaque__valor { flex: none; font-weight: 700; }
 .destaque .stat__value { margin: 0 0 2px; text-align: left; font-size: 1.5rem; font-weight: 700; }
 .destaque .btn--block { margin-top: 12px; }
+
+@media (max-width: 720px) {
+  .grid--destaques {
+    gap: 10px;
+    grid-template-columns: 1fr;
+    margin-bottom: 12px;
+  }
+  .destaque {
+    padding: 11px 12px;
+    border-radius: 12px;
+  }
+  .destaque__topo {
+    margin-bottom: 7px;
+  }
+  .destaque__lista {
+    gap: 5px;
+  }
+  .destaque__linha {
+    gap: 8px;
+    font-size: 0.92rem;
+  }
+  .destaque__pos {
+    width: 1.15rem;
+    font-size: 0.72rem;
+  }
+  .destaque .stat__value {
+    font-size: 1.3rem;
+  }
+  .destaque .btn--block {
+    margin-top: 8px;
+  }
+}
 
 /* Acertar o relógio: os de tirar à esquerda do número, os de somar à direita,
    um por cima do outro.

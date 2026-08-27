@@ -34,13 +34,15 @@ export default {
   /* ------------------------------------------------------ navigation */
   'nav.principal': 'Main navigation',
   'nav.jogo': 'Match',
-  'nav.equipas': 'Teams',
+  'nav.equipas': 'Team',
   'nav.equipaTecnica': 'Staff',
   'nav.analise': 'Analysis',
   'nav.perfil': 'Profile',
   'nav.trocarEscalao': 'Switch age group',
   'nav.jogoEmCurso': 'Live match',
   'nav.verEscaloes': 'View age groups',
+  'nav.recolherMenu': 'Collapse menu',
+  'nav.abrirMenu': 'Open menu',
 
   /* ---------------------------------------------------------- syncing */
   'sinc.sincronizado': 'SYNCED',
@@ -605,6 +607,7 @@ export default {
   'plantel.ativos': 'active',
   'plantel.inativos': '{n} inactive',
   'plantel.procurar': 'Search by name or number…',
+  'plantel.filtros': 'Filters',
   'plantel.todasPosicoes': 'All positions',
   'plantel.ativosEInativos': 'Active and inactive',
   'plantel.soAtivos': 'Active only',
@@ -1187,7 +1190,7 @@ export default {
   /* ------------------------------------------------------------- backup */
   'copia.titulo': 'Backup',
   'copia.texto':
-    'A file with everything this account has: clubs, age groups, rosters, matches and the history of each one. It is what you use to move to another account or another phone — this device’s database belongs to one account at a time.',
+    'A file with everything this account has: clubs, age groups, rosters, matches and the history of each one. Use it to move to another account or another phone. This device’s database belongs to one account at a time.',
   'copia.transferir': 'Download backup',
   'copia.restaurar': 'Restore backup',
   'copia.confirmaRestaurar':

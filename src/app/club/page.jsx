@@ -103,12 +103,12 @@ function Escaloes() {
             ? t('escalao.epoca', { epoca: club.currentSeason })
             : t('clube.escaloesDoClube')
         }
-        backTo={rotas.dashboard()}
+        backTo={mostrarEscaloes ? null : rotas.dashboard()}
         // Mexer no clube e abrir escalões é de quem é dono do clube. Um
         // treinador associado vê esta página — são os escalões a que tem acesso
         // — mas não gere a estrutura.
         actions={
-          soLeitura || !souDono ? null : (
+          mostrarEscaloes || soLeitura || !souDono ? null : (
             <>
               <button
                 className="btn btn--ghost"
@@ -129,6 +129,18 @@ function Escaloes() {
           )
         }
       />
+
+      {mostrarEscaloes && podeCriarEscalao && souDono ? (
+        <div className="form__actions form__actions--left club-list-actions">
+          <button
+            className="btn btn--primary btn--tiny"
+            data-tour="create-team"
+            onClick={() => router.push(rotas.escalaoNovo(clubId))}
+          >
+            {t('clube.criarEscalao')}
+          </button>
+        </div>
+      ) : null}
 
       {!cartoes.length ? (
         <Empty
@@ -205,17 +217,11 @@ function Escaloes() {
               </dl>
               <div className="club-card__actions">
                 <button
-                  className="btn btn--ghost"
-                  onClick={() => router.push(rotas.plantel(clubId, team.id))}
-                >
-                  {t('escalao.plantel')}
-                </button>
-                <button
                   className="btn btn--primary"
                   data-tour="open-team"
                   onClick={() => {
-                    setGuidedTutorialStepById('stats');
-                    router.push(rotas.escalao(clubId, team.id));
+                    setGuidedTutorialStepById('players');
+                    router.push(rotas.plantel(clubId, team.id));
                   }}
                 >
                   {t('clube.abrirEscalao')}

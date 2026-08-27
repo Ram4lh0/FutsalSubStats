@@ -226,9 +226,23 @@ function Definicoes() {
         subtitle={email}
         backTo={rotas.dashboard()}
         actions={
-          <button className="btn btn--ghost btn--danger" onClick={sair}>
-            {t('barra.logout')}
-          </button>
+          <div className="profile-actions">
+            <button className="btn btn--ghost btn--danger" onClick={sair}>
+              {t('barra.logout')}
+            </button>
+            <div className="profile-lang" aria-label={t('definicoes.idioma')}>
+              {IDIOMAS.map((i) => (
+                <button
+                  key={i.codigo}
+                  className={`btn btn--tiny ${i.codigo === idioma ? 'btn--primary' : 'btn--ghost'}`}
+                  aria-pressed={i.codigo === idioma}
+                  onClick={() => definirIdioma(i.codigo)}
+                >
+                  {i.codigo.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
         }
       />
 
@@ -296,27 +310,6 @@ function Definicoes() {
           </button>
         </div>
       </section>
-
-      {/* O idioma fica em primeiro lugar de propósito: quem abre esta página sem
-          perceber a língua em que ela está precisa de encontrar isto sem ler
-          nada. Os nomes dos idiomas estão sempre no próprio idioma — "English",
-          nunca "Inglês" — que é o que permite reconhecê-los a quem está perdido. */}
-      <div className="card">
-        <h2 className="section section--tight">{t('definicoes.idioma')}</h2>
-        <div className="form__actions form__actions--left">
-          {IDIOMAS.map((i) => (
-            <button
-              key={i.codigo}
-              className={`btn ${i.codigo === idioma ? 'btn--primary' : 'btn--ghost'}`}
-              aria-pressed={i.codigo === idioma}
-              onClick={() => definirIdioma(i.codigo)}
-            >
-              {i.nome}
-            </button>
-          ))}
-        </div>
-        <p className="muted small">{t('definicoes.idiomaDica')}</p>
-      </div>
 
       {/* O estado da sincronização vive aqui, e não na barra de topo: lá em cima
           só aparece quando corre mal. Quem quiser confirmar que está tudo em

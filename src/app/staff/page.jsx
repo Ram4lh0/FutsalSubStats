@@ -12,6 +12,7 @@ export default function StaffPage() {
     <Pagina>
       <PageHead title={t('equipaTecnica.titulo')} backTo={rotas.conta()} />
       <StaffManagement />
+      <div className="safe-scroll-tail" aria-hidden="true" />
     </Pagina>
   );
 }

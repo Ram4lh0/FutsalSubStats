@@ -33,13 +33,15 @@ export default {
   /* ------------------------------------------------------ navegación */
   'nav.principal': 'Navegación principal',
   'nav.jogo': 'Partido',
-  'nav.equipas': 'Equipos',
+  'nav.equipas': 'Equipo',
   'nav.equipaTecnica': 'Equipo técnico',
   'nav.analise': 'Análisis',
   'nav.perfil': 'Perfil',
   'nav.trocarEscalao': 'Cambiar categoría',
   'nav.jogoEmCurso': 'Partido en curso',
   'nav.verEscaloes': 'Ver categorías',
+  'nav.recolherMenu': 'Contraer menú',
+  'nav.abrirMenu': 'Abrir menú',
 
   /* ------------------------------------------------- sincronización */
   'sinc.sincronizado': 'SINCRONIZADO',
@@ -604,6 +606,7 @@ export default {
   'plantel.ativos': 'activos',
   'plantel.inativos': '{n} inactivos',
   'plantel.procurar': 'Buscar por nombre o dorsal…',
+  'plantel.filtros': 'Filtros',
   'plantel.todasPosicoes': 'Todas las posiciones',
   'plantel.ativosEInativos': 'Activos e inactivos',
   'plantel.soAtivos': 'Solo activos',
@@ -1188,7 +1191,7 @@ export default {
   /* ------------------------------------------------ copia de seguridad */
   'copia.titulo': 'Copia de seguridad',
   'copia.texto':
-    'Un archivo con todo lo que tiene esta cuenta: clubes, categorías, plantillas, partidos y el historial de cada uno. Sirve para cambiar de cuenta o de móvil — la base de este dispositivo pertenece a una cuenta a la vez.',
+    'Un archivo con todo lo que tiene esta cuenta: clubes, categorías, plantillas, partidos y el historial de cada uno. Sirve para cambiar de cuenta o de móvil. La base de este dispositivo pertenece a una cuenta a la vez.',
   'copia.transferir': 'Descargar copia',
   'copia.restaurar': 'Restaurar copia',
   'copia.confirmaRestaurar':
