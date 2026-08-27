@@ -1,6 +1,7 @@
 import './globals.css';
+import { Suspense } from 'react';
 import Providers from './providers.jsx';
-import AppBar from '@/components/AppBar.jsx';
+import MainNavigation from '@/components/MainNavigation.jsx';
 import GuidedTutorial from '@/components/GuidedTutorial.jsx';
 
 export const metadata = {
@@ -39,7 +40,9 @@ export default function RootLayout({ children }) {
       <body>
         <Providers>
           <div className="app" id="app">
-            <AppBar />
+            <Suspense fallback={null}>
+              <MainNavigation />
+            </Suspense>
             <main className="view" id="view">
               {children}
             </main>

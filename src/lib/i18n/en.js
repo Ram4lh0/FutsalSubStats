@@ -28,8 +28,18 @@ export default {
   'barra.marca': 'FutsalSubStats',
   'barra.demonstracao': 'DEMO',
   'barra.criarConta': 'Create account',
-  'barra.definicoes': 'Settings',
+  'barra.definicoes': 'Profile',
   'barra.logout': 'Log out',
+
+  /* ------------------------------------------------------ navigation */
+  'nav.principal': 'Main navigation',
+  'nav.jogo': 'Match',
+  'nav.equipas': 'Teams',
+  'nav.equipaTecnica': 'Staff',
+  'nav.analise': 'Analysis',
+  'nav.perfil': 'Profile',
+  'nav.trocarEscalao': 'Switch age group',
+  'nav.jogoEmCurso': 'Live match',
 
   /* ---------------------------------------------------------- syncing */
   'sinc.sincronizado': 'SYNCED',
@@ -59,7 +69,7 @@ export default {
   'login.passwordDica': 'At least 6 characters.',
   'login.jaTenhoConta': 'I already have an account',
   'login.aLigar': 'Connecting…',
-  'login.ou': 'or',
+  'login.ou': 'or with email',
   'login.experimentar': 'Try DEMO',
   'login.aPreparar': 'Getting ready…',
   'login.experimentarDica': 'A full match with a made-up team, to see how it works.',
@@ -75,7 +85,7 @@ export default {
     'The previous account’s data has left this device. It is still saved in that account.',
 
   /* -------------------------------------------------------- settings */
-  'definicoes.titulo': 'Settings',
+  'definicoes.titulo': 'Profile',
   'definicoes.idioma': 'Language',
   'definicoes.idiomaDica': 'Your choice is saved on this device.',
   'definicoes.sincronizacao': 'Syncing',
@@ -473,7 +483,8 @@ export default {
   'tutorial.guiado.estatisticasTexto': 'The statistics tab shows team and player numbers with goals, assists, fouls, cards and playing time.',
   'tutorial.guiado.dashboardTitulo': 'End on the dashboard',
   'tutorial.guiado.dashboardTexto': 'The dashboard turns the data into charts: rotation, form, goals by period, discipline and player analysis.',
-  'equipaTecnica.texto': 'Add coach emails here to associate them with this club. They will then appear on the screen where you grant access to age groups.',
+  'equipaTecnica.texto': 'Add coach emails here to associate them with this club.',
+  'equipaTecnica.associados': 'Associated coaches',
   'equipaTecnica.emailPlaceholder': 'email@club.com',
   'equipaTecnica.adicionar': 'Add email',
   'equipaTecnica.aAdicionar': 'Adding...',

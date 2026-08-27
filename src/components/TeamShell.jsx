@@ -7,8 +7,7 @@
 // trocar de separador não obrigue a recalcular o histórico inteiro.
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import PageHead from './PageHead.jsx';
+import { usePathname, useRouter } from 'next/navigation';
 import { Tabs, Empty } from './bits.jsx';
 import {
   clubs,
@@ -33,6 +32,7 @@ export default function TeamShell({ clubId, teamId, children }) {
 
 function Shell({ clubId, teamId, children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const t = useT();
   const [dados, setDados] = useState(null);
   const soLeitura = useSoLeitura(teamId);
@@ -67,46 +67,37 @@ function Shell({ clubId, teamId, children }) {
   if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
   if (!dados.team) return <Empty>{t('escalao.naoEncontrado')}</Empty>;
 
-  const { club, team } = dados;
-  const abas = [
+  const emAnalise = /^\/team(\/dashboard|\/player)?\/?$/.test(pathname || '');
+  const abasEquipas = [
     { label: t('escalao.plantel'), to: rotas.plantel(clubId, teamId) },
     { label: t('escalao.jogos'), to: rotas.jogos(clubId, teamId) },
     { label: t('escalao.competicoes'), to: rotas.competicoes(clubId, teamId) },
+  ];
+  const abasAnalise = [
     { label: t('escalao.estatisticas'), to: rotas.escalao(clubId, teamId) },
     { label: t('escalao.painel'), to: rotas.painelEscalao(clubId, teamId) },
   ];
+  const abas = emAnalise ? abasAnalise : abasEquipas;
 
   return (
     <>
-      <PageHead
-        title={team.name}
-        subtitle={[
-          club?.name,
-          club?.currentSeason ? t('escalao.epoca', { epoca: club.currentSeason }) : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-        backTo={rotas.clube(clubId)}
-        actions={
-          soLeitura ? null : (
-            <>
-              <button
-                className="btn btn--ghost"
-                onClick={() => router.push(rotas.escalaoEditar(clubId, teamId))}
-              >
-                {t('escalao.editar')}
-              </button>
-              <button
-                className="btn btn--primary"
-                data-tour="create-match"
-                onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}
-              >
-                {t('escalao.novoJogo')}
-              </button>
-            </>
-          )
-        }
-      />
+      {soLeitura || emAnalise ? null : (
+        <div className="area-actions">
+          <button
+            className="btn btn--ghost"
+            onClick={() => router.push(rotas.escalaoEditar(clubId, teamId))}
+          >
+            {t('escalao.editar')}
+          </button>
+          <button
+            className="btn btn--primary"
+            data-tour="create-match"
+            onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}
+          >
+            {t('escalao.novoJogo')}
+          </button>
+        </div>
+      )}
       <div data-tour="team-tabs">
         <Tabs items={abas} />
       </div>

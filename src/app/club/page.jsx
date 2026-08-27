@@ -74,10 +74,19 @@ function Escaloes() {
     return () => window.removeEventListener(DATA_UPDATED_EVENT, aoAtualizar);
   }, [carregar]);
 
+  useEffect(() => {
+    if (!dados?.cartoes?.length) return;
+    router.replace(rotas.plantel(clubId, dados.cartoes[0].team.id));
+  }, [clubId, dados, router]);
+
   if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
   if (!dados.club) return <Empty>{t('clube.naoEncontrado')}</Empty>;
 
   const { club, cartoes, licenca } = dados;
+
+  if (cartoes.length) {
+    return <p className="muted">{t('comum.aCarregar')}</p>;
+  }
 
   // Com licença de Clube, os escalões que quiser. Com a de Treinador, um — e
   // depois de o ter, o botão desaparece em vez de prometer um segundo.

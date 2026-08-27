@@ -27,8 +27,18 @@ export default {
   'barra.marca': 'FutsalSubStats',
   'barra.demonstracao': 'DEMOSTRACIÓN',
   'barra.criarConta': 'Crear cuenta',
-  'barra.definicoes': 'Ajustes',
+  'barra.definicoes': 'Perfil',
   'barra.logout': 'Cerrar sesión',
+
+  /* ------------------------------------------------------ navegación */
+  'nav.principal': 'Navegación principal',
+  'nav.jogo': 'Partido',
+  'nav.equipas': 'Equipos',
+  'nav.equipaTecnica': 'Equipo técnico',
+  'nav.analise': 'Análisis',
+  'nav.perfil': 'Perfil',
+  'nav.trocarEscalao': 'Cambiar categoría',
+  'nav.jogoEmCurso': 'Partido en curso',
 
   /* ------------------------------------------------- sincronización */
   'sinc.sincronizado': 'SINCRONIZADO',
@@ -58,7 +68,7 @@ export default {
   'login.passwordDica': 'Al menos 6 caracteres.',
   'login.jaTenhoConta': 'Ya tengo cuenta',
   'login.aLigar': 'Conectando…',
-  'login.ou': 'o',
+  'login.ou': 'o con email',
   'login.experimentar': 'Probar DEMO',
   'login.aPreparar': 'Preparando…',
   'login.experimentarDica': 'Un partido completo con un equipo ficticio, para ver cómo funciona.',
@@ -74,7 +84,7 @@ export default {
     'Los datos de la cuenta anterior han salido de este dispositivo. Siguen guardados en esa cuenta.',
 
   /* --------------------------------------------------------- ajustes */
-  'definicoes.titulo': 'Ajustes',
+  'definicoes.titulo': 'Perfil',
   'definicoes.idioma': 'Idioma',
   'definicoes.idiomaDica': 'La elección se guarda en este dispositivo.',
   'definicoes.sincronizacao': 'Sincronización',
@@ -472,7 +482,8 @@ export default {
   'tutorial.guiado.estatisticasTexto': 'La pestaña de estadísticas muestra los números de la categoría y de los jugadores, con goles, asistencias, faltas, tarjetas y tiempo en pista.',
   'tutorial.guiado.dashboardTitulo': 'Termina en el dashboard',
   'tutorial.guiado.dashboardTexto': 'El dashboard convierte los datos en gráficos: rotación, forma, goles por periodo, disciplina y análisis por jugador.',
-  'equipaTecnica.texto': 'Añade aquí los emails de los entrenadores para asociarlos a este club. Después aparecerán en la pantalla para dar acceso a las categorías.',
+  'equipaTecnica.texto': 'Añade aquí los emails de los entrenadores para asociarlos a este club.',
+  'equipaTecnica.associados': 'Entrenadores asociados',
   'equipaTecnica.emailPlaceholder': 'email@club.es',
   'equipaTecnica.adicionar': 'Añadir email',
   'equipaTecnica.aAdicionar': 'Añadiendo...',

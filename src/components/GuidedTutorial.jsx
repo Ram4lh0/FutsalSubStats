@@ -24,17 +24,19 @@ function posicaoDoPainel(box) {
   if (!box || typeof window === 'undefined') return {};
   const margem = 12;
   const largura = Math.min(320, window.innerWidth - margem * 2);
-  const alturaEstimada = window.innerWidth < 700 ? 145 : 160;
+  const alturaEstimada = window.innerWidth < 700 ? 290 : 220;
   const espacoAbaixo = window.innerHeight - box.bottom;
   const espacoAcima = box.top;
   const preferirBaixo = espacoAbaixo >= alturaEstimada || espacoAbaixo >= espacoAcima;
   const topPreferido = preferirBaixo ? box.bottom + 14 : box.top - alturaEstimada - 14;
+  const top = limitar(topPreferido, margem, Math.max(margem, window.innerHeight - alturaEstimada - margem));
   return {
     width: largura,
     right: 'auto',
     left: limitar(box.left + box.width / 2 - largura / 2, margem, window.innerWidth - largura - margem),
-    top: limitar(topPreferido, margem, Math.max(margem, window.innerHeight - alturaEstimada - margem)),
+    top,
     bottom: 'auto',
+    maxHeight: Math.max(150, window.innerHeight - top - margem),
   };
 }
 
