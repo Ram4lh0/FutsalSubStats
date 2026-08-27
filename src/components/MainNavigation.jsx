@@ -196,6 +196,7 @@ export default function MainNavigation() {
   }
 
   const showContext = selected && !['profile', 'staff'].includes(area) && !noJogoAoVivo(pathname);
+  const showTeamsLink = selected && area === 'teams' && !noJogoAoVivo(pathname);
 
   return (
     <>
@@ -233,6 +234,15 @@ export default function MainNavigation() {
         {live && !noJogoAoVivo(pathname) ? (
           <button className="btn btn--tiny btn--fecha" type="button" onClick={() => router.push(rotas.jogoAoVivo(live.id))}>
             {t('nav.jogoEmCurso')}
+          </button>
+        ) : null}
+        {showTeamsLink ? (
+          <button
+            className="btn btn--tiny btn--ghost"
+            type="button"
+            onClick={() => router.push(rotas.escaloes(selected.club.id))}
+          >
+            {t('nav.verEscaloes')}
           </button>
         ) : null}
       </header>

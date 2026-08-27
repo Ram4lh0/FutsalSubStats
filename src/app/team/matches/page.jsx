@@ -2,7 +2,7 @@
 
 // Aba Jogos do escalão.
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import TeamShell from '@/components/TeamShell.jsx';
 import Pagina from '@/components/Pagina.jsx';
@@ -12,6 +12,7 @@ import { Empty } from '@/components/bits.jsx';
 import { rotas } from '@/lib/routes.js';
 import { useAuth } from '@/lib/auth.jsx';
 import * as sync from '@/lib/data/sync.js';
+import { useT } from '@/lib/i18n/index.js';
 
 export default function TeamMatchesPage() {
   return (
@@ -37,7 +38,12 @@ function Conteudo() {
     <TeamShell clubId={clubId} teamId={teamId}>
       {({ entries, competitions }) =>
         entries.length ? (
-          <MatchList entries={entries} competitions={competitions} backPath={rotas.jogos(clubId, teamId)} />
+          <Jogos
+            entries={entries}
+            competitions={competitions}
+            clubId={clubId}
+            teamId={teamId}
+          />
         ) : (
           <Empty
             action={
@@ -55,5 +61,39 @@ function Conteudo() {
         )
       }
     </TeamShell>
+  );
+}
+
+function Jogos({ entries, competitions, clubId, teamId }) {
+  const router = useRouter();
+  const t = useT();
+  const [mostrarTudo, setMostrarTudo] = useState(false);
+  const limite = 4;
+  const temMais = entries.length > limite;
+
+  return (
+    <>
+      <MatchList
+        entries={entries}
+        competitions={competitions}
+        backPath={rotas.jogos(clubId, teamId)}
+        limit={mostrarTudo ? null : limite}
+      />
+      <div className="form__actions matches-actions">
+        {temMais ? (
+          <button className="btn btn--ghost btn--tiny" onClick={() => setMostrarTudo((v) => !v)}>
+            {mostrarTudo ? t('lista.mostrarMenos') : t('lista.mostrarMais')}
+          </button>
+        ) : null}
+        <span className="toolbar__spacer" />
+        <button
+          className="btn btn--primary btn--tiny"
+          data-tour="create-match"
+          onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}
+        >
+          {t('escalao.novoJogo')}
+        </button>
+      </div>
+    </>
   );
 }

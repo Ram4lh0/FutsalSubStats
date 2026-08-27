@@ -39,6 +39,7 @@ export default {
   'nav.perfil': 'Perfil',
   'nav.trocarEscalao': 'Cambiar categoría',
   'nav.jogoEmCurso': 'Partido en curso',
+  'nav.verEscaloes': 'Ver categorías',
 
   /* ------------------------------------------------- sincronización */
   'sinc.sincronizado': 'SINCRONIZADO',
@@ -222,6 +223,8 @@ export default {
   'lista.competicao': 'Competición',
   'lista.resultado': 'Resultado',
   'lista.estado': 'Estado',
+  'lista.mostrarMais': 'Mostrar más',
+  'lista.mostrarMenos': 'Mostrar menos',
 
   /* ----------------------------------------------------------- categoría */
   'escalao.plantel': 'Plantilla',
@@ -240,6 +243,8 @@ export default {
   'painelv.corrido': 'Corrido',
   'painelv.ambito': 'Equipo o jugador',
   'painelv.exportarPdf': 'Descargar PDF',
+  'painelv.minimizar': 'Minimizar',
+  'painelv.maximizar': 'Mostrar',
   'painelv.equipaToda': 'Todo el equipo',
   'painelv.atletaMinutos': 'Minutos de {nome}',
   'painelv.mediaAtleta': 'Tiempo por partido',

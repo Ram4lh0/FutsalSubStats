@@ -204,7 +204,10 @@ ul { padding: 0; list-style: none; }
   max-width: min(54vw, 360px);
   padding: 8px 28px 8px 0;
   border: 0;
-  background: transparent;
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, currentColor 50%) calc(100% - 12px) 50% / 6px 6px no-repeat,
+    linear-gradient(135deg, currentColor 50%, transparent 50%) calc(100% - 7px) 50% / 6px 6px no-repeat;
   color: var(--text);
   font: inherit;
   font-size: 1.05rem;
@@ -354,6 +357,24 @@ ul { padding: 0; list-style: none; }
   gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 12px;
+}
+.area-actions--compact {
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.area-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.area-heading > strong {
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+}
+.matches-actions {
+  margin-top: 10px;
+  align-items: center;
 }
 
 .section { font-size: 1.05rem; margin: 22px 0 10px; }
@@ -1285,7 +1306,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 
 /* ------------------------------------------------------------------ auth */
 
-.auth { display: grid; place-items: start center; min-height: 70vh; padding-top: clamp(8px, 4vh, 42px); }
+.auth { display: grid; place-items: center; min-height: min(78vh, 720px); padding-block: clamp(18px, 7vh, 64px); }
 .auth__card { width: min(440px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 26px; display: flex; flex-direction: column; gap: 14px; }
 .auth__logo { font-size: 2.5rem; }
 .auth__title { font-size: 1.6rem; }
@@ -2287,6 +2308,20 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .painelv--atleta .painelv__bloco--disciplina-atleta { order: 6; }
 }
 .painelv__bloco { display: flex; flex-direction: column; gap: 10px; }
+.painelv__bloco-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.painelv__bloco--mini {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  background: rgba(13, 28, 52, 0.72);
+}
+.painelv__bloco--mini .section {
+  font-size: 0.98rem;
+}
 .painelv__parte { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
 .painelv__partes { display: flex; flex-direction: column; gap: 12px; }
 .painelv__lados { margin-top: 4px; }

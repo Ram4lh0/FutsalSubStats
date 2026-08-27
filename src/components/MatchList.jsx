@@ -15,10 +15,11 @@ import { MATCH_STATUS } from '@/domain/constants.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
 
-export default function MatchList({ entries, competitions = [], backPath }) {
+export default function MatchList({ entries, competitions = [], backPath, limit = null }) {
   const router = useRouter();
   const t = useT();
   const nomeDaProva = (id) => competitions.find((c) => c.id === id)?.name || '—';
+  const linhas = limit ? entries.slice(0, limit) : entries;
 
   return (
     <DataTable>
@@ -26,14 +27,14 @@ export default function MatchList({ entries, competitions = [], backPath }) {
         <tr>
           <th>{t('lista.data')}</th>
           <th>{t('lista.adversario')}</th>
+          <th className="num">{t('lista.resultado')}</th>
           <th>{t('lista.local')}</th>
           <th>{t('lista.competicao')}</th>
-          <th className="num">{t('lista.resultado')}</th>
           <th>{t('lista.estado')}</th>
         </tr>
       </thead>
       <tbody>
-        {entries.map(({ match, state }) => {
+        {linhas.map(({ match, state }) => {
           const r = matchResult(state);
           const destino =
             state.status === MATCH_STATUS.FINISHED
@@ -51,13 +52,13 @@ export default function MatchList({ entries, competitions = [], backPath }) {
             >
               <td className="mono">{dayLabel(match.scheduledAt)}</td>
               <td>{match.opponentName}</td>
-              <td>{homeAwayLabel(match.homeOrAway)}</td>
-              <td className="muted">{nomeDaProva(match.competitionId)}</td>
               <td className="num mono">
                 <span className={r === 'W' ? 'res res--w' : r === 'L' ? 'res res--l' : r ? 'res res--d' : ''}>
                   {state.teamScore}–{state.opponentScore}
                 </span>
               </td>
+              <td>{homeAwayLabel(match.homeOrAway)}</td>
+              <td className="muted">{nomeDaProva(match.competitionId)}</td>
               <td>
                 <StatusBadge status={state.status} />
               </td>

@@ -60,9 +60,30 @@ function Conteudo() {
 
 /** Um bloco do painel: título e forma. Sem legendas por baixo do título. */
 function Bloco({ titulo, children, className = '' }) {
+  const t = useT();
+  const [minimizado, setMinimizado] = useState(false);
+
+  if (minimizado) {
+    return (
+      <section className={`card painelv__bloco painelv__bloco--mini ${className}`.trim()}>
+        <div className="painelv__bloco-head">
+          <h2 className="section section--tight">{titulo}</h2>
+          <button className="btn btn--ghost btn--tiny" onClick={() => setMinimizado(false)}>
+            {t('painelv.maximizar')}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className={`card painelv__bloco ${className}`.trim()}>
-      <h2 className="section section--tight">{titulo}</h2>
+      <div className="painelv__bloco-head">
+        <h2 className="section section--tight">{titulo}</h2>
+        <button className="btn btn--ghost btn--tiny" onClick={() => setMinimizado(true)}>
+          {t('painelv.minimizar')}
+        </button>
+      </div>
       {children}
     </section>
   );

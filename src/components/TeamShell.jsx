@@ -68,6 +68,7 @@ function Shell({ clubId, teamId, children }) {
   if (!dados.team) return <Empty>{t('escalao.naoEncontrado')}</Empty>;
 
   const emAnalise = /^\/team(\/dashboard|\/player)?\/?$/.test(pathname || '');
+  const emJogo = /^\/team\/matches\/?$/.test(pathname || '');
   const abasEquipas = [
     { label: t('escalao.plantel'), to: rotas.plantel(clubId, teamId) },
     { label: t('escalao.jogos'), to: rotas.jogos(clubId, teamId) },
@@ -81,16 +82,29 @@ function Shell({ clubId, teamId, children }) {
 
   return (
     <>
-      {soLeitura || emAnalise ? null : (
-        <div className="area-actions">
+      {emJogo ? (
+        <div className="area-heading">
+          <strong>{t('nav.jogo').toUpperCase()}</strong>
+          <span className="toolbar__spacer" />
+          {soLeitura ? null : (
+            <button
+              className="btn btn--ghost btn--tiny"
+              onClick={() => router.push(rotas.escalaoEditar(clubId, teamId))}
+            >
+              {t('escalao.editar')}
+            </button>
+          )}
+        </div>
+      ) : soLeitura || emAnalise ? null : (
+        <div className="area-actions area-actions--compact">
           <button
-            className="btn btn--ghost"
+            className="btn btn--ghost btn--tiny"
             onClick={() => router.push(rotas.escalaoEditar(clubId, teamId))}
           >
             {t('escalao.editar')}
           </button>
           <button
-            className="btn btn--primary"
+            className="btn btn--primary btn--tiny"
             data-tour="create-match"
             onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}
           >
@@ -98,9 +112,11 @@ function Shell({ clubId, teamId, children }) {
           </button>
         </div>
       )}
-      <div data-tour="team-tabs">
-        <Tabs items={abas} />
-      </div>
+      {emJogo ? null : (
+        <div data-tour="team-tabs">
+          <Tabs items={abas} />
+        </div>
+      )}
       <div className="tabbody">{children(dados)}</div>
     </>
   );
