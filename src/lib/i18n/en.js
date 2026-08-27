@@ -87,6 +87,14 @@ export default {
   'login.donoTrocou':
     'The previous account’s data has left this device. It is still saved in that account.',
 
+  /* ------------------------------------------------------------ match */
+  'jogo.entradaTitulo': 'Match',
+  'jogo.semClube': 'Create your club and then an age group to start recording matches.',
+  'jogo.semEscalaoDono': 'This club does not have an age group yet. Create the first one to start recording matches.',
+  'jogo.semEscalaoAssociado': 'You are already linked to a club. Ask the coach to add you to an age group.',
+  'jogo.criarClube': 'Create club',
+  'jogo.criarEscalao': 'Create age group',
+
   /* -------------------------------------------------------- settings */
   'definicoes.titulo': 'Profile',
   'definicoes.idioma': 'Language',
@@ -403,6 +411,11 @@ export default {
   'licencas.verOpcoes': 'View licences',
   'tutorial.titulo': 'Tutorial',
   'tutorial.definicoesTexto': 'Start an in-app guide, step by step, from club creation through to the dashboard.',
+  'tutorial.perguntaTitulo': 'Do you want the tutorial?',
+  'tutorial.perguntaNovoTexto': 'We can guide you step by step through creating the club, age group, roster and first match.',
+  'tutorial.perguntaExistenteTexto': 'Do you want a quick tutorial before opening your matches?',
+  'tutorial.perguntaSim': 'Start tutorial',
+  'tutorial.perguntaNao': 'Not now',
   'tutorial.repetir': 'Start tutorial',
   'tutorial.progresso': 'Step {atual} of {total}',
   'tutorial.ignorar': 'Exit tutorial',

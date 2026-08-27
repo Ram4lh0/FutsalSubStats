@@ -39,7 +39,7 @@ function storeTeam(item) {
 function areaFromPath(pathname) {
   if (/^\/staff\/?$/.test(pathname || '')) return 'staff';
   if (/^\/account\/?$|^\/password\/?$|^\/privacy\/?$|^\/delete-account\/?$/.test(pathname || '')) return 'profile';
-  if (/^\/match\//.test(pathname || '') || /^\/team\/matches/.test(pathname || '')) return 'game';
+  if (/^\/jogo\/?$/.test(pathname || '') || /^\/match\//.test(pathname || '') || /^\/team\/matches/.test(pathname || '')) return 'game';
   if (/^\/club/.test(pathname || '') || /^\/team\/(roster|competitions|competition|edit|new|access|players)/.test(pathname || '')) return 'teams';
   if (/^\/team(\/dashboard|\/player)?\/?$/.test(pathname || '')) return 'analysis';
   return 'teams';
@@ -52,7 +52,7 @@ function isPublicPath(pathname) {
 function targetFor(area, selected) {
   if (area === 'profile') return rotas.conta();
   if (area === 'staff') return rotas.equipaTecnica();
-  if (!selected?.club?.id || !selected?.team?.id) return rotas.dashboard();
+  if (!selected?.club?.id || !selected?.team?.id) return rotas.jogo();
   if (area === 'game') return rotas.jogos(selected.club.id, selected.team.id);
   if (area === 'analysis') return rotas.escalao(selected.club.id, selected.team.id);
   return rotas.plantel(selected.club.id, selected.team.id);

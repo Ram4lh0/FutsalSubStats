@@ -5,6 +5,7 @@ import { rotas } from './routes.js';
 export const TUTORIAL_ACTIVE_KEY = 'futsal-guided-tutorial-active';
 export const TUTORIAL_STEP_KEY = 'futsal-guided-tutorial-step';
 export const TUTORIAL_EVENT = 'futsal-guided-tutorial-change';
+export const TUTORIAL_PROMPT_KEY = 'futsal-guided-tutorial-prompted';
 
 export const guidedTutorialSteps = [
   {
@@ -150,10 +151,29 @@ export function stopGuidedTutorial() {
   emitChange();
 }
 
+export function wasGuidedTutorialPrompted(identity) {
+  if (typeof window === 'undefined') return true;
+  const id = identity || 'local';
+  return (
+    window.localStorage.getItem(`${TUTORIAL_PROMPT_KEY}:${id}`) === '1' ||
+    window.localStorage.getItem(`${TUTORIAL_PROMPT_KEY}:pending`) === '1'
+  );
+}
+
+export function markGuidedTutorialPrompted(identity) {
+  if (typeof window === 'undefined') return;
+  if (!identity) {
+    window.localStorage.setItem(`${TUTORIAL_PROMPT_KEY}:pending`, '1');
+    return;
+  }
+  window.localStorage.setItem(`${TUTORIAL_PROMPT_KEY}:${identity}`, '1');
+  window.localStorage.removeItem(`${TUTORIAL_PROMPT_KEY}:pending`);
+}
+
 export function startGuidedTutorial(router) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(TUTORIAL_ACTIVE_KEY, '1');
   window.localStorage.setItem(TUTORIAL_STEP_KEY, '0');
   emitChange();
-  router?.push(rotas.dashboard());
+  router?.push(rotas.jogo());
 }

@@ -86,6 +86,14 @@ export default {
   'login.donoTrocou':
     'Los datos de la cuenta anterior han salido de este dispositivo. Siguen guardados en esa cuenta.',
 
+  /* ---------------------------------------------------------- partido */
+  'jogo.entradaTitulo': 'Partido',
+  'jogo.semClube': 'Crea el club y después la categoría para empezar a registrar partidos.',
+  'jogo.semEscalaoDono': 'Este club todavía no tiene categoría. Crea la primera para empezar a registrar partidos.',
+  'jogo.semEscalaoAssociado': 'Ya estás asociado a un club. Pide al entrenador que te asocie a una categoría.',
+  'jogo.criarClube': 'Crear club',
+  'jogo.criarEscalao': 'Crear categoría',
+
   /* --------------------------------------------------------- ajustes */
   'definicoes.titulo': 'Perfil',
   'definicoes.idioma': 'Idioma',
@@ -402,6 +410,11 @@ export default {
   'licencas.verOpcoes': 'Ver licencias',
   'tutorial.titulo': 'Tutorial',
   'tutorial.definicoesTexto': 'Inicia una guía dentro de la app, paso a paso, desde la creación del club hasta el dashboard.',
+  'tutorial.perguntaTitulo': '¿Quieres hacer el tutorial?',
+  'tutorial.perguntaNovoTexto': 'Podemos guiarte paso a paso para crear el club, la categoría, la plantilla y el primer partido.',
+  'tutorial.perguntaExistenteTexto': '¿Quieres hacer un tutorial rápido antes de entrar en los partidos?',
+  'tutorial.perguntaSim': 'Empezar tutorial',
+  'tutorial.perguntaNao': 'Ahora no',
   'tutorial.repetir': 'Empezar tutorial',
   'tutorial.progresso': 'Paso {atual} de {total}',
   'tutorial.ignorar': 'Salir del tutorial',

@@ -88,6 +88,14 @@ export default {
   'login.donoTrocou':
     'Os dados da conta anterior saíram deste aparelho. Continuam guardados na conta.',
 
+  /* ------------------------------------------------------------ jogo */
+  'jogo.entradaTitulo': 'Jogo',
+  'jogo.semClube': 'Cria o clube e depois o escalão para começares a marcar jogos.',
+  'jogo.semEscalaoDono': 'Este clube ainda não tem escalão. Cria o primeiro escalão para começares a marcar jogos.',
+  'jogo.semEscalaoAssociado': 'Já estás associado a um clube. Pede ao treinador para te associar a um escalão.',
+  'jogo.criarClube': 'Criar clube',
+  'jogo.criarEscalao': 'Criar escalão',
+
   /* ------------------------------------------------------ definições */
   'definicoes.titulo': 'Perfil',
   'definicoes.idioma': 'Idioma',
@@ -404,6 +412,11 @@ export default {
   'licencas.verOpcoes': 'Ver licenças',
   'tutorial.titulo': 'Tutorial',
   'tutorial.definicoesTexto': 'Começa um guia dentro da própria app, passo a passo, desde a criação do clube até ao dashboard.',
+  'tutorial.perguntaTitulo': 'Queres fazer o tutorial?',
+  'tutorial.perguntaNovoTexto': 'Podemos guiar-te passo a passo pela criação do clube, do escalão, do plantel e do primeiro jogo.',
+  'tutorial.perguntaExistenteTexto': 'Queres fazer um tutorial rápido antes de entrares nos jogos?',
+  'tutorial.perguntaSim': 'Começar tutorial',
+  'tutorial.perguntaNao': 'Agora não',
   'tutorial.repetir': 'Começar tutorial',
   'tutorial.progresso': 'Passo {atual} de {total}',
   'tutorial.ignorar': 'Sair do tutorial',

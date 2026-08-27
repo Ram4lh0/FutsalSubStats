@@ -11,7 +11,7 @@ import { useAuth } from '@/lib/auth.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { limparDemo } from '@/lib/demo.js';
 import { rotas } from '@/lib/routes.js';
-import { startGuidedTutorial } from '@/lib/tutorial.js';
+import { markGuidedTutorialPrompted, startGuidedTutorial } from '@/lib/tutorial.js';
 import { useT } from '@/lib/i18n/index.js';
 
 function AppleLogo() {
@@ -50,7 +50,7 @@ export default function LoginPage() {
     authError,
     clearAuthError,
   } = useAuth();
-  const { toast } = useUI();
+  const { toast, confirmar } = useUI();
   const [modo, setModo] = useState('entrar');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -62,7 +62,7 @@ export default function LoginPage() {
   // Já com sessão (ou sem servidor configurado), não há nada a fazer aqui.
   useEffect(() => {
     if (!ready) return;
-    if (!remote || session) router.replace(rotas.dashboard());
+    if (!remote || session) router.replace(rotas.jogo());
   }, [ready, remote, session, router]);
 
   // Chegar a este ecrã encerra qualquer experiência a meio. Se ficasse por
@@ -115,10 +115,18 @@ export default function LoginPage() {
         setModo('entrar');
         return;
       }
-      startGuidedTutorial(router);
+      const querTutorial = await confirmar(t('tutorial.perguntaNovoTexto'), {
+        title: t('tutorial.perguntaTitulo'),
+        okLabel: t('tutorial.perguntaSim'),
+        cancelLabel: t('tutorial.perguntaNao'),
+        danger: false,
+      });
+      markGuidedTutorialPrompted();
+      if (querTutorial) startGuidedTutorial(router);
+      else router.replace(rotas.jogo());
       return;
     }
-    router.replace(rotas.dashboard());
+    router.replace(rotas.jogo());
   }
 
   async function entrarCom(provider) {
