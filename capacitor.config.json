@@ -3,7 +3,7 @@
   "appName": "FutsalSubStats",
   "webDir": "out",
   "ios": {
-    "contentInset": "automatic",
+    "contentInset": "never",
     "limitsNavigationsToAppBoundDomains": false
   },
   "_android": "Sem secção `android` de propósito. Os valores por omissão do Capacitor já são os certos para esta app — e um deles é importante: `webContentsDebuggingEnabled` vem ligado nos builds de depuração e desligado nos de lançamento. Escrevê-lo à mão como `false` desligava-o nos dois, e com ele ia embora o chrome://inspect, que é como se depura a interface num telemóvel a sério.",

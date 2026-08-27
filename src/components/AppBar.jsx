@@ -74,13 +74,20 @@ export default function AppBar() {
         ) : null}
         {/* Um botão só. Lá dentro está o idioma, o estado da sincronização, a
             cópia dos dados, o sair da conta e a eliminação. */}
-        {remote && user ? (
+        {user || !remote ? (
           <button
             className="btn btn--ghost btn--tiny"
             onClick={() => router.push(rotas.conta())}
             title={user.email || t('barra.definicoes')}
           >
             {t('barra.definicoes')}
+          </button>
+        ) : remote ? (
+          <button
+            className="btn btn--primary btn--tiny"
+            onClick={() => router.push(rotas.login())}
+          >
+            {t('login.entrar')}
           </button>
         ) : null}
       </div>

@@ -175,7 +175,7 @@ export default function TeamForm({ clubId, teamId }) {
           <button className="btn btn--ghost" type="button" onClick={() => router.push(voltarPara)}>
             {t('comum.cancelar')}
           </button>
-          <button className="btn btn--primary" type="submit">
+          <button className="btn btn--primary" type="submit" data-tour="team-save">
             {t('comum.guardar')}
           </button>
         </div>

@@ -309,56 +309,57 @@ function Resumo() {
         }
       />
 
-      <div className="grid grid--stats" data-tour="match-summary">
-        <StatCard
-          label={t('resumo.resultado')}
-          value={`${state.teamScore} — ${state.opponentScore}`}
-          hint={
-            r === 'W'
-              ? t('resultado.vitoria')
-              : r === 'L'
-                ? t('resultado.derrota')
-                : r === 'D'
-                  ? t('resultado.empate')
-                  : t('resumo.emCurso')
-          }
-          kind={r === 'W' ? 'win' : r === 'L' ? 'loss' : r === 'D' ? 'draw' : null}
-        />
-        <StatCard
-          label={t('resumo.aoIntervalo')}
-          value={
-            state.halftimeTeamScore == null
-              ? '—'
-              : `${state.halftimeTeamScore} — ${state.halftimeOpponentScore}`
-          }
-        />
-        <StatCard label={t('resumo.duracaoEfetiva')} value={fmt(state.elapsedMatchMs)} />
-        <StatCard
-          label={t('resumo.faltas')}
-          value={foulsTotal(state, 'US')}
-          hint={t('resumo.faltasDetalhe', {
-            p1: foulsInPeriod(state, 'US', 1),
-            p2: foulsInPeriod(state, 'US', 2),
-          })}
-        />
-        {totalConvocados < 12 ? (
-          <StatCard label={t('resumo.convocados')} value={totalConvocados} kind="loss" />
-        ) : null}
-        {/* 5v4: só aparece se tiver havido. Num jogo em que nunca se jogou com
-            guarda-redes avançado, um cartão a zeros era ruído. */}
-        {pp.count ? (
+      <div className="tour-page-scope" data-tour="match-summary">
+        <div className="grid grid--stats">
           <StatCard
-            label={t('resumo.tempo5v4')}
-            value={fmt(pp.totalMs)}
+            label={t('resumo.resultado')}
+            value={`${state.teamScore} — ${state.opponentScore}`}
             hint={
-              pp.count === 1
-                ? t('resumo.umPeriodoVer')
-                : t('resumo.variosPeriodosVer', { n: pp.count })
+              r === 'W'
+                ? t('resultado.vitoria')
+                : r === 'L'
+                  ? t('resultado.derrota')
+                  : r === 'D'
+                    ? t('resultado.empate')
+                    : t('resumo.emCurso')
             }
-            onClick={verPowerPlays}
+            kind={r === 'W' ? 'win' : r === 'L' ? 'loss' : r === 'D' ? 'draw' : null}
           />
-        ) : null}
-      </div>
+          <StatCard
+            label={t('resumo.aoIntervalo')}
+            value={
+              state.halftimeTeamScore == null
+                ? '—'
+                : `${state.halftimeTeamScore} — ${state.halftimeOpponentScore}`
+            }
+          />
+          <StatCard label={t('resumo.duracaoEfetiva')} value={fmt(state.elapsedMatchMs)} />
+          <StatCard
+            label={t('resumo.faltas')}
+            value={foulsTotal(state, 'US')}
+            hint={t('resumo.faltasDetalhe', {
+              p1: foulsInPeriod(state, 'US', 1),
+              p2: foulsInPeriod(state, 'US', 2),
+            })}
+          />
+          {totalConvocados < 12 ? (
+            <StatCard label={t('resumo.convocados')} value={totalConvocados} kind="loss" />
+          ) : null}
+          {/* 5v4: só aparece se tiver havido. Num jogo em que nunca se jogou com
+              guarda-redes avançado, um cartão a zeros era ruído. */}
+          {pp.count ? (
+            <StatCard
+              label={t('resumo.tempo5v4')}
+              value={fmt(pp.totalMs)}
+              hint={
+                pp.count === 1
+                  ? t('resumo.umPeriodoVer')
+                  : t('resumo.variosPeriodosVer', { n: pp.count })
+              }
+              onClick={verPowerPlays}
+            />
+          ) : null}
+        </div>
 
       <h2 className="section">{t('resumo.golos')}</h2>
       <div className="card">
@@ -435,13 +436,14 @@ function Resumo() {
           página que não tem volta a dar não pode estar à distância de um dedo
           mal assente. Quem o vem procurar desce até ao fim; quem não o procura
           nunca lá tropeça. */}
-      {emDemo() ? null : (
-        <div className="resumo__apagar">
-          <button className="btn btn--tiny btn--ghost btn--danger" onClick={apagarJogo}>
-            {t('prep.apagarJogo')}
-          </button>
-        </div>
-      )}
+        {emDemo() ? null : (
+          <div className="resumo__apagar">
+            <button className="btn btn--tiny btn--ghost btn--danger" onClick={apagarJogo}>
+              {t('prep.apagarJogo')}
+            </button>
+          </div>
+        )}
+      </div>
     </>
   );
 }

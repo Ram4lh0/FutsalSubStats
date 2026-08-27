@@ -77,7 +77,8 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
       else await players.create(teamId, form);
       sync.saveNow(userId, user?.email);
       toast(t('jogador.guardado'), 'ok');
-      router.push(rotas.plantel(clubId, teamId));
+      if (playerId) router.push(rotas.plantel(clubId, teamId));
+      else router.replace(rotas.plantel(clubId, teamId));
     } catch (err) {
       toast(t('jogador.naoGuardou', { erro: err.message }), 'error');
     } finally {
@@ -155,7 +156,7 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
           >
             {t('comum.cancelar')}
           </button>
-          <button className="btn btn--primary" type="submit" disabled={aGuardar}>
+          <button className="btn btn--primary" type="submit" disabled={aGuardar} data-tour="player-save">
             {aGuardar ? t('comum.aGuardar') : t('comum.guardar')}
           </button>
         </div>

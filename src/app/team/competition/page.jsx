@@ -67,6 +67,13 @@ function Detalhe({ entries, roster, competitions, clubId, teamId, competitionId 
         </button>
         <h2 className="section section--tight">{competicao.name}</h2>
         <span className="toolbar__spacer" />
+        <button
+          className="btn btn--ghost"
+          data-tour="edit-competition"
+          onClick={() => router.push(rotas.competicaoEditar(clubId, teamId, competitionId))}
+        >
+          {t('competicao.editarTitulo')}
+        </button>
       </div>
 
       <div className="grid grid--stats">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   guidedTutorialSteps,
@@ -15,6 +15,60 @@ import { clubs, teams, matches, loadMatch } from '@/lib/data/repository.js';
 import { MATCH_STATUS, LIVE_STATUSES } from '@/domain/constants.js';
 import { useT } from '@/lib/i18n/index.js';
 import { useUI } from '@/lib/ui.jsx';
+
+function limitar(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function posicaoDoPainel(box) {
+  if (!box || typeof window === 'undefined') return {};
+  const margem = 12;
+  const largura = Math.min(320, window.innerWidth - margem * 2);
+  const alturaEstimada = window.innerWidth < 700 ? 145 : 160;
+  const espacoAbaixo = window.innerHeight - box.bottom;
+  const espacoAcima = box.top;
+  const preferirBaixo = espacoAbaixo >= alturaEstimada || espacoAbaixo >= espacoAcima;
+  const topPreferido = preferirBaixo ? box.bottom + 14 : box.top - alturaEstimada - 14;
+  return {
+    width: largura,
+    right: 'auto',
+    left: limitar(box.left + box.width / 2 - largura / 2, margem, window.innerWidth - largura - margem),
+    top: limitar(topPreferido, margem, Math.max(margem, window.innerHeight - alturaEstimada - margem)),
+    bottom: 'auto',
+  };
+}
+
+function caixaUnida(elementos) {
+  const rects = elementos
+    .map((el) => el.getBoundingClientRect())
+    .filter((r) => r.width > 0 && r.height > 0);
+  if (!rects.length) return null;
+  const top = Math.min(...rects.map((r) => r.top));
+  const right = Math.max(...rects.map((r) => r.right));
+  const bottom = Math.max(...rects.map((r) => r.bottom));
+  const left = Math.min(...rects.map((r) => r.left));
+  return { top, right, bottom, left, width: right - left, height: bottom - top };
+}
+
+function passoSaltado(step, ctx) {
+  if (!step || !ctx) return false;
+  if (step.skipWhen === 'hasClub') return Boolean(ctx.club);
+  if (step.skipWhen === 'hasTeam') return Boolean(ctx.team);
+  return false;
+}
+
+function passosUteis(ctx) {
+  return guidedTutorialSteps.filter((s) => !passoSaltado(s, ctx));
+}
+
+function indiceUtilAPartir(index, ctx, direcao = 1) {
+  let i = limitar(index, 0, guidedTutorialSteps.length - 1);
+  while (i >= 0 && i < guidedTutorialSteps.length) {
+    if (!passoSaltado(guidedTutorialSteps[i], ctx)) return i;
+    i += direcao;
+  }
+  return null;
+}
 
 async function primeiroContexto() {
   const listaClubes = await clubs.list();
@@ -55,7 +109,10 @@ function destinoDoPasso(step, ctx) {
   if (step.id === 'match') return rotas.jogos(clubId, teamId);
   if (step.id === 'setup') return match ? rotas.jogoPreparar(match.id) : rotas.jogoNovo(clubId, teamId);
   if (step.id === 'live' || step.id === 'halftime') return match ? rotas.jogoAoVivo(match.id) : rotas.jogoNovo(clubId, teamId);
+  if (step.id === 'liveSecond') return match ? rotas.jogoAoVivo(match.id) : rotas.jogoNovo(clubId, teamId);
   if (step.id === 'summary') return match ? rotas.jogoResumo(match.id) : rotas.jogos(clubId, teamId);
+  if (step.id === 'summaryHome') return match ? rotas.jogoResumo(match.id) : rotas.jogos(clubId, teamId);
+  if (step.id === 'openTeam') return rotas.clube(clubId);
   if (step.id === 'stats') return rotas.escalao(clubId, teamId);
   if (step.id === 'dashboard') return rotas.painelEscalao(clubId, teamId);
   return rotas.dashboard();
@@ -68,8 +125,15 @@ export default function GuidedTutorial() {
   const { dialogOpen } = useUI();
   const [state, setState] = useState({ active: false, step: 0 });
   const [ctx, setCtx] = useState(null);
+  const [targetBox, setTargetBox] = useState(null);
+  const [cardHidden, setCardHidden] = useState(false);
+  const [autoHideRemaining, setAutoHideRemaining] = useState(null);
+  const hideTimer = useRef(null);
+  const countdownTimer = useRef(null);
 
   const atualizar = useCallback(() => setState(readGuidedTutorialState()), []);
+  const stepIndex = Math.max(0, Math.min(guidedTutorialSteps.length - 1, state.step || 0));
+  const step = guidedTutorialSteps[stepIndex];
 
   useEffect(() => {
     atualizar();
@@ -90,62 +154,147 @@ export default function GuidedTutorial() {
     return () => {
       vivo = false;
     };
-  }, [state.active, state.step]);
-
-  const stepIndex = Math.max(0, Math.min(guidedTutorialSteps.length - 1, state.step || 0));
-  const step = guidedTutorialSteps[stepIndex];
+  }, [state.active, state.step, pathname]);
 
   useEffect(() => {
-    if (!state.active || !step?.target) return;
-    const alvo = document.querySelector(step.target);
-    if (!alvo) return;
-    alvo.classList.add('guided-tour-highlight');
-    alvo.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
-    return () => alvo.classList.remove('guided-tour-highlight');
-  }, [state.active, step, pathname]);
+    setCardHidden(false);
+  }, [state.step, pathname]);
 
-  if (!state.active || dialogOpen) return null;
+  useEffect(() => () => {
+    window.clearTimeout(hideTimer.current);
+    window.clearInterval(countdownTimer.current);
+  }, []);
 
-  const ultimo = stepIndex === guidedTutorialSteps.length - 1;
+  useEffect(() => {
+    window.clearTimeout(hideTimer.current);
+    window.clearInterval(countdownTimer.current);
+    setAutoHideRemaining(null);
+    if (!state.active || !step?.autoHideMs) return undefined;
+    const deadline = Date.now() + step.autoHideMs;
+    const updateRemaining = () => {
+      setAutoHideRemaining(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    };
+    updateRemaining();
+    countdownTimer.current = window.setInterval(updateRemaining, 250);
+    hideTimer.current = window.setTimeout(() => {
+      window.clearInterval(countdownTimer.current);
+      setAutoHideRemaining(null);
+      setCardHidden(true);
+    }, step.autoHideMs);
+    return () => {
+      window.clearTimeout(hideTimer.current);
+      window.clearInterval(countdownTimer.current);
+    };
+  }, [state.active, step]);
+
+  useEffect(() => {
+    if (!state.active || !ctx || !passoSaltado(step, ctx)) return;
+    const nextIndex = indiceUtilAPartir(stepIndex + 1, ctx, 1);
+    if (nextIndex == null) return stopGuidedTutorial();
+    setGuidedTutorialStep(nextIndex);
+    router.replace(destinoDoPasso(guidedTutorialSteps[nextIndex], ctx));
+  }, [ctx, router, state.active, step, stepIndex]);
+
+  useEffect(() => {
+    if (!state.active || !step?.target || passoSaltado(step, ctx)) return;
+    setTargetBox(null);
+    const alvos = Array.from(document.querySelectorAll(step.target));
+    if (!alvos.length) {
+      setTargetBox(null);
+      return;
+    }
+    const medir = () => {
+      setTargetBox(caixaUnida(alvos));
+    };
+    alvos.forEach((alvo) => alvo.classList.add('guided-tour-highlight'));
+    alvos[0].scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+    const id = window.setTimeout(medir, 280);
+    window.addEventListener('resize', medir);
+    window.addEventListener('scroll', medir, true);
+    return () => {
+      window.clearTimeout(id);
+      window.removeEventListener('resize', medir);
+      window.removeEventListener('scroll', medir, true);
+      alvos.forEach((alvo) => alvo.classList.remove('guided-tour-highlight'));
+    };
+  }, [ctx, state.active, step, pathname]);
+
+  if (!state.active || dialogOpen || passoSaltado(step, ctx)) return null;
+
+  const uteis = passosUteis(ctx);
+  const posicaoUtil = Math.max(0, uteis.findIndex((s) => s.id === step.id));
+  const ultimo = posicaoUtil === uteis.length - 1;
   const faltaBase = !ctx?.club && step.id !== 'club';
   const faltaEscalao = ctx?.club && !ctx?.team && !['club', 'team'].includes(step.id);
   const faltaJogo = ctx?.team && !ctx?.match && ['setup', 'live', 'halftime', 'summary'].includes(step.id);
 
-  function navegarParaPasso(index) {
+  function navegarParaPasso(index, direcao = 1) {
     const nextIndex = Math.max(0, Math.min(guidedTutorialSteps.length - 1, index));
-    const nextStep = guidedTutorialSteps[nextIndex];
-    setGuidedTutorialStep(nextIndex);
+    const util = ctx ? indiceUtilAPartir(nextIndex, ctx, direcao) : nextIndex;
+    if (util == null) return stopGuidedTutorial();
+    const nextStep = guidedTutorialSteps[util];
+    setGuidedTutorialStep(util);
     router.push(destinoDoPasso(nextStep, ctx || {}));
   }
 
   function anterior() {
-    if (stepIndex === 0) return;
-    navegarParaPasso(stepIndex - 1);
+    if (posicaoUtil <= 0) return;
+    navegarParaPasso(stepIndex - 1, -1);
   }
 
   function seguinte() {
     if (ultimo) return stopGuidedTutorial();
-    navegarParaPasso(stepIndex + 1);
+    navegarParaPasso(stepIndex + 1, 1);
   }
+
+  function esconderCard() {
+    window.clearTimeout(hideTimer.current);
+    window.clearInterval(countdownTimer.current);
+    setAutoHideRemaining(null);
+    setCardHidden(true);
+    hideTimer.current = window.setTimeout(() => setCardHidden(false), 5000);
+  }
+
+  const panelStyle = posicaoDoPainel(targetBox);
+  const spotlightStyle = targetBox
+    ? {
+        top: targetBox.top - 8,
+        left: targetBox.left - 8,
+        width: targetBox.width + 16,
+        height: targetBox.height + 16,
+      }
+    : null;
 
   return (
     <aside className="guided-tour" role="dialog" aria-live="polite" aria-label={t('tutorial.titulo')}>
-      <div className="guided-tour__panel">
+      {spotlightStyle ? <div className="guided-tour__spotlight" style={spotlightStyle} /> : null}
+      {cardHidden ? null : <div className="guided-tour__panel" style={panelStyle}>
         <div className="guided-tour__top">
           <span className="guided-tour__progress">
-            {t('tutorial.progresso', { atual: stepIndex + 1, total: guidedTutorialSteps.length })}
+            {t('tutorial.progresso', { atual: posicaoUtil + 1, total: uteis.length })}
           </span>
-          <button className="btn btn--tiny btn--ghost" type="button" onClick={stopGuidedTutorial}>
-            {t('tutorial.ignorar')}
-          </button>
+          <div className="guided-tour__topactions">
+            <button className="btn btn--tiny btn--ghost" type="button" onClick={esconderCard}>
+              {t('tutorial.guiado.esconderCard')}
+            </button>
+            <button className="btn btn--tiny btn--ghost" type="button" onClick={stopGuidedTutorial}>
+              {t('tutorial.ignorar')}
+            </button>
+          </div>
         </div>
         <h2>{t(step.titleKey)}</h2>
         <p>{t(step.textKey)}</p>
+        {step.autoHideMs && autoHideRemaining != null ? (
+          <p className="guided-tour__countdown">
+            {t('tutorial.guiado.desapareceEm', { s: autoHideRemaining })}
+          </p>
+        ) : null}
+        {targetBox ? <p className="guided-tour__hint guided-tour__hint--action">{t('tutorial.guiado.carregaNoDestaque')}</p> : null}
         {faltaBase ? <p className="guided-tour__hint">{t('tutorial.guiado.precisaClube')}</p> : null}
         {faltaEscalao ? <p className="guided-tour__hint">{t('tutorial.guiado.precisaEscalao')}</p> : null}
         {faltaJogo ? <p className="guided-tour__hint">{t('tutorial.guiado.precisaJogo')}</p> : null}
         <div className="guided-tour__actions">
-          <button className="btn btn--ghost" type="button" disabled={stepIndex === 0} onClick={anterior}>
+          <button className="btn btn--ghost" type="button" disabled={posicaoUtil <= 0} onClick={anterior}>
             {t('tutorial.anterior')}
           </button>
           <button className="btn btn--primary" type="button" onClick={seguinte}>
@@ -155,7 +304,7 @@ export default function GuidedTutorial() {
         <button className="guided-tour__restart" type="button" onClick={() => startGuidedTutorial(router)}>
           {t('tutorial.guiado.recomecar')}
         </button>
-      </div>
+      </div>}
     </aside>
   );
 }

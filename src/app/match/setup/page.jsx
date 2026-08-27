@@ -19,12 +19,13 @@ import { clubs, teams, competitions, players, matches, squad, events, loadMatch 
 import * as sync from '@/lib/data/sync.js';
 import { startFirstHalf } from '@/domain/actions.js';
 import { canStartFirstHalf, validateLineup, validateSquadSelection } from '@/domain/validation.js';
-import { LOCATION, MATCH_STATUS, maxSquadOf, timingOf } from '@/domain/constants.js';
+import { LOCATION, MATCH_STATUS, MATCH_TIMING, maxSquadOf, timingOf } from '@/domain/constants.js';
 import { positionLabel, mensagemErro, homeAwayLabel, timingLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
 import { claimMatchStart } from '@/lib/entitlements.js';
 import LicenseLimitDialog from '@/components/LicenseLimitDialog.jsx';
+import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 
 export default function SetupPage() {
   return (
@@ -139,6 +140,7 @@ function Preparacao() {
         scheduledAt: new Date(form.scheduledAt).getTime(),
         homeOrAway: form.homeOrAway,
         competitionId: form.competitionId || null,
+        timing: form.timing,
         notes: form.notes,
       });
       sync.saveNow(userId, user?.email);
@@ -200,8 +202,8 @@ function Preparacao() {
         5200
       );
       if (permissao?.reason === 'free_limit_reached') {
-        const abrir = await ui.open((close) => <LicenseLimitDialog close={close} />);
-        if (abrir) router.push(`${rotas.conta()}#licencas`);
+        const acao = await ui.open((close) => <LicenseLimitDialog close={close} />);
+        if (acao === 'account') router.push(`${rotas.conta()}#licencas`);
       }
       return;
     }
@@ -209,6 +211,7 @@ function Preparacao() {
     // A partir daqui é jogo ao vivo: fica local até ao apito final. A preparação
     // já foi enviada; os acontecimentos do jogo seguem todos juntos quando se
     // carrega em "Terminar jogo".
+    setGuidedTutorialStepById('live');
     router.push(rotas.jogoAoVivo(matchId));
   }
 
@@ -270,7 +273,11 @@ function Preparacao() {
               </select>
             </Field>
             <Field label={t('prep.tipoJogo')} hint={t('novo.tipoJogoDaCompeticao')}>
-              <input className="input" value={timingLabel(form.timing)} readOnly />
+              <select className="input" value={form.timing} onChange={(e) => setForm((f) => ({ ...f, timing: e.target.value }))}>
+                {Object.values(MATCH_TIMING).map((value) => (
+                  <option key={value} value={value}>{timingLabel(value)}</option>
+                ))}
+              </select>
             </Field>
           </div>
           <Field label={t('prep.notas')}>

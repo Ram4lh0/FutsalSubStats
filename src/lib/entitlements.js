@@ -55,8 +55,18 @@ export async function entitlement() {
 export async function canCreateMatch() {
   const local = await profile.get();
   if (localLicenseActive(local)) return { allowed: true, licensed: true };
+  const localUsed = await localFreeGamesUsed();
   const status = await entitlement();
   if (status.error) return offlineEntitlementFallback();
+  if (!status.licenseActive && localUsed >= FREE_GAME_LIMIT) {
+    return {
+      ...status,
+      allowed: false,
+      reason: 'free_limit_reached',
+      freeGamesUsed: Math.max(status.freeGamesUsed || 0, localUsed),
+      freeGamesRemaining: 0,
+    };
+  }
   return {
     ...status,
     allowed: status.licenseActive || status.freeGamesRemaining > 0,
@@ -65,6 +75,22 @@ export async function canCreateMatch() {
 }
 
 export async function claimMatchStart(matchId) {
+  const local = await profile.get();
+  if (localLicenseActive(local)) return { allowed: true, licensed: true };
+  const status = await entitlement();
+  const localUsed = await localFreeGamesUsed();
+  if (status?.licenseActive) return { ...status, allowed: true, reason: null };
+  if (!status.error && status.freeGamesRemaining <= 0) return { ...status, allowed: false, reason: 'free_limit_reached' };
+  if (localUsed >= FREE_GAME_LIMIT) {
+    return {
+      ...status,
+      allowed: false,
+      licensed: false,
+      freeGamesUsed: Math.max(status.freeGamesUsed || 0, localUsed),
+      freeGamesRemaining: 0,
+      reason: 'free_limit_reached',
+    };
+  }
   const sb = supabase();
   if (!sb) {
     return offlineEntitlementFallback();
