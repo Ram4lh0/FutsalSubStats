@@ -35,13 +35,15 @@ export default {
   /* ------------------------------------------------------ navegação */
   'nav.principal': 'Navegação principal',
   'nav.jogo': 'Jogo',
-  'nav.equipas': 'Equipas',
+  'nav.equipas': 'Equipa',
   'nav.equipaTecnica': 'Equipa Técnica',
   'nav.analise': 'Análise',
   'nav.perfil': 'Perfil',
   'nav.trocarEscalao': 'Trocar escalão',
   'nav.jogoEmCurso': 'Jogo em curso',
   'nav.verEscaloes': 'Ver escalões',
+  'nav.recolherMenu': 'Recolher menu',
+  'nav.abrirMenu': 'Abrir menu',
 
   /* ----------------------------------------------------- sincronização */
   'sinc.sincronizado': 'SINCRONIZADO',
@@ -606,6 +608,7 @@ export default {
   'plantel.ativos': 'ativos',
   'plantel.inativos': '{n} inativos',
   'plantel.procurar': 'Procurar por nome ou número…',
+  'plantel.filtros': 'Filtros',
   'plantel.todasPosicoes': 'Todas as posições',
   'plantel.ativosEInativos': 'Ativos e inativos',
   'plantel.soAtivos': 'Só ativos',
@@ -1191,7 +1194,7 @@ export default {
   /* ------------------------------------------------- cópia de segurança */
   'copia.titulo': 'Cópia de segurança',
   'copia.texto':
-    'Um ficheiro com tudo o que esta conta tem: clubes, escalões, planteis, jogos e o histórico de cada um. Serve para mudar de conta ou de telemóvel — a base deste aparelho pertence a uma conta de cada vez.',
+    'Um ficheiro com tudo o que esta conta tem: clubes, escalões, planteis, jogos e o histórico de cada um. Serve para mudar de conta ou de telemóvel. A base deste aparelho pertence a uma conta de cada vez.',
   'copia.transferir': 'Transferir cópia',
   'copia.restaurar': 'Restaurar cópia',
   'copia.confirmaRestaurar':

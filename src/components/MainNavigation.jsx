@@ -127,6 +127,7 @@ export default function MainNavigation() {
   const [selectedId, setSelectedId] = useState(null);
   const [live, setLive] = useState(null);
   const [licencaClube, setLicencaClube] = useState(false);
+  const [sideCollapsed, setSideCollapsed] = useState(false);
 
   const area = areaFromPath(pathname);
   const routeIds = useMemo(() => routeIdsFrom(searchParams), [searchParams]);
@@ -200,10 +201,20 @@ export default function MainNavigation() {
 
   return (
     <>
-      <aside className="mainnav mainnav--side" aria-label={t('nav.principal')}>
-        <button className="mainnav__brand" type="button" onClick={() => go('teams')}>
-          FutsalSubStats
-        </button>
+      <aside className={`mainnav mainnav--side ${sideCollapsed ? 'is-collapsed' : ''}`} aria-label={t('nav.principal')}>
+        <div className="mainnav__sidehead">
+          <button className="mainnav__brand" type="button" onClick={() => go('teams')}>
+            <span>FutsalSubStats</span>
+          </button>
+          <button
+            className="mainnav__collapse"
+            type="button"
+            aria-label={sideCollapsed ? t('nav.abrirMenu') : t('nav.recolherMenu')}
+            onClick={() => setSideCollapsed((v) => !v)}
+          >
+            {sideCollapsed ? '›' : '‹'}
+          </button>
+        </div>
         <NavButtons items={navItems} active={area} onGo={go} />
         {live ? (
           <button className="mainnav__live" type="button" onClick={() => router.push(rotas.jogoAoVivo(live.id))}>
@@ -231,6 +242,7 @@ export default function MainNavigation() {
         ) : (
           <span className="mainnav-top__spacer" />
         )}
+        <span className="mainnav-top__spacer" />
         {live && !noJogoAoVivo(pathname) ? (
           <button className="btn btn--tiny btn--fecha" type="button" onClick={() => router.push(rotas.jogoAoVivo(live.id))}>
             {t('nav.jogoEmCurso')}

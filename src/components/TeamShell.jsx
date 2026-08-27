@@ -71,7 +71,6 @@ function Shell({ clubId, teamId, children }) {
   const emJogo = /^\/team\/matches\/?$/.test(pathname || '');
   const abasEquipas = [
     { label: t('escalao.plantel'), to: rotas.plantel(clubId, teamId) },
-    { label: t('escalao.jogos'), to: rotas.jogos(clubId, teamId) },
     { label: t('escalao.competicoes'), to: rotas.competicoes(clubId, teamId) },
   ];
   const abasAnalise = [
@@ -103,6 +102,7 @@ function Shell({ clubId, teamId, children }) {
           >
             {t('escalao.editar')}
           </button>
+          <span className="toolbar__spacer" />
           <button
             className="btn btn--primary btn--tiny"
             data-tour="create-match"

@@ -68,7 +68,7 @@ function Jogos({ entries, competitions, clubId, teamId }) {
   const router = useRouter();
   const t = useT();
   const [mostrarTudo, setMostrarTudo] = useState(false);
-  const limite = 4;
+  const limite = 7;
   const temMais = entries.length > limite;
 
   return (

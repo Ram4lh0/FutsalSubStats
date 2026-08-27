@@ -36,6 +36,13 @@ import { canCreateMatch } from '@/lib/entitlements.js';
 import LicenseLimitDialog from '@/components/LicenseLimitDialog.jsx';
 import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 
+function textoPesquisavel(valor) {
+  return String(valor ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 // As etapas são chaves, não frases: o nome de cada uma muda com o idioma.
 const ETAPAS = ['novo.etapaInfo', 'novo.etapaConvocados', 'novo.etapaCinco', 'novo.etapaConfirmacao'];
 
@@ -416,7 +423,7 @@ function Assistente() {
                 .filter(
                   (p) =>
                     !procura ||
-                    p.name.toLowerCase().includes(procura.toLowerCase()) ||
+                    textoPesquisavel(p.name).includes(textoPesquisavel(procura)) ||
                     String(p.shirtNumber).includes(procura)
                 )
                 .map((p) => (
