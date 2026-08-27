@@ -53,6 +53,7 @@ export const rotas = {
   /* ------------------------------------------------------------- clubes */
   clubeNovo: () => '/clubs/new',
   clube: (club) => comIds('/club', { club }),
+  escaloes: (club) => `${comIds('/club', { club })}&view=teams`,
   clubeEditar: (club) => comIds('/club/edit', { club }),
 
   /* ----------------------------------------------------------- escalões */

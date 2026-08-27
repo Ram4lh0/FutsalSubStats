@@ -8,7 +8,7 @@
 // correu o último.
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import PageHead from '@/components/PageHead.jsx';
@@ -36,10 +36,12 @@ export default function ClubPage() {
 function Escaloes() {
   const { clubId } = useRouteParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useT();
   const [dados, setDados] = useState(null);
   const soLeitura = useSoLeitura();
   const souDono = useSouDono(clubId);
+  const mostrarEscaloes = searchParams.get('view') === 'teams';
 
   const carregar = useCallback(async () => {
     const club = await clubs.get(clubId);
@@ -75,16 +77,16 @@ function Escaloes() {
   }, [carregar]);
 
   useEffect(() => {
-    if (!dados?.cartoes?.length) return;
+    if (mostrarEscaloes || !dados?.cartoes?.length) return;
     router.replace(rotas.plantel(clubId, dados.cartoes[0].team.id));
-  }, [clubId, dados, router]);
+  }, [clubId, dados, mostrarEscaloes, router]);
 
   if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
   if (!dados.club) return <Empty>{t('clube.naoEncontrado')}</Empty>;
 
   const { club, cartoes, licenca } = dados;
 
-  if (cartoes.length) {
+  if (cartoes.length && !mostrarEscaloes) {
     return <p className="muted">{t('comum.aCarregar')}</p>;
   }
 

@@ -40,6 +40,7 @@ export default {
   'nav.perfil': 'Profile',
   'nav.trocarEscalao': 'Switch age group',
   'nav.jogoEmCurso': 'Live match',
+  'nav.verEscaloes': 'View age groups',
 
   /* ---------------------------------------------------------- syncing */
   'sinc.sincronizado': 'SYNCED',
@@ -223,6 +224,8 @@ export default {
   'lista.competicao': 'Competition',
   'lista.resultado': 'Result',
   'lista.estado': 'Status',
+  'lista.mostrarMais': 'Show more',
+  'lista.mostrarMenos': 'Show less',
 
   /* ---------------------------------------------------------- age group */
   'escalao.plantel': 'Roster',
@@ -241,6 +244,8 @@ export default {
   'painelv.corrido': 'Running clock',
   'painelv.ambito': 'Team or Player',
   'painelv.exportarPdf': 'Download PDF',
+  'painelv.minimizar': 'Minimize',
+  'painelv.maximizar': 'Show',
   'painelv.equipaToda': 'Whole team',
   'painelv.atletaMinutos': '{nome} minutes',
   'painelv.mediaAtleta': 'Time per match',
