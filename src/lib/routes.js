@@ -37,6 +37,7 @@ export const rotas = {
   login: () => '/login',
   dashboard: () => '/dashboard',
   conta: () => '/account',
+  equipaTecnica: () => '/staff',
   tutorial: () => '/tutorial',
   privacidade: () => '/privacy',
   // Definir ou mudar a palavra-passe. É também o destino dos links do convite e

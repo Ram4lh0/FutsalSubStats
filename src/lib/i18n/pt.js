@@ -29,8 +29,18 @@ export default {
   'barra.marca': 'FutsalSubStats',
   'barra.demonstracao': 'DEMONSTRAÇÃO',
   'barra.criarConta': 'Criar conta',
-  'barra.definicoes': 'Definições',
+  'barra.definicoes': 'Perfil',
   'barra.logout': 'Logout',
+
+  /* ------------------------------------------------------ navegação */
+  'nav.principal': 'Navegação principal',
+  'nav.jogo': 'Jogo',
+  'nav.equipas': 'Equipas',
+  'nav.equipaTecnica': 'Equipa Técnica',
+  'nav.analise': 'Análise',
+  'nav.perfil': 'Perfil',
+  'nav.trocarEscalao': 'Trocar escalão',
+  'nav.jogoEmCurso': 'Jogo em curso',
 
   /* ----------------------------------------------------- sincronização */
   'sinc.sincronizado': 'SINCRONIZADO',
@@ -60,7 +70,7 @@ export default {
   'login.passwordDica': 'Pelo menos 6 caracteres.',
   'login.jaTenhoConta': 'Já tenho conta',
   'login.aLigar': 'A ligar…',
-  'login.ou': 'ou',
+  'login.ou': 'ou com email',
   'login.experimentar': 'Experimentar DEMO',
   'login.aPreparar': 'A preparar…',
   'login.experimentarDica': 'Um jogo completo com uma equipa fictícia, para ver como funciona.',
@@ -76,7 +86,7 @@ export default {
     'Os dados da conta anterior saíram deste aparelho. Continuam guardados na conta.',
 
   /* ------------------------------------------------------ definições */
-  'definicoes.titulo': 'Definições',
+  'definicoes.titulo': 'Perfil',
   'definicoes.idioma': 'Idioma',
   'definicoes.idiomaDica': 'A escolha fica guardada neste dispositivo.',
   'definicoes.sincronizacao': 'Sincronização',
@@ -474,7 +484,8 @@ export default {
   'tutorial.guiado.estatisticasTexto': 'A aba de estatísticas mostra os números do escalão e dos atletas, já com golos, assistências, faltas, cartões e tempo em campo.',
   'tutorial.guiado.dashboardTitulo': 'Fecha no dashboard',
   'tutorial.guiado.dashboardTexto': 'O dashboard transforma os dados em gráficos: rotação, forma, golos por período, disciplina e análise por jogador.',
-  'equipaTecnica.texto': 'Adiciona aqui os emails dos treinadores para ficarem associados a este clube. Depois aparecem no ecrã de dar acesso aos escalões.',
+  'equipaTecnica.texto': 'Adiciona aqui os emails dos treinadores para ficarem associados a este clube.',
+  'equipaTecnica.associados': 'Treinadores associados',
   'equipaTecnica.emailPlaceholder': 'email@clube.pt',
   'equipaTecnica.adicionar': 'Adicionar email',
   'equipaTecnica.aAdicionar': 'A adicionar...',
