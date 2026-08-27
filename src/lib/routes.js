@@ -34,6 +34,7 @@ function comIds(base, ids = {}) {
 
 export const rotas = {
   raiz: () => '/',
+  jogo: () => '/jogo',
   login: () => '/login',
   dashboard: () => '/dashboard',
   conta: () => '/account',

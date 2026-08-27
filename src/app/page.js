@@ -1,6 +1,6 @@
 'use client';
 
-// A porta de entrada. Não decide nada: manda para o painel dos clubes, e é o
+// A porta de entrada. Não decide nada: manda para a aba Jogo, e é o
 // `Guard` de lá que trata de exigir a conta iniciada.
 //
 // O reencaminhamento é feito no browser, e não no servidor, porque servidor não
@@ -17,7 +17,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!ready) return;
-    router.replace(!remote || session ? rotas.dashboard() : rotas.login());
+    router.replace(!remote || session ? rotas.jogo() : rotas.login());
   }, [ready, remote, session, router]);
 
   return <p className="muted" style={{ padding: 20 }}>A carregar…</p>;

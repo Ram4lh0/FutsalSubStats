@@ -38,13 +38,13 @@ export function UIProvider({ children }) {
   // se fossem valores por omissão avaliados uma vez, ficavam presas ao idioma
   // que estava escolhido no arranque.
   const confirmar = useCallback(
-    (mensagem, { okLabel, danger = true, title } = {}) =>
+    (mensagem, { okLabel, cancelLabel, danger = true, title } = {}) =>
       open((close) => (
         <Dialog title={title || t('comum.confirmar')} onClose={() => close(false)}>
           <p className="modal__text">{mensagem}</p>
           <footer className="modal__actions">
             <button className="btn btn--ghost" onClick={() => close(false)}>
-              {t('comum.cancelar')}
+              {cancelLabel || t('comum.cancelar')}
             </button>
             <button
               className={`btn ${danger ? 'btn--danger' : 'btn--primary'}`}
