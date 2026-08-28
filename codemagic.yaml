@@ -264,7 +264,7 @@ workflows:
         - google-play
       vars:
         NEXT_TELEMETRY_DISABLED: "1"
-        PACKAGE_NAME: "com.FutsalSubStats.app"
+        PACKAGE_NAME: "com.futsalsubstats.app"
 
     cache:
       cache_paths:
