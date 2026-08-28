@@ -1,1 +1,314 @@
-null
+#  ┌────────────────────────────────────────────────────────────────────┐
+#  │  Como isto se usa                                                  │
+#  └────────────────────────────────────────────────────────────────────┘
+#
+#  web-pwa-ci             corre a cada push: testes, verificadores e build.
+#  ios-capacitor-preview  compila para simulador, sem assinatura. Serve para
+#                         confirmar que o projeto iOS não partiu.
+#  ios-testflight         o que interessa: compila assinado e envia para o
+#                         TestFlight. É corrido à mão, não a cada push.
+#  android-preview        o mesmo do preview do iOS, mas para Android: um APK de
+#                         depuração a cada push, sem segredos nenhuns.
+#  android-google-play    compila um AAB assinado e envia para a faixa interna
+#                         da Play Console. Também à mão.
+#
+#  O ios-testflight precisa de:
+#
+#  1. Integração App Store Connect em Teams → Integrations → Developer Portal.
+#     A integração usada por este projeto chama-se `Futsal SubStats`.
+#  2. Grupo de variáveis `appstore` com APP_STORE_APPLE_ID — o número da app em
+#     App Store Connect.
+#
+#  O certificado Apple Distribution e o provisioning profile App Store têm de
+#  estar disponíveis em Code signing identities.
+
+workflows:
+  web-pwa-ci:
+    name: Futsal SubStats Web/PWA CI
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+
+    environment:
+      node: lts
+      vars:
+        NEXT_TELEMETRY_DISABLED: "1"
+
+    cache:
+      cache_paths:
+        - node_modules
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Run checks and tests
+        script: npm run check
+
+      - name: Build Next.js app
+        script: npm run build
+
+  ios-capacitor-preview:
+    name: Futsal SubStats iOS Capacitor Preview
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      node: lts
+      xcode: latest
+      vars:
+        NEXT_TELEMETRY_DISABLED: "1"
+
+    cache:
+      cache_paths:
+        - node_modules
+        - ~/Library/Developer/Xcode/DerivedData
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Run checks and tests
+        script: npm run check
+
+      - name: Build web bundle and sync iOS
+        script: |
+          npx next build
+          npx cap sync ios
+
+      - name: Build iOS simulator app
+        script: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/ios/Build/Products/Debug-iphonesimulator/App.app \
+            build/ios/Build/Products/Debug-iphonesimulator/FutsalSubStats.app.zip
+
+    artifacts:
+      - build/ios/Build/Products/Debug-iphonesimulator/FutsalSubStats.app.zip
+
+  # ------------------------------------------------------------ TestFlight
+  ios-testflight:
+    name: Futsal SubStats iOS TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: FutsalSubStats
+
+    environment:
+      node: lts
+      xcode: latest
+      cocoapods: default
+      groups:
+        - appstore
+      ios_signing:
+        certificates:
+          - futsalsubstats-ios-p12
+        provisioning_profiles:
+          - futsalsubstats_appstore
+      vars:
+        BUNDLE_ID: "com.FutsalSubStats.app"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+        NEXT_TELEMETRY_DISABLED: "1"
+
+    cache:
+      cache_paths:
+        - node_modules
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Run checks and tests
+        script: npm run check
+
+      - name: Build web bundle and sync iOS
+        script: |
+          npx next build
+          npx cap sync ios
+
+      - name: Set up iOS code signing
+        script: |
+          set -euo pipefail
+
+          security find-identity -v -p codesigning || true
+
+          xcode-project use-profiles \
+            --project "$XCODE_PROJECT" \
+            --archive-method app-store \
+            --code-signing-setup-verbose-logging
+
+      - name: Bump build number
+        script: |
+          cd ios/App
+          agvtool new-version -all "$BUILD_NUMBER"
+
+      - name: Build signed archive
+        script: |
+          set -euo pipefail
+
+          xcode-project build-ipa \
+            -v \
+            --disable-xcpretty \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME" \
+            --config Release \
+            --archive-flags "-destination 'generic/platform=iOS'" \
+            --export-options-plist "$HOME/export_options.plist" || {
+              echo "xcode-project build-ipa failed. Showing xcodebuild logs:"
+              find /tmp/xcodebuild_logs -type f -name '*.log' -print -exec tail -n 200 {} \; || true
+              exit 1
+            }
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
+
+      email:
+        recipients:
+          - review.FutsalSubStats@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # ------------------------------------------------------------------ Android
+  android-preview:
+    name: Futsal SubStats Android Preview
+    max_build_duration: 45
+    instance_type: linux_x2
+
+    environment:
+      node: lts
+      java: 21
+      vars:
+        NEXT_TELEMETRY_DISABLED: "1"
+
+    cache:
+      cache_paths:
+        - node_modules
+        - ~/.gradle/caches
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Run checks and tests
+        script: npm run check
+
+      - name: Build web bundle and sync Android
+        script: |
+          npx next build
+          npx cap sync android
+
+      - name: Build debug APK
+        script: |
+          cd android
+          ./gradlew assembleDebug
+
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+
+  # ------------------------------------------------------- Google Play interno
+  android-google-play:
+    name: Futsal SubStats Android Google Play
+    max_build_duration: 60
+    instance_type: linux_x2
+
+    environment:
+      node: lts
+      java: 21
+      android_signing:
+        - Futsal SubStats
+      groups:
+        - google-play
+      vars:
+        NEXT_TELEMETRY_DISABLED: "1"
+        PACKAGE_NAME: "com.futsalsubstats.app"
+
+    cache:
+      cache_paths:
+        - node_modules
+        - ~/.gradle/caches
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Run checks and tests
+        script: npm run check
+
+      - name: Build web bundle and sync Android
+        script: |
+          npx next build
+          npx cap sync android
+
+      - name: Bump version code
+        script: |
+          ULTIMO=$(google-play get-latest-build-number \
+            --package-name "$PACKAGE_NAME" \
+            --tracks internal || echo 0)
+          cd android
+          sed -i "s/versionCode .*/versionCode $(($ULTIMO + 1))/" app/build.gradle
+
+      - name: Build signed AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+
+    artifacts:
+      - android/app/build/outputs/bundle/**/*.aab
+      - android/app/build/outputs/**/mapping.txt
+
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: false
+
+      email:
+        recipients:
+          - review.FutsalSubStats@gmail.com
+        notify:
+          success: true
+          failure: true
