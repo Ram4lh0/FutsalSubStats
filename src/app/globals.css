@@ -497,7 +497,13 @@ ul { padding: 0; list-style: none; }
   letter-spacing: 0.08em;
 }
 /* Encostado à tabela, quase como se fosse parte dela — não um botão solto
- * no meio do ecrã. */
+ * no meio do ecrã. A tabela em si tem uma margem de baixo para não ficar
+ * tapada pela barra de navegação (ver `.tablewrap` no ecrã estreito); aqui
+ * ela sobra, porque quem reserva esse espaço agora é o botão fixo mais
+ * abaixo — por isso anula-se só quando a tabela é seguida deste botão. */
+.tablewrap:has(+ .matches-showmore) {
+  margin-bottom: 0;
+}
 .matches-showmore {
   display: flex;
   justify-content: flex-start;
