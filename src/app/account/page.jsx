@@ -268,7 +268,7 @@ function Definicoes() {
         <div className="licenses-card__head">
           <div>
             <h2 className="section section--tight">{t('licencas.titulo')}</h2>
-            <p className="muted">{t('licencas.texto')}</p>
+            {!planoAtivo ? <p className="muted">{t('licencas.texto')}</p> : null}
           </div>
           {licencas.status?.licenseActive ? (
             <span className="pill pill--active">
