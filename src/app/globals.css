@@ -17,7 +17,7 @@
   --radius: 14px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --touch: 52px;
-  --nav-bottom-altura: 58px;
+  --nav-bottom-altura: 54px;
 
   /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
    * navegação em baixo, os cantos redondos ao lado.
@@ -253,12 +253,13 @@ ul { padding: 0; list-style: none; }
   backdrop-filter: blur(16px);
 }
 .mainnav--bottom .mainnav__item {
-  min-height: 56px;
+  min-height: 54px;
   flex-direction: column;
   gap: 2px;
   justify-content: flex-end;
   font-size: 0.68rem;
-  padding-bottom: 3px;
+  padding-bottom: 0;
+  transform: translateY(2px);
 }
 .mainnav--bottom .mainnav__item svg {
   width: 21px;
