@@ -410,6 +410,7 @@ export default {
   'licencas.nadaParaRestaurar': 'No se encontraron compras para restaurar.',
   'licencas.restauroFalhou': 'No se pudieron restaurar las compras: {erro}',
   'licencas.verOpcoes': 'Ver licencias',
+  'tutorial.avisoInterfaceAntiga': 'Solo funciona para la interfaz antigua.',
   'tutorial.titulo': 'Tutorial',
   'tutorial.definicoesTexto': 'Inicia una guía dentro de la app, paso a paso, desde la creación del club hasta el dashboard.',
   'tutorial.perguntaTitulo': '¿Quieres hacer el tutorial?',

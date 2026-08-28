@@ -861,6 +861,14 @@ ul { padding: 0; list-style: none; }
 .tutorial-settings .section {
   color: #dff6ff;
 }
+.tutorial-settings__aviso {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fbbf24;
+}
 .tutorial-settings .btn {
   border-color: rgba(56, 189, 248, 0.5);
   color: #bae6fd;
