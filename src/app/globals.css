@@ -17,7 +17,7 @@
   --radius: 14px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --touch: 52px;
-  --nav-bottom-altura: 48px;
+  --nav-bottom-altura: 58px;
 
   /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
    * navegação em baixo, os cantos redondos ao lado.
@@ -244,7 +244,7 @@ ul { padding: 0; list-style: none; }
   z-index: 70;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
-  align-items: center;
+  align-items: end;
   gap: 2px;
   min-height: var(--nav-bottom-altura);
   padding: 0 max(8px, var(--seguro-dir)) 0 max(8px, var(--seguro-esq));
@@ -253,11 +253,12 @@ ul { padding: 0; list-style: none; }
   backdrop-filter: blur(16px);
 }
 .mainnav--bottom .mainnav__item {
-  min-height: 48px;
+  min-height: 56px;
   flex-direction: column;
   gap: 2px;
+  justify-content: flex-end;
   font-size: 0.68rem;
-  transform: translateY(10px);
+  padding-bottom: 3px;
 }
 .mainnav--bottom .mainnav__item svg {
   width: 21px;
@@ -267,8 +268,8 @@ ul { padding: 0; list-style: none; }
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  min-height: 1.9em;
-  line-height: 1.03;
+  min-height: 2.1em;
+  line-height: 1.05;
   text-align: center;
 }
 .mainnav--side {
