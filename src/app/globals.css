@@ -328,16 +328,34 @@ ul { padding: 0; list-style: none; }
 }
 .postlogin__ball {
   position: absolute;
-  left: 18px;
-  top: 30px;
-  width: 18px;
-  height: 18px;
+  left: 16px;
+  top: 28px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 50% 50%, #0b1220 0 2px, transparent 3px),
-    conic-gradient(from 20deg, #eaf1ff 0 18%, #38bdf8 18% 34%, #eaf1ff 34% 52%, #22c55e 52% 69%, #eaf1ff 69% 100%);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.9);
+    radial-gradient(circle at 50% 50%, #111827 0 3px, transparent 3.5px),
+    radial-gradient(circle at 50% 16%, #111827 0 2px, transparent 2.5px),
+    radial-gradient(circle at 82% 40%, #111827 0 2px, transparent 2.5px),
+    radial-gradient(circle at 68% 82%, #111827 0 2px, transparent 2.5px),
+    radial-gradient(circle at 24% 76%, #111827 0 2px, transparent 2.5px),
+    radial-gradient(circle at 18% 38%, #111827 0 2px, transparent 2.5px),
+    linear-gradient(135deg, #ffffff, #cbd5e1);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.9), inset -2px -3px 5px rgba(15, 23, 42, 0.28);
   animation: postlogin-ball 1.25s ease-in-out infinite;
+}
+.postlogin__ball::before,
+.postlogin__ball::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(17, 24, 39, 0.3);
+  border-left-color: transparent;
+  border-right-color: transparent;
+  border-radius: 50%;
+}
+.postlogin__ball::after {
+  transform: rotate(72deg);
 }
 .postlogin__line {
   position: absolute;
