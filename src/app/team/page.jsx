@@ -46,12 +46,14 @@ function Stats({ entries, roster, clubId, teamId }) {
   return (
     <div className="tour-page-scope" data-tour="team-stats">
       <div className="grid grid--stats stats__resumo">
-        <StatCard
-          label={t('stats.jogos')}
-          value={agg.matches}
-          hint={t('stats.terminados', { n: agg.finished })}
-        />
-        <StatCard label={t('stats.ved')} value={<Ved v={agg.wins} e={agg.draws} d={agg.losses} />} />
+        <div className="stats__resumo-topo">
+          <StatCard
+            label={t('stats.jogos')}
+            value={agg.matches}
+            hint={t('stats.terminados', { n: agg.finished })}
+          />
+          <StatCard label={t('stats.ved')} value={<Ved v={agg.wins} e={agg.draws} d={agg.losses} />} />
+        </div>
         <CartaoGolos marcados={agg.goalsFor} sofridos={agg.goalsAgainst} />
       </div>
 
