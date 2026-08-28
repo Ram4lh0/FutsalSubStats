@@ -19,14 +19,18 @@
   --touch: 52px;
   /* --nav-bottom-altura é o espaço TOTAL que a barra de baixo ocupa no ecrã —
    * é o que todo o resto do CSS usa para não ficar por baixo dela (padding
-   * de listas, posição de botões flutuantes, etc). Inclui a safe-area, por
-   * isso já soma `--seguro-baixo`: nos telemóveis com barra de gestos essa
-   * barra cresce sozinha, e quem usa esta variável não precisa de se
-   * lembrar de somar a safe-area outra vez.
+   * de listas, posição de botões flutuantes, etc).
    * --nav-bottom-conteudo é só a parte visível — ícone + legenda — sem a
-   * safe-area; é o que a própria barra usa para o seu min-height. */
+   * safe-area; é o que a própria barra usa para o seu min-height.
+   * --nav-bottom-safe é a safe-area que a barra reserva por baixo, com um
+   * teto de 15px: o valor "cru" que alguns browsers Android devolvem em
+   * `env(safe-area-inset-bottom)` numa aba normal (fora da app instalada)
+   * tem-se mostrado bem maior do que a barra de gestos realmente ocupa,
+   * deixando uma folga vazia enorme por cima dela. 15px chega para nunca
+   * ficar tapado, sem sobrar espaço morto. */
   --nav-bottom-conteudo: 46px;
-  --nav-bottom-altura: calc(var(--nav-bottom-conteudo) + var(--seguro-baixo));
+  --nav-bottom-safe: min(var(--seguro-baixo), 15px);
+  --nav-bottom-altura: calc(var(--nav-bottom-conteudo) + var(--nav-bottom-safe));
 
   /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
    * navegação em baixo, os cantos redondos ao lado.
@@ -270,7 +274,7 @@ ul { padding: 0; list-style: none; }
    * zona onde o sistema desenha a sua própria barra, para nunca ficarem
    * tapados nem cortados por ela. Em ecrãs sem barra de gestos vale 0px, e a
    * barra fica mesmo encostada ao fundo do ecrã. */
-  padding: 0 max(8px, var(--seguro-dir)) var(--seguro-baixo) max(8px, var(--seguro-esq));
+  padding: 0 max(8px, var(--seguro-dir)) var(--nav-bottom-safe) max(8px, var(--seguro-esq));
   border-top: 1px solid rgba(42, 61, 95, 0.86);
   background: rgba(11, 18, 32, 0.96);
   backdrop-filter: blur(16px);
