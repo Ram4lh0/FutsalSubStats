@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase/client.js';
 import * as sync from '@/lib/data/sync.js';
 import { garantirDono } from '@/lib/data/owner.js';
 import { useIdioma, useLocale } from '@/lib/i18n/index.js';
+import { SyncStatusProvider, useSyncStatus } from '@/lib/sync-status.jsx';
 import { marcarArranqueBemSucedido } from '@/lib/atualizacoes.js';
 import { prepararOffline } from '@/lib/pwa.js';
 import PlayStoreUpdateNotice from '@/components/PlayStoreUpdateNotice.jsx';
@@ -40,10 +41,12 @@ export default function Providers({ children }) {
   return (
     <AuthProvider>
       <UIProvider>
-        <PlayStoreUpdateNotice />
-        <SyncBridge />
-        <LiveChrome />
-        <Idioma>{children}</Idioma>
+        <SyncStatusProvider>
+          <PlayStoreUpdateNotice />
+          <SyncBridge />
+          <LiveChrome />
+          <Idioma>{children}</Idioma>
+        </SyncStatusProvider>
       </UIProvider>
     </AuthProvider>
   );
@@ -99,6 +102,7 @@ function LiveChrome() {
  */
 function SyncBridge() {
   const { userId, user } = useAuth();
+  const { markInitialSyncReady } = useSyncStatus();
   const pathname = usePathname();
   const isLive = noJogoAoVivo(pathname);
 
@@ -152,13 +156,17 @@ function SyncBridge() {
       }
     };
     (async () => {
-      // A base deste aparelho é de uma conta de cada vez. Se a última a usá-lo
-      // foi outra — ou o jogo de experiência —, é limpa antes de qualquer
-      // leitura, para as duas não se misturarem no ecrã.
-      await garantirDono(userId);
-      // Primeiro trazer o que existe lá em cima (dispositivo novo, ou jogos
-      // criados noutro), depois empurrar o que ficou por enviar aqui.
-      if (vivo) await atualizar();
+      try {
+        // A base deste aparelho é de uma conta de cada vez. Se a última a usá-lo
+        // foi outra — ou o jogo de experiência —, é limpa antes de qualquer
+        // leitura, para as duas não se misturarem no ecrã.
+        await garantirDono(userId);
+        // Primeiro trazer o que existe lá em cima (dispositivo novo, ou jogos
+        // criados noutro), depois empurrar o que ficou por enviar aqui.
+        if (vivo) await atualizar();
+      } finally {
+        if (vivo) markInitialSyncReady(userId);
+      }
     })();
 
     // Uma alteração local só precisa de ser **enviada**. Antes chamava o
@@ -184,7 +192,7 @@ function SyncBridge() {
       document.removeEventListener('visibilitychange', aoFocar);
       window.removeEventListener(sync.DATA_CHANGED_EVENT, aoMudarLocal);
     };
-  }, [userId, user?.email, isLive]);
+  }, [userId, user?.email, isLive, markInitialSyncReady]);
 
   return null;
 }

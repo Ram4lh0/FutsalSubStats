@@ -105,7 +105,7 @@ export default function TeamForm({ clubId, teamId }) {
         subtitle={club?.name}
         backTo={teamId ? voltarPara : rotas.clube(clubId)}
       />
-      <form className="card form" onSubmit={guardar}>
+      <form className="card form form--safe-actions" onSubmit={guardar}>
         {/* O escalão herda a cor do clube quando não tem foto: é do clube que
             ele é, e duas cores diferentes no mesmo ecrã só confundiam. */}
         <EscolherFoto

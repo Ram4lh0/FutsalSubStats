@@ -303,6 +303,69 @@ ul { padding: 0; list-style: none; }
   -webkit-overflow-scrolling: touch;
   scroll-padding-bottom: calc(var(--nav-bottom-altura) + 22px);
 }
+
+.postlogin {
+  min-height: min(520px, calc(100dvh - var(--nav-bottom-altura) - 42px));
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 34px 12px;
+  text-align: center;
+}
+.postlogin__mark {
+  position: relative;
+  width: 112px;
+  height: 78px;
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, transparent 49%, rgba(56, 189, 248, 0.28) 49% 51%, transparent 51%),
+    radial-gradient(circle at 50% 50%, transparent 18px, rgba(56, 189, 248, 0.18) 19px 20px, transparent 21px),
+    linear-gradient(135deg, rgba(34, 197, 94, 0.13), rgba(56, 189, 248, 0.09));
+  box-shadow: 0 0 28px rgba(56, 189, 248, 0.18), inset 0 0 18px rgba(34, 197, 94, 0.08);
+  overflow: hidden;
+}
+.postlogin__ball {
+  position: absolute;
+  left: 18px;
+  top: 30px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, #0b1220 0 2px, transparent 3px),
+    conic-gradient(from 20deg, #eaf1ff 0 18%, #38bdf8 18% 34%, #eaf1ff 34% 52%, #22c55e 52% 69%, #eaf1ff 69% 100%);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.9);
+  animation: postlogin-ball 1.25s ease-in-out infinite;
+}
+.postlogin__line {
+  position: absolute;
+  height: 2px;
+  width: 26px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.55);
+  animation: postlogin-line 1.25s ease-in-out infinite;
+}
+.postlogin__line--one { left: 42px; top: 27px; }
+.postlogin__line--two { left: 32px; top: 50px; animation-delay: 0.12s; }
+.postlogin h1 {
+  font-size: clamp(1.25rem, 4vw, 1.7rem);
+}
+.postlogin p {
+  max-width: 34ch;
+  color: var(--muted);
+  line-height: 1.45;
+}
+@keyframes postlogin-ball {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  45% { transform: translate(58px, -4px) scale(1.05); }
+  70% { transform: translate(40px, 12px) scale(0.96); }
+}
+@keyframes postlogin-line {
+  0%, 100% { opacity: 0.18; transform: translateX(-6px); }
+  50% { opacity: 0.72; transform: translateX(8px); }
+}
 /* No jogo ao vivo o conteúdo tenta caber no ecrã; se não couber (telemóvel em
    vertical, ecrã curto), passa a poder deslizar em vez de ficar cortado. */
 /* Nunca há deslize lateral no jogo: o que não cabe em largura encolhe. */
@@ -1000,6 +1063,9 @@ ul { padding: 0; list-style: none; }
     padding-bottom: max(32px, var(--seguro-baixo));
     scroll-padding-bottom: max(32px, var(--seguro-baixo));
   }
+  .form--safe-actions {
+    margin-bottom: 16px;
+  }
   .matches-actions {
     position: static;
     background: transparent;
@@ -1390,6 +1456,7 @@ ul { padding: 0; list-style: none; }
 /* ---------------------------------------------------------------- formulários */
 
 .form { display: flex; flex-direction: column; gap: 14px; }
+.form--safe-actions { margin-bottom: calc(var(--nav-bottom-altura) + 34px); }
 .form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 /* Envolve para a linha seguinte: em espanhol e inglês os botões são mais
    compridos do que em português, e num iPhone estreito três seguidos deixavam
