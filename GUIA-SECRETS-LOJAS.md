@@ -11,7 +11,7 @@ Corre os comandos a partir da pasta do projeto:
 ```powershell
 cd C:\FutsalSubStats
 
-npx supabase secrets set APP_STORE_BUNDLE_ID=com.futsalsubstats.app
+npx supabase secrets set APP_STORE_BUNDLE_ID=com.FutsalSubStats.app
 npx supabase secrets set APP_STORE_ISSUER_ID="db7fea04-1514-4e5f-a17c-2ff8dbb94cea"
 npx supabase secrets set APP_STORE_KEY_ID="39GNCA9U76" 
 npx supabase secrets set 
@@ -26,7 +26,7 @@ U+P908EY
 "@
 npx supabase secrets set APP_STORE_PRIVATE_KEY="$appleKey"
 
-GOOGLE_PLAY_PACKAGE_NAME=com.futsalsubstats.app
+GOOGLE_PLAY_PACKAGE_NAME=com.FutsalSubStats.app
 npx supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON="..."
 npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY="..."
 ```
@@ -38,7 +38,7 @@ Se uma chave tiver quebras de linha, aspas ou JSON grande, usa aspas e cola com 
 Valor:
 
 ```text
-com.futsalsubstats.app
+com.FutsalSubStats.app
 ```
 
 Onde confirmar:
@@ -46,8 +46,8 @@ Onde confirmar:
 1. Abre Apple Developer.
 2. Vai a Certificates, Identifiers & Profiles.
 3. Entra em Identifiers.
-4. Abre a app FutsalSubStats.
-5. O Bundle ID tem de ser `com.futsalsubstats.app`.
+4. Abre a app Futsal SubStats.
+5. O Bundle ID tem de ser `com.FutsalSubStats.app`.
 
 Este valor tambem deve bater certo com o iOS, Codemagic e App Store Connect.
 
@@ -110,15 +110,15 @@ Importante:
 Valor:
 
 ```text
-com.futsalsubstats.app
+com.FutsalSubStats.app
 ```
 
 Onde confirmar:
 
 1. Abre Google Play Console.
-2. Entra na app FutsalSubStats.
+2. Entra na app Futsal SubStats.
 3. No painel da app, confirma o Nome do pacote.
-4. Deve aparecer `com.futsalsubstats.app`.
+4. Deve aparecer `com.FutsalSubStats.app`.
 
 Tem de bater certo com o `applicationId` do Android.
 

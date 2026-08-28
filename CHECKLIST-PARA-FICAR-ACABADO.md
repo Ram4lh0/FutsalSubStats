@@ -44,11 +44,11 @@ supabase functions deploy google-play-notifications
 Adicionar/confirmar secrets:
 
 ```powershell
-supabase secrets set APP_STORE_BUNDLE_ID=com.futsalsubstats.app
+supabase secrets set APP_STORE_BUNDLE_ID=com.FutsalSubStats.app
 supabase secrets set APP_STORE_ISSUER_ID=...
 supabase secrets set APP_STORE_KEY_ID=...
 supabase secrets set APP_STORE_PRIVATE_KEY=...
-supabase secrets set GOOGLE_PLAY_PACKAGE_NAME=com.futsalsubstats.app
+supabase secrets set GOOGLE_PLAY_PACKAGE_NAME=com.FutsalSubStats.app
 supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON=...
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY=...
 ```
@@ -104,7 +104,7 @@ Supabase Dashboard > Authentication > Providers > Apple
 
 Configurar no Apple Developer:
 
-- App ID: `com.futsalsubstats.app`;
+- App ID: `com.FutsalSubStats.app`;
 - Service ID para web/login;
 - Sign in with Apple ativo;
 - redirect URL do Supabase:
@@ -190,7 +190,7 @@ URLs a permitir:
 http://localhost:3000
 https://futsalsubstats.vercel.app
 https://futsal-sub-stats.pages.dev
-com.futsalsubstats.app://auth/callback
+com.FutsalSubStats.app://auth/callback
 ```
 
 Usar o dominio final real, se for diferente dos exemplos acima.
@@ -246,7 +246,7 @@ node -e "const os=require('node:os'); os.userInfo=()=>({shell:process.env.ComSpe
 
 Confirmar:
 
-- App ID `com.futsalsubstats.app`;
+- App ID `com.FutsalSubStats.app`;
 - Apple Distribution Certificate valido;
 - provisioning profile App Store valido;
 - profile importado no Codemagic;

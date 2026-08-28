@@ -146,7 +146,7 @@ const servidor = createServer(async (req, res) => {
 if (process.argv[1] && process.argv[1].includes('servidor.mjs')) {
   servidor.listen(PORTA, '127.0.0.1', () => {
     const endereco = `http://127.0.0.1:${PORTA}/?chave=${CHAVE}`;
-    console.log('\nPainel do FutsalSubStats — só nesta máquina.\n');
+    console.log('\nPainel do Futsal SubStats — só nesta máquina.\n');
     console.log(`  ${endereco}\n`);
     console.log('A chave muda a cada arranque. Ctrl+C para fechar.\n');
   });

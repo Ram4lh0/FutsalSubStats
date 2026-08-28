@@ -1,6 +1,6 @@
 {
-  "appId": "com.futsalsubstats.app",
-  "appName": "FutsalSubStats",
+  "appId": "com.FutsalSubStats.app",
+  "appName": "Futsal SubStats",
   "webDir": "out",
   "ios": {
     "contentInset": "never",

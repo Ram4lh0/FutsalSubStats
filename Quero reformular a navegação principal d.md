@@ -1,4 +1,4 @@
-Quero reformular a navegação principal da **FutsalSubStats**, tanto na app mobile/tablet como na WebApp desktop.
+Quero reformular a navegação principal da **Futsal SubStats**, tanto na app mobile/tablet como na WebApp desktop.
 
 ## Objetivo
 
@@ -72,7 +72,7 @@ A barra deve respeitar corretamente as safe areas de iOS e Android e não deve t
 
 O conteúdo das páginas deve ter padding inferior suficiente para não ficar escondido atrás da barra.
 
-Não quero o texto **FutsalSubStats** permanentemente a ocupar espaço no topo dos ecrãs.
+Não quero o texto **Futsal SubStats** permanentemente a ocupar espaço no topo dos ecrãs.
 
 O topo deve ser usado principalmente para informação contextual da página e para o seletor de clube/escalão.
 
@@ -101,7 +101,7 @@ Transformar as mesmas 4 áreas numa **sidebar fixa à esquerda**:
 - Análise
 - Perfil
 
-No topo da sidebar pode existir discretamente a identidade/logo da FutsalSubStats.
+No topo da sidebar pode existir discretamente a identidade/logo da Futsal SubStats.
 
 A área principal deve ter no topo o contexto atual:
 
@@ -243,7 +243,7 @@ Garantir que funciona corretamente em:
 
 # 11. Design
 
-Manter a identidade visual atual da FutsalSubStats.
+Manter a identidade visual atual da Futsal SubStats.
 
 Não quero um redesign completo.
 
@@ -303,7 +303,7 @@ Garantir também:
 
 # Resultado esperado
 
-No final quero que a FutsalSubStats tenha esta arquitetura:
+No final quero que a Futsal SubStats tenha esta arquitetura:
 
 ### Mobile
 
@@ -319,7 +319,7 @@ Página atualmente selecionada
 ### Desktop
 
 **Sidebar esquerda**
-- FutsalSubStats
+- Futsal SubStats
 - Jogo
 - Equipas
 - Análise

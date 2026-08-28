@@ -204,7 +204,7 @@ export default function MainNavigation() {
       <aside className={`mainnav mainnav--side ${sideCollapsed ? 'is-collapsed' : ''}`} aria-label={t('nav.principal')}>
         <div className="mainnav__sidehead">
           <button className="mainnav__brand" type="button" onClick={() => go('teams')}>
-            <span>FutsalSubStats</span>
+            <span>Futsal SubStats</span>
           </button>
           <button
             className="mainnav__collapse"

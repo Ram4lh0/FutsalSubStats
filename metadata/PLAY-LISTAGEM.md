@@ -22,7 +22,7 @@ pede uma descrição breve de 80 caracteres que a Apple não pede.
 ## Nome (30 caracteres)
 
 ```
-FutsalSubStats
+Futsal SubStats
 ```
 
 ## Descrição breve (80 caracteres)
@@ -44,7 +44,7 @@ trocar:
 ```
 Quem treina futsal sabe de cor quem marcou. Do tempo de jogo de cada um, ninguém se lembra — e é esse o número que decide as rotações da semana seguinte.
 
-O FutsalSubStats é um bloco de notas que sabe contar o tempo. Marca as substituições com o polegar, à beira do campo, e no fim do jogo tem a ficha pronta: quanto tempo cada jogador esteve em campo, quantas vezes entrou, quanto tempo levou no banco.
+O Futsal SubStats é um bloco de notas que sabe contar o tempo. Marca as substituições com o polegar, à beira do campo, e no fim do jogo tem a ficha pronta: quanto tempo cada jogador esteve em campo, quantas vezes entrou, quanto tempo levou no banco.
 
 NO JOGO
 • Campo com os cinco em posição — tocar num jogador e num do banco troca-os
@@ -106,7 +106,7 @@ Tipo de app: **Aplicação**, não jogo.
 ## Contactos da ficha
 
 ```
-review.futsalsubstats@gmail.com
+review.FutsalSubStats@gmail.com
 ```
 
 Site: `https://futsalsubstats.r4m.workers.dev`

@@ -11,10 +11,10 @@ Depois de correr `asc metadata init --dir ./metadata --version "1.0.0" --locale
 ## Nome (30 caracteres)
 
 ```
-FutsalSubStats
+Futsal SubStats
 ```
 
-Se estiver tomado, por esta ordem: `FutsalSubStats — Treinador`,
+Se estiver tomado, por esta ordem: `Futsal SubStats — Treinador`,
 `Futsal Subs & Stats`, `Rotação Futsal`.
 
 ## Subtítulo (30 caracteres)
@@ -44,7 +44,7 @@ Aponte o jogo enquanto ele acontece e saiba, ao segundo, quanto tempo cada jogad
 Quem treina futsal sabe de cor quem marcou. Do tempo de jogo de cada um, ninguém
 se lembra — e é esse o número que decide as rotações da semana seguinte.
 
-O FutsalSubStats é um bloco de notas que sabe contar o tempo. Marca as
+O Futsal SubStats é um bloco de notas que sabe contar o tempo. Marca as
 substituições com o polegar, à beira do campo, e no fim do jogo tem a ficha
 pronta: quanto tempo cada jogador esteve em campo, quantas vezes entrou, quanto
 tempo levou no banco.
@@ -90,7 +90,7 @@ Principal: **Sports** · Secundária: **Utilities**
 ## Contacto
 
 ```
-review.futsalsubstats@gmail.com
+review.FutsalSubStats@gmail.com
 ```
 
 É o email da política de privacidade e o de contacto da app.

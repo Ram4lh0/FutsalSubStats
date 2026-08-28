@@ -58,8 +58,8 @@ const C = {
 const LETRA = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 const MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace";
 
-const CONTACTO = 'review.futsalsubstats@gmail.com';
-const MARCA = 'FutsalSubStats';
+const CONTACTO = 'review.FutsalSubStats@gmail.com';
+const MARCA = 'Futsal SubStats';
 const LEMA = 'Quem entra, quem sai, quem já jogou quanto tempo.';
 
 /* ----------------------------------------------------------------- pedaços */
@@ -226,12 +226,12 @@ const ecraPalavraPasse = (tipo) => `{{ .SiteURL }}/password/?th={{ .TokenHash }}
 
 const emails = {
   '1-confirmar-registo': {
-    assunto: 'Confirma o teu email — FutsalSubStats',
+    assunto: 'Confirma o teu email — Futsal SubStats',
     resumo: 'Falta um passo para a tua conta ficar pronta.',
     titulo: 'Confirma o teu email',
     corpo: [
       paragrafo(
-        `Criaste uma conta no <strong>FutsalSubStats</strong> com o endereço <strong>{{ .Email }}</strong>. Falta só confirmares que este email é mesmo teu.`
+        `Criaste uma conta no <strong>Futsal SubStats</strong> com o endereço <strong>{{ .Email }}</strong>. Falta só confirmares que este email é mesmo teu.`
       ),
       botao('Confirmar email', '{{ .ConfirmationURL }}'),
       codigo('Ou escreve este código na app'),
@@ -242,12 +242,12 @@ const emails = {
   },
 
   '2-convite': {
-    assunto: 'Estás convocado — a tua conta no FutsalSubStats',
+    assunto: 'Estás convocado — a tua conta no Futsal SubStats',
     resumo: 'Carrega no botão e escolhe a tua palavra-passe.',
     titulo: 'Estás convocado.',
     corpo: [
       paragrafo(
-        `Abrimos-te uma conta no <strong>FutsalSubStats</strong> para o endereço <strong>{{ .Email }}</strong> — a app que segue os teus jogos ao minuto: quem está em campo, quem está no banco e quanto tempo cada jogador já levou.`
+        `Abrimos-te uma conta no <strong>Futsal SubStats</strong> para o endereço <strong>{{ .Email }}</strong> — a app que segue os teus jogos ao minuto: quem está em campo, quem está no banco e quanto tempo cada jogador já levou.`
       ),
       paragrafo(
         `Carrega no botão para escolheres a tua palavra-passe. Feito isso, instalas a app no telemóvel e entras com este email e a palavra-passe que escolheste.`
@@ -260,12 +260,12 @@ const emails = {
   },
 
   '3-link-magico': {
-    assunto: 'A tua entrada no FutsalSubStats',
+    assunto: 'A tua entrada no Futsal SubStats',
     resumo: 'Entra sem escrever a palavra-passe.',
     titulo: 'Entrar sem palavra-passe',
     corpo: [
       paragrafo(
-        `Pediste para entrar no <strong>FutsalSubStats</strong> como <strong>{{ .Email }}</strong>, sem escrever a palavra-passe. Este botão trata disso.`
+        `Pediste para entrar no <strong>Futsal SubStats</strong> como <strong>{{ .Email }}</strong>, sem escrever a palavra-passe. Este botão trata disso.`
       ),
       botao('Entrar na app', '{{ .ConfirmationURL }}'),
       codigo('Ou escreve este código na app'),
@@ -276,12 +276,12 @@ const emails = {
   },
 
   '4-mudar-email': {
-    assunto: 'Confirma o teu email novo — FutsalSubStats',
+    assunto: 'Confirma o teu email novo — Futsal SubStats',
     resumo: 'Confirma o endereço novo para a mudança ficar feita.',
     titulo: 'Confirma o teu email novo',
     corpo: [
       paragrafo(
-        `Pediste para mudar o email da tua conta do <strong>FutsalSubStats</strong> de <strong>{{ .Email }}</strong> para <strong>{{ .NewEmail }}</strong>.`
+        `Pediste para mudar o email da tua conta do <strong>Futsal SubStats</strong> de <strong>{{ .Email }}</strong> para <strong>{{ .NewEmail }}</strong>.`
       ),
       paragrafo(
         `Até confirmares, continua tudo como estava: entras com o endereço antigo e não se perde nada.`
@@ -295,12 +295,12 @@ const emails = {
   },
 
   '5-recuperar-palavra-passe': {
-    assunto: 'Repor a palavra-passe — FutsalSubStats',
+    assunto: 'Repor a palavra-passe — Futsal SubStats',
     resumo: 'Escolhe uma palavra-passe nova.',
     titulo: 'Repor a palavra-passe',
     corpo: [
       paragrafo(
-        `Alguém pediu para repor a palavra-passe da conta <strong>{{ .Email }}</strong> no <strong>FutsalSubStats</strong>. Se foste tu, carrega no botão e escolhe uma nova.`
+        `Alguém pediu para repor a palavra-passe da conta <strong>{{ .Email }}</strong> no <strong>Futsal SubStats</strong>. Se foste tu, carrega no botão e escolhe uma nova.`
       ),
       botao('Escolher palavra-passe nova', ecraPalavraPasse('recovery')),
       aviso(
@@ -313,12 +313,12 @@ const emails = {
   // nenhum para a reautenticação, só o código. Um botão aqui apontaria para
   // lado nenhum.
   '6-reautenticacao': {
-    assunto: 'O teu código de confirmação — FutsalSubStats',
+    assunto: 'O teu código de confirmação — Futsal SubStats',
     resumo: 'Um código para confirmares que és tu.',
     titulo: 'Confirma que és tu',
     corpo: [
       paragrafo(
-        `Estás a fazer uma alteração importante na tua conta do <strong>FutsalSubStats</strong>. Antes de a app a executar, escreve este código:`
+        `Estás a fazer uma alteração importante na tua conta do <strong>Futsal SubStats</strong>. Antes de a app a executar, escreve este código:`
       ),
       codigo('O teu código'),
       aviso(
@@ -419,7 +419,7 @@ writeFileSync(
   join(DESTINO, 'pre-visualizar.html'),
   `<!doctype html>
 <meta charset="utf-8">
-<title>Emails do FutsalSubStats</title>
+<title>Emails do Futsal SubStats</title>
 <style>
   body { margin:0; padding:32px; background:#f4f5f7; font-family:${LETRA}; color:#1a2233 }
   h1 { font-size:20px; margin:0 0 6px }

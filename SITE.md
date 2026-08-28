@@ -1,4 +1,4 @@
-# Site de apresentação — FutsalSubStats
+# Site de apresentação — Futsal SubStats
 
 Documento de contexto para quem vai construir o site. Lê-o todo antes de
 escrever a primeira linha: há aqui restrições que não se adivinham, e uma delas
@@ -8,7 +8,7 @@ escrever a primeira linha: há aqui restrições que não se adivinham, e uma de
 
 ## 1. O que é o produto
 
-O **FutsalSubStats** é uma app para treinadores de futsal apontarem o jogo
+O **Futsal SubStats** é uma app para treinadores de futsal apontarem o jogo
 enquanto ele acontece, à beira do campo, com o polegar.
 
 O problema que resolve, numa frase: **quem treina sabe de cor quem marcou, mas
@@ -129,7 +129,7 @@ Sugestão de estrutura, não obrigatória:
 Email e telefone, com `mailto:` e `tel:` diretos. Um formulário simples é bem-
 vindo se não exigir servidor (ver secção 8).
 
-Email de contacto: **review.futsalsubstats@gmail.com**
+Email de contacto: **review.FutsalSubStats@gmail.com**
 
 ### 4.3 Licenças
 
@@ -314,7 +314,7 @@ Regras:
   link partido é pior do que nenhum.
 - **Não inventes preços.** Ver secção 7.
 - **Não uses o email pessoal do dono.** O contacto é
-  `review.futsalsubstats@gmail.com` e mais nenhum.
+  `review.FutsalSubStats@gmail.com` e mais nenhum.
 - **Não copies os nomes de jogadores** das capturas para textos de exemplo sem
   perceber que são inventados. São todos fictícios, mas convém não os apresentar
   como clientes.
@@ -366,7 +366,7 @@ npx wrangler deploy
 ```
 
 Sai em `https://futsalsubstats.r4m.workers.dev`. O nome do Worker é
-`futsalsubstats` e está no `wrangler.jsonc`; o `r4m` é o subdomínio da conta.
+`Futsal SubStats` e está no `wrangler.jsonc`; o `r4m` é o subdomínio da conta.
 
 ### Porque é que não se usa o `npm run build` aqui
 

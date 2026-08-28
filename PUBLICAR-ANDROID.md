@@ -153,8 +153,8 @@ aqui para se saber onde estão, não para se voltar a fazer.
 
 ### 3.1 O nome da app ✅
 
-`android/app/src/main/res/values/strings.xml` diz **FutsalSubStats**. O
-Capacitor tinha lá `FutsalSubStats`, que é o nome do projeto e não o nome que as
+`android/app/src/main/res/values/strings.xml` diz **Futsal SubStats**. O
+Capacitor tinha lá `Futsal SubStats`, que é o nome do projeto e não o nome que as
 pessoas veem no telemóvel.
 
 ### 3.2 O ícone e o ecrã de arranque ✅
@@ -231,8 +231,8 @@ Uma vez, e guarda tudo:
 
 ```bash
 keytool -genkey -v \
-  -keystore futsalsubstats.keystore \
-  -alias futsalsubstats \
+  -keystore FutsalSubStats.keystore \
+  -alias Futsal SubStats \
   -keyalg RSA -keysize 2048 -validity 10000
 ```
 
@@ -251,7 +251,7 @@ O `codemagic.yaml` já tem os dois fluxos:
 Para o segundo, no painel do Codemagic:
 
 1. **Teams → Code signing identities → Android keystores**: carrega o
-   `.keystore`, com a referência **`futsalsubstats`** (é o nome usado no
+   `.keystore`, com a referência **`Futsal SubStats`** (é o nome usado no
    ficheiro) e as duas palavras-passe.
 2. **Uma conta de serviço da Google Cloud** com acesso à Play Console:
    - Na Play Console: *Setup → API access*, liga um projeto da Google Cloud e
@@ -267,7 +267,7 @@ A conta de serviço só consegue enviar para uma app que **já existe** na Play
 Console. Por isso a primeira subida é manual:
 
 1. Play Console → *Create app*, com o identificador
-   `com.futsalsubstats.app`.
+   `com.FutsalSubStats.app`.
 2. Compila o AAB localmente:
    ```bash
    npm run app:android
@@ -361,7 +361,7 @@ está na página de privacidade, que é o endereço que já vai nos dois lados.
 
 - [ ] `npm run check` passa
 - [ ] A app abre num telemóvel Android a sério, não só no emulador
-- [ ] O nome no ecrã principal diz "FutsalSubStats"
+- [ ] O nome no ecrã principal diz "Futsal SubStats"
 - [ ] O ícone fica bem em círculo e em quadrado
 - [ ] O manifesto não pede permissões que a app não usa
 - [ ] A app roda para paisagem
@@ -370,5 +370,5 @@ está na página de privacidade, que é o endereço que já vai nos dois lados.
       um jogo
 - [ ] O teclado não tapa os campos de texto nos formulários
 - [ ] Um jogo inteiro em modo de avião, e a sincronização a acontecer depois
-- [ ] A conta de revisão entra: `review.futsalsubstats@gmail.com`
+- [ ] A conta de revisão entra: `review.FutsalSubStats@gmail.com`
 - [ ] 12 testadores inscritos, e os 14 dias a contar

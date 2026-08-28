@@ -15,7 +15,7 @@
 #  O ios-testflight precisa de:
 #
 #  1. Integração App Store Connect em Teams → Integrations → Developer Portal.
-#     A integração usada por este projeto chama-se `FutsalSubStats`.
+#     A integração usada por este projeto chama-se `Futsal SubStats`.
 #  2. Grupo de variáveis `appstore` com APP_STORE_APPLE_ID — o número da app em
 #     App Store Connect.
 #
@@ -24,7 +24,7 @@
 
 workflows:
   web-pwa-ci:
-    name: FutsalSubStats Web/PWA CI
+    name: Futsal SubStats Web/PWA CI
     max_build_duration: 30
     instance_type: mac_mini_m2
 
@@ -57,7 +57,7 @@ workflows:
         script: npm run build
 
   ios-capacitor-preview:
-    name: FutsalSubStats iOS Capacitor Preview
+    name: Futsal SubStats iOS Capacitor Preview
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -113,12 +113,12 @@ workflows:
 
   # ------------------------------------------------------------ TestFlight
   ios-testflight:
-    name: FutsalSubStats iOS TestFlight
+    name: Futsal SubStats iOS TestFlight
     max_build_duration: 60
     instance_type: mac_mini_m2
 
     integrations:
-      app_store_connect: FutsalSubStats
+      app_store_connect: Futsal SubStats
 
     environment:
       node: lts
@@ -128,11 +128,11 @@ workflows:
         - appstore
       ios_signing:
         certificates:
-          - futsalsubstats-ios-p12
+          - FutsalSubStats-ios-p12
         provisioning_profiles:
-          - futsalsubstats_appstore
+          - FutsalSubStats_appstore
       vars:
-        BUNDLE_ID: "com.futsalsubstats.app"
+        BUNDLE_ID: "com.FutsalSubStats.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         NEXT_TELEMETRY_DISABLED: "1"
@@ -198,14 +198,14 @@ workflows:
 
       email:
         recipients:
-          - review.futsalsubstats@gmail.com
+          - review.FutsalSubStats@gmail.com
         notify:
           success: true
           failure: true
 
   # ------------------------------------------------------------------ Android
   android-preview:
-    name: FutsalSubStats Android Preview
+    name: Futsal SubStats Android Preview
     max_build_duration: 45
     instance_type: linux_x2
 
@@ -251,7 +251,7 @@ workflows:
 
   # ------------------------------------------------------- Google Play interno
   android-google-play:
-    name: FutsalSubStats Android Google Play
+    name: Futsal SubStats Android Google Play
     max_build_duration: 60
     instance_type: linux_x2
 
@@ -259,12 +259,12 @@ workflows:
       node: lts
       java: 21
       android_signing:
-        - futsalsubstats
+        - Futsal SubStats
       groups:
         - google-play
       vars:
         NEXT_TELEMETRY_DISABLED: "1"
-        PACKAGE_NAME: "com.futsalsubstats.app"
+        PACKAGE_NAME: "com.FutsalSubStats.app"
 
     cache:
       cache_paths:
@@ -308,7 +308,7 @@ workflows:
 
       email:
         recipients:
-          - review.futsalsubstats@gmail.com
+          - review.FutsalSubStats@gmail.com
         notify:
           success: true
           failure: true

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { translations, type Language } from "./translations";
 
-const CONTACT_EMAIL = "review.futsalsubstats@gmail.com";
+const CONTACT_EMAIL = "review.FutsalSubStats@gmail.com";
 // Add the public store URLs here when the apps are published.
 const APP_STORE_URL: string | null = null;
 const PLAY_STORE_URL: string | null = null;
@@ -414,7 +414,7 @@ export default function Home() {
 
   return <main>
     <header className="site-header">
-      <a href="#top" className="brand" aria-label="FutsalSubStats"><span className="brand-mark"><Icon name="ball"/></span><span>Futsal<b>SubStats</b></span></a>
+      <a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><Icon name="ball"/></span><span>Futsal <b>SubStats</b></span></a>
       <nav className={menuOpen ? "open" : ""} aria-label={t.nav.label}><a href="#try-demo" onClick={() => setMenuOpen(false)}>{t.nav.tryHere}</a><a href="#features" onClick={() => setMenuOpen(false)}>{t.nav.features}</a><a href="#licenses" onClick={() => setMenuOpen(false)}>{t.nav.licenses}</a><a href="#contact" onClick={() => setMenuOpen(false)}>{t.nav.contact}</a></nav>
       <div className="header-actions"><label className="language-select"><span className="sr-only">{t.nav.language}</span><Icon name="globe"/><b aria-hidden="true">{lang.toUpperCase()}</b><select aria-label={t.nav.language} value={lang} onChange={(e) => setLang(e.target.value as Language)}><option value="pt">PT</option><option value="en">EN</option><option value="es">ES</option></select></label><button type="button" className="button small header-install" onClick={handleInstall}>{t.nav.install}</button><button className="menu-button" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label={t.nav.menu}><span/><span/></button></div>
     </header>
@@ -451,6 +451,6 @@ export default function Home() {
       onSubmit={submitCheckoutClaim}
       onClose={() => setCheckoutClaim(null)}
     />}
-    <footer><a href="#top" className="brand" aria-label="FutsalSubStats"><span className="brand-mark"><Icon name="ball"/></span><span>Futsal<b>SubStats</b></span></a><p>{t.footer.tagline}</p><div><a href={`mailto:${CONTACT_EMAIL}`}>{t.nav.contact}</a><a href="#licenses">{t.nav.licenses}</a><span>© 2026 FutsalSubStats</span></div></footer>
+    <footer><a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><Icon name="ball"/></span><span>Futsal <b>SubStats</b></span></a><p>{t.footer.tagline}</p><div><a href={`mailto:${CONTACT_EMAIL}`}>{t.nav.contact}</a><a href="#licenses">{t.nav.licenses}</a><span>© 2026 Futsal SubStats</span></div></footer>
   </main>;
 }

@@ -29,7 +29,7 @@ Quem revê abre a app, vê um ecrã de início de sessão e precisa de entrar. S
 encontrar um painel vazio do outro lado, não tem como avaliar nada — e "não
 conseguimos avaliar a funcionalidade" é dos motivos de rejeição mais comuns.
 
-A conta é a **`review.futsalsubstats@gmail.com`**.
+A conta é a **`review.FutsalSubStats@gmail.com`**.
 
 > **A palavra-passe não entra no repositório.** Nem em ficheiro, nem em
 > comentário. Vive em dois sítios: no teu gestor de palavras-passe e no campo
@@ -255,7 +255,7 @@ winget install --id Rorkai.ASC --exact
 ```
 
 ```
-asc auth login --name "FutsalSubStats" --key-id "ABC123" --issuer-id "DEF456" --private-key AuthKey_ABC123.p8
+asc auth login --name "Futsal SubStats" --key-id "ABC123" --issuer-id "DEF456" --private-key AuthKey_ABC123.p8
 asc auth status --validate
 asc apps list --output table
 ```
