@@ -111,9 +111,10 @@ export function AuthProvider({ children }) {
       await browser?.close?.().catch(() => {});
     };
 
-    app.addListener('appUrlOpen', ({ url }) => finishOAuth(url)).then((handle) => {
+    const registo = app.addListener('appUrlOpen', ({ url }) => finishOAuth(url));
+    Promise.resolve(registo).then((handle) => {
       if (alive) listener = handle;
-      else handle.remove();
+      else handle?.remove?.();
     });
     app.getLaunchUrl().then((launch) => finishOAuth(launch?.url)).catch(() => {});
 
