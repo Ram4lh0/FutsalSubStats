@@ -5,15 +5,15 @@ import MainNavigation from '@/components/MainNavigation.jsx';
 import GuidedTutorial from '@/components/GuidedTutorial.jsx';
 
 export const metadata = {
-  title: 'FutsalSubStats',
+  title: 'Futsal SubStats',
   description: 'Acompanhamento de jogos de futsal em tempo real.',
   manifest: '/manifest.webmanifest',
-  applicationName: 'FutsalSubStats',
+  applicationName: 'Futsal SubStats',
   // No iPad, "Adicionar ao ecrã principal" abre a app em ecrã inteiro, sem a
   // barra do Safari a roubar altura ao campo.
   appleWebApp: {
     capable: true,
-    title: 'FutsalSubStats',
+    title: 'Futsal SubStats',
     statusBarStyle: 'black-translucent',
   },
   icons: {

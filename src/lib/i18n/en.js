@@ -25,7 +25,7 @@ export default {
   'comum.codigo': 'code {codigo}',
 
   /* ---------------------------------------------------------- top bar */
-  'barra.marca': 'FutsalSubStats',
+  'barra.marca': 'Futsal SubStats',
   'barra.demonstracao': 'DEMO',
   'barra.criarConta': 'Create account',
   'barra.definicoes': 'Profile',
@@ -1060,7 +1060,7 @@ export default {
   'registo.fechadoTexto':
     'Anyone can create an account and start with four free matches.',
   'registo.pedirConta': 'Create account',
-  'registo.assunto': 'I want to create an account on FutsalSubStats',
+  'registo.assunto': 'I want to create an account on Futsal SubStats',
   'registo.recusado':
     'Sign-ups are still disabled in Supabase. Turn on "Allow new users to sign up" so anyone can create an account.',
   'registo.desligadoNoServidor':
@@ -1098,7 +1098,7 @@ export default {
 
   /* -------------------------------------------------------- privacy policy */
   'priv.titulo': 'Privacy policy',
-  'priv.subtitulo': 'FutsalSubStats · updated {data}',
+  'priv.subtitulo': 'Futsal SubStats · updated {data}',
   'priv.intro':
     'This app is for tracking futsal matches: who comes on, who goes off, how long each player was on court. It collects the minimum it needs for that to work, and nothing more.',
   'priv.oQueGuarda': 'What is stored',
@@ -1143,9 +1143,9 @@ export default {
 
   /* ------------------------------------------- public deletion page */
   'apagar.titulo': 'Delete your account',
-  'apagar.subtitulo': 'FutsalSubStats · how to request account and data deletion',
+  'apagar.subtitulo': 'Futsal SubStats · how to request account and data deletion',
   'apagar.intro':
-    'There are two ways to delete your FutsalSubStats account and everything belonging to it. The first is immediate and depends on nobody; the second is for people who no longer have the app installed.',
+    'There are two ways to delete your Futsal SubStats account and everything belonging to it. The first is immediate and depends on nobody; the second is for people who no longer have the app installed.',
   'apagar.naApp': 'Inside the app',
   'apagar.naAppTexto':
     'Open the app, sign in, and go to Settings → Delete account. You are asked to type your email to confirm, and the deletion happens right away. There is nobody to ask and nothing to wait for.',

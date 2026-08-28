@@ -7,13 +7,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>FutsalSubStats</string>
+        <string>Futsal SubStats</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.futsalsubstats.app</string>
+				<string>com.FutsalSubStats.app</string>
 			</array>
 		</dict>
 	</array>

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">FutsalSubStats</string>
-    <string name="title_activity_main">FutsalSubStats</string>
-    <string name="package_name">com.futsalsubstats.app</string>
-    <string name="custom_url_scheme">com.futsalsubstats.app</string>
+    <string name="app_name">Futsal SubStats</string>
+    <string name="title_activity_main">Futsal SubStats</string>
+    <string name="package_name">com.FutsalSubStats.app</string>
+    <string name="custom_url_scheme">com.FutsalSubStats.app</string>
 </resources>

@@ -31,11 +31,11 @@ Cria estes secrets:
   A password que escolheste ao exportar o `.p12`.
 
 - `IOS_APP_STORE_PROVISIONING_PROFILE_BASE64`  
-  O ficheiro `.mobileprovision` App Store para `com.futsalsubstats.app`,
+  O ficheiro `.mobileprovision` App Store para `com.FutsalSubStats.app`,
   convertido para base64.
 
 - `IOS_APP_STORE_PROVISIONING_PROFILE_NAME`  
-  O nome do provisioning profile, por exemplo `FutsalSubStats App Store`.
+  O nome do provisioning profile, por exemplo `Futsal SubStats App Store`.
 
 - `IOS_KEYCHAIN_PASSWORD`  
   Uma password qualquer só para o keychain temporário do GitHub Actions.

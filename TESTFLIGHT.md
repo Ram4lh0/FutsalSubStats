@@ -42,10 +42,10 @@ tudo o resto fica à espera.
 - **Name**: o nome tem de ser único em toda a App Store, mesmo que nunca
   publiques. Se "Futsal Subs & Stats" estiver tomado, inventa uma variação.
 - **Primary Language**: Portuguese (Portugal)
-- **Bundle ID**: `com.futsalsubstats.app`. Se não aparecer na lista, cria-o
+- **Bundle ID**: `com.FutsalSubStats.app`. Se não aparecer na lista, cria-o
   primeiro em [developer.apple.com](https://developer.apple.com/account/resources/identifiers/list)
   → Identifiers → **+** → App IDs → App.
-- **SKU**: qualquer texto teu, por exemplo `futsalsubstats`. Ninguém o vê.
+- **SKU**: qualquer texto teu, por exemplo `Futsal SubStats`. Ninguém o vê.
 
 Depois de criada, repara no endereço da página:
 
@@ -95,7 +95,7 @@ exatamente **`AppStoreConnect`** — é este nome que o `codemagic.yaml` procura
 
 ## 5. Compilar e enviar
 
-No painel do Codemagic, escolhe o fluxo **FutsalSubStats iOS TestFlight** e
+No painel do Codemagic, escolhe o fluxo **Futsal SubStats iOS TestFlight** e
 carrega em **Start new build**.
 
 O que ele faz, por ordem: instala as dependências, corre os verificadores e os

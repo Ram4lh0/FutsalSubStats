@@ -26,7 +26,7 @@ export default {
   'comum.codigo': 'código {codigo}',
 
   /* -------------------------------------------------------- barra topo */
-  'barra.marca': 'FutsalSubStats',
+  'barra.marca': 'Futsal SubStats',
   'barra.demonstracao': 'DEMONSTRAÇÃO',
   'barra.criarConta': 'Criar conta',
   'barra.definicoes': 'Perfil',
@@ -1062,7 +1062,7 @@ export default {
   'registo.fechadoTexto':
     'Qualquer utilizador pode criar conta e começar com quatro jogos gratuitos.',
   'registo.pedirConta': 'Criar conta',
-  'registo.assunto': 'Quero criar conta no FutsalSubStats',
+  'registo.assunto': 'Quero criar conta no Futsal SubStats',
   'registo.recusado':
     'Os registos ainda estão desligados no Supabase. Ativa "Allow new users to sign up" para qualquer pessoa poder criar conta.',
   'registo.desligadoNoServidor':
@@ -1100,7 +1100,7 @@ export default {
 
   /* ------------------------------------------------ política de privacidade */
   'priv.titulo': 'Política de privacidade',
-  'priv.subtitulo': 'FutsalSubStats · atualizada a {data}',
+  'priv.subtitulo': 'Futsal SubStats · atualizada a {data}',
   'priv.intro':
     'Esta app serve para acompanhar jogos de futsal: quem entra, quem sai, quanto tempo cada jogador esteve em campo. Recolhe o mínimo que precisa para isso funcionar, e nada mais.',
   'priv.oQueGuarda': 'O que é guardado',
@@ -1145,9 +1145,9 @@ export default {
 
   /* ---------------------------------------- página pública de eliminação */
   'apagar.titulo': 'Apagar a conta',
-  'apagar.subtitulo': 'FutsalSubStats · como pedir a eliminação da conta e dos dados',
+  'apagar.subtitulo': 'Futsal SubStats · como pedir a eliminação da conta e dos dados',
   'apagar.intro':
-    'Há duas maneiras de apagar a conta do FutsalSubStats e tudo o que lhe pertence. A primeira é imediata e não depende de ninguém; a segunda existe para quem já não tenha a app instalada.',
+    'Há duas maneiras de apagar a conta do Futsal SubStats e tudo o que lhe pertence. A primeira é imediata e não depende de ninguém; a segunda existe para quem já não tenha a app instalada.',
   'apagar.naApp': 'Dentro da app',
   'apagar.naAppTexto':
     'Abre a app, entra na conta, e vai a Definições → Apagar a conta. Pede-se o email escrito à mão para confirmar, e a eliminação acontece na hora. Não é preciso pedir a ninguém nem esperar por resposta.',

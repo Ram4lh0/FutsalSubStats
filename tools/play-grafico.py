@@ -47,11 +47,11 @@ MEDIO = f'{FONTES}/Poppins-Medium.ttf'
 NORMAL = f'{FONTES}/Poppins-Regular.ttf'
 
 TEXTOS = {
-    'pt': ('FutsalSubStats', 'Tempo de jogo, ao segundo',
+    'pt': ('Futsal SubStats', 'Tempo de jogo, ao segundo',
            'futsal · substituições · estatísticas'),
-    'en': ('FutsalSubStats', 'Time on court, to the second',
+    'en': ('Futsal SubStats', 'Time on court, to the second',
            'futsal · substitutions · statistics'),
-    'es': ('FutsalSubStats', 'Tiempo de juego, al segundo',
+    'es': ('Futsal SubStats', 'Tiempo de juego, al segundo',
            'fútbol sala · cambios · estadísticas'),
 }
 
@@ -90,7 +90,7 @@ def cabe(d, texto, ficheiro, tamanho, x):
     """A maior letra com que `texto` ainda cabe entre `x` e a margem direita.
 
     Os tamanhos estavam escritos à mão, e estavam certos para o nome de então.
-    Bastou trocar "Futsal ao Vivo" por "FutsalSubStats" — quatro letras a mais —
+    Bastou trocar "Futsal ao Vivo" por "Futsal SubStats" — quatro letras a mais —
     para o título passar a acabar a 29 px da borda. Ninguém teria reparado até
     ver a ficha cortada no telemóvel de outra pessoa.
 

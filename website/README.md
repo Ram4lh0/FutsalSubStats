@@ -1,6 +1,6 @@
-# FutsalSubStats — website
+# Futsal SubStats — website
 
-Landing page responsiva da aplicação FutsalSubStats, com demonstração interativa de um jogo, apresentação das funcionalidades, modo offline, estatísticas, licenças e contactos.
+Landing page responsiva da aplicação Futsal SubStats, com demonstração interativa de um jogo, apresentação das funcionalidades, modo offline, estatísticas, licenças e contactos.
 
 ## Desenvolvimento local
 

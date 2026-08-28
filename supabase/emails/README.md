@@ -19,12 +19,12 @@ campos: o assunto em cima e o corpo em baixo. Abre o `.html`, copia **tudo**
 
 | No painel do Supabase | Ficheiro | Assunto |
 |---|---|---|
-| Confirm sign up | `1-confirmar-registo.html` | `Confirma o teu email — FutsalSubStats` |
-| Invite user | `2-convite.html` | `Estás convocado — a tua conta no FutsalSubStats` |
-| Magic link or OTP | `3-link-magico.html` | `A tua entrada no FutsalSubStats` |
-| Change email address | `4-mudar-email.html` | `Confirma o teu email novo — FutsalSubStats` |
-| Reset password | `5-recuperar-palavra-passe.html` | `Repor a palavra-passe — FutsalSubStats` |
-| Reauthentication | `6-reautenticacao.html` | `O teu código de confirmação — FutsalSubStats` |
+| Confirm sign up | `1-confirmar-registo.html` | `Confirma o teu email — Futsal SubStats` |
+| Invite user | `2-convite.html` | `Estás convocado — a tua conta no Futsal SubStats` |
+| Magic link or OTP | `3-link-magico.html` | `A tua entrada no Futsal SubStats` |
+| Change email address | `4-mudar-email.html` | `Confirma o teu email novo — Futsal SubStats` |
+| Reset password | `5-recuperar-palavra-passe.html` | `Repor a palavra-passe — Futsal SubStats` |
+| Reauthentication | `6-reautenticacao.html` | `O teu código de confirmação — Futsal SubStats` |
 
 Guarda um a um. O painel não avisa se saíres sem guardar.
 
@@ -107,7 +107,7 @@ dígitos do mesmo email, e segue daí.
 
 O botão *Send test email* do painel do Supabase não existe. Para ver um a sério:
 
-1. mete-te a ti próprio (`review.futsalsubstats@gmail.com`) em
+1. mete-te a ti próprio (`review.FutsalSubStats@gmail.com`) em
    *Authentication → Users → Invite user*;
 2. confere no Gmail, **e também no telemóvel** — é onde 90% dos treinadores vão
    abrir isto;
