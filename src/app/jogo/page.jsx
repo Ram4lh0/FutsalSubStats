@@ -20,6 +20,8 @@ import { useUI } from '@/lib/ui.jsx';
 import { useT } from '@/lib/i18n/index.js';
 import { souDonoDe } from '@/lib/useSouDono.js';
 
+const MIN_POST_LOGIN_MS = 2500;
+
 export default function JogoPage() {
   return (
     <Pagina>
@@ -39,7 +41,13 @@ function JogoEntrada() {
   const { initialSyncReady } = useSyncStatus();
   const { confirmar } = useUI();
   const [estado, setEstado] = useState(null);
+  const [tempoMinimo, setTempoMinimo] = useState(false);
   const promptAberto = useRef(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setTempoMinimo(true), MIN_POST_LOGIN_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const carregar = useCallback(async () => {
     const listaClubes = await clubs.list();
@@ -57,7 +65,7 @@ function JogoEntrada() {
   }, [carregar]);
 
   useEffect(() => {
-    if (!estado || !initialSyncReady || promptAberto.current) return;
+    if (!estado || !initialSyncReady || !tempoMinimo || promptAberto.current) return;
 
     const identity = userIdentity(user);
     const recente = isRecentSignup(identity, user?.created_at);
@@ -85,9 +93,9 @@ function JogoEntrada() {
       else if (primeiro) router.replace(rotas.jogos(primeiro.club.id, primeiro.team.id));
       else promptAberto.current = false;
     })();
-  }, [confirmar, estado, initialSyncReady, router, t, user]);
+  }, [confirmar, estado, initialSyncReady, router, t, tempoMinimo, user]);
 
-  if (!estado || (remote && !initialSyncReady) || estado.escaloes.length) {
+  if (!tempoMinimo || !estado || (remote && !initialSyncReady) || estado.escaloes.length) {
     return <PostLoginLoading />;
   }
 
