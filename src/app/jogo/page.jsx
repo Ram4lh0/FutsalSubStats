@@ -10,10 +10,12 @@ import { clubs, teams } from '@/lib/data/repository.js';
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
 import { rotas } from '@/lib/routes.js';
 import {
+  isRecentSignup,
   markGuidedTutorialPrompted,
   startGuidedTutorial,
   wasGuidedTutorialPrompted,
 } from '@/lib/tutorial.js';
+import { useSyncStatus } from '@/lib/sync-status.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useT } from '@/lib/i18n/index.js';
 import { souDonoDe } from '@/lib/useSouDono.js';
@@ -33,7 +35,8 @@ function userIdentity(user) {
 function JogoEntrada() {
   const router = useRouter();
   const t = useT();
-  const { user } = useAuth();
+  const { remote, user } = useAuth();
+  const { initialSyncReady } = useSyncStatus();
   const { confirmar } = useUI();
   const [estado, setEstado] = useState(null);
   const promptAberto = useRef(false);
@@ -54,32 +57,38 @@ function JogoEntrada() {
   }, [carregar]);
 
   useEffect(() => {
-    if (!estado || !estado.escaloes.length || promptAberto.current) return;
+    if (!estado || !initialSyncReady || promptAberto.current) return;
 
-    const primeiro = estado.escaloes[0];
     const identity = userIdentity(user);
+    const recente = isRecentSignup(identity, user?.created_at);
+    const primeiro = estado.escaloes[0] || null;
     if (wasGuidedTutorialPrompted(identity)) {
       markGuidedTutorialPrompted(identity);
-      router.replace(rotas.jogos(primeiro.club.id, primeiro.team.id));
+      if (primeiro) router.replace(rotas.jogos(primeiro.club.id, primeiro.team.id));
       return;
     }
+    if (!primeiro && !recente) return;
 
     promptAberto.current = true;
     (async () => {
-      const querTutorial = await confirmar(t('tutorial.perguntaExistenteTexto'), {
-        title: t('tutorial.perguntaTitulo'),
-        okLabel: t('tutorial.perguntaSim'),
-        cancelLabel: t('tutorial.perguntaNao'),
-        danger: false,
-      });
+      const querTutorial = await confirmar(
+        recente ? t('tutorial.perguntaNovoTexto') : t('tutorial.perguntaExistenteTexto'),
+        {
+          title: t('tutorial.perguntaTitulo'),
+          okLabel: t('tutorial.perguntaSim'),
+          cancelLabel: t('tutorial.perguntaNao'),
+          danger: false,
+        }
+      );
       markGuidedTutorialPrompted(identity);
       if (querTutorial) startGuidedTutorial(router);
-      else router.replace(rotas.jogos(primeiro.club.id, primeiro.team.id));
+      else if (primeiro) router.replace(rotas.jogos(primeiro.club.id, primeiro.team.id));
+      else promptAberto.current = false;
     })();
-  }, [confirmar, estado, router, t, user]);
+  }, [confirmar, estado, initialSyncReady, router, t, user]);
 
-  if (!estado || estado.escaloes.length) {
-    return <PageHead title={t('jogo.entradaTitulo')} subtitle={t('comum.aCarregar')} />;
+  if (!estado || (remote && !initialSyncReady) || estado.escaloes.length) {
+    return <PostLoginLoading />;
   }
 
   const clubeDono = estado.clubes.find((club) => souDonoDe(club));
@@ -90,7 +99,11 @@ function JogoEntrada() {
       {!estado.clubes.length ? (
         <Empty
           action={
-            <button className="btn btn--primary" onClick={() => router.push(rotas.clubeNovo())}>
+            <button
+              className="btn btn--primary"
+              data-tour="create-club"
+              onClick={() => router.push(rotas.clubeNovo())}
+            >
               {t('jogo.criarClube')}
             </button>
           }
@@ -111,5 +124,20 @@ function JogoEntrada() {
         <Empty>{t('jogo.semEscalaoAssociado')}</Empty>
       )}
     </>
+  );
+}
+
+function PostLoginLoading() {
+  const t = useT();
+  return (
+    <div className="postlogin" role="status" aria-live="polite">
+      <div className="postlogin__mark" aria-hidden="true">
+        <span className="postlogin__ball" />
+        <span className="postlogin__line postlogin__line--one" />
+        <span className="postlogin__line postlogin__line--two" />
+      </div>
+      <h1>{t('jogo.aPrepararTitulo')}</h1>
+      <p>{t('jogo.aPrepararTexto')}</p>
+    </div>
   );
 }

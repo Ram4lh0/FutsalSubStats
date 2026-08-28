@@ -93,6 +93,8 @@ export default {
   'jogo.semEscalaoAssociado': 'Ya estás asociado a un club. Pide al entrenador que te asocie a una categoría.',
   'jogo.criarClube': 'Crear club',
   'jogo.criarEscalao': 'Crear categoría',
+  'jogo.aPrepararTitulo': 'Preparando tu equipo',
+  'jogo.aPrepararTexto': 'Estamos sincronizando clubes, categorías y partidos antes de abrir la app.',
 
   /* --------------------------------------------------------- ajustes */
   'definicoes.titulo': 'Perfil',

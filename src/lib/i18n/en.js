@@ -94,6 +94,8 @@ export default {
   'jogo.semEscalaoAssociado': 'You are already linked to a club. Ask the coach to add you to an age group.',
   'jogo.criarClube': 'Create club',
   'jogo.criarEscalao': 'Create age group',
+  'jogo.aPrepararTitulo': 'Getting your team ready',
+  'jogo.aPrepararTexto': 'We are syncing clubs, age groups and matches before opening the app.',
 
   /* -------------------------------------------------------- settings */
   'definicoes.titulo': 'Profile',

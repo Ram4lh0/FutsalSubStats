@@ -95,6 +95,8 @@ export default {
   'jogo.semEscalaoAssociado': 'Já estás associado a um clube. Pede ao treinador para te associar a um escalão.',
   'jogo.criarClube': 'Criar clube',
   'jogo.criarEscalao': 'Criar escalão',
+  'jogo.aPrepararTitulo': 'A preparar a tua equipa',
+  'jogo.aPrepararTexto': 'Estamos a sincronizar clubes, escalões e jogos antes de abrir a app.',
 
   /* ------------------------------------------------------ definições */
   'definicoes.titulo': 'Perfil',

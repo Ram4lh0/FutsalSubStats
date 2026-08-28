@@ -101,7 +101,7 @@ export default function ClubForm({ clubId }) {
         title={clubId ? t('clube.editarTitulo') : t('clube.criarTitulo')}
         backTo={voltarPara}
       />
-      <form className="card form" onSubmit={guardar}>
+      <form className="card form form--safe-actions" onSubmit={guardar}>
         <EscolherFoto
           nome={form.name}
           cor={form.primaryColor}

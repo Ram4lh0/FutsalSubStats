@@ -102,8 +102,8 @@ function destinoDoPasso(step, ctx) {
       ? (ctx.live || ctx.ready || ctx.match)
       : (ctx.ready || ctx.match);
 
-  if (step.id === 'club') return rotas.dashboard();
-  if (!clubId) return rotas.dashboard();
+  if (step.id === 'club') return rotas.jogo();
+  if (!clubId) return rotas.jogo();
   if (step.id === 'team') return rotas.clube(clubId);
   if (!teamId) return rotas.clube(clubId);
   if (step.id === 'competitions') return rotas.competicoes(clubId, teamId);
@@ -117,7 +117,7 @@ function destinoDoPasso(step, ctx) {
   if (step.id === 'openTeam') return rotas.clube(clubId);
   if (step.id === 'stats') return rotas.escalao(clubId, teamId);
   if (step.id === 'dashboard') return rotas.painelEscalao(clubId, teamId);
-  return rotas.dashboard();
+  return rotas.jogo();
 }
 
 export default function GuidedTutorial() {

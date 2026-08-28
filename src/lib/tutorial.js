@@ -6,6 +6,8 @@ export const TUTORIAL_ACTIVE_KEY = 'futsal-guided-tutorial-active';
 export const TUTORIAL_STEP_KEY = 'futsal-guided-tutorial-step';
 export const TUTORIAL_EVENT = 'futsal-guided-tutorial-change';
 export const TUTORIAL_PROMPT_KEY = 'futsal-guided-tutorial-prompted';
+export const TUTORIAL_RECENT_SIGNUP_KEY = 'futsal-guided-tutorial-recent-signup';
+export const TUTORIAL_RECENT_SIGNUP_MS = 15 * 60 * 1000;
 
 export const guidedTutorialSteps = [
   {
@@ -168,6 +170,29 @@ export function markGuidedTutorialPrompted(identity) {
   }
   window.localStorage.setItem(`${TUTORIAL_PROMPT_KEY}:${identity}`, '1');
   window.localStorage.removeItem(`${TUTORIAL_PROMPT_KEY}:pending`);
+  window.localStorage.removeItem(`${TUTORIAL_RECENT_SIGNUP_KEY}:${identity}`);
+  window.localStorage.removeItem(`${TUTORIAL_RECENT_SIGNUP_KEY}:pending`);
+}
+
+export function markRecentSignup(identity, createdAt = Date.now()) {
+  if (typeof window === 'undefined') return;
+  const id = identity || 'pending';
+  const time = Number(createdAt) || Date.now();
+  window.localStorage.setItem(`${TUTORIAL_RECENT_SIGNUP_KEY}:${id}`, String(time));
+}
+
+export function isRecentSignup(identity, userCreatedAt) {
+  if (typeof window === 'undefined') return false;
+  const now = Date.now();
+  const values = [];
+  const fromUser = Date.parse(userCreatedAt || '');
+  if (Number.isFinite(fromUser)) values.push(fromUser);
+  const id = identity || 'pending';
+  const stored = Number(window.localStorage.getItem(`${TUTORIAL_RECENT_SIGNUP_KEY}:${id}`) || 0);
+  if (stored) values.push(stored);
+  const pending = Number(window.localStorage.getItem(`${TUTORIAL_RECENT_SIGNUP_KEY}:pending`) || 0);
+  if (pending) values.push(pending);
+  return values.some((time) => now - time >= 0 && now - time <= TUTORIAL_RECENT_SIGNUP_MS);
 }
 
 export function startGuidedTutorial(router) {

@@ -11,7 +11,7 @@ import { useAuth } from '@/lib/auth.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { limparDemo } from '@/lib/demo.js';
 import { rotas } from '@/lib/routes.js';
-import { markGuidedTutorialPrompted, startGuidedTutorial } from '@/lib/tutorial.js';
+import { markRecentSignup } from '@/lib/tutorial.js';
 import { useT } from '@/lib/i18n/index.js';
 
 function AppleLogo() {
@@ -50,7 +50,7 @@ export default function LoginPage() {
     authError,
     clearAuthError,
   } = useAuth();
-  const { toast, confirmar } = useUI();
+  const { toast } = useUI();
   const [modo, setModo] = useState('entrar');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -115,15 +115,8 @@ export default function LoginPage() {
         setModo('entrar');
         return;
       }
-      const querTutorial = await confirmar(t('tutorial.perguntaNovoTexto'), {
-        title: t('tutorial.perguntaTitulo'),
-        okLabel: t('tutorial.perguntaSim'),
-        cancelLabel: t('tutorial.perguntaNao'),
-        danger: false,
-      });
-      markGuidedTutorialPrompted();
-      if (querTutorial) startGuidedTutorial(router);
-      else router.replace(rotas.jogo());
+      markRecentSignup();
+      router.replace(rotas.jogo());
       return;
     }
     router.replace(rotas.jogo());
