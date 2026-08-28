@@ -22,14 +22,13 @@
    * de listas, posição de botões flutuantes, etc).
    * --nav-bottom-conteudo é só a parte visível — ícone + legenda — sem a
    * safe-area; é o que a própria barra usa para o seu min-height.
-   * --nav-bottom-safe é a safe-area que a barra reserva por baixo. Está a
-   * 0px: o valor "cru" que alguns browsers Android devolvem em
+   * --nav-bottom-safe é a safe-area que a barra reserva por baixo, com um
+   * teto de 15px: o valor "cru" que alguns browsers Android devolvem em
    * `env(safe-area-inset-bottom)` numa aba normal (fora da app instalada)
    * tem-se mostrado bem maior do que a barra de gestos realmente ocupa,
-   * deixando uma folga vazia por cima dela — por isso, por agora, fica
-   * desligada aqui. */
+   * deixando uma folga vazia enorme por cima dela. */
   --nav-bottom-conteudo: 46px;
-  --nav-bottom-safe: 0px;
+  --nav-bottom-safe: min(var(--seguro-baixo), 15px);
   --nav-bottom-altura: calc(var(--nav-bottom-conteudo) + var(--nav-bottom-safe));
 
   /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
