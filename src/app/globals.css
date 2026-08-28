@@ -17,7 +17,7 @@
   --radius: 14px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --touch: 52px;
-  --nav-bottom-altura: 70px;
+  --nav-bottom-altura: 62px;
 
   /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
    * navegação em baixo, os cantos redondos ao lado.
@@ -244,15 +244,16 @@ ul { padding: 0; list-style: none; }
   z-index: 70;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  align-items: end;
   gap: 2px;
   min-height: var(--nav-bottom-altura);
-  padding: 8px max(8px, var(--seguro-dir)) 8px max(8px, var(--seguro-esq));
+  padding: 4px max(8px, var(--seguro-dir)) 2px max(8px, var(--seguro-esq));
   border-top: 1px solid rgba(42, 61, 95, 0.86);
   background: rgba(11, 18, 32, 0.96);
   backdrop-filter: blur(16px);
 }
 .mainnav--bottom .mainnav__item {
-  min-height: 54px;
+  min-height: 56px;
   flex-direction: column;
   font-size: 0.7rem;
 }
@@ -2238,7 +2239,11 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
    grandes numa grelha são mais legíveis e mais fáceis de acertar com o polegar. */
 @media (max-width: 720px) {
   :root { --touch: 48px; }
-  .view { padding: 12px; }
+  .view {
+    padding: 12px;
+    padding-bottom: calc(var(--nav-bottom-altura) + 16px);
+    scroll-padding-bottom: calc(var(--nav-bottom-altura) + 16px);
+  }
   .page__title { font-size: 1.3rem; }
   .page__head {
     gap: 10px;
