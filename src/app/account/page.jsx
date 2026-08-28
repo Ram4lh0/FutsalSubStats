@@ -255,6 +255,7 @@ function Definicoes() {
 
       <section className="card tutorial-settings">
         <div>
+          <p className="tutorial-settings__aviso">{t('tutorial.avisoInterfaceAntiga')}</p>
           <h2 className="section section--tight">{t('tutorial.titulo')}</h2>
           <p className="muted">{t('tutorial.definicoesTexto')}</p>
         </div>

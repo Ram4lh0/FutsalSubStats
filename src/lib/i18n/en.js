@@ -411,6 +411,7 @@ export default {
   'licencas.nadaParaRestaurar': 'No purchases were found to restore.',
   'licencas.restauroFalhou': 'Purchases could not be restored now: {erro}',
   'licencas.verOpcoes': 'View licences',
+  'tutorial.avisoInterfaceAntiga': 'Only works for the old interface.',
   'tutorial.titulo': 'Tutorial',
   'tutorial.definicoesTexto': 'Start an in-app guide, step by step, from club creation through to the dashboard.',
   'tutorial.perguntaTitulo': 'Do you want the tutorial?',

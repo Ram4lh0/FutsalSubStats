@@ -412,6 +412,7 @@ export default {
   'licencas.nadaParaRestaurar': 'Não foram encontradas compras para restaurar.',
   'licencas.restauroFalhou': 'Não foi possível restaurar agora: {erro}',
   'licencas.verOpcoes': 'Ver licenças',
+  'tutorial.avisoInterfaceAntiga': 'Só funciona para a interface antiga.',
   'tutorial.titulo': 'Tutorial',
   'tutorial.definicoesTexto': 'Começa um guia dentro da própria app, passo a passo, desde a criação do clube até ao dashboard.',
   'tutorial.perguntaTitulo': 'Queres fazer o tutorial?',
