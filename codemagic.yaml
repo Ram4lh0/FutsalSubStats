@@ -128,7 +128,7 @@ workflows:
         - appstore
       ios_signing:
         certificates:
-          - FutsalSubStats-ios-p12
+          - futsalsubstats-ios-p12
         provisioning_profiles:
           - futsalsubstats_appstore
       vars:
