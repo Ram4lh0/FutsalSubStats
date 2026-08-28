@@ -257,6 +257,7 @@ ul { padding: 0; list-style: none; }
   flex-direction: column;
   gap: 2px;
   font-size: 0.68rem;
+  transform: translateY(10px);
 }
 .mainnav--bottom .mainnav__item svg {
   width: 21px;
@@ -266,7 +267,7 @@ ul { padding: 0; list-style: none; }
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  min-height: 2.06em;
+  min-height: 1.9em;
   line-height: 1.03;
   text-align: center;
 }
