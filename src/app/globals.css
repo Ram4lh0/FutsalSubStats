@@ -501,14 +501,27 @@ ul { padding: 0; list-style: none; }
   justify-content: flex-start;
   margin-top: 14px;
 }
+/* `position: sticky` só desloca o botão se houver algo para deslizar por
+ * baixo dele: com poucos jogos a lista não enche o ecrã, `.view` não tem
+ * scroll, e o "Novo jogo" ficava preso onde o fluxo normal o pôs — a meio
+ * do ecrã, longe da barra de baixo. Fixo ao ecrã (não ao conteúdo) é a
+ * única forma de o garantir sempre encostado ao topo da barra de navegação,
+ * com poucos ou muitos jogos. */
 .matches-actions {
-  position: sticky;
-  bottom: var(--nav-bottom-altura);
+  position: fixed;
+  left: max(20px, var(--seguro-esq));
+  right: max(20px, var(--seguro-dir));
+  max-width: 1400px;
+  margin: 0 auto;
+  bottom: calc(var(--nav-bottom-altura) + 14px);
   z-index: 25;
-  margin-top: 14px;
   align-items: center;
-  padding: 10px 0 4px;
-  background: linear-gradient(180deg, rgba(11, 18, 32, 0), var(--bg) 42%);
+  padding: 0;
+  background: none;
+  pointer-events: none;
+}
+.matches-actions > * {
+  pointer-events: auto;
 }
 .summary-actions {
   display: flex;
