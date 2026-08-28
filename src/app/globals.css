@@ -244,9 +244,9 @@ ul { padding: 0; list-style: none; }
   z-index: 70;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
-  align-items: end;
+  align-items: start;
   gap: 2px;
-  min-height: var(--nav-bottom-altura);
+  min-height: calc(var(--nav-bottom-altura) + var(--seguro-baixo));
   padding: 0 max(8px, var(--seguro-dir)) 0 max(8px, var(--seguro-esq));
   border-top: 1px solid rgba(42, 61, 95, 0.86);
   background: rgba(11, 18, 32, 0.96);
@@ -298,10 +298,10 @@ ul { padding: 0; list-style: none; }
   padding: 10px 20px 20px;
   padding-left: max(20px, var(--seguro-esq));
   padding-right: max(20px, var(--seguro-dir));
-  padding-bottom: calc(var(--nav-bottom-altura) + 22px);
+  padding-bottom: calc(var(--nav-bottom-altura) + var(--seguro-baixo) + 22px);
   max-width: 1400px; width: 100%; margin: 0 auto;
   -webkit-overflow-scrolling: touch;
-  scroll-padding-bottom: calc(var(--nav-bottom-altura) + 22px);
+  scroll-padding-bottom: calc(var(--nav-bottom-altura) + var(--seguro-baixo) + 22px);
 }
 
 .postlogin {
