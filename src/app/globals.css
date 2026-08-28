@@ -23,12 +23,15 @@
    * --nav-bottom-conteudo é só a parte visível — ícone + legenda — sem a
    * safe-area; é o que a própria barra usa para o seu min-height.
    * --nav-bottom-safe é a safe-area que a barra reserva por baixo, com um
-   * teto de 15px: o valor "cru" que alguns browsers Android devolvem em
-   * `env(safe-area-inset-bottom)` numa aba normal (fora da app instalada)
-   * tem-se mostrado bem maior do que a barra de gestos realmente ocupa,
-   * deixando uma folga vazia enorme por cima dela. */
+   * teto de 20px. Duas razões: em Android, dentro de uma aba normal de
+   * browser (fora da app instalada), o valor "cru" de
+   * `env(safe-area-inset-bottom)` tem-se mostrado bem maior do que a barra
+   * de gestos realmente ocupa, deixando uma folga vazia enorme por cima
+   * dela; no iPhone nativo, o valor real (~34px, o indicador de fundo) é
+   * um pouco mais do que o necessário para a barra ficar confortável, por
+   * isso o teto encolhe-o também aí. */
   --nav-bottom-conteudo: 46px;
-  --nav-bottom-safe: min(var(--seguro-baixo), 15px);
+  --nav-bottom-safe: min(var(--seguro-baixo), 20px);
   --nav-bottom-altura: calc(var(--nav-bottom-conteudo) + var(--nav-bottom-safe));
 
   /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
@@ -283,13 +286,13 @@ ul { padding: 0; list-style: none; }
   flex-direction: column;
   gap: 1px;
   justify-content: flex-end;
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   padding-bottom: 0;
   transform: translateY(3px);
 }
 .mainnav--bottom .mainnav__item svg {
-  width: 19px;
-  height: 19px;
+  width: 22px;
+  height: 22px;
 }
 .mainnav--bottom .mainnav__item span {
   display: flex;
@@ -896,7 +899,7 @@ ul { padding: 0; list-style: none; }
 }
 .guided-tour__progress {
   color: #86efac;
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
