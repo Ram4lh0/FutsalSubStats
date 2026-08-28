@@ -142,36 +142,20 @@ ul { padding: 0; list-style: none; }
 
 /* --------------------------------------------------------------- estrutura */
 
-.app { display: flex; flex-direction: column; height: 100%; min-height: 0; background-color: var(--bg); }
-
-/* O fundo: uma malha de pontos, e nada mais.
- *
- * Tira ao azul-escuro o ar de folha em branco sem lhe pôr nada por cima que se
- * leia. Provámos aqui um campo desenhado a traço e clarões de cor, e os dois
- * chamavam a atenção — um fundo que se nota deixou de ser fundo.
- *
- * ## Porquê no `.app` e não numa camada por cima
- *
- * A primeira tentativa foi um `::before` preso ao ecrã com `z-index: -1`, e não
- * se via nada: uma camada de z-index negativo pinta-se **antes** dos elementos
- * normais, e o `body` tem fundo opaco — era desenhada e tapada no mesmo
- * instante. Sendo o fundo do próprio contentor, os filhos desenham-se por cima
- * como sempre: o `.appbar` tem fundo próprio e tapa-o, a `.view` não tem e
- * deixa passar.
- *
- * Também dispensa `fixed`: quem desliza é a `.view`, e o `.app` está quieto e do
- * tamanho do ecrã. Os pontos ficam parados enquanto o conteúdo passa por cima.
- *
- * Se estiver de mais ou de menos, o número é o `0.07`. */
 .app {
-  background: radial-gradient(circle at 1px 1px, rgba(145, 164, 196, 0.07) 1px, transparent 0);
-  background-size: 26px 26px;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg);
 }
 
 /* No jogo, não. Aquele ecrã lê-se de relance, com o jogo a correr e o treinador
    a olhar para o campo entre toques — o que lá estiver e não sirva para decidir
    uma substituição está a atrapalhar. */
-.app.is-live { background: none; }
+.app.is-live { background: var(--bg); }
 
 .mainnav-top {
   display: flex;
