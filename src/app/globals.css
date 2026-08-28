@@ -581,10 +581,12 @@ ul { padding: 0; list-style: none; }
 @media (max-width: 560px) {
   .tabs { gap: 4px; }
   .tab { padding: 10px 10px; font-size: 0.92rem; }
-  /* Os dois cartões de cima (Jogos, V/E/D) ficam com a mesma largura do
-   * cartão dos golos, centrados por baixo dele — não esticados de ponta a
-   * ponta enquanto o dos golos fica mais estreito. */
-  .stats__resumo {
+  /* Jogos e V/E/D ficam sozinhos, lado a lado, na primeira linha; o cartão
+   * dos golos fica sozinho e centrado na segunda. `.grid` (mais abaixo no
+   * ficheiro, sem media query) também define `display`, e com a mesma
+   * especificidade de classe ganhava por vir depois — daí o `.grid` aqui a
+   * mais, só para pesar mais do que ele e o `display: flex` pegar mesmo. */
+  .grid.stats__resumo {
     display: flex;
     flex-direction: column;
     align-items: center;
