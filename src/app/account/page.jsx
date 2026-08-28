@@ -219,6 +219,14 @@ function Definicoes() {
     }
   }
 
+  // Quem já tem clube está no plano de topo: não faz sentido mostrar-lhe
+  // nenhuma opção de compra. Quem tem treinador só vê o upgrade para clube —
+  // o cartão de "comprar treinador" desaparece, porque já o tem. Sem licença
+  // ativa, vêem-se as duas opções, como sempre foi.
+  const planoAtivo = licencas.status?.licenseActive ? licencas.status?.plan : null;
+  const planosParaMostrar =
+    planoAtivo === 'clube' ? [] : planoAtivo === 'treinador' ? ['clube'] : ['treinador', 'clube'];
+
   return (
     <>
       <PageHead
@@ -273,37 +281,41 @@ function Definicoes() {
           )}
         </div>
 
-        <div className="license-grid">
-          {['treinador', 'clube'].map((plano) => {
-            const productId = STORE_PRODUCTS[plano];
-            const product = licencas.products.find((p) => p.id === productId);
-            const isClub = plano === 'clube';
-            return (
-              <article key={plano} className={`license-option ${isClub ? 'license-option--club' : ''}`}>
-                <div className="license-option__title">
-                  <h3>{t(`licencas.${plano}`)}</h3>
-                  {licencas.loading ? <strong>…</strong> : <LicensePrice plano={plano} product={product} />}
-                </div>
-                <p className="license-trial">{t('licencas.testeGratisCurto')}</p>
-                <ul className="license-option__features">
-                  {(isClub
-                    ? ['variosTreinadores', 'cincoEscaloes', 'todasCompeticoes', 'todasEstatisticas']
-                    : ['umaConta', 'umEscalao', 'todasCompeticoes', 'estatisticasEscalao']
-                  ).map((chave) => <li key={chave}>{t(`licencas.${chave}`)}</li>)}
-                </ul>
-                {isClub ? <p className="muted small">{t('licencas.maisCinco')}</p> : null}
-                <button
-                  className="btn btn--primary"
-                  disabled={!nativeStoreAvailable() || !product || Boolean(aComprar)}
-                  onClick={() => comprarLicenca(plano)}
-                >
-                  {aComprar === plano ? t('licencas.aComprar') : t('licencas.comprar')}
-                </button>
-              </article>
-            );
-          })}
-        </div>
-        {!nativeStoreAvailable() ? <p className="muted small">{t('licencas.comprasNaApp')}</p> : null}
+        {planosParaMostrar.length > 0 ? (
+          <>
+            <div className="license-grid">
+              {planosParaMostrar.map((plano) => {
+                const productId = STORE_PRODUCTS[plano];
+                const product = licencas.products.find((p) => p.id === productId);
+                const isClub = plano === 'clube';
+                return (
+                  <article key={plano} className={`license-option ${isClub ? 'license-option--club' : ''}`}>
+                    <div className="license-option__title">
+                      <h3>{t(`licencas.${plano}`)}</h3>
+                      {licencas.loading ? <strong>…</strong> : <LicensePrice plano={plano} product={product} />}
+                    </div>
+                    <p className="license-trial">{t('licencas.testeGratisCurto')}</p>
+                    <ul className="license-option__features">
+                      {(isClub
+                        ? ['variosTreinadores', 'cincoEscaloes', 'todasCompeticoes', 'todasEstatisticas']
+                        : ['umaConta', 'umEscalao', 'todasCompeticoes', 'estatisticasEscalao']
+                      ).map((chave) => <li key={chave}>{t(`licencas.${chave}`)}</li>)}
+                    </ul>
+                    {isClub ? <p className="muted small">{t('licencas.maisCinco')}</p> : null}
+                    <button
+                      className="btn btn--primary"
+                      disabled={!nativeStoreAvailable() || !product || Boolean(aComprar)}
+                      onClick={() => comprarLicenca(plano)}
+                    >
+                      {aComprar === plano ? t('licencas.aComprar') : t('licencas.comprar')}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+            {!nativeStoreAvailable() ? <p className="muted small">{t('licencas.comprasNaApp')}</p> : null}
+          </>
+        ) : null}
         <div className="form__actions form__actions--left">
           <button className="btn btn--ghost" disabled={Boolean(aComprar)} onClick={restaurarLicencas}>
             {aComprar === 'restore' ? t('licencas.aRestaurar') : t('licencas.restaurar')}

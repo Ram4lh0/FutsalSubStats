@@ -30,7 +30,7 @@
    * dela; no iPhone nativo, o valor real (~34px, o indicador de fundo) é
    * um pouco mais do que o necessário para a barra ficar confortável, por
    * isso o teto encolhe-o também aí. */
-  --nav-bottom-conteudo: 46px;
+  --nav-bottom-conteudo: 48px;
   --nav-bottom-safe: min(var(--seguro-baixo), 20px);
   --nav-bottom-altura: calc(var(--nav-bottom-conteudo) + var(--nav-bottom-safe));
 
@@ -282,17 +282,17 @@ ul { padding: 0; list-style: none; }
   backdrop-filter: blur(16px);
 }
 .mainnav--bottom .mainnav__item {
-  min-height: 46px;
+  min-height: 48px;
   flex-direction: column;
   gap: 1px;
   justify-content: flex-end;
-  font-size: 0.7rem;
+  font-size: 0.76rem;
   padding-bottom: 0;
   transform: translateY(3px);
 }
 .mainnav--bottom .mainnav__item svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 .mainnav--bottom .mainnav__item span {
   display: flex;
@@ -498,9 +498,9 @@ ul { padding: 0; list-style: none; }
 }
 .matches-actions {
   position: sticky;
-  bottom: calc(var(--nav-bottom-altura) + 6px);
+  bottom: var(--nav-bottom-altura);
   z-index: 25;
-  margin-top: 12px;
+  margin-top: 24px;
   align-items: center;
   padding: 10px 0 4px;
   background: linear-gradient(180deg, rgba(11, 18, 32, 0), var(--bg) 42%);
@@ -549,9 +549,25 @@ ul { padding: 0; list-style: none; }
 @media (max-width: 560px) {
   .tabs { gap: 4px; }
   .tab { padding: 10px 10px; font-size: 0.92rem; }
+  /* Os dois cartões de cima (Jogos, V/E/D) ficam com a mesma largura do
+   * cartão dos golos, centrados por baixo dele — não esticados de ponta a
+   * ponta enquanto o dos golos fica mais estreito. */
+  .stats__resumo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .stats__resumo-topo {
+    display: flex;
+    gap: 10px;
+    width: min(240px, 100%);
+  }
+  .stats__resumo-topo .stat {
+    flex: 1 1 0;
+    min-width: 0;
+  }
   .stats__resumo .golcard {
-    grid-column: 1 / -1;
-    justify-self: center;
     width: min(240px, 100%);
   }
 }
@@ -2855,9 +2871,11 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 
 /* Só a palavra da cor é que leva a cor.
    "Mais amarelos" todo amarelo lia-se como um alerta do próprio cartão; assim
-   é só a palavra a dizer de que cartões fala. O amarelo escurece um pouco em
-   tema claro — o `--warn` sobre branco quase não se vê. */
-.cartao-cor--amarelo { color: var(--warn); }
+   é só a palavra a dizer de que cartões fala. O amarelo é o mesmo tom do
+   cartão amarelo a sério (`.cardchip--yellow`) — o `--warn` é âmbar, feito
+   para avisos, e aqui lia-se mais laranja do que amarelo. Escurece um pouco
+   em tema claro, onde um amarelo cheio sobre branco quase não se vê. */
+.cartao-cor--amarelo { color: #facc15; }
 .cartao-cor--vermelho { color: var(--danger); }
 @media (prefers-color-scheme: light) {
   .cartao-cor--amarelo { color: #b45309; }
