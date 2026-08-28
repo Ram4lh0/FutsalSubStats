@@ -240,13 +240,13 @@ ul { padding: 0; list-style: none; }
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(-1 * var(--seguro-baixo));
+  bottom: 0;
   z-index: 70;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
-  align-items: start;
+  align-items: end;
   gap: 2px;
-  min-height: calc(var(--nav-bottom-altura) + var(--seguro-baixo));
+  min-height: var(--nav-bottom-altura);
   padding: 0 max(8px, var(--seguro-dir)) 0 max(8px, var(--seguro-esq));
   border-top: 1px solid rgba(42, 61, 95, 0.86);
   background: rgba(11, 18, 32, 0.96);
