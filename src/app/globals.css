@@ -244,7 +244,7 @@ ul { padding: 0; list-style: none; }
   z-index: 70;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
-  align-items: end;
+  align-items: center;
   gap: 2px;
   min-height: var(--nav-bottom-altura);
   padding: 0 max(8px, var(--seguro-dir)) 0 max(8px, var(--seguro-esq));
