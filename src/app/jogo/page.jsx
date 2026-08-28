@@ -75,6 +75,11 @@ function JogoEntrada() {
       if (primeiro) router.replace(rotas.jogos(primeiro.club.id, primeiro.team.id));
       return;
     }
+    if (primeiro && !recente) {
+      markGuidedTutorialPrompted(identity);
+      router.replace(rotas.jogos(primeiro.club.id, primeiro.team.id));
+      return;
+    }
     if (!primeiro && !recente) return;
 
     promptAberto.current = true;
