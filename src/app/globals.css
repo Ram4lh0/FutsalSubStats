@@ -17,7 +17,7 @@
   --radius: 14px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --touch: 52px;
-  --nav-bottom-altura: calc(70px + var(--seguro-baixo));
+  --nav-bottom-altura: 70px;
 
   /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
    * navegação em baixo, os cantos redondos ao lado.
@@ -246,7 +246,7 @@ ul { padding: 0; list-style: none; }
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
   gap: 2px;
   min-height: var(--nav-bottom-altura);
-  padding: 8px max(8px, var(--seguro-dir)) max(8px, var(--seguro-baixo)) max(8px, var(--seguro-esq));
+  padding: 8px max(8px, var(--seguro-dir)) 8px max(8px, var(--seguro-esq));
   border-top: 1px solid rgba(42, 61, 95, 0.86);
   background: rgba(11, 18, 32, 0.96);
   backdrop-filter: blur(16px);
@@ -1065,6 +1065,16 @@ ul { padding: 0; list-style: none; }
     padding-bottom: max(32px, var(--seguro-baixo));
     scroll-padding-bottom: max(32px, var(--seguro-baixo));
   }
+  .setup__footer {
+    bottom: 0;
+    z-index: 30;
+  }
+  .setup__spacer {
+    height: 96px;
+  }
+  .wizard {
+    padding-bottom: 96px;
+  }
   .form--safe-actions {
     margin-bottom: 16px;
   }
@@ -1513,12 +1523,15 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .stepper__item.is-active { color: var(--text); border-color: var(--primary); }
 .stepper__item.is-done { color: var(--primary); }
 .stepper__n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--card-2); font-size: 0.75rem; }
-/* A fila de botões do assistente — Voltar, Continuar, Guardar — encostada ao
-   fundo do ecrã, como a barra da preparação. Ver `.barra-fixa`. */
-.wizard__nav { justify-content: space-between; }
-/* O espaço que a barra tapa. Sem isto o último jogador da lista ficava
-   permanentemente escondido por baixo dos botões, e não havia como o ver. */
-.wizard { padding-bottom: 96px; }
+.wizard__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.wizard { padding-bottom: calc(var(--nav-bottom-altura) + 24px); }
 
 .pickgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
 .pick { display: grid; grid-template-columns: 42px 1fr; grid-template-rows: auto auto; gap: 2px 10px; align-items: center; text-align: left; min-height: 62px; padding: 10px 12px; background: var(--card-2); border: 2px solid var(--line); border-radius: 12px; cursor: pointer; }
@@ -1552,13 +1565,12 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
  * espaço ela ocupa e a barra sobe o suficiente para não ficar por baixo dela;
  * em gestos, sem barra nenhuma, fica só com os 10px. O valor vem do plugin de
  * barras de sistema, que o injecta como variável no `<html>`. */
-.setup__footer,
-.wizard__nav {
+.setup__footer {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
-  z-index: 30;
+  bottom: var(--nav-bottom-altura);
+  z-index: 65;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1569,7 +1581,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   padding: 10px max(20px, var(--seguro-esq)) max(10px, var(--seguro-baixo));
 }
 .setup__footer > * { max-width: min(1400px, 100%); }
-.setup__spacer { height: 96px; flex: none; }
+.setup__spacer { height: calc(96px + var(--nav-bottom-altura)); flex: none; }
 .setup__hint { color: var(--muted); }
 .setup__buttons { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
 
@@ -2249,14 +2261,22 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
     font-size: 0.98rem;
   }
   .btn {
-    min-height: 42px;
-    padding-inline: 14px;
+    min-height: 44px;
+    padding-inline: 15px;
   }
   .btn--tiny {
-    min-height: 34px;
-    padding-inline: 10px;
-    font-size: 0.8rem;
-    border-radius: 9px;
+    min-height: 38px;
+    padding-inline: 12px;
+    font-size: 0.84rem;
+    border-radius: 10px;
+  }
+  .area-actions .btn--tiny,
+  .area-heading .btn--tiny,
+  .matches-actions .btn--tiny,
+  .toolbar .btn--tiny {
+    min-height: 40px;
+    padding-inline: 14px;
+    font-size: 0.86rem;
   }
   .grid {
     gap: 10px;
@@ -2469,8 +2489,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 @media (max-width: 720px) {
   .clocktoggle { width: 88px; height: 88px; font-size: 0.78rem; border-radius: 20px; }
   .floatbtn { width: 104px; height: 92px; font-size: 0.76rem; border-radius: 20px; }
-  .setup__spacer { height: 132px; }
-  .wizard { padding-bottom: 132px; }
+  .setup__spacer { height: calc(132px + var(--nav-bottom-altura)); }
+  .wizard { padding-bottom: calc(170px + var(--nav-bottom-altura)); }
   .clocktoggle__icon { font-size: 1.4rem; }
   .live__bar { padding-right: 100px; }
   .tablewrap {
