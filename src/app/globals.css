@@ -496,10 +496,12 @@ ul { padding: 0; list-style: none; }
   font-size: 0.95rem;
   letter-spacing: 0.08em;
 }
+/* Encostado à tabela, quase como se fosse parte dela — não um botão solto
+ * no meio do ecrã. */
 .matches-showmore {
   display: flex;
   justify-content: flex-start;
-  margin-top: 14px;
+  margin-top: 0;
 }
 /* `position: sticky` só desloca o botão se houver algo para deslizar por
  * baixo dele: com poucos jogos a lista não enche o ecrã, `.view` não tem
@@ -522,6 +524,12 @@ ul { padding: 0; list-style: none; }
 }
 .matches-actions > * {
   pointer-events: auto;
+}
+/* Flutua por cima da lista ao rolar — um pouco menos transparente do que o
+ * `.btn--ghost` normal, para não se perder em cima das linhas da tabela. */
+.matches-actions .btn--ghost {
+  background: rgba(11, 18, 32, 0.72);
+  backdrop-filter: blur(6px);
 }
 .summary-actions {
   display: flex;
