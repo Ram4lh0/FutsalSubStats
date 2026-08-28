@@ -6,7 +6,7 @@
 // para a tabela `app_bundles` e responde uma de duas coisas:
 //
 //   { version, url, checksum }   → descarrega isto
-//   { message: "..." }           → não há nada para ti
+//   { error, message, kind }     → não há nada para ti, ou não dá para ver
 //
 // Publicar em:
 //   supabase functions deploy atualizacao --no-verify-jwt
@@ -61,40 +61,63 @@ function balde(deviceId: string): number {
 }
 
 /**
- * "Não há nada para ti", com o motivo.
+ * "Não há nada para ti", no formato que o Capgo trata como normal.
+ *
+ * Nas primeiras versões respondíamos só `{ message }`. O iOS tolerava isso, mas
+ * no Android o plugin registava "Error no url or wrong format" porque não havia
+ * nem `url` nem um erro classificável. Para "não há atualização", a resposta
+ * esperada é esta.
+ */
+const semNovidade = (motivo = 'No new version available') =>
+  new Response(
+    JSON.stringify({
+      error: 'no_new_version_available',
+      message: motivo,
+      kind: 'up_to_date',
+    }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+
+/**
+ * Erro real, com o motivo.
  *
  * O `detalhe` existe porque a primeira versão desta função dizia só "erro a
  * consultar os pacotes" e engolia a causa — que era exactamente o que era
  * preciso saber para a arranjar. Um diagnóstico que esconde o diagnóstico não
  * serve de nada.
  *
- * O protocolo do plugin já prevê um campo `error` opcional, e o que aqui se
- * revela é sobre uma tabela que não tem dados de ninguém.
+ * O protocolo do plugin já prevê `error`/`kind`, e o que aqui se revela é sobre
+ * uma tabela que não tem dados de ninguém.
  */
-const semNovidade = (motivo: string, detalhe?: string) =>
-  new Response(JSON.stringify({ message: motivo, ...(detalhe ? { error: detalhe } : {}) }), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+const erro = (motivo: string, detalhe?: string) =>
+  new Response(
+    JSON.stringify({
+      error: detalhe || 'update_check_failed',
+      message: motivo,
+      kind: 'failed',
+    }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
 
 Deno.serve(async (req) => {
-  if (req.method !== 'POST') return semNovidade('Só POST.');
+  if (req.method !== 'POST') return erro('Só POST.', 'method_not_allowed');
 
   let corpo: Pedido = {};
   try {
     corpo = await req.json();
   } catch {
-    return semNovidade('Pedido ilegível.');
+    return erro('Pedido ilegível.', 'invalid_request');
   }
 
   const { version_name = '', version_build = '', platform = '', device_id = '' } = corpo;
-  if (!version_name || !platform) return semNovidade('Faltam dados no pedido.');
+  if (!version_name || !platform) return erro('Faltam dados no pedido.', 'invalid_request');
 
   const supaUrl = Deno.env.get('SUPABASE_URL');
   // A chave de serviço nunca sai daqui. É o que permite ler uma tabela que está
   // fechada a toda a gente.
   const supaKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!supaUrl || !supaKey) {
-    return semNovidade(
+    return erro(
       'Erro a consultar os pacotes.',
       `faltam variáveis no ambiente da função: ${!supaUrl ? 'SUPABASE_URL ' : ''}${
         !supaKey ? 'SUPABASE_SERVICE_ROLE_KEY' : ''
@@ -112,7 +135,7 @@ Deno.serve(async (req) => {
     .order('criado_em', { ascending: false })
     .limit(20);
 
-  if (error) return semNovidade('Erro a consultar os pacotes.', error.message);
+  if (error) return erro('Erro a consultar os pacotes.', error.message);
   if (!data?.length) return semNovidade('Não há pacotes publicados.');
 
   // O mais recente por número de versão, não por data de inserção: reativar um
