@@ -17,7 +17,16 @@
   --radius: 14px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --touch: 52px;
-  --nav-bottom-altura: 46px;
+  /* --nav-bottom-altura é o espaço TOTAL que a barra de baixo ocupa no ecrã —
+   * é o que todo o resto do CSS usa para não ficar por baixo dela (padding
+   * de listas, posição de botões flutuantes, etc). Inclui a safe-area, por
+   * isso já soma `--seguro-baixo`: nos telemóveis com barra de gestos essa
+   * barra cresce sozinha, e quem usa esta variável não precisa de se
+   * lembrar de somar a safe-area outra vez.
+   * --nav-bottom-conteudo é só a parte visível — ícone + legenda — sem a
+   * safe-area; é o que a própria barra usa para o seu min-height. */
+  --nav-bottom-conteudo: 46px;
+  --nav-bottom-altura: calc(var(--nav-bottom-conteudo) + var(--seguro-baixo));
 
   /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
    * navegação em baixo, os cantos redondos ao lado.
@@ -144,10 +153,19 @@ ul { padding: 0; list-style: none; }
 
 .app {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Nada de `inset: 0` com `height: 100%`: a percentagem não acompanha a
+   * barra do Chrome/Safari a aparecer e a desaparecer, só o `dvh` o faz — e
+   * é o que o `body` já usa. Sem isto, esta caixa fixa ficava, por vezes,
+   * mais alta (ou mais baixa) do que o ecrã realmente visível, e a barra de
+   * baixo (dentro dela) ficava afastada do fundo verdadeiro do ecrã. */
+  height: 100vh;
+  height: -webkit-fill-available;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  height: 100%;
   min-height: 0;
   background: var(--bg);
 }
@@ -246,8 +264,13 @@ ul { padding: 0; list-style: none; }
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
   align-items: end;
   gap: 2px;
-  min-height: var(--nav-bottom-altura);
-  padding: 0 max(8px, var(--seguro-dir)) 0 max(8px, var(--seguro-esq));
+  min-height: var(--nav-bottom-conteudo);
+  /* O padding de baixo é a safe-area, não um valor fixo: em ecrãs com barra
+   * de gestos (Android/iOS) isto levanta os ícones e o texto para cima da
+   * zona onde o sistema desenha a sua própria barra, para nunca ficarem
+   * tapados nem cortados por ela. Em ecrãs sem barra de gestos vale 0px, e a
+   * barra fica mesmo encostada ao fundo do ecrã. */
+  padding: 0 max(8px, var(--seguro-dir)) var(--seguro-baixo) max(8px, var(--seguro-esq));
   border-top: 1px solid rgba(42, 61, 95, 0.86);
   background: rgba(11, 18, 32, 0.96);
   backdrop-filter: blur(16px);
