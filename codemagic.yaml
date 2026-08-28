@@ -130,7 +130,7 @@ workflows:
         certificates:
           - FutsalSubStats-ios-p12
         provisioning_profiles:
-          - FutsalSubStats_appstore
+          - futsalsubstats_appstore
       vars:
         BUNDLE_ID: "com.FutsalSubStats.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
