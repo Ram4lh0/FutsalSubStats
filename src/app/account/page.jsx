@@ -232,7 +232,6 @@ function Definicoes() {
       <PageHead
         title={t('definicoes.titulo')}
         subtitle={email}
-        backTo={rotas.dashboard()}
         actions={
           <div className="profile-actions">
             <button className="btn btn--ghost btn--danger" onClick={sair}>
