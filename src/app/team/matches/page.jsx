@@ -79,10 +79,17 @@ function Jogos({ entries, competitions, clubId, teamId }) {
         backPath={rotas.jogos(clubId, teamId)}
         limit={mostrarTudo ? null : limite}
       />
+      {temMais && !mostrarTudo ? (
+        <div className="matches-showmore">
+          <button className="btn btn--ghost btn--tiny" onClick={() => setMostrarTudo(true)}>
+            {t('lista.mostrarMais')}
+          </button>
+        </div>
+      ) : null}
       <div className="form__actions matches-actions">
-        {temMais ? (
-          <button className="btn btn--ghost btn--tiny" onClick={() => setMostrarTudo((v) => !v)}>
-            {mostrarTudo ? t('lista.mostrarMenos') : t('lista.mostrarMais')}
+        {temMais && mostrarTudo ? (
+          <button className="btn btn--ghost btn--tiny" onClick={() => setMostrarTudo(false)}>
+            {t('lista.mostrarMenos')}
           </button>
         ) : null}
         <span className="toolbar__spacer" />
