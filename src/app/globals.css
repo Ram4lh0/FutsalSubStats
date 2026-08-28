@@ -17,7 +17,7 @@
   --radius: 14px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --touch: 52px;
-  --nav-bottom-altura: 54px;
+  --nav-bottom-altura: 46px;
 
   /* As margens dos cantos que o sistema ocupa: o entalhe em cima, a barra de
    * navegação em baixo, os cantos redondos ao lado.
@@ -253,24 +253,24 @@ ul { padding: 0; list-style: none; }
   backdrop-filter: blur(16px);
 }
 .mainnav--bottom .mainnav__item {
-  min-height: 54px;
+  min-height: 46px;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   justify-content: flex-end;
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   padding-bottom: 0;
-  transform: translateY(2px);
+  transform: translateY(3px);
 }
 .mainnav--bottom .mainnav__item svg {
-  width: 21px;
-  height: 21px;
+  width: 19px;
+  height: 19px;
 }
 .mainnav--bottom .mainnav__item span {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  min-height: 2.1em;
-  line-height: 1.05;
+  min-height: 2em;
+  line-height: 1;
   text-align: center;
 }
 .mainnav--side {
