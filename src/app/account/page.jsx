@@ -31,9 +31,9 @@ import { syncLabel } from '@/lib/format.js';
 import { versoes } from '@/lib/atualizacoes.js';
 import { entitlement as loadEntitlement } from '@/lib/entitlements.js';
 import {
-  STORE_PRODUCTS,
   nativeStoreAvailable,
   planPrice,
+  productForPlan,
   purchasePlan,
   restorePurchases,
   storeProducts,
@@ -255,7 +255,6 @@ function Definicoes() {
 
       <section className="card tutorial-settings">
         <div>
-          <p className="tutorial-settings__aviso">{t('tutorial.avisoInterfaceAntiga')}</p>
           <h2 className="section section--tight">{t('tutorial.titulo')}</h2>
           <p className="muted">{t('tutorial.definicoesTexto')}</p>
         </div>
@@ -285,8 +284,7 @@ function Definicoes() {
           <>
             <div className="license-grid">
               {planosParaMostrar.map((plano) => {
-                const productId = STORE_PRODUCTS[plano];
-                const product = licencas.products.find((p) => p.id === productId);
+                const product = productForPlan(plano, licencas.products);
                 const isClub = plano === 'clube';
                 return (
                   <article key={plano} className={`license-option ${isClub ? 'license-option--club' : ''}`}>
@@ -304,7 +302,7 @@ function Definicoes() {
                     {isClub ? <p className="muted small">{t('licencas.maisCinco')}</p> : null}
                     <button
                       className="btn btn--primary"
-                      disabled={!nativeStoreAvailable() || !product || Boolean(aComprar)}
+                      disabled={!nativeStoreAvailable() || Boolean(aComprar)}
                       onClick={() => comprarLicenca(plano)}
                     >
                       {aComprar === plano ? t('licencas.aComprar') : t('licencas.comprar')}

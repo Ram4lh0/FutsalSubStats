@@ -931,16 +931,15 @@ ul { padding: 0; list-style: none; }
   position: fixed;
   right: max(16px, var(--seguro-dir));
   bottom: max(16px, var(--seguro-baixo));
-  width: min(320px, calc(100vw - 24px));
-  max-height: calc(100dvh - 24px);
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100dvh - max(24px, var(--seguro-cima)) - max(24px, var(--seguro-baixo)));
   overflow: auto;
   pointer-events: auto;
-  border: 1px solid rgba(34, 197, 94, 0.44);
+  border: 1px solid rgba(56, 189, 248, 0.48);
   border-radius: 12px;
-  background:
-    linear-gradient(145deg, rgba(6, 52, 35, 0.96), rgba(11, 18, 32, 0.98));
+  background: rgba(11, 18, 32, 0.98);
   box-shadow: 0 16px 42px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(148, 163, 184, 0.12) inset;
-  padding: 10px;
+  padding: 12px;
 }
 .guided-tour__top {
   display: flex;
@@ -963,15 +962,41 @@ ul { padding: 0; list-style: none; }
   text-transform: uppercase;
 }
 .guided-tour h2 {
-  margin: 0 0 5px;
-  font-size: 0.92rem;
+  margin: 0 0 6px;
+  font-size: 1rem;
   line-height: 1.15;
 }
 .guided-tour p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.32;
+  font-size: 0.82rem;
+  line-height: 1.38;
+}
+.guided-tour__note {
+  display: grid;
+  gap: 3px;
+  margin-top: 9px;
+  padding: 9px;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.08);
+}
+.guided-tour__note span {
+  color: #bae6fd;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.guided-tour__note p {
+  color: #dff6ff;
+}
+.guided-tour__note--see {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(34, 197, 94, 0.08);
+}
+.guided-tour__note--see span {
+  color: #bbf7d0;
 }
 .guided-tour__hint {
   margin-top: 7px !important;
@@ -998,7 +1023,7 @@ ul { padding: 0; list-style: none; }
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 9px;
+  margin-top: 11px;
 }
 .guided-tour .btn {
   min-height: 30px;
@@ -1748,6 +1773,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   min-height: 100%;
   gap: 8px;
   padding: 8px 12px 10px;
+  padding-top: max(12px, calc(var(--seguro-cima) + 8px));
   padding-left: max(12px, var(--seguro-esq));
   padding-right: max(12px, var(--seguro-dir));
   padding-bottom: max(10px, var(--seguro-baixo));
@@ -2329,7 +2355,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 @media (max-height: 600px) {
   .btn--big { min-height: 46px; font-size: 0.95rem; }
   .btn { min-height: 44px; }
-  .live { gap: 6px; padding-top: 6px; }
+  .live { gap: 6px; padding-top: max(10px, calc(var(--seguro-cima) + 6px)); }
   .live__head { padding: 4px 10px; }
   .clockbox__hint, .clockbox__period { font-size: 0.66rem; }
   .bench__head { margin-bottom: 2px; }
@@ -2429,6 +2455,10 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
     gap: 0.35rem;
     margin: 0.55rem 0;
     font-size: 0.86rem;
+  }
+
+  .app.is-live .live {
+    padding-top: max(44px, calc(var(--seguro-cima) + 8px));
   }
 
   /* No telemóvel os suplentes passam a embrulhar em linhas, em vez de se

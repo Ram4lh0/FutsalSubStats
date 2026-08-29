@@ -4,8 +4,11 @@
 
 Criar uma subscricao anual com 14 dias gratuitos em cada loja, usando exatamente:
 
-- `trainer_annual`
-- `club_annual`
+- Google Play: `licenca_treinador_anual` e `licenca_clube_anual`
+- App Store: `Treinador` e `Clube`
+
+O backend ainda aceita `trainer_annual` e `club_annual` como IDs antigos, mas
+as lojas atuais estão configuradas com os IDs acima.
 
 ## Secrets das Edge Functions
 
@@ -29,4 +32,3 @@ Configurar App Store Server Notifications V2 para:
 
 Configurar Google Play RTDN / Pub/Sub push para:
 `https://<project-ref>.supabase.co/functions/v1/google-play-notifications`.
-
