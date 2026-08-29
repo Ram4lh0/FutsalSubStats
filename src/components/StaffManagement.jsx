@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { clubs, profile } from '@/lib/data/repository.js';
+import { localClubLicenseActive } from '@/lib/license.js';
 import {
   adicionarTreinadorAoClube,
   listarEquipaTecnica,
@@ -33,7 +34,7 @@ export default function StaffManagement() {
     }
 
     const perfil = await profile.get();
-    if (perfil?.licenca !== 'clube') {
+    if (!localClubLicenseActive(perfil)) {
       setEquipaTecnica({ pronto: true, clube: null, membros: [], erro: null });
       return;
     }

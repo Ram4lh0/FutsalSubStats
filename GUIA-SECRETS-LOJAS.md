@@ -26,7 +26,7 @@ U+P908EY
 "@
 npx supabase secrets set APP_STORE_PRIVATE_KEY="$appleKey"
 
-GOOGLE_PLAY_PACKAGE_NAME=com.FutsalSubStats.app
+GOOGLE_PLAY_PACKAGE_NAME=com.futsalsubstats.app
 npx supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON="..."
 npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY="..."
 ```
@@ -110,7 +110,7 @@ Importante:
 Valor:
 
 ```text
-com.FutsalSubStats.app
+com.futsalsubstats.app
 ```
 
 Onde confirmar:
@@ -118,7 +118,7 @@ Onde confirmar:
 1. Abre Google Play Console.
 2. Entra na app Futsal SubStats.
 3. No painel da app, confirma o Nome do pacote.
-4. Deve aparecer `com.FutsalSubStats.app`.
+4. Deve aparecer `com.futsalsubstats.app`.
 
 Tem de bater certo com o `applicationId` do Android.
 
@@ -214,4 +214,3 @@ Estas URLs devem ser usadas nas lojas quando pedirem endpoint de notificacoes:
 https://bkfkpfhcysuyiotwkaty.supabase.co/functions/v1/app-store-notifications
 https://bkfkpfhcysuyiotwkaty.supabase.co/functions/v1/google-play-notifications
 ```
-

@@ -1,9 +1,10 @@
 import {
-  PACKAGE_ID, PRODUCTS, acknowledgeGoogle, adminClient, fetchAppleTransaction,
-  fetchGoogleSubscription, googleStatus, json, saveSubscription, sha256,
+  APPLE_BUNDLE_ID, PRODUCTS, acknowledgeGoogle, adminClient, fetchAppleTransaction,
+  fetchGoogleSubscription, googleStatus, json, preflight, saveSubscription, sha256,
 } from '../_shared/store.ts';
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return preflight();
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
   try {
     const authorization = req.headers.get('authorization') || '';
@@ -14,7 +15,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     if (body.platform === 'ios') {
       const transaction = await fetchAppleTransaction(String(body.transactionId || ''));
-      if (transaction.bundleId !== PACKAGE_ID || !PRODUCTS[transaction.productId]) throw new Error('Apple product does not belong to this app');
+      if (transaction.bundleId !== APPLE_BUNDLE_ID || !PRODUCTS[transaction.productId]) throw new Error('Apple product does not belong to this app');
       if (transaction.appAccountToken?.toLowerCase() !== user.id.toLowerCase()) throw new Error('Apple purchase belongs to another account');
       const expiresAt = transaction.expiresDate ? new Date(transaction.expiresDate).toISOString() : null;
       const active = !transaction.revocationDate && (!expiresAt || new Date(expiresAt) > new Date());
@@ -51,7 +52,9 @@ Deno.serve(async (req) => {
     return json({ error: 'Unsupported platform' }, 400);
   } catch (error) {
     console.error(error);
-    return json({ error: error instanceof Error ? error.message : 'Purchase validation failed' }, 400);
+    return json({
+      valid: false,
+      error: error instanceof Error ? error.message : 'Purchase validation failed',
+    });
   }
 });
-

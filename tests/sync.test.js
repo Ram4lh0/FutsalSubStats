@@ -930,13 +930,32 @@ test('com licença de clube, criam-se os escalões todos', async () => {
   await limpar();
   const clube = await clubs.create({ name: 'Com licença' });
   const perfil = (await db.all(db.STORES.profile))[0];
-  await db.put(db.STORES.profile, { ...perfil, licenca: 'clube' });
+  await db.put(db.STORES.profile, { ...perfil, licenca: 'clube', licenseStatus: 'active' });
 
   await teams.create(clube.id, { name: 'Séniores' });
   await teams.create(clube.id, { name: 'Sub-19' });
   await teams.create(clube.id, { name: 'Sub-15' });
 
   assert.equal((await teams.listByClub(clube.id)).length, 3);
+});
+
+test('licença de clube expirada não deixa criar mais escalões', async () => {
+  await limpar();
+  const clube = await clubs.create({ name: 'Expirada' });
+  const perfil = (await db.all(db.STORES.profile))[0];
+  await db.put(db.STORES.profile, {
+    ...perfil,
+    licenca: 'clube',
+    licenseStatus: 'expired',
+    licenseExpiresAt: Date.now() - 1000,
+  });
+
+  await teams.create(clube.id, { name: 'Séniores' });
+  await assert.rejects(
+    () => teams.create(clube.id, { name: 'Sub-19' }),
+    (e) => e.chave === 'escalao.limiteDaLicenca',
+    'licença de clube expirada deixou criar um segundo escalão'
+  );
 });
 
 test('o nível de acesso desce em cada descarga', async () => {

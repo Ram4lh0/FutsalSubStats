@@ -23,7 +23,6 @@ import { rotas, comOrigem } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import useSouDono from '@/lib/useSouDono.js';
 import { useT } from '@/lib/i18n/index.js';
-import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 
 export default function ClubPage() {
   return (
@@ -219,10 +218,7 @@ function Escaloes() {
                 <button
                   className="btn btn--primary"
                   data-tour="open-team"
-                  onClick={() => {
-                    setGuidedTutorialStepById('players');
-                    router.push(rotas.plantel(clubId, team.id));
-                  }}
+                  onClick={() => router.push(rotas.plantel(clubId, team.id))}
                 >
                   {t('clube.abrirEscalao')}
                 </button>

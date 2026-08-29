@@ -1,13 +1,11 @@
 import { supabase } from './supabase/client.js';
 import { EVENT } from '../domain/constants.js';
 import { profile, raw as db } from './data/repository.js';
+import { localLicenseActive } from './license.js';
+
+export { localClubLicenseActive, localLicenseActive } from './license.js';
 
 export const FREE_GAME_LIMIT = 4;
-
-export function localLicenseActive(perfil, at = Date.now()) {
-  if (!perfil || !['trial', 'active', 'grace'].includes(perfil.licenseStatus)) return false;
-  return perfil.licenseExpiresAt == null || perfil.licenseExpiresAt > at;
-}
 
 function isDemoMatch(match) {
   return String(match?.id || '').startsWith('00000000-dem0-');

@@ -26,6 +26,7 @@ import {
   timingConfig,
   maxSquadOf,
 } from '../../domain/constants.js';
+import { localClubLicenseActive } from '../license.js';
 import { t } from '../i18n/index.js';
 
 const now = () => Date.now();
@@ -207,8 +208,8 @@ export const teams = {
     }
 
     if (!data.id) {
-      const licenca = (await profile.get())?.licenca || 'treinador';
-      if (licenca !== 'clube' && (await teams.listByClub(clubId)).length) {
+      const perfil = await profile.get();
+      if (!localClubLicenseActive(perfil) && (await teams.listByClub(clubId)).length) {
         const erro = new Error('A licença de treinador permite um escalão.');
         erro.chave = 'escalao.limiteDaLicenca';
         throw erro;
