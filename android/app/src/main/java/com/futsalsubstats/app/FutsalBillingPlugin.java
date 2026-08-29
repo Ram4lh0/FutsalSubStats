@@ -39,6 +39,7 @@ public class FutsalBillingPlugin extends Plugin implements PurchasesUpdatedListe
     }
 
     private interface ReadyAction { void run(); }
+    private interface ProductAction { void run(ProductDetails detail); }
 
     private void ready(PluginCall call, ReadyAction action) {
         if (client.isReady()) { action.run(); return; }
@@ -98,11 +99,14 @@ public class FutsalBillingPlugin extends Plugin implements PurchasesUpdatedListe
     public void purchase(PluginCall call) {
         String productId = call.getString("productId", "");
         String accountId = call.getString("accountId", "");
-        ProductDetails detail = products.get(productId);
-        if (detail == null) {
-            call.reject("Product details must be loaded before purchase");
+        if (productId.isEmpty() || accountId.isEmpty()) {
+            call.reject("Invalid product or account");
             return;
         }
+        ready(call, () -> loadProduct(call, productId, detail -> launchPurchase(call, accountId, detail)));
+    }
+
+    private void launchPurchase(PluginCall call, String accountId, ProductDetails detail) {
         ProductDetails.SubscriptionOfferDetails offer = firstOffer(detail);
         if (offer == null) { call.reject("No eligible subscription offer"); return; }
 
@@ -118,6 +122,42 @@ public class FutsalBillingPlugin extends Plugin implements PurchasesUpdatedListe
             pendingPurchase = null;
             call.reject(result.getDebugMessage(), String.valueOf(result.getResponseCode()));
         }
+    }
+
+    private void loadProduct(PluginCall call, String productId, ProductAction action) {
+        ProductDetails cached = products.get(productId);
+        if (cached != null) {
+            action.run(cached);
+            return;
+        }
+        List<QueryProductDetailsParams.Product> requested = List.of(
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(productId)
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build()
+        );
+        client.queryProductDetailsAsync(
+            QueryProductDetailsParams.newBuilder().setProductList(requested).build(),
+            (result, response) -> {
+                if (result.getResponseCode() != BillingClient.BillingResponseCode.OK) {
+                    call.reject(result.getDebugMessage(), String.valueOf(result.getResponseCode()));
+                    return;
+                }
+                ProductDetails detail = null;
+                for (ProductDetails item : response.getProductDetailsList()) {
+                    if (productId.equals(item.getProductId())) {
+                        detail = item;
+                        break;
+                    }
+                }
+                if (detail == null) {
+                    call.reject("Product not found");
+                    return;
+                }
+                products.put(detail.getProductId(), detail);
+                action.run(detail);
+            }
+        );
     }
 
     @PluginMethod

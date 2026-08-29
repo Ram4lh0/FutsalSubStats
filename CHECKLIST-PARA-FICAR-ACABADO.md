@@ -115,10 +115,10 @@ https://bkfkpfhcysuyiotwkaty.supabase.co/auth/v1/callback
 
 ## 3. Produtos nas lojas
 
-Criar os produtos/subscricoes anuais nas duas lojas com estes IDs exatos:
+Criar os produtos/subscricoes anuais nas lojas com estes IDs exatos:
 
-- `trainer_annual`
-- `club_annual`
+- Google Play: `licenca_treinador_anual` e `licenca_clube_anual`
+- App Store: `Treinador` e `Clube`
 
 ### Google Play Console
 
@@ -225,7 +225,7 @@ Antes de enviar para a Play Store, confirmar:
 - `versionName` esta correto;
 - `key.properties` existe localmente;
 - keystore de release esta certo;
-- produtos `trainer_annual` e `club_annual` existem na Play Console.
+- produtos `licenca_treinador_anual` e `licenca_clube_anual` existem na Play Console.
 
 ## 7. iOS
 

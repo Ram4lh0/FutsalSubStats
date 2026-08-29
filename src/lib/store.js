@@ -1,14 +1,34 @@
 import { supabase } from './supabase/client.js';
 
 export const STORE_PRODUCTS = {
-  treinador: 'trainer_annual',
-  clube: 'club_annual',
+  treinador: 'licenca_treinador_anual',
+  clube: 'licenca_clube_anual',
+};
+
+export const STORE_PRODUCT_ALIASES = {
+  treinador: ['licenca_treinador_anual', 'Treinador', 'trainer_annual'],
+  clube: ['licenca_clube_anual', 'Clube', 'club_annual'],
 };
 
 export const LICENSE_PRICES = {
   treinador: { old: '45€', current: '35€/ano' },
   clube: { old: '145€', current: '119,99€/ano' },
 };
+
+const PRODUCT_LOAD_ATTEMPTS = 3;
+
+function uniqueProductIds() {
+  return [...new Set(Object.values(STORE_PRODUCT_ALIASES).flat())];
+}
+
+export function productIdsForPlan(plan) {
+  return STORE_PRODUCT_ALIASES[plan] || (STORE_PRODUCTS[plan] ? [STORE_PRODUCTS[plan]] : []);
+}
+
+export function productForPlan(plan, products = []) {
+  const ids = productIdsForPlan(plan);
+  return ids.map((id) => products.find((product) => product.id === id)).find(Boolean) || null;
+}
 
 export function planPrice(plan, product) {
   const fallback = LICENSE_PRICES[plan];
@@ -29,10 +49,40 @@ export function nativeStoreAvailable() {
   return Boolean(cap?.isNativePlatform?.() || (cap?.getPlatform?.() && cap.getPlatform() !== 'web'));
 }
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function loadProducts(ids) {
+  const { products = [] } = await billingPlugin().products({ ids });
+  return products;
+}
+
 export async function storeProducts() {
   if (!nativeStoreAvailable()) return [];
-  const { products = [] } = await billingPlugin().products({ ids: Object.values(STORE_PRODUCTS) });
-  return products;
+  try {
+    return await loadProducts(uniqueProductIds());
+  } catch {
+    return [];
+  }
+}
+
+async function prepararProduto(plan) {
+  if (!nativeStoreAvailable()) return;
+  const ids = productIdsForPlan(plan);
+  let lastError = null;
+  for (let tentativa = 1; tentativa <= PRODUCT_LOAD_ATTEMPTS; tentativa += 1) {
+    try {
+      const products = await loadProducts(ids);
+      const product = productForPlan(plan, products);
+      if (product) return product;
+    } catch (error) {
+      lastError = error;
+    }
+    if (tentativa < PRODUCT_LOAD_ATTEMPTS) await wait(300 * tentativa);
+  }
+  const detalhe = lastError?.message ? ` (${lastError.message})` : '';
+  throw new Error(
+    `A loja não devolveu os produtos ${ids.join(', ')}. Confirma que a subscrição está ativa na loja e que esta conta tem acesso ao teste.${detalhe}`
+  );
 }
 
 async function validatePurchase(purchase) {
@@ -50,9 +100,17 @@ async function validatePurchase(purchase) {
 }
 
 export async function purchasePlan(plan, userId) {
-  const productId = STORE_PRODUCTS[plan];
-  if (!productId || !userId) throw new Error('Plano ou conta inválidos.');
-  const purchase = await billingPlugin().purchase({ productId, accountId: userId });
+  if (!STORE_PRODUCTS[plan] || !userId) throw new Error('Plano ou conta inválidos.');
+  const product = await prepararProduto(plan);
+  const productId = product.id;
+  let purchase;
+  try {
+    purchase = await billingPlugin().purchase({ productId, accountId: userId });
+  } catch (error) {
+    if (!/Product details must be loaded/i.test(error?.message || '')) throw error;
+    await prepararProduto(plan);
+    purchase = await billingPlugin().purchase({ productId, accountId: userId });
+  }
   return validatePurchase(purchase);
 }
 

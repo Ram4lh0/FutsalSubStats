@@ -20,16 +20,29 @@ function limitar(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
+function insetSeguro(nome) {
+  if (typeof window === 'undefined') return 0;
+  const raw = window.getComputedStyle(document.documentElement).getPropertyValue(nome);
+  const valor = Number.parseFloat(raw);
+  return Number.isFinite(valor) ? valor : 0;
+}
+
 function posicaoDoPainel(box) {
   if (!box || typeof window === 'undefined') return {};
   const margem = 12;
-  const largura = Math.min(320, window.innerWidth - margem * 2);
-  const alturaEstimada = window.innerWidth < 700 ? 290 : 220;
+  const margemTopo = Math.max(margem, insetSeguro('--seguro-cima') + 8);
+  const margemFundo = Math.max(margem, insetSeguro('--seguro-baixo') + 8);
+  const largura = Math.min(360, window.innerWidth - margem * 2);
+  const alturaEstimada = window.innerWidth < 700 ? 340 : 280;
   const espacoAbaixo = window.innerHeight - box.bottom;
   const espacoAcima = box.top;
   const preferirBaixo = espacoAbaixo >= alturaEstimada || espacoAbaixo >= espacoAcima;
   const topPreferido = preferirBaixo ? box.bottom + 14 : box.top - alturaEstimada - 14;
-  const top = limitar(topPreferido, margem, Math.max(margem, window.innerHeight - alturaEstimada - margem));
+  const top = limitar(
+    topPreferido,
+    margemTopo,
+    Math.max(margemTopo, window.innerHeight - alturaEstimada - margemFundo)
+  );
   return {
     width: largura,
     right: 'auto',
@@ -72,6 +85,11 @@ function indiceUtilAPartir(index, ctx, direcao = 1) {
   return null;
 }
 
+function passoVisivel(step) {
+  if (!step?.target || typeof document === 'undefined') return false;
+  return Boolean(document.querySelector(step.target));
+}
+
 async function primeiroContexto() {
   const listaClubes = await clubs.list();
   const club = listaClubes[0] || null;
@@ -98,7 +116,7 @@ function destinoDoPasso(step, ctx) {
   const teamId = ctx.team?.id;
   const match = step.id === 'summary'
     ? (ctx.finished || ctx.live || ctx.ready || ctx.match)
-    : step.id === 'live' || step.id === 'halftime'
+      : step.id === 'live' || step.id === 'livePlayers' || step.id === 'halftime'
       ? (ctx.live || ctx.ready || ctx.match)
       : (ctx.ready || ctx.match);
 
@@ -110,7 +128,7 @@ function destinoDoPasso(step, ctx) {
   if (step.id === 'players') return rotas.plantel(clubId, teamId);
   if (step.id === 'match') return rotas.jogos(clubId, teamId);
   if (step.id === 'setup') return match ? rotas.jogoPreparar(match.id) : rotas.jogoNovo(clubId, teamId);
-  if (step.id === 'live' || step.id === 'halftime') return match ? rotas.jogoAoVivo(match.id) : rotas.jogoNovo(clubId, teamId);
+  if (step.id === 'live' || step.id === 'livePlayers' || step.id === 'halftime') return match ? rotas.jogoAoVivo(match.id) : rotas.jogoNovo(clubId, teamId);
   if (step.id === 'liveSecond') return match ? rotas.jogoAoVivo(match.id) : rotas.jogoNovo(clubId, teamId);
   if (step.id === 'summary') return match ? rotas.jogoResumo(match.id) : rotas.jogos(clubId, teamId);
   if (step.id === 'summaryHome') return match ? rotas.jogoResumo(match.id) : rotas.jogos(clubId, teamId);
@@ -221,6 +239,16 @@ export default function GuidedTutorial() {
     };
   }, [ctx, state.active, step, pathname]);
 
+  useEffect(() => {
+    if (!state.active || !ctx) return;
+    const visiveis = guidedTutorialSteps
+      .map((s, index) => ({ s, index }))
+      .filter(({ s }) => !passoSaltado(s, ctx) && passoVisivel(s));
+    if (!visiveis.length || visiveis.some(({ index }) => index === stepIndex)) return;
+    const seguinteVisivel = visiveis.find(({ index }) => index > stepIndex) || visiveis[visiveis.length - 1];
+    if (seguinteVisivel) setGuidedTutorialStep(seguinteVisivel.index);
+  }, [ctx, pathname, state.active, stepIndex]);
+
   if (!state.active || dialogOpen || passoSaltado(step, ctx)) return null;
 
   const uteis = passosUteis(ctx);
@@ -228,7 +256,7 @@ export default function GuidedTutorial() {
   const ultimo = posicaoUtil === uteis.length - 1;
   const faltaBase = !ctx?.club && step.id !== 'club';
   const faltaEscalao = ctx?.club && !ctx?.team && !['club', 'team'].includes(step.id);
-  const faltaJogo = ctx?.team && !ctx?.match && ['setup', 'live', 'halftime', 'summary'].includes(step.id);
+  const faltaJogo = ctx?.team && !ctx?.match && ['setup', 'live', 'livePlayers', 'halftime', 'summary'].includes(step.id);
 
   function navegarParaPasso(index, direcao = 1) {
     const nextIndex = Math.max(0, Math.min(guidedTutorialSteps.length - 1, index));
@@ -286,6 +314,18 @@ export default function GuidedTutorial() {
         </div>
         <h2>{t(step.titleKey)}</h2>
         <p>{t(step.textKey)}</p>
+        {step.actionKey ? (
+          <div className="guided-tour__note">
+            <span>{t('tutorial.guiado.fazer')}</span>
+            <p>{t(step.actionKey)}</p>
+          </div>
+        ) : null}
+        {step.seeKey ? (
+          <div className="guided-tour__note guided-tour__note--see">
+            <span>{t('tutorial.guiado.verificar')}</span>
+            <p>{t(step.seeKey)}</p>
+          </div>
+        ) : null}
         {step.autoHideMs && autoHideRemaining != null ? (
           <p className="guided-tour__countdown">
             {t('tutorial.guiado.desapareceEm', { s: autoHideRemaining })}

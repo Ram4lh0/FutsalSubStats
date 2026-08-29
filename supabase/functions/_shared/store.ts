@@ -2,6 +2,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export const PACKAGE_ID = 'com.futsalsubstats.app';
 export const PRODUCTS: Record<string, 'treinador' | 'clube'> = {
+  licenca_treinador_anual: 'treinador',
+  licenca_clube_anual: 'clube',
+  Treinador: 'treinador',
+  Clube: 'clube',
   trainer_annual: 'treinador',
   club_annual: 'clube',
 };
