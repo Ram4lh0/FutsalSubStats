@@ -27,13 +27,22 @@ function insetSeguro(nome) {
   return Number.isFinite(valor) ? valor : 0;
 }
 
+// O painel vive sempre encostado à direita (é o `right` fixo do CSS que
+// nunca é tocado aqui): o que este cálculo escolhe é só a posição vertical,
+// para tentar não tapar o próprio elemento em destaque. Antes também
+// centrava o painel por baixo do alvo, o que era o motivo de tantas vezes
+// ficar mesmo em cima dos botões de confirmar/preencher — daí a ideia de
+// deixar de mexer no eixo horizontal.
 function posicaoDoPainel(box) {
-  if (!box || typeof window === 'undefined') return {};
+  if (typeof window === 'undefined') return {};
   const margem = 12;
   const margemTopo = Math.max(margem, insetSeguro('--seguro-cima') + 8);
   const margemFundo = Math.max(margem, insetSeguro('--seguro-baixo') + 8);
   const largura = Math.min(360, window.innerWidth - margem * 2);
   const alturaEstimada = window.innerWidth < 700 ? 340 : 280;
+
+  if (!box) return { width: largura };
+
   const espacoAbaixo = window.innerHeight - box.bottom;
   const espacoAcima = box.top;
   const preferirBaixo = espacoAbaixo >= alturaEstimada || espacoAbaixo >= espacoAcima;
@@ -45,11 +54,9 @@ function posicaoDoPainel(box) {
   );
   return {
     width: largura,
-    right: 'auto',
-    left: limitar(box.left + box.width / 2 - largura / 2, margem, window.innerWidth - largura - margem),
     top,
     bottom: 'auto',
-    maxHeight: Math.max(150, window.innerHeight - top - margem),
+    maxHeight: Math.max(150, window.innerHeight - top - margemFundo),
   };
 }
 
@@ -116,7 +123,7 @@ function destinoDoPasso(step, ctx) {
   const teamId = ctx.team?.id;
   const match = step.id === 'summary'
     ? (ctx.finished || ctx.live || ctx.ready || ctx.match)
-      : step.id === 'live' || step.id === 'livePlayers' || step.id === 'halftime'
+      : step.id === 'live' || step.id === 'halftime'
       ? (ctx.live || ctx.ready || ctx.match)
       : (ctx.ready || ctx.match);
 
@@ -128,11 +135,10 @@ function destinoDoPasso(step, ctx) {
   if (step.id === 'players') return rotas.plantel(clubId, teamId);
   if (step.id === 'match') return rotas.jogos(clubId, teamId);
   if (step.id === 'setup') return match ? rotas.jogoPreparar(match.id) : rotas.jogoNovo(clubId, teamId);
-  if (step.id === 'live' || step.id === 'livePlayers' || step.id === 'halftime') return match ? rotas.jogoAoVivo(match.id) : rotas.jogoNovo(clubId, teamId);
+  if (step.id === 'live' || step.id === 'halftime') return match ? rotas.jogoAoVivo(match.id) : rotas.jogoNovo(clubId, teamId);
   if (step.id === 'liveSecond') return match ? rotas.jogoAoVivo(match.id) : rotas.jogoNovo(clubId, teamId);
   if (step.id === 'summary') return match ? rotas.jogoResumo(match.id) : rotas.jogos(clubId, teamId);
   if (step.id === 'summaryHome') return match ? rotas.jogoResumo(match.id) : rotas.jogos(clubId, teamId);
-  if (step.id === 'openTeam') return rotas.clube(clubId);
   if (step.id === 'stats') return rotas.escalao(clubId, teamId);
   if (step.id === 'dashboard') return rotas.painelEscalao(clubId, teamId);
   return rotas.jogo();
@@ -240,14 +246,19 @@ export default function GuidedTutorial() {
   }, [ctx, state.active, step, pathname]);
 
   useEffect(() => {
-    if (!state.active || !ctx) return;
+    // Um passo `manual` (o alvo dele vive na navegação principal, sempre no
+    // ecrã) nunca entra nesta conta: nem como candidato para onde saltar —
+    // estaria sempre "visível", mesmo no passo 1 — nem como algo a corrigir
+    // enquanto é o passo atual. A entrada e a saída desse passo ficam a
+    // cargo de quem chama `setGuidedTutorialStepById` explicitamente.
+    if (!state.active || !ctx || step?.manual) return;
     const visiveis = guidedTutorialSteps
       .map((s, index) => ({ s, index }))
-      .filter(({ s }) => !passoSaltado(s, ctx) && passoVisivel(s));
+      .filter(({ s }) => !passoSaltado(s, ctx) && !s.manual && passoVisivel(s));
     if (!visiveis.length || visiveis.some(({ index }) => index === stepIndex)) return;
     const seguinteVisivel = visiveis.find(({ index }) => index > stepIndex) || visiveis[visiveis.length - 1];
     if (seguinteVisivel) setGuidedTutorialStep(seguinteVisivel.index);
-  }, [ctx, pathname, state.active, stepIndex]);
+  }, [ctx, pathname, state.active, step, stepIndex]);
 
   if (!state.active || dialogOpen || passoSaltado(step, ctx)) return null;
 
@@ -256,7 +267,7 @@ export default function GuidedTutorial() {
   const ultimo = posicaoUtil === uteis.length - 1;
   const faltaBase = !ctx?.club && step.id !== 'club';
   const faltaEscalao = ctx?.club && !ctx?.team && !['club', 'team'].includes(step.id);
-  const faltaJogo = ctx?.team && !ctx?.match && ['setup', 'live', 'livePlayers', 'halftime', 'summary'].includes(step.id);
+  const faltaJogo = ctx?.team && !ctx?.match && ['setup', 'live', 'halftime'].includes(step.id);
 
   function navegarParaPasso(index, direcao = 1) {
     const nextIndex = Math.max(0, Math.min(guidedTutorialSteps.length - 1, index));
@@ -277,12 +288,21 @@ export default function GuidedTutorial() {
     navegarParaPasso(stepIndex + 1, 1);
   }
 
+  // Esconder é agora uma escolha que fica — nada de reaparecer sozinho ao
+  // fim de 5 segundos. O que traz o card de volta é a saliência (o botão em
+  // `mostrarCard`), sempre visível encostada à borda.
   function esconderCard() {
     window.clearTimeout(hideTimer.current);
     window.clearInterval(countdownTimer.current);
     setAutoHideRemaining(null);
     setCardHidden(true);
-    hideTimer.current = window.setTimeout(() => setCardHidden(false), 5000);
+  }
+
+  function mostrarCard() {
+    window.clearTimeout(hideTimer.current);
+    window.clearInterval(countdownTimer.current);
+    setAutoHideRemaining(null);
+    setCardHidden(false);
   }
 
   const panelStyle = posicaoDoPainel(targetBox);
@@ -298,55 +318,60 @@ export default function GuidedTutorial() {
   return (
     <aside className="guided-tour" role="dialog" aria-live="polite" aria-label={t('tutorial.titulo')}>
       {spotlightStyle ? <div className="guided-tour__spotlight" style={spotlightStyle} /> : null}
-      {cardHidden ? null : <div className="guided-tour__panel" style={panelStyle}>
-        <div className="guided-tour__top">
-          <span className="guided-tour__progress">
-            {t('tutorial.progresso', { atual: posicaoUtil + 1, total: uteis.length })}
-          </span>
-          <div className="guided-tour__topactions">
-            <button className="btn btn--tiny btn--ghost" type="button" onClick={esconderCard}>
-              {t('tutorial.guiado.esconderCard')}
-            </button>
-            <button className="btn btn--tiny btn--ghost" type="button" onClick={stopGuidedTutorial}>
-              {t('tutorial.ignorar')}
-            </button>
-          </div>
-        </div>
-        <h2>{t(step.titleKey)}</h2>
-        <p>{t(step.textKey)}</p>
-        {step.actionKey ? (
-          <div className="guided-tour__note">
-            <span>{t('tutorial.guiado.fazer')}</span>
-            <p>{t(step.actionKey)}</p>
-          </div>
-        ) : null}
-        {step.seeKey ? (
-          <div className="guided-tour__note guided-tour__note--see">
-            <span>{t('tutorial.guiado.verificar')}</span>
-            <p>{t(step.seeKey)}</p>
-          </div>
-        ) : null}
-        {step.autoHideMs && autoHideRemaining != null ? (
-          <p className="guided-tour__countdown">
-            {t('tutorial.guiado.desapareceEm', { s: autoHideRemaining })}
-          </p>
-        ) : null}
-        {targetBox ? <p className="guided-tour__hint guided-tour__hint--action">{t('tutorial.guiado.carregaNoDestaque')}</p> : null}
-        {faltaBase ? <p className="guided-tour__hint">{t('tutorial.guiado.precisaClube')}</p> : null}
-        {faltaEscalao ? <p className="guided-tour__hint">{t('tutorial.guiado.precisaEscalao')}</p> : null}
-        {faltaJogo ? <p className="guided-tour__hint">{t('tutorial.guiado.precisaJogo')}</p> : null}
-        <div className="guided-tour__actions">
-          <button className="btn btn--ghost" type="button" disabled={posicaoUtil <= 0} onClick={anterior}>
-            {t('tutorial.anterior')}
-          </button>
-          <button className="btn btn--primary" type="button" onClick={seguinte}>
-            {ultimo ? t('tutorial.concluir') : t('tutorial.seguinte')}
-          </button>
-        </div>
-        <button className="guided-tour__restart" type="button" onClick={() => startGuidedTutorial(router)}>
-          {t('tutorial.guiado.recomecar')}
+      {cardHidden ? (
+        <button
+          type="button"
+          className="guided-tour__tab"
+          onClick={mostrarCard}
+          aria-label={t('tutorial.guiado.mostrarCard')}
+          title={t('tutorial.guiado.mostrarCard')}
+        >
+          <span aria-hidden="true">‹</span>
         </button>
-      </div>}
+      ) : (
+        <div className="guided-tour__panel" style={panelStyle}>
+          <div className="guided-tour__top">
+            <span className="guided-tour__progress">
+              {t('tutorial.progresso', { atual: posicaoUtil + 1, total: uteis.length })}
+            </span>
+            <div className="guided-tour__topactions">
+              <button className="btn btn--tiny btn--ghost" type="button" onClick={esconderCard}>
+                {t('tutorial.guiado.esconderCard')}
+              </button>
+              <button className="btn btn--tiny btn--ghost" type="button" onClick={stopGuidedTutorial}>
+                {t('tutorial.ignorar')}
+              </button>
+            </div>
+          </div>
+          <h2>{t(step.titleKey)}</h2>
+          {step.textKey ? <p>{t(step.textKey)}</p> : null}
+          {step.actionKey ? (
+            <div className="guided-tour__note">
+              <span>{t('tutorial.guiado.fazer')}</span>
+              <p>{t(step.actionKey)}</p>
+            </div>
+          ) : null}
+          {step.autoHideMs && autoHideRemaining != null ? (
+            <p className="guided-tour__countdown">
+              {t('tutorial.guiado.desapareceEm', { s: autoHideRemaining })}
+            </p>
+          ) : null}
+          {faltaBase ? <p className="guided-tour__hint">{t('tutorial.guiado.precisaClube')}</p> : null}
+          {faltaEscalao ? <p className="guided-tour__hint">{t('tutorial.guiado.precisaEscalao')}</p> : null}
+          {faltaJogo ? <p className="guided-tour__hint">{t('tutorial.guiado.precisaJogo')}</p> : null}
+          <div className="guided-tour__actions">
+            <button className="btn btn--ghost" type="button" disabled={posicaoUtil <= 0} onClick={anterior}>
+              {t('tutorial.anterior')}
+            </button>
+            <button className="btn btn--primary" type="button" onClick={seguinte}>
+              {ultimo ? t('tutorial.concluir') : t('tutorial.seguinte')}
+            </button>
+          </div>
+          <button className="guided-tour__restart" type="button" onClick={() => startGuidedTutorial(router)}>
+            {t('tutorial.guiado.recomecar')}
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

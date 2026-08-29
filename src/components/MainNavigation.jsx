@@ -5,7 +5,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth.jsx';
 import { clubs, teams, loadMatch, findLiveMatch, profile } from '@/lib/data/repository.js';
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
+import { localClubLicenseActive } from '@/lib/license.js';
 import { PARAM, noJogoAoVivo, rotas } from '@/lib/routes.js';
+import { guidedTutorialSteps, readGuidedTutorialState, setGuidedTutorialStepById } from '@/lib/tutorial.js';
 import { useT } from '@/lib/i18n/index.js';
 
 const SELECTED_TEAM_KEY = 'futsal-selected-team-context';
@@ -156,7 +158,7 @@ export default function MainNavigation() {
     const perfil = await profile.get();
     setItems(list);
     setSelectedId(nextId);
-    setLicencaClube(perfil?.licenca === 'clube');
+    setLicencaClube(localClubLicenseActive(perfil));
     setLive(await findLiveMatch());
   }, [routeIds.matchId, routeIds.teamId]);
 
@@ -185,6 +187,18 @@ export default function MainNavigation() {
   ];
 
   function go(nextArea) {
+    // O tutorial guiado aponta para esta aba depois de um jogo terminado
+    // (o resumo já não manda voltar à "casa" — manda entrar aqui, que é
+    // onde ficam as estatísticas e o dashboard). Como a navegação principal
+    // está sempre visível, o avanço do passo tem de ser explícito neste
+    // clique; sem isto o tutorial ficava preso em "vai à Análise" mesmo
+    // depois de a pessoa lá estar.
+    if (nextArea === 'analysis') {
+      const tutorial = readGuidedTutorialState();
+      if (tutorial.active && guidedTutorialSteps[tutorial.step]?.id === 'summaryHome') {
+        setGuidedTutorialStepById('stats');
+      }
+    }
     router.push(targetFor(nextArea, selected));
   }
 
@@ -272,6 +286,7 @@ function NavButtons({ items, active, onGo }) {
       key={item.id}
       className={`mainnav__item ${active === item.id ? 'is-active' : ''}`}
       type="button"
+      data-tour={item.id === 'analysis' ? 'nav-analysis' : undefined}
       aria-current={active === item.id ? 'page' : undefined}
       onClick={() => onGo(item.id)}
     >

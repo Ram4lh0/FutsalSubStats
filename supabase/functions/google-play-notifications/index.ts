@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const { data: known, error } = await sb.from('store_subscriptions')
       .select('user_id').eq('platform', 'android').eq('original_transaction_id', token).maybeSingle();
     if (error) throw error;
-    if (!known?.user_id) throw new Error('Unknown Google purchase token');
+    if (!known?.user_id) return json({ received: true, known: false });
 
     const { purchase } = await fetchGoogleSubscription(token);
     const item = purchase.lineItems?.find((entry) => PRODUCTS[entry.productId]);
@@ -32,4 +32,3 @@ Deno.serve(async (req) => {
     return json({ error: error instanceof Error ? error.message : 'Notification failed' }, 400);
   }
 });
-

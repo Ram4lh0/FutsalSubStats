@@ -19,6 +19,18 @@ supabase secrets set APPLE_PRIVATE_KEY="...conteudo do ficheiro p8..."
 supabase secrets set GOOGLE_SERVICE_ACCOUNT_JSON="...json completo..."
 ```
 
+O codigo tambem aceita estes nomes antigos, mas os nomes usados no guia principal
+e no projeto Supabase sao:
+
+```powershell
+supabase secrets set APP_STORE_BUNDLE_ID=...
+supabase secrets set APP_STORE_ISSUER_ID=...
+supabase secrets set APP_STORE_KEY_ID=...
+supabase secrets set APP_STORE_PRIVATE_KEY="...conteudo do ficheiro p8..."
+supabase secrets set GOOGLE_PLAY_PACKAGE_NAME=com.futsalsubstats.app
+supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON="...json completo..."
+```
+
 ## Deploy
 
 ```powershell

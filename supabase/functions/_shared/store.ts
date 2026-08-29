@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-export const PACKAGE_ID = 'com.futsalsubstats.app';
+export const ANDROID_PACKAGE_ID = Deno.env.get('GOOGLE_PLAY_PACKAGE_NAME') || 'com.futsalsubstats.app';
+export const APPLE_BUNDLE_ID = Deno.env.get('APP_STORE_BUNDLE_ID') || 'com.futsalsubstats.app';
 export const PRODUCTS: Record<string, 'treinador' | 'clube'> = {
   licenca_treinador_anual: 'treinador',
   licenca_clube_anual: 'clube',
@@ -10,10 +11,18 @@ export const PRODUCTS: Record<string, 'treinador' | 'clube'> = {
   club_annual: 'clube',
 };
 
+export const corsHeaders = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type',
+  'access-control-allow-methods': 'POST, OPTIONS',
+};
+
 export const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
-  headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
+  headers: { ...corsHeaders, 'content-type': 'application/json', 'cache-control': 'no-store' },
 });
+
+export const preflight = () => new Response(null, { status: 204, headers: corsHeaders });
 
 export function adminClient() {
   const url = Deno.env.get('SUPABASE_URL');
@@ -54,15 +63,15 @@ async function signedJwt(
 }
 
 async function appleToken() {
-  const issuer = Deno.env.get('APPLE_ISSUER_ID');
-  const keyId = Deno.env.get('APPLE_KEY_ID');
-  const privateKey = Deno.env.get('APPLE_PRIVATE_KEY');
+  const issuer = Deno.env.get('APP_STORE_ISSUER_ID') || Deno.env.get('APPLE_ISSUER_ID');
+  const keyId = Deno.env.get('APP_STORE_KEY_ID') || Deno.env.get('APPLE_KEY_ID');
+  const privateKey = Deno.env.get('APP_STORE_PRIVATE_KEY') || Deno.env.get('APPLE_PRIVATE_KEY');
   if (!issuer || !keyId || !privateKey) throw new Error('Apple server credentials are missing');
   const now = Math.floor(Date.now() / 1000);
   const key = await crypto.subtle.importKey('pkcs8', pemBytes(privateKey), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   return signedJwt(
     { alg: 'ES256', kid: keyId, typ: 'JWT' },
-    { iss: issuer, iat: now, exp: now + 300, aud: 'appstoreconnect-v1', bid: PACKAGE_ID },
+    { iss: issuer, iat: now, exp: now + 300, aud: 'appstoreconnect-v1', bid: APPLE_BUNDLE_ID },
     key,
     { name: 'ECDSA', hash: 'SHA-256' },
   );
@@ -97,9 +106,17 @@ export async function fetchAppleTransaction(transactionId: string) {
 }
 
 async function googleAccessToken() {
-  const raw = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
+  const raw = Deno.env.get('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON') || Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
   if (!raw) throw new Error('Google service account is missing');
-  const account = JSON.parse(raw);
+  let account: { client_email?: string; private_key?: string };
+  try {
+    account = JSON.parse(raw);
+  } catch {
+    throw new Error('Google service account JSON is invalid. Re-save GOOGLE_PLAY_SERVICE_ACCOUNT_JSON with the full downloaded JSON file content.');
+  }
+  if (!account.client_email || !account.private_key) {
+    throw new Error('Google service account JSON is incomplete. It must include client_email and private_key.');
+  }
   const now = Math.floor(Date.now() / 1000);
   const key = await crypto.subtle.importKey(
     'pkcs8', pemBytes(account.private_key), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign'],
@@ -132,7 +149,7 @@ export interface GoogleSubscription {
 export async function fetchGoogleSubscription(purchaseToken: string) {
   const access = await googleAccessToken();
   const response = await fetch(
-    `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_ID}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`,
+    `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${ANDROID_PACKAGE_ID}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`,
     { headers: { authorization: `Bearer ${access}` } },
   );
   if (!response.ok) throw new Error(`Google verification failed (${response.status})`);
@@ -141,7 +158,7 @@ export async function fetchGoogleSubscription(purchaseToken: string) {
 
 export async function acknowledgeGoogle(productId: string, purchaseToken: string, access: string) {
   const response = await fetch(
-    `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_ID}/purchases/subscriptions/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}:acknowledge`,
+    `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${ANDROID_PACKAGE_ID}/purchases/subscriptions/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}:acknowledge`,
     { method: 'POST', headers: { authorization: `Bearer ${access}`, 'content-type': 'application/json' }, body: '{}' },
   );
   if (!response.ok && response.status !== 409) throw new Error(`Google acknowledgement failed (${response.status})`);
