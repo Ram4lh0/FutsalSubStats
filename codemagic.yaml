@@ -132,7 +132,7 @@ workflows:
         provisioning_profiles:
           - futsalsubstats_appstore
       vars:
-        BUNDLE_ID: "com.FutsalSubStats.app"
+        BUNDLE_ID: "com.futsalsubstats.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         NEXT_TELEMETRY_DISABLED: "1"
@@ -166,8 +166,10 @@ workflows:
 
       - name: Bump build number
         script: |
+          set -eu
           cd ios/App
-          agvtool new-version -all "$BUILD_NUMBER"
+          # Build 26 is already published; keep every new build above it.
+          agvtool new-version -all "$((BUILD_NUMBER + 27))"
 
       - name: Build signed archive
         script: |
