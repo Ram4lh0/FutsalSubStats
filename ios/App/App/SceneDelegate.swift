@@ -1,10 +1,12 @@
 import UIKit
 import Capacitor
 import StoreKit
+import OSLog
 
 @available(iOS 15.0, *)
 @objc(FutsalBillingPlugin)
 public class FutsalBillingPlugin: CAPPlugin, CAPBridgedPlugin {
+    private let logger = Logger(subsystem: "com.futsalsubstats.app", category: "Billing")
     public let identifier = "FutsalBillingPlugin"
     public let jsName = "FutsalBilling"
     public let pluginMethods: [CAPPluginMethod] = [
@@ -16,15 +18,20 @@ public class FutsalBillingPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func products(_ call: CAPPluginCall) {
         let ids = call.getArray("ids", String.self) ?? []
+        logger.info("Products requested: \(ids.joined(separator: ","), privacy: .public)")
         Task {
             do {
                 let values = try await Product.products(for: ids)
+                logger.info("Products returned: \(values.map(\.id).joined(separator: ","), privacy: .public)")
                 let payload = values.map { product in
                     ["id": product.id, "title": product.displayName,
                      "description": product.description, "price": product.displayPrice]
                 }
                 call.resolve(["products": payload])
-            } catch { call.reject("Could not load products", nil, error) }
+            } catch {
+                logger.error("Product request failed: \((error as NSError).domain, privacy: .public) code=\((error as NSError).code)")
+                call.reject("Could not load products", "PRODUCTS_LOAD_FAILED", error)
+            }
         }
     }
 
@@ -102,7 +109,8 @@ public class FutsalBillingPlugin: CAPPlugin, CAPBridgedPlugin {
 
 class FutsalBridgeViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
-        if #available(iOS 15.0, *) { bridge?.registerPluginType(FutsalBillingPlugin.self) }
+        // registerPluginType is ignored while Capacitor auto-registration is enabled.
+        if #available(iOS 15.0, *) { bridge?.registerPluginInstance(FutsalBillingPlugin()) }
     }
 }
 
