@@ -10,6 +10,8 @@ export const STORE_PRODUCT_ALIASES = {
   clube: ['licenca_clube_anual', 'Clube', 'club_annual'],
 };
 
+const APPLE_PRODUCTS = { treinador: 'Treinador', clube: 'Clube' };
+
 export const LICENSE_PRICES = {
   treinador: { old: '45€', current: '35€/ano' },
   clube: { old: '145€', current: '119,99€/ano' },
@@ -18,10 +20,13 @@ export const LICENSE_PRICES = {
 const PRODUCT_LOAD_ATTEMPTS = 3;
 
 function uniqueProductIds() {
-  return [...new Set(Object.values(STORE_PRODUCT_ALIASES).flat())];
+  return [...new Set(Object.keys(STORE_PRODUCTS).flatMap(productIdsForPlan))];
 }
 
 export function productIdsForPlan(plan) {
+  if (globalThis.Capacitor?.getPlatform?.() === 'ios') {
+    return APPLE_PRODUCTS[plan] ? [APPLE_PRODUCTS[plan]] : [];
+  }
   return STORE_PRODUCT_ALIASES[plan] || (STORE_PRODUCTS[plan] ? [STORE_PRODUCTS[plan]] : []);
 }
 
@@ -39,9 +44,21 @@ export function planPrice(plan, product) {
 }
 
 function billingPlugin() {
+  if (!nativeStoreAvailable()) {
+    throw storeError('NATIVE_APP_REQUIRED', 'As compras só estão disponíveis na aplicação instalada.');
+  }
   const plugin = globalThis?.Capacitor?.Plugins?.FutsalBilling;
-  if (!plugin) throw new Error('As compras só estão disponíveis na aplicação instalada.');
+  if (!plugin) {
+    console.error('[Billing]', { event: 'plugin_missing', platform: globalThis.Capacitor?.getPlatform?.() });
+    throw storeError('BILLING_PLUGIN_MISSING', 'As compras não estão disponíveis nesta versão. Atualiza a aplicação pela loja.');
+  }
   return plugin;
+}
+
+function storeError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
 }
 
 export function nativeStoreAvailable() {
@@ -53,6 +70,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function loadProducts(ids) {
   const { products = [] } = await billingPlugin().products({ ids });
+  console.info('[Billing]', { event: 'products_loaded', requested: ids, returned: products.map((product) => product.id) });
   return products;
 }
 
@@ -66,23 +84,25 @@ export async function storeProducts() {
 }
 
 async function prepararProduto(plan) {
-  if (!nativeStoreAvailable()) return;
+  billingPlugin();
   const ids = productIdsForPlan(plan);
   let lastError = null;
   for (let tentativa = 1; tentativa <= PRODUCT_LOAD_ATTEMPTS; tentativa += 1) {
     try {
       const products = await loadProducts(ids);
+      lastError = null;
       const product = productForPlan(plan, products);
       if (product) return product;
     } catch (error) {
       lastError = error;
+      console.warn('[Billing]', { event: 'products_load_failed', attempt: tentativa, code: error?.code || 'UNKNOWN' });
     }
     if (tentativa < PRODUCT_LOAD_ATTEMPTS) await wait(300 * tentativa);
   }
-  const detalhe = lastError?.message ? ` (${lastError.message})` : '';
-  throw new Error(
-    `A loja não devolveu os produtos ${ids.join(', ')}. Confirma que a subscrição está ativa na loja e que esta conta tem acesso ao teste.${detalhe}`
-  );
+  if (lastError) {
+    throw storeError('PRODUCTS_LOAD_FAILED', 'Não foi possível contactar a loja. Tenta novamente dentro de instantes.');
+  }
+  throw storeError('PRODUCTS_NOT_FOUND', 'A subscrição ainda não está disponível na loja. Tenta novamente mais tarde.');
 }
 
 async function validatePurchase(purchase) {

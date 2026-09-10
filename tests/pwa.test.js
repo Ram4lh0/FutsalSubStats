@@ -94,6 +94,7 @@ test('reconhece o invólucro pelas três formas que o Capacitor já usou', async
   for (const cap of [
     { isNativePlatform: () => true },
     { getPlatform: () => 'android' },
+    { getPlatform: () => 'ios' },
     { isNative: true },
   ]) {
     const { registados } = montarBrowser({ capacitor: cap });
