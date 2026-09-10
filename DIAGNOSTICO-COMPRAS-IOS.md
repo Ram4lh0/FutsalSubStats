@@ -45,9 +45,9 @@ ha evidencia de que o OTA tenha transformado esta app numa PWA. Desligar o
 Wi-Fi ou publicar outro bundle nao corrige o registo nativo.
 
 O bundle ID do projeto iOS e `com.futsalsubstats.app`. A variavel `BUNDLE_ID`
-no Codemagic tem capitalizacao diferente, mas nao e usada pelos comandos
-desse workflow; isso nao explica o plugin ausente. O GitHub Actions usa o ID
-correto. O build efetivamente instalado nao foi extraido do iPhone.
+no Codemagic tinha capitalizacao diferente; foi alinhada ao preparar a versao
+1.4.1. Essa variavel nao era usada pelos comandos desse workflow e nao explica
+o plugin ausente. O build efetivamente instalado nao foi extraido do iPhone.
 
 ## Validacao e publicacao
 
@@ -57,8 +57,9 @@ falhas de rede, recuperacao e a configuracao dos entry points iOS.
 O teste dos entry points verifica o codigo; nao substitui uma compilacao iOS.
 
 Esta correcao precisa de uma nova compilacao nativa e publicacao na App Store.
-Antes de publicar, aumentar a versao comercial e usar um numero de build
-superior ao ja enviado. Correr `cap sync ios` no macOS, como fazem os workflows,
+A versao comercial foi preparada como 1.4.1 e o Codemagic usa o seu contador
+de builds mais 27, ficando acima do build 26 ja publicado. Correr `cap sync ios`
+no macOS, como fazem os workflows,
 para regenerar as dependencias SPM com caminhos desse sistema.
 
 No TestFlight, confirmar que aparecem precos devolvidos pela Apple, testar
