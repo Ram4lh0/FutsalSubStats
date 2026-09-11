@@ -402,6 +402,7 @@ export default {
   'licencas.todasEstatisticas': 'Estatísticas de todos os escalões e atletas',
   'licencas.maisCinco': 'Para mais de cinco escalões, entra em contacto connosco.',
   'licencas.comprar': 'Iniciar teste gratuito',
+  'licencas.contaNecessaria': 'Inicia sessão na tua conta para comprar ou restaurar uma licença.',
   'licencas.aComprar': 'A abrir a loja…',
   'licencas.comprasNaApp': 'As compras e os preços locais estão disponíveis na app para Android e iOS.',
   'licencas.restaurar': 'Restaurar compras',

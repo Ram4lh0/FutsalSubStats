@@ -400,6 +400,7 @@ export default {
   'licencas.todasEstatisticas': 'Estadísticas de todos los equipos y jugadores',
   'licencas.maisCinco': 'Para más de cinco equipos, ponte en contacto con nosotros.',
   'licencas.comprar': 'Iniciar prueba gratuita',
+  'licencas.contaNecessaria': 'Inicia sesión en tu cuenta para comprar o restaurar una licencia.',
   'licencas.aComprar': 'Abriendo la tienda…',
   'licencas.comprasNaApp': 'Las compras y los precios locales están disponibles en las apps Android e iOS.',
   'licencas.restaurar': 'Restaurar compras',

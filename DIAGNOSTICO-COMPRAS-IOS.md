@@ -1,8 +1,8 @@
-# Compras iOS: versao 1.5.0 sem atualizacoes automaticas
+# Compras iOS: versao 1.5.1 com configuracao de conta
 
 ## Entrega atual
 
-A versao iOS e o pacote do projeto sao agora 1.5.0. `autoUpdate` esta desligado
+A versao iOS e o pacote do projeto sao agora 1.5.1. `autoUpdate` esta desligado
 no `capacitor.config.json`. `resetWhenUpdate` continua ativo para o Capgo
 descartar o bundle anterior quando a nova compilacao nativa e instalada.
 O plugin e mantido para fazer essa limpeza e mostrar a versao em uso.
@@ -15,11 +15,37 @@ validada num dispositivo com o codigo incluido nesta nova compilacao.
 
 O estado dos bundles no servidor nao foi alterado. A nova compilacao deixa
 de pedir atualizacoes automaticamente. Isto nao altera apps ja instaladas.
-Nao publicar um OTA 1.5.0 para tentar instalar a correcao Swift.
+Nao publicar um OTA para tentar instalar a correcao Swift.
 
 No Codemagic usar `fix/ios-billing-registration` e `ios-testflight`. Instalar
-a versao 1.5.0 pelo TestFlight. No Perfil, o pacote deve aparecer como original
+a versao 1.5.1 pelo TestFlight. No Perfil, o pacote deve aparecer como original
 (`builtin`), nao como 1.4.2. Nao e necessario apagar a app nem os dados locais.
+
+## Botao sem resposta e conta ausente na 1.5.0
+
+O utilizador confirmou que o Perfil nao mostra email. O codigo da compra e do
+restauro terminava sem mensagem quando `userId` estava ausente. Agora mostra
+um aviso de sessao necessaria ou de configuracao de servidor ausente.
+
+Sem as variaveis publicas do Supabase na compilacao, o cliente devolve `null`
+e a app permite abrir em modo local. O workflow nao declarava essas variaveis;
+nao foram inspecionados os valores privados do grupo de ambiente do Codemagic
+nem extraidos os ficheiros da app instalada. A configuracao ausente e uma
+explicacao consistente com o sintoma, nao uma inspecao do binario 1.5.0.
+
+O workflow `ios-testflight` passa a declarar explicitamente o URL do projeto
+e a sua chave publicavel. Esta chave e publica e nao concede privilegios de
+administracao. O endpoint de configuracao Auth respondeu com email ativo.
+Nao foram alteradas contas nem dados no servidor.
+
+`tools/check-store-config.mjs` verifica a configuracao antes da compilacao e
+confirma a sua presenca nos ficheiros JavaScript exportados antes de `cap sync`.
+Assim, este workflow falha se tentar empacotar uma exportacao sem servidor.
+O Codemagic tambem aplica a versao de `package.json` ao projeto iOS.
+
+Depois de instalar a 1.5.1, iniciar sessao com a conta existente caso nao seja
+recuperada. Confirmar o email no Perfil antes de testar a compra. O TestFlight
+usa Sandbox automaticamente; nao e preciso criar outra conta da app.
 
 ## Diagnostico inicial
 
@@ -80,10 +106,15 @@ falhas de rede, recuperacao e a configuracao dos entry points iOS.
 O teste dos entry points verifica o codigo; nao substitui uma compilacao iOS.
 
 Esta correcao precisa de uma nova compilacao nativa e publicacao na App Store.
-A versao comercial foi preparada como 1.5.0 e o Codemagic usa o seu contador
+A versao comercial foi preparada como 1.5.1 e o Codemagic usa o seu contador
 de builds mais 27, ficando acima do build 26 ja publicado. Correr `cap sync ios`
 no macOS, como fazem os workflows,
 para regenerar as dependencias SPM com caminhos desse sistema.
+
+Na revisao 1.5.1 passaram `npm run check` (272 testes), a compilacao web das
+34 paginas e a verificacao da configuracao no JavaScript exportado. Os testes
+novos recusam configuracao ausente, projeto errado, chave privilegiada e
+exportacao sem configuracao publica.
 
 No TestFlight, confirmar que aparecem precos devolvidos pela Apple, testar
 uma compra Sandbox e um restauro. Confirmar que o pacote permanece original

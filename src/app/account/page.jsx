@@ -53,7 +53,7 @@ function Definicoes() {
   const idioma = useIdioma();
   const locale = useLocale();
   const { toast, confirmar } = useUI();
-  const { user, userId, deleteAccount, signOut } = useAuth();
+  const { user, userId, remote, deleteAccount, signOut } = useAuth();
   const [confirmacao, setConfirmacao] = useState('');
   const [licencas, setLicencas] = useState({ status: null, products: [], loading: true });
   const [aComprar, setAComprar] = useState(null);
@@ -68,6 +68,7 @@ function Definicoes() {
 
   useEffect(() => {
     if (userId) carregarLicencas();
+    else setLicencas({ status: null, products: [], loading: false });
   }, [userId, carregarLicencas]);
 
   // As versões do plugin de atualizações. `null` fora do invólucro nativo — no
@@ -96,7 +97,11 @@ function Definicoes() {
   }
 
   async function comprarLicenca(plano) {
-    if (aComprar || !userId) return;
+    if (aComprar) return;
+    if (!userId) {
+      toast(t(remote ? 'licencas.contaNecessaria' : 'auth.semServidor'), 'error', 5200);
+      return;
+    }
     setAComprar(plano);
     try {
       await purchasePlan(plano, userId);
@@ -111,7 +116,11 @@ function Definicoes() {
   }
 
   async function restaurarLicencas() {
-    if (aComprar || !userId) return;
+    if (aComprar) return;
+    if (!userId) {
+      toast(t(remote ? 'licencas.contaNecessaria' : 'auth.semServidor'), 'error', 5200);
+      return;
+    }
     setAComprar('restore');
     try {
       const n = await restorePurchases(userId);

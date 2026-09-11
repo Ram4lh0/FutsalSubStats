@@ -133,6 +133,9 @@ workflows:
           - futsalsubstats_appstore
       vars:
         BUNDLE_ID: "com.futsalsubstats.app"
+        # Public client configuration; this key has no administrative privileges.
+        NEXT_PUBLIC_SUPABASE_URL: "https://bkfkpfhcysuyiotwkaty.supabase.co"
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_AmEgaOfCsF7NJPGJTqvHnw_IHPYlR_Y"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         NEXT_TELEMETRY_DISABLED: "1"
@@ -150,7 +153,10 @@ workflows:
 
       - name: Build web bundle and sync iOS
         script: |
+          set -eu
+          node tools/check-store-config.mjs
           npx next build
+          node tools/check-store-config.mjs --output out
           npx cap sync ios
 
       - name: Set up iOS code signing
@@ -167,7 +173,9 @@ workflows:
       - name: Bump build number
         script: |
           set -eu
+          APP_VERSION=$(node -p "require('./package.json').version")
           cd ios/App
+          agvtool new-marketing-version "$APP_VERSION"
           # Build 26 is already published; keep every new build above it.
           agvtool new-version -all "$((BUILD_NUMBER + 27))"
 
