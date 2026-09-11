@@ -1,4 +1,27 @@
-# Compras iOS: causa e correcao
+# Compras iOS: versao 1.5.0 sem atualizacoes automaticas
+
+## Entrega atual
+
+A versao iOS e o pacote do projeto sao agora 1.5.0. `autoUpdate` esta desligado
+no `capacitor.config.json`. `resetWhenUpdate` continua ativo para o Capgo
+descartar o bundle anterior quando a nova compilacao nativa e instalada.
+O plugin e mantido para fazer essa limpeza e mostrar a versao em uso.
+
+Foi confirmado em producao que o servidor oferecia o bundle 1.4.2 a uma app
+iOS 1.4.1. Esse ZIP contem codigo de compras anterior a correcao. O utilizador
+confirmou App 1.4.1 / bundle 1.4.2 no iPhone. Isto explica a reaplicacao da
+interface antiga; a disponibilidade do plugin nativo ainda precisa de ser
+validada num dispositivo com o codigo incluido nesta nova compilacao.
+
+O estado dos bundles no servidor nao foi alterado. A nova compilacao deixa
+de pedir atualizacoes automaticamente. Isto nao altera apps ja instaladas.
+Nao publicar um OTA 1.5.0 para tentar instalar a correcao Swift.
+
+No Codemagic usar `fix/ios-billing-registration` e `ios-testflight`. Instalar
+a versao 1.5.0 pelo TestFlight. No Perfil, o pacote deve aparecer como original
+(`builtin`), nao como 1.4.2. Nao e necessario apagar a app nem os dados locais.
+
+## Diagnostico inicial
 
 Revisao do codigo a partir de `4298fedb39af0046892f8c788023ff480e1d5340`.
 
@@ -46,7 +69,7 @@ Wi-Fi ou publicar outro bundle nao corrige o registo nativo.
 
 O bundle ID do projeto iOS e `com.futsalsubstats.app`. A variavel `BUNDLE_ID`
 no Codemagic tinha capitalizacao diferente; foi alinhada ao preparar a versao
-1.4.1. Essa variavel nao era usada pelos comandos desse workflow e nao explica
+1.4.1 anterior. Essa variavel nao era usada pelos comandos desse workflow e nao explica
 o plugin ausente. O build efetivamente instalado nao foi extraido do iPhone.
 
 ## Validacao e publicacao
@@ -57,14 +80,14 @@ falhas de rede, recuperacao e a configuracao dos entry points iOS.
 O teste dos entry points verifica o codigo; nao substitui uma compilacao iOS.
 
 Esta correcao precisa de uma nova compilacao nativa e publicacao na App Store.
-A versao comercial foi preparada como 1.4.1 e o Codemagic usa o seu contador
+A versao comercial foi preparada como 1.5.0 e o Codemagic usa o seu contador
 de builds mais 27, ficando acima do build 26 ja publicado. Correr `cap sync ios`
 no macOS, como fazem os workflows,
 para regenerar as dependencias SPM com caminhos desse sistema.
 
 No TestFlight, confirmar que aparecem precos devolvidos pela Apple, testar
-uma compra Sandbox e um restauro. Repetir o carregamento de produtos depois
-de aplicar um bundle OTA compativel. So depois submeter a nova versao.
+uma compra Sandbox e um restauro. Confirmar que o pacote permanece original
+depois de fechar e reabrir a app com rede. So depois submeter a nova versao.
 
 Nao foram efetuadas compras reais nem foi publicado um binario iOS nesta
 revisao. A compilacao e o teste StoreKit num dispositivo requerem macOS/iOS.

@@ -15,8 +15,8 @@
     "CapacitorUpdater": {
       "_": "Atualizações ao vivo, alojadas por nós. Ver ATUALIZACOES.md.",
 
-      "_autoUpdate": "O lado nativo trata de tudo: pergunta, descarrega em segundo plano e aplica na abertura seguinte. O JavaScript só tem de dizer que arrancou bem.",
-      "autoUpdate": true,
+      "_autoUpdate": "Desligado na versao 1.5.0: usar apenas o codigo incluido na compilacao da loja para validar as compras.",
+      "autoUpdate": false,
 
       "_updateUrl": "A função no Supabase que responde 'há novidade?'. O identificador do projeto não é segredo — já vai dentro da app, no endereço do Supabase.",
       "updateUrl": "https://bkfkpfhcysuyiotwkaty.supabase.co/functions/v1/atualizacao",
