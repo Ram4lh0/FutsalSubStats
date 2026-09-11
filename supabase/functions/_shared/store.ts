@@ -46,9 +46,24 @@ export function decodeJwsPayload<T = Record<string, unknown>>(jws: string): T {
   return JSON.parse(atob(padded)) as T;
 }
 
+// Extrai só os carateres base64 válidos do corpo de um PEM.
+//
+// A caixa de "Secrets" do Supabase é um campo de uma linha só. Colar ali uma
+// chave com quebras de linha reais pode sair bem, ou pode ficar com as
+// quebras trocadas por "\n" literal (duas letras, não uma quebra), espaços a
+// mais, ou um caráter invisível apanhado no copy/paste. Um replace(/\s/g) só
+// apanha espaço em branco a sério; isto apanha tudo o resto também,
+// filtrando para o alfabeto base64 (o cabeçalho/rodapé BEGIN/END já foi
+// removido antes desta chamada).
 function pemBytes(pem: string) {
-  const raw = pem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
-  return Uint8Array.from(atob(raw), (char) => char.charCodeAt(0));
+  const withoutHeaders = pem.replace(/-----[^-]+-----/g, '');
+  const raw = withoutHeaders.replace(/[^A-Za-z0-9+/=]/g, '');
+  if (!raw) throw new Error('A chave PEM ficou vazia depois de limpa — confirma o valor guardado no secret.');
+  try {
+    return Uint8Array.from(atob(raw), (char) => char.charCodeAt(0));
+  } catch {
+    throw new Error(`A chave PEM não é base64 válido depois de limpa (${raw.length} carateres).`);
+  }
 }
 
 async function signedJwt(
@@ -67,8 +82,14 @@ async function appleToken() {
   const keyId = Deno.env.get('APP_STORE_KEY_ID') || Deno.env.get('APPLE_KEY_ID');
   const privateKey = Deno.env.get('APP_STORE_PRIVATE_KEY') || Deno.env.get('APPLE_PRIVATE_KEY');
   if (!issuer || !keyId || !privateKey) throw new Error('Apple server credentials are missing');
+  let key: CryptoKey;
+  try {
+    key = await crypto.subtle.importKey('pkcs8', pemBytes(privateKey), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(`APP_STORE_PRIVATE_KEY inválida (${detail}). Confirma que o secret tem o .p8 completo, incluindo as linhas BEGIN/END.`);
+  }
   const now = Math.floor(Date.now() / 1000);
-  const key = await crypto.subtle.importKey('pkcs8', pemBytes(privateKey), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   return signedJwt(
     { alg: 'ES256', kid: keyId, typ: 'JWT' },
     { iss: issuer, iat: now, exp: now + 300, aud: 'appstoreconnect-v1', bid: APPLE_BUNDLE_ID },
