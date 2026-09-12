@@ -235,7 +235,7 @@ export async function convidar(sb, { email, licenca, clubeId, validade }) {
 
   const { error: erroLicenca } = await sb
     .from('profiles')
-    .update({ licenca, license_expires_at })
+    .update({ licenca, license_expires_at, license_status: 'active', license_source: 'legacy' })
     .eq('id', userId);
   if (erroLicenca) throw new Error(`Conta criada, mas a licença não ficou: ${erroLicenca.message}`);
 
@@ -303,7 +303,7 @@ export async function mudarLicenca(sb, { userId, licenca, validade, forcar = fal
     throw new Error(`Licença desconhecida: ${licenca}.`);
   }
 
-  const patch = { licenca };
+  const patch = { licenca, license_status: 'active', license_source: 'legacy' };
   if (validade !== undefined) patch.license_expires_at = normalizarValidade(validade);
 
   const { error: erroEscrita } = await sb.from('profiles').update(patch).eq('id', userId);
