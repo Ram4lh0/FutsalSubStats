@@ -239,20 +239,34 @@ export default function MainNavigation() {
 
       <header className="mainnav-top">
         {showContext ? (
-          <label className="context-picker">
-            <span>{selected.club.shortName || selected.club.name}</span>
-            <select
-              value={selected.team.id}
-              onChange={(e) => trocarEscalao(e.target.value)}
-              aria-label={t('nav.trocarEscalao')}
+          <div className="context-picker">
+            {/* O nome do clube leva ao seu cartão — é lá que o dono muda o
+                nome e os outros dados. Fica fora do `label` de propósito: um
+                `label` sem `htmlFor` ativa o controlo que envolve ao ser
+                clicado em qualquer ponto, e um botão próprio evita que este
+                clique abra sem querer a lista de escalões ao lado. */}
+            <button
+              type="button"
+              className="context-picker__club"
+              onClick={() => router.push(rotas.clube(selected.club.id))}
+              title={t('nav.abrirClube')}
             >
-              {items.map((item) => (
-                <option key={item.team.id} value={item.team.id}>
-                  {item.team.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              {selected.club.shortName || selected.club.name}
+            </button>
+            <label className="context-picker__escalao">
+              <select
+                value={selected.team.id}
+                onChange={(e) => trocarEscalao(e.target.value)}
+                aria-label={t('nav.trocarEscalao')}
+              >
+                {items.map((item) => (
+                  <option key={item.team.id} value={item.team.id}>
+                    {item.team.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         ) : (
           <span className="mainnav-top__spacer" />
         )}

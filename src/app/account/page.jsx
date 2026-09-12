@@ -30,6 +30,7 @@ import { useT, useIdioma, useLocale, definirIdioma, IDIOMAS } from '@/lib/i18n/i
 import { syncLabel } from '@/lib/format.js';
 import { versoes } from '@/lib/atualizacoes.js';
 import { entitlement as loadEntitlement } from '@/lib/entitlements.js';
+import { CONTACTO } from '@/lib/registo.js';
 import {
   nativeStoreAvailable,
   planPrice,
@@ -38,6 +39,47 @@ import {
   restorePurchases,
   storeProducts,
 } from '@/lib/store.js';
+
+// A versão web mora noutro endereço, de propósito: é a mesma conta, mas
+// sem instalação nenhuma — o que interessa a quem gere o clube do computador
+// da secretaria, não do telemóvel no pavilhão.
+const URL_WEB = 'https://futsalsubstats.vercel.app/';
+
+/**
+ * Copia texto para a área de transferência.
+ *
+ * O caminho normal é a API do `navigator.clipboard` — mas alguns invólucros
+ * WebView mais antigos (sobretudo Android) não a têm, ou recusam-na fora de
+ * um gesto do utilizador que a plataforma reconheça como tal. O contorno de
+ * baixo (uma `textarea` invisível e `execCommand`) é mais velho e mais feio,
+ * mas funciona em quase tudo — e "copiar" que às vezes não copia é pior do
+ * que não ter o botão.
+ */
+async function copiarTexto(texto) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(texto);
+      return true;
+    } catch {
+      /* cai para o contorno abaixo */
+    }
+  }
+  if (typeof document === 'undefined') return false;
+  try {
+    const area = document.createElement('textarea');
+    area.value = texto;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(area);
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 export default function AccountPage() {
   return (
@@ -160,6 +202,32 @@ function Definicoes() {
 
   const email = user?.email || '';
   const podeApagar = confirmacao.trim().toLowerCase() === email.toLowerCase();
+
+  async function copiarLinkWeb() {
+    const ok = await copiarTexto(URL_WEB);
+    toast(t(ok ? 'definicoes.webCopiado' : 'definicoes.copiarFalhou'), ok ? 'ok' : 'error');
+  }
+
+  async function copiarEmailSuporte() {
+    const ok = await copiarTexto(CONTACTO);
+    toast(t(ok ? 'definicoes.suporteCopiado' : 'definicoes.copiarFalhou'), ok ? 'ok' : 'error');
+  }
+
+  // O corpo do email já traz o que o suporte ia perguntar primeiro: com que
+  // conta é e, no telemóvel, que versão está a correr. Uma linha a menos no
+  // vaivém de quem só quer que o jogo de sábado fique bem contado.
+  const corpoSuporte = [
+    '',
+    '',
+    '---',
+    t('definicoes.suporteContexto', { email: email || '—' }),
+    vs ? t('definicoes.suporteContextoVersao', { v: `${vs.casca || '?'} / ${vs.pacote || 'builtin'}` }) : null,
+  ]
+    .filter((linha) => linha !== null)
+    .join('\n');
+  const linkSuporte = `mailto:${CONTACTO}?subject=${encodeURIComponent(
+    t('definicoes.suporteAssunto')
+  )}&body=${encodeURIComponent(corpoSuporte)}`;
 
   async function guardarCopia() {
     downloadJson(`backup-futsal-${new Date().toISOString().slice(0, 10)}.json`, await dump());
@@ -412,6 +480,39 @@ function Definicoes() {
         <div className="form__actions form__actions--left">
           <button className="btn btn--ghost" onClick={() => router.push(rotas.privacidade())}>
             {t('definicoes.politica')}
+          </button>
+        </div>
+      </div>
+
+      {/* No computador: a mesma conta, no browser. Só a ligação — não é uma
+          segunda app nem uma cópia dos dados, é a mesma equipa vista de outro
+          ecrã. Copiar em vez de abrir: no telemóvel abrir levaria ao Safari ou
+          ao Chrome do telemóvel, e quem quer isto quer é colar no computador. */}
+      <div className="card">
+        <h2 className="section">{t('definicoes.web')}</h2>
+        <p className="muted">{t('definicoes.webTexto')}</p>
+        <p className="mono">{URL_WEB}</p>
+        <div className="form__actions form__actions--left">
+          <button className="btn btn--ghost" onClick={copiarLinkWeb}>
+            {t('definicoes.webCopiar')}
+          </button>
+        </div>
+      </div>
+
+      {/* O suporte tem de ser fácil de encontrar E fácil de usar: o botão já
+          abre o email com o assunto e a versão preenchidos, para quem
+          reportar um problema não ter de descobrir sozinho o que dizer. Copiar
+          o endereço fica ao lado para quem preferir escrever de outro sítio —
+          o telemóvel de outra pessoa, o computador do clube. */}
+      <div className="card">
+        <h2 className="section">{t('definicoes.suporte')}</h2>
+        <p className="muted">{t('definicoes.suporteTexto')}</p>
+        <div className="form__actions form__actions--left">
+          <a className="btn btn--primary" href={linkSuporte}>
+            {t('definicoes.suporteEscrever')}
+          </a>
+          <button className="btn btn--ghost" onClick={copiarEmailSuporte}>
+            {t('definicoes.suporteCopiar')}
           </button>
         </div>
       </div>

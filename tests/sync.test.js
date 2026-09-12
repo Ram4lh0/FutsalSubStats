@@ -124,6 +124,16 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
     update() {
       return { eq: () => Promise.resolve({ error: null }) };
     },
+    delete() {
+      if (falhaEm === nome) return { eq: () => Promise.resolve({ error: new Error('sem rede') }) };
+      return {
+        eq: (coluna, valor) => {
+          const i = tabelas[nome].findIndex((r) => r[coluna] === valor);
+          if (i >= 0) tabelas[nome].splice(i, 1);
+          return Promise.resolve({ error: null });
+        },
+      };
+    },
   });
 
   return {
@@ -1344,6 +1354,90 @@ test('apagar um jogo sobe ao servidor e não volta na descarga', async () => {
 
   await pull(UTILIZADOR);
   assert.equal((await matches.listByTeam(escalao.id)).length, 0, 'o jogo voltou na descarga');
+});
+
+/* ------------------------------------------- apagar um jogador é a sério */
+
+// Ao contrário de um escalão ou de um jogo, um jogador não tem `archived_at`
+// — apagar é apagar mesmo, um DELETE a sério, e não um "upsert" disfarçado.
+// Sem uma marca própria (`pendingDelete`), a linha saía já da base local e o
+// pedido nunca chegava ao servidor: a próxima descarga trazia o jogador de
+// volta, porque para o servidor ele nunca tinha saído.
+
+test('remover um jogador tira-o logo da lista, mesmo sem servidor', async () => {
+  await limpar();
+  const clube = await clubs.create({ name: 'Sem servidor' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+  const jogador = await players.create(escalao.id, { name: 'Rui', shirtNumber: 9 });
+
+  await players.remove(jogador.id);
+  assert.equal((await players.listByTeam(escalao.id)).length, 0, 'devia sair da lista logo');
+});
+
+test('um jogador com histórico não pode ser removido', async () => {
+  await limpar();
+  const { escalao, jogador } = await cenario();
+  await assert.rejects(() => players.remove(jogador.id));
+  assert.equal((await players.listByTeam(escalao.id)).length, 1, 'continua no plantel');
+});
+
+test('remover um jogador sobe um DELETE a sério e não volta na descarga', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+
+  const clube = await clubs.create({ name: 'Com jogador' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+  const jogador = await players.create(escalao.id, { name: 'Zef', shirtNumber: 7 });
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(servidor.tabelas.players.length, 1, 'o jogador subiu primeiro');
+
+  await players.remove(jogador.id);
+  assert.equal((await players.listByTeam(escalao.id)).length, 0, 'devia sair da lista logo');
+  assert.equal(servidor.tabelas.players.length, 1, 'o servidor ainda não sabe');
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(servidor.tabelas.players.length, 0, 'o servidor apagou a sério, não arquivou');
+
+  await pull(UTILIZADOR);
+  assert.equal((await players.listByTeam(escalao.id)).length, 0, 'o jogador não voltou na descarga');
+});
+
+test('um jogador nunca sincronizado some da base ao ser removido, sem pedir nada ao servidor', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+
+  const clube = await clubs.create({ name: 'Nunca subiu' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+  const jogador = await players.create(escalao.id, { name: 'Novo', shirtNumber: 3 });
+  // Sem push nenhum antes: este jogador nunca existiu do lado de lá.
+
+  await players.remove(jogador.id);
+  const { pushed } = await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.ok(pushed >= 1, 'o pedido de eliminação conta como trabalho feito');
+  assert.equal(servidor.tabelas.players.length, 0, 'nunca chegou a existir lá');
+});
+
+test('uma descarga antes de a eliminação chegar ao servidor não traz o jogador de volta', async () => {
+  // Se o pedido de apagar ainda não subiu — sem rede, ou a meio da fila — uma
+  // descarga entretanto não pode reescrever a linha por cima. É a mesma
+  // garantia que já vale para qualquer outra linha `dirty`.
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+
+  const clube = await clubs.create({ name: 'A meio' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores' });
+  const jogador = await players.create(escalao.id, { name: 'Bruno', shirtNumber: 5 });
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  await players.remove(jogador.id);
+  // Sem novo `push`: o pedido de eliminação ainda não chegou ao servidor.
+  await pull(UTILIZADOR);
+
+  assert.equal((await players.listByTeam(escalao.id)).length, 0, 'continua escondido');
+  assert.equal(servidor.tabelas.players.length, 1, 'o servidor ainda tem a linha, como esperado');
 });
 
 test('um jogo apagado a meio deixa de ser o "jogo em curso"', async () => {

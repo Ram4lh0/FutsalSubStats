@@ -40,6 +40,7 @@ export default {
   'nav.trocarEscalao': 'Cambiar categoría',
   'nav.jogoEmCurso': 'Partido en curso',
   'nav.verEscaloes': 'Ver categorías',
+  'nav.abrirClube': 'Abrir el club',
   'nav.recolherMenu': 'Contraer menú',
   'nav.abrirMenu': 'Abrir menú',
 
@@ -112,6 +113,21 @@ export default {
     'Los partidos, las plantillas y las estadísticas se guardan en este dispositivo y se sincronizan con tu cuenta. Puedes llevártelos cuando quieras.',
   'definicoes.copiaTransferida': 'Copia descargada.',
   'definicoes.politica': 'Política de privacidad',
+  'definicoes.web': 'Usar en el ordenador',
+  'definicoes.webTexto':
+    'La misma cuenta también funciona en un navegador, sin instalar nada, cómodo para gestionar el club desde un ordenador. Copia la dirección y pégala en el navegador del ordenador.',
+  'definicoes.webCopiar': 'Copiar dirección',
+  'definicoes.webCopiado': 'Dirección copiada.',
+  'definicoes.suporte': 'Soporte',
+  'definicoes.suporteTexto':
+    '¿Encontraste un problema o necesitas ayuda con algo? Escríbenos, respondemos lo antes posible.',
+  'definicoes.suporteEscrever': 'Escribir al soporte',
+  'definicoes.suporteCopiar': 'Copiar email',
+  'definicoes.suporteCopiado': 'Email copiado.',
+  'definicoes.suporteAssunto': 'Soporte Futsal SubStats',
+  'definicoes.suporteContexto': 'Describe aquí lo que pasó. Cuenta de la app: {email}',
+  'definicoes.suporteContextoVersao': 'Versión: {v}',
+  'definicoes.copiarFalhou': 'No se pudo copiar. Copia el texto a mano.',
   'definicoes.versao': 'Versión',
   'definicoes.versaoApp': 'App {v}',
   'definicoes.versaoPacote': 'Paquete {v}',
@@ -543,6 +559,7 @@ export default {
   'clube.semAcessoAEscaloes': 'Aún no tienes acceso a ninguna categoría de este club. Quien lo gestiona asigna los accesos.',
   'clube.jaExiste': 'Esta cuenta ya tiene un club. Cada cuenta gestiona un club.',
   'clube.naoGuardou': 'No se pudo guardar el club: {erro}',
+  'clube.soDonoTexto': 'Solo el dueño de este club puede cambiar el nombre y los demás datos.',
   'clube.confirmaApagar':
     'Eliminar «{nome}» borra las categorías, las plantillas, los partidos y todos los eventos. Esta acción no se puede deshacer.',
   'clube.apagarBotao': 'Eliminar club',
@@ -581,6 +598,11 @@ export default {
   'jogador.ativo': 'Jugador activo',
   'jogador.guardado': 'Jugador guardado y sincronizado.',
   'jogador.naoGuardou': 'No se pudo guardar el jugador: {erro}',
+  'jogador.apagarBotao': 'Eliminar jugador',
+  'jogador.aApagar': 'Eliminando…',
+  'jogador.confirmaApagar': '¿Eliminar a {nome} de la plantilla? Esta acción no se puede deshacer.',
+  'jogador.apagado': 'Jugador eliminado de la plantilla.',
+  'jogador.naoApagou': 'No se pudo eliminar el jugador: {erro}',
 
   /* ----------------------------------------------------- lista de clubes */
   'painel.titulo': 'Mis clubes',

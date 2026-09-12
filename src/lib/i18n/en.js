@@ -41,6 +41,7 @@ export default {
   'nav.trocarEscalao': 'Switch age group',
   'nav.jogoEmCurso': 'Live match',
   'nav.verEscaloes': 'View age groups',
+  'nav.abrirClube': 'Open club',
   'nav.recolherMenu': 'Collapse menu',
   'nav.abrirMenu': 'Open menu',
 
@@ -113,6 +114,21 @@ export default {
     'Matches, rosters and statistics are stored on this device and synced with your account. You can take them with you at any time.',
   'definicoes.copiaTransferida': 'Copy downloaded.',
   'definicoes.politica': 'Privacy policy',
+  'definicoes.web': 'Use it on a computer',
+  'definicoes.webTexto':
+    'The same account also works in a browser, no install needed — handy for managing the club from a computer. Copy the address and paste it into the computer\'s browser.',
+  'definicoes.webCopiar': 'Copy address',
+  'definicoes.webCopiado': 'Address copied.',
+  'definicoes.suporte': 'Support',
+  'definicoes.suporteTexto':
+    'Ran into a problem, or need help with something? Write to us — we reply as quickly as we can.',
+  'definicoes.suporteEscrever': 'Write to support',
+  'definicoes.suporteCopiar': 'Copy email',
+  'definicoes.suporteCopiado': 'Email copied.',
+  'definicoes.suporteAssunto': 'Futsal SubStats support',
+  'definicoes.suporteContexto': 'Describe what happened here. App account: {email}',
+  'definicoes.suporteContextoVersao': 'Version: {v}',
+  'definicoes.copiarFalhou': 'Could not copy. Copy the text by hand.',
   'definicoes.versao': 'Version',
   'definicoes.versaoApp': 'App {v}',
   'definicoes.versaoPacote': 'Bundle {v}',
@@ -544,6 +560,7 @@ export default {
   'clube.semAcessoAEscaloes': 'You do not have access to any age group in this club yet. Whoever manages it grants access.',
   'clube.jaExiste': 'This account already has a club. Each account manages one club.',
   'clube.naoGuardou': 'Could not save the club: {erro}',
+  'clube.soDonoTexto': 'Only this club\'s owner can change its name and other details.',
   'clube.confirmaApagar':
     'Deleting “{nome}” removes the age groups, the rosters, the matches and every event. This cannot be undone.',
   'clube.apagarBotao': 'Delete club',
@@ -582,6 +599,11 @@ export default {
   'jogador.ativo': 'Active player',
   'jogador.guardado': 'Player saved and synced.',
   'jogador.naoGuardou': 'Could not save the player: {erro}',
+  'jogador.apagarBotao': 'Remove player',
+  'jogador.aApagar': 'Removing…',
+  'jogador.confirmaApagar': 'Remove {nome} from the roster? This cannot be undone.',
+  'jogador.apagado': 'Player removed from the roster.',
+  'jogador.naoApagou': 'Could not remove the player: {erro}',
 
   /* -------------------------------------------------------- club list */
   'painel.titulo': 'My clubs',
