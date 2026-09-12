@@ -715,14 +715,36 @@ function Live() {
   }
 
   /**
-   * Ao fechar o jogo guarda-se o total de faltas da nossa equipa na própria linha
-   * do jogo. Os eventos continuam a ser a fonte de verdade — este campo é só para
-   * o histórico e as exportações não terem de reconstruir tudo.
+   * Ao fechar o jogo guarda-se o resumo (estado, resultado, horas, faltas) na
+   * própria linha do jogo. Os eventos continuam a ser a fonte de verdade — isto
+   * é só para o histórico, as exportações e quem olhar para a tabela `matches`
+   * diretamente (SQL Editor incluído) não terem de reconstruir tudo a partir
+   * dos eventos, um a um.
+   *
+   * Sem isto, um jogo jogado até ao fim ficava para sempre "DRAFT" e "0-0" na
+   * tabela `matches` — os eventos chegavam ao servidor certinhos, mas o
+   * resumo do jogo nunca era atualizado. Ver `MUDANCAS.md`/histórico da
+   * correção de setembro de 2026.
    */
   async function endMatch() {
     await events.append(A.finishMatch(state), { sync: 'defer' });
     const fresco = await loadMatch(matchId);
-    await matches.update(matchId, { teamFouls: foulsTotal(fresco.state, 'US') }, { sync: 'defer' });
+    await matches.update(
+      matchId,
+      {
+        teamFouls: foulsTotal(fresco.state, 'US'),
+        status: fresco.state.status,
+        startedAt: fresco.state.startedAt,
+        finishedAt: fresco.state.finishedAt,
+        teamScore: fresco.state.teamScore,
+        opponentScore: fresco.state.opponentScore,
+        halftimeTeamScore: fresco.state.halftimeTeamScore,
+        halftimeOpponentScore: fresco.state.halftimeOpponentScore,
+        currentPeriod: fresco.state.currentPeriod,
+        timerStatus: fresco.state.timerStatus,
+      },
+      { sync: 'defer' }
+    );
     await sync.saveNow(userId, user?.email);
     setGuidedTutorialStepById('summary');
     router.push(rotas.jogoResumo(matchId));
