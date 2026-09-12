@@ -8,27 +8,27 @@ Nunca metas estas chaves no GitHub, no codigo da app, nem em variaveis `NEXT_PUB
 
 Corre os comandos a partir da pasta do projeto:
 
+**Nunca coles aqui neste ficheiro, nem em nenhum ficheiro versionado, o valor real de nenhuma destas secrets.** Este documento é só o guia de onde ir buscar cada valor — os valores em si vivem apenas no `npx supabase secrets set`, direto do teu terminal para o Supabase, nunca num ficheiro que fique no Git.
+
+> **Nota de segurança (12/09/2026):** este ficheiro chegou a ter, aqui nesta secção, uma chave privada Apple real colada como exemplo — Key ID, Issuer ID e o `.p8` inteiro. Foi removida do ficheiro, mas já esteve no histórico do repositório, o que a torna comprometida. Se ainda não revogaste essa chave em App Store Connect → Users and Access → Integrations → App Store Connect API, faz isso primeiro, antes de mais nada, e cria uma chave nova. Ver a secção `APP_STORE_PRIVATE_KEY` abaixo para os passos.
+
 ```powershell
 cd C:\FutsalSubStats
 
 npx supabase secrets set APP_STORE_BUNDLE_ID=com.FutsalSubStats.app
-npx supabase secrets set APP_STORE_ISSUER_ID="db7fea04-1514-4e5f-a17c-2ff8dbb94cea"
-npx supabase secrets set APP_STORE_KEY_ID="39GNCA9U76" 
-npx supabase secrets set 
+npx supabase secrets set APP_STORE_ISSUER_ID="<issuer id copiado de App Store Connect>"
+npx supabase secrets set APP_STORE_KEY_ID="<key id copiado de App Store Connect>"
 
 $appleKey = @"
------BEGIN PRIVATE KEY-----
-MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgxuANRtQm4SWlWXIP
-w/BtbizkgaWO1h/2c6lt/x3ZGeSgCgYIKoZIzj0DAQehRANCAATXfjqzduWHD9hZ
-ws0RX/6OyMp7wpJqBghe/2lzwxDrK0cvLQLuEeXYDEjxnfvezy4zUom/lwja73Kt
-U+P908EY
------END PRIVATE KEY-----
+<cola aqui o conteúdo INTEIRO do teu ficheiro .p8 — as linhas que começam
+por tracinhos e "BEGIN"/"END PRIVATE KEY" incluídas — só no teu terminal,
+nunca guardado num ficheiro deste repositório>
 "@
 npx supabase secrets set APP_STORE_PRIVATE_KEY="$appleKey"
 
-GOOGLE_PLAY_PACKAGE_NAME=com.futsalsubstats.app
-npx supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON="..."
-npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY="..."
+npx supabase secrets set GOOGLE_PLAY_PACKAGE_NAME=com.futsalsubstats.app
+npx supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON="<conteúdo do .json da service account>"
+npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY="<service_role key do Supabase>"
 ```
 
 Se uma chave tiver quebras de linha, aspas ou JSON grande, usa aspas e cola com cuidado. No PowerShell, se der erro, o mais seguro e editar uma variavel temporaria e depois enviar, mas primeiro tenta simples.

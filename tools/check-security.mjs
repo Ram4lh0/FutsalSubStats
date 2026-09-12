@@ -91,20 +91,55 @@ for (const [nome, cauda] of funcoes) {
 
 /* ------------------------------- 3. a chave de servidor nunca entra no código */
 
+// M10 da auditoria de 12/09/2026: isto só olhava para `.jsx?|mjs|json|ya?ml`
+// dentro de `src/` e `tools/` — nunca para Markdown, nunca para `.ts`/`.tsx`,
+// nunca para `website/`. Foi assim que uma chave privada Apple completa,
+// colada como "exemplo" num guia em Markdown, passou os anos todos sem o
+// scanner reparar. Agora cobre também Markdown e TypeScript, e mais duas
+// pastas onde há código e segredos a sério: `website/worker` (o Stripe e a
+// remoção de contas correm ali) e os `.md` da raiz do repositório.
+const IGNORAR_DIRS = new Set([
+  'node_modules', '.git', '.next', 'out', 'dist', 'build',
+  '.wrangler', '.vercel', '.turbo', '.android-user', '.gradle-user', '.npm-cache',
+]);
+
 function ficheiros(dir, saida = []) {
   if (!existsSync(dir)) return saida;
   for (const nome of readdirSync(dir, { withFileTypes: true })) {
     const p = join(dir, nome.name);
-    if (nome.isDirectory()) ficheiros(p, saida);
-    else if (/\.(jsx?|mjs|json|ya?ml)$/.test(nome.name)) saida.push(p);
+    if (nome.isDirectory()) {
+      if (IGNORAR_DIRS.has(nome.name)) continue;
+      ficheiros(p, saida);
+    } else if (/\.(jsx?|tsx?|mjs|json|ya?ml|md)$/.test(nome.name)) {
+      saida.push(p);
+    }
   }
   return saida;
+}
+
+function ficheirosMarkdownDaRaiz() {
+  if (!existsSync(RAIZ)) return [];
+  return readdirSync(RAIZ, { withFileTypes: true })
+    .filter((nome) => nome.isFile() && nome.name.endsWith('.md'))
+    .map((nome) => join(RAIZ, nome.name));
 }
 
 const PERIGOS = [
   [/service_role/i, 'a chave service_role ignora toda a segurança por linha'],
   [/eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}/, 'parece uma chave JWT escrita no código'],
   [/dangerouslySetInnerHTML|\.innerHTML\s*=/, 'escrita direta de HTML abre a porta a injeção'],
+  [
+    // O marcador sozinho ("-----BEGIN PRIVATE KEY-----") aparece em guias
+    // legítimos, a mostrar a forma de um ficheiro .p8 sem conteúdo nenhum a
+    // seguir (só "..." ou nada). O que interessa a sério é o marcador seguido
+    // de uma linha de base64 com aspeto de chave verdadeira.
+    /-----BEGIN (RSA |EC |OPENSSH |ENCRYPTED |)PRIVATE KEY-----[^\S\r\n]*\r?\n[A-Za-z0-9+/=]{20,}/,
+    'isto é uma chave privada a sério, colada em texto — nunca um exemplo',
+  ],
+  [
+    /-----BEGIN PGP PRIVATE KEY BLOCK-----[^\S\r\n]*\r?\n[A-Za-z0-9+/=]{20,}/,
+    'chave privada PGP colada em texto',
+  ],
 ];
 
 // A regra do `service_role` vale para tudo o que chega ao browser, e para nada
@@ -116,7 +151,12 @@ const PERIGOS = [
 // chave": mencionar `process.env.SUPABASE_SERVICE_ROLE_KEY` é o comportamento
 // certo; escrever o valor no código é que não. O segundo padrão desta lista, o
 // do JWT, continua a correr em todo o lado e é esse que apanha o valor a sério.
-const LE_DO_AMBIENTE = /process\.env\.[A-Z_]*SERVICE_ROLE[A-Z_]*/;
+//
+// O Worker do site (`website/worker`) não corre em Node — recebe a chave por
+// `env.SUPABASE_SERVICE_ROLE_KEY` (o binding do Cloudflare), nunca por
+// `process.env`. É a mesma ideia, outra sintaxe; conta como "lida do
+// ambiente" na mesma.
+const LE_DO_AMBIENTE = /(process\.env|env)\.[A-Z_]*SERVICE_ROLE[A-Z_]*/;
 
 // Ou delega em quem a lê. As guardas da chave saíram para um módulo partilhado
 // quando apareceu um segundo comando a precisar delas, e a partir daí os scripts
@@ -130,18 +170,35 @@ const LE_DO_AMBIENTE = /process\.env\.[A-Z_]*SERVICE_ROLE[A-Z_]*/;
 // se está a verificar.
 const DELEGA = /from '[./]*chave-de-servico\.mjs'/;
 
-for (const f of [...ficheiros(join(RAIZ, 'src')), ...ficheiros(join(RAIZ, 'tools'))]) {
+const FICHEIROS_A_VERIFICAR = [
+  ...ficheiros(join(RAIZ, 'src')),
+  ...ficheiros(join(RAIZ, 'tools')),
+  // O Worker do site (Stripe, remoção de contas) é tão "servidor" como
+  // `tools/`, e tinha ficado de fora só por hábito — nunca por ser mais
+  // seguro. `website/app` (o que corre no browser) fica de fora de propósito.
+  ...ficheiros(join(RAIZ, 'website', 'worker')),
+  ...ficheirosMarkdownDaRaiz(),
+];
+
+for (const f of FICHEIROS_A_VERIFICAR) {
   if (f.endsWith('check-security.mjs')) continue;
   const conteudo = readFileSync(f, 'utf8');
-  const emTools = relative(RAIZ, f).replace(/\\/g, '/').startsWith('tools/');
+  const caminho = relative(RAIZ, f).replace(/\\/g, '/');
+  const emServidor = caminho.startsWith('tools/') || caminho.startsWith('website/worker/');
+  const emMarkdown = caminho.endsWith('.md');
   for (const [padrao, porque] of PERIGOS) {
     if (!padrao.test(conteudo)) continue;
-    // Um script fora de `src/` que só lê a chave do ambiente está a fazer o
-    // que deve. Qualquer menção dentro de `src/` continua a ser um erro: o que
-    // está lá é empacotado e vai para dentro do telemóvel.
+    // Falar de `service_role` num guia é o comportamento certo — é assim que
+    // se explica a quem vier a seguir por que é que ela nunca pode ir para o
+    // código. O que interessa apanhar em Markdown é o valor a sério (uma
+    // chave privada, um JWT), não a palavra.
+    if (padrao.source.includes('service_role') && emMarkdown) continue;
+    // Um ficheiro de servidor que só lê a chave do ambiente está a fazer o
+    // que deve. Qualquer menção dentro de `src/` continua a ser um erro: o
+    // que lá está é empacotado e vai para dentro do telemóvel.
     if (
       padrao.source.includes('service_role') &&
-      emTools &&
+      emServidor &&
       (LE_DO_AMBIENTE.test(conteudo) || DELEGA.test(conteudo))
     ) {
       continue;

@@ -1,0 +1,38 @@
+-- 20260912112000_fechar_rpcs_de_licenca_e_escalao.sql
+--
+-- B1 da auditoria de 12/09/2026: `license_is_active(uuid)` e
+-- `escalao_do_jogo(uuid)` são `security definer` e ficaram, por omissão do
+-- Supabase, com `execute` concedido a `anon` — ou seja, chamáveis de fora,
+-- sem sessão nenhuma, via `/rest/v1/rpc/license_is_active` e
+-- `/rest/v1/rpc/escalao_do_jogo`, para qualquer UUID à escolha de quem
+-- pergunta. Não abrem dados nenhuns por si (devolvem só um booleano ou um
+-- UUID), mas servem para sondar IDs — confirmar se uma conta tem licença
+-- activa, ou a que escalão pertence um jogo, sem precisar de lá entrar.
+--
+-- O código da app nunca as chama directamente (confirmado por grep a `src/`);
+-- quem as usa é sempre outra função `security definer` por dentro
+-- (`my_entitlement`, `claim_match_start`, `limite_de_escaloes`,
+-- `enforce_match_creation_entitlement`), e essas chamadas internas não
+-- dependem do `execute` do chamador original — são verificadas contra o
+-- dono da função, não contra quem lhe pediu a primeira chamada. Revogar aqui
+-- não parte nada disso.
+--
+-- Os dois casos não são iguais, por isso o tratamento também não é:
+--
+--   `license_is_active` nunca aparece dentro de uma política de segurança —
+--   só dentro de outras funções. Fecha-se por completo, a `anon` e a
+--   `authenticated`.
+--
+--   `escalao_do_jogo` aparece DENTRO das políticas de `match_squad`,
+--   `match_events` e `player_stints` (0011_licencas_e_acessos.sql) — e uma
+--   política corre com os privilégios de quem faz a pergunta, não do dono da
+--   função. Revogar de `authenticated` paralisava a app inteira: ninguém
+--   conseguia ler nem escrever convocatórias, eventos ou minutos de jogo,
+--   porque a própria política deixava de conseguir avaliar-se. Fecha-se só a
+--   `anon` — que nunca devia poder chamar isto sem sessão nenhuma — e
+--   preserva-se `authenticated`, exactamente como a auditoria pede
+--   ("preservar os privilégios necessários aos helpers usados pelas
+--   políticas, em vez de revogar indiscriminadamente").
+
+revoke execute on function public.license_is_active(uuid) from anon, authenticated;
+revoke execute on function public.escalao_do_jogo(uuid) from anon;

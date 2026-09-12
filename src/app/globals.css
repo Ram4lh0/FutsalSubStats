@@ -1125,6 +1125,18 @@ ul { padding: 0; list-style: none; }
   .app {
     padding-left: 220px;
   }
+  /* No jogo ao vivo o `.mainnav--side` já fica escondido (`display: none`,
+   * ali em cima), mas isso não devolve o espaço que este `padding-left`
+   * reserva para ele — no iPad em horizontal (que já passa dos 980px) ficava
+   * uma faixa preta à esquerda do tamanho da barra lateral, como se ela
+   * continuasse lá. É o `.app:has(.mainnav--side.is-collapsed)` a seguir que
+   * obriga à segunda regra, mais específica: sem ela, se a barra tivesse
+   * ficado recolhida antes de entrar no jogo, ganhava a este reset na mesma
+   * (o `:has()` conta como se tivesse as classes do que está lá dentro). */
+  .app.is-live,
+  .app.is-live:has(.mainnav--side.is-collapsed) {
+    padding-left: 0;
+  }
   .mainnav--bottom {
     display: none;
   }
