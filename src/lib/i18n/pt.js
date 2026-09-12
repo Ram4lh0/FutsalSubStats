@@ -42,6 +42,7 @@ export default {
   'nav.trocarEscalao': 'Trocar escalão',
   'nav.jogoEmCurso': 'Jogo em curso',
   'nav.verEscaloes': 'Ver escalões',
+  'nav.abrirClube': 'Abrir o clube',
   'nav.recolherMenu': 'Recolher menu',
   'nav.abrirMenu': 'Abrir menu',
 
@@ -114,6 +115,21 @@ export default {
     'Os jogos, os planteis e as estatísticas ficam guardados neste aparelho e sincronizados com a tua conta. Podes levá-los contigo a qualquer momento.',
   'definicoes.copiaTransferida': 'Cópia transferida.',
   'definicoes.politica': 'Política de privacidade',
+  'definicoes.web': 'Usar no computador',
+  'definicoes.webTexto':
+    'A mesma conta também funciona num browser, sem instalar nada — cómodo para gerir o clube a partir de um computador. Copia o endereço e cola-o no browser do computador.',
+  'definicoes.webCopiar': 'Copiar endereço',
+  'definicoes.webCopiado': 'Endereço copiado.',
+  'definicoes.suporte': 'Suporte',
+  'definicoes.suporteTexto':
+    'Encontraste um problema, ou precisas de ajuda com alguma coisa? Escreve-nos — respondemos o mais depressa possível.',
+  'definicoes.suporteEscrever': 'Escrever ao suporte',
+  'definicoes.suporteCopiar': 'Copiar email',
+  'definicoes.suporteCopiado': 'Email copiado.',
+  'definicoes.suporteAssunto': 'Suporte Futsal SubStats',
+  'definicoes.suporteContexto': 'Descreve aqui o que aconteceu. Conta da app: {email}',
+  'definicoes.suporteContextoVersao': 'Versão: {v}',
+  'definicoes.copiarFalhou': 'Não foi possível copiar. Copia o texto à mão.',
   'definicoes.versao': 'Versão',
   'definicoes.versaoApp': 'App {v}',
   'definicoes.versaoPacote': 'Pacote {v}',
@@ -545,6 +561,7 @@ export default {
   'clube.semAcessoAEscaloes': 'Ainda não tens acesso a nenhum escalão deste clube. Quem o gere é que atribui os acessos.',
   'clube.jaExiste': 'Esta conta já tem um clube. Cada conta gere um clube.',
   'clube.naoGuardou': 'Não foi possível guardar o clube: {erro}',
+  'clube.soDonoTexto': 'Só o dono deste clube pode alterar o nome e os restantes dados.',
   'clube.confirmaApagar':
     'Apagar "{nome}" elimina os escalões, os planteis, os jogos e todos os eventos. Esta ação não pode ser anulada.',
   'clube.apagarBotao': 'Apagar clube',
@@ -583,6 +600,12 @@ export default {
   'jogador.ativo': 'Jogador ativo',
   'jogador.guardado': 'Jogador guardado e sincronizado.',
   'jogador.naoGuardou': 'Não foi possível guardar o jogador: {erro}',
+  'jogador.apagarBotao': 'Remover jogador',
+  'jogador.aApagar': 'A remover…',
+  'jogador.confirmaApagar':
+    'Remover {nome} do plantel? Esta ação não pode ser desfeita.',
+  'jogador.apagado': 'Jogador removido do plantel.',
+  'jogador.naoApagou': 'Não foi possível remover o jogador: {erro}',
 
   /* --------------------------------------------------- painel de clubes */
   'painel.titulo': 'Os meus clubes',

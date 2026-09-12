@@ -199,7 +199,8 @@ ul { padding: 0; list-style: none; }
   color: var(--text);
   font-weight: 800;
 }
-.context-picker > span {
+.context-picker > span,
+.context-picker__club {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 36vw;
@@ -210,6 +211,21 @@ ul { padding: 0; list-style: none; }
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+.context-picker__club {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.context-picker__club:hover,
+.context-picker__club:focus-visible {
+  color: var(--text);
+  text-decoration: underline;
+}
+.context-picker__escalao {
+  display: contents;
 }
 .context-picker select {
   min-width: 0;

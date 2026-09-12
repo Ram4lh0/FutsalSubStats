@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHead from './PageHead.jsx';
-import { SoLeitura } from './bits.jsx';
+import { SoLeitura, Empty } from './bits.jsx';
 import EscolherFoto from './EscolherFoto.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
@@ -14,6 +14,7 @@ import * as sync from '@/lib/data/sync.js';
 import { rotas } from '@/lib/routes.js';
 import useRouteParams from '@/lib/useRouteParams.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import { souDonoDe } from '@/lib/useSouDono.js';
 import { useT } from '@/lib/i18n/index.js';
 
 
@@ -35,6 +36,9 @@ export default function ClubForm({ clubId }) {
   const [form, setForm] = useState(VAZIO);
   const [pronto, setPronto] = useState(!clubId);
   const [aGuardar, setAGuardar] = useState(false);
+  // Só interessa quando há um clube já existente: ao criar o primeiro, quem o
+  // cria é sempre o dono, e a pergunta nem faz sentido ainda.
+  const [souDono, setSouDono] = useState(true);
   // Ver o comentário igual no `TeamForm`: quem edita o clube a partir do painel
   // quer voltar ao painel, não entrar no clube.
   const { back } = useRouteParams();
@@ -43,7 +47,15 @@ export default function ClubForm({ clubId }) {
   useEffect(() => {
     if (!clubId) return;
     clubs.get(clubId).then((c) => {
-      if (c) setForm({ ...VAZIO, ...c });
+      if (c) {
+        setForm({ ...VAZIO, ...c });
+        // `souDonoDe` é síncrona sobre a linha que acabou de chegar — ao
+        // contrário do hook `useSouDono`, não há aqui uma segunda passagem
+        // que mude a resposta um instante depois de `pronto` já ser
+        // verdadeiro, e por isso não há o relance de "não podes editar" a
+        // meio caminho para quem é mesmo dono.
+        setSouDono(souDonoDe(c));
+      }
       setPronto(true);
     });
   }, [clubId]);
@@ -94,6 +106,21 @@ export default function ClubForm({ clubId }) {
   if (!pronto) return <p className="muted">{t('comum.aCarregar')}</p>;
 
   if (soLeitura) return <SoLeitura titulo={t('clube.titulo')} />;
+
+  // A política do servidor (`clubs_atualizar`) já recusa a alteração a quem
+  // não é dono — mas recusar em silêncio dá um erro de sincronização confuso
+  // a um treinador que só estava a olhar para o formulário. Isto trava antes,
+  // com uma explicação que faz sentido. Chegar aqui sem ser dono só acontece
+  // pelo endereço: o cartão do clube já esconde o botão "Editar" para quem
+  // não é dono.
+  if (clubId && !souDono) {
+    return (
+      <>
+        <PageHead title={t('clube.editarTitulo')} backTo={voltarPara} />
+        <Empty>{t('clube.soDonoTexto')}</Empty>
+      </>
+    );
+  }
 
   return (
     <>

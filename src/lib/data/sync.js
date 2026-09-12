@@ -171,7 +171,12 @@ export async function push(userId, email) {
   const clubesSujos = await dirtyRows(db.STORES.clubs);
   const escaloesSujos = await dirtyRows(db.STORES.teams);
   const competicoesSujas = await dirtyRows(db.STORES.competitions);
-  const jogadoresSujos = await dirtyRows(db.STORES.players);
+  // Um jogador marcado para apagar (`pendingDelete`) também está `dirty`, mas
+  // não é para reenviar: é para pedir a eliminação a sério. Ver `players.remove`
+  // em `repository.js`, e o pedido de DELETE mais abaixo.
+  const jogadoresSujosBase = await dirtyRows(db.STORES.players);
+  const jogadoresParaApagar = jogadoresSujosBase.filter((p) => p.pendingDelete);
+  const jogadoresSujos = jogadoresSujosBase.filter((p) => !p.pendingDelete);
   const jogosSujos = await dirtyRows(db.STORES.matches);
   const convocadosSujosBase = await dirtyRows(db.STORES.matchSquad);
   const todosEventosLocais = await db.all(db.STORES.matchEvents);
@@ -187,6 +192,7 @@ export async function push(userId, email) {
     !escaloesSujos.length &&
     !competicoesSujas.length &&
     !jogadoresSujos.length &&
+    !jogadoresParaApagar.length &&
     !jogosSujos.length &&
     !convocadosSujosBase.length &&
     !eventos.length
@@ -366,6 +372,23 @@ export async function push(userId, email) {
     if (error) throw etiqueta(error, `${mapper.table} (${detalharLinhas(linhas)})`);
     await clean(store, linhas);
     total += linhas.length;
+  }
+
+  // Jogadores marcados para apagar (ver `players.remove`). Um pedido de
+  // eliminação a sério, não um "upsert" — e é a mesma política de segurança,
+  // `players_escrever`, que decide se o servidor aceita: cobre TODO o acesso
+  // de escrita ao jogador, incluindo apagar, com a mesma regra de sempre
+  // (`pode_editar_escalao`). Se recusar, a linha fica `pendingDelete` e tenta
+  // outra vez na próxima ronda — tal como qualquer outra falha de envio.
+  //
+  // Um jogador nunca sincronizado (criado e apagado sem rede) não existe do
+  // lado de lá: o `delete` não encontra nada para apagar, não dá erro, e a
+  // linha sai da base local à mesma.
+  for (const p of jogadoresParaApagar) {
+    const { error } = await sb.from('players').delete().eq('id', p.id);
+    if (error) throw etiqueta(error, `players (apagar ${p.name || p.id.slice(0, 8)})`);
+    await db.del(db.STORES.players, p.id);
+    total += 1;
   }
 
   await claimStartedMatches(sb, jogos, eventos);

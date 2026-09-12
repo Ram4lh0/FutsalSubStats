@@ -33,6 +33,18 @@ const now = () => Date.now();
 // Tudo o que se escreve nasce por enviar. O `dirty` só cai quando o servidor
 // confirmar — se a app fechar a meio, a linha continua na fila.
 const stamp = (o) => ({ ...o, createdAt: o.createdAt ?? now(), updatedAt: now(), dirty: true });
+
+/**
+ * Marca um jogador para ser apagado a sério no servidor, sem o tirar já da
+ * base local. Ver o comentário em `players.remove` — é ele que explica
+ * porquê. Usado tanto pela remoção manual como pela substituição de plantel
+ * por CSV, que tinha o mesmo `db.del` direto e o mesmo problema.
+ */
+async function marcarParaApagar(id) {
+  const cur = await db.get(db.STORES.players, id);
+  if (!cur) return;
+  await db.put(db.STORES.players, { ...cur, pendingDelete: true, dirty: true, updatedAt: now() });
+}
 const DEFAULT_COMPETITIONS = [
   { name: 'Campeonato', shortName: 'Camp.' },
   { name: 'Taça', shortName: 'Taça' },
@@ -356,14 +368,17 @@ export const competitions = {
 /* ------------------------------------------------------------- jogadores */
 
 export const players = {
+  // Um jogador marcado para apagar (`pendingDelete`) já saiu da vida do
+  // escalão, mas continua na base local até o servidor confirmar a
+  // eliminação — ver o comentário grande em `remove`, abaixo.
   async listByTeam(teamId) {
     const rows = await db.byIndex(db.STORES.players, 'by_team', teamId);
-    return rows.sort((a, b) => a.shirtNumber - b.shirtNumber);
+    return rows.filter((p) => !p.pendingDelete).sort((a, b) => a.shirtNumber - b.shirtNumber);
   },
   /** Ainda usado pelo backup e por ecrãs que só sabem o clube. */
   async listByClub(clubId) {
     const rows = await db.byIndex(db.STORES.players, 'by_club', clubId);
-    return rows.sort((a, b) => a.shirtNumber - b.shirtNumber);
+    return rows.filter((p) => !p.pendingDelete).sort((a, b) => a.shirtNumber - b.shirtNumber);
   },
   get: (id) => db.get(db.STORES.players, id),
   async create(teamId, data) {
@@ -395,11 +410,26 @@ export const players = {
     return row;
   },
   setActive: (id, isActive) => players.update(id, { isActive }),
-  /** Só permitido a jogadores sem histórico (regra 3.1). */
+  /**
+   * Só permitido a jogadores sem histórico (regra 3.1).
+   *
+   * Apagar não é como criar ou alterar: não há aqui "upsert" que valha —
+   * pedir ao servidor para apagar uma linha que ele nunca teve não dá erro,
+   * mas reenviá-la depois de apagada trá-la-ia de volta. Por isso um jogador
+   * apagado não sai já da base local (o `db.del` a sério só acontece em
+   * `sync.js`, depois de o servidor confirmar); fica marcado com
+   * `pendingDelete` — invisível em qualquer lista, mas presente para a fila
+   * de envio saber o que ainda tem de pedir.
+   *
+   * Sem esta marca, uma sincronização a meio (ou uma descarga de outro
+   * dispositivo) trazia o jogador de volta: o servidor continuava a devolvê-lo
+   * até o pedido de eliminação lá chegar.
+   */
   async remove(id) {
     const used = (await db.all(db.STORES.matchSquad)).some((s) => s.playerId === id);
     if (used) throw new Error(t('plantelCsv.temHistorico'));
-    await db.del(db.STORES.players, id);
+    await marcarParaApagar(id);
+    notifyLocalChange();
   },
 
   /**
@@ -460,7 +490,7 @@ export const players = {
           desativados += 1;
         }
       } else {
-        await db.del(db.STORES.players, p.id);
+        await marcarParaApagar(p.id);
         apagados += 1;
       }
     }

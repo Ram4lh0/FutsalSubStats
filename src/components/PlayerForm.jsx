@@ -24,13 +24,14 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
   const router = useRouter();
   const t = useT();
   const soLeitura = useSoLeitura(teamId);
-  const { toast } = useUI();
+  const { toast, confirmar } = useUI();
   const { userId, user } = useAuth();
   const [club, setClub] = useState(null);
   const [team, setTeam] = useState(null);
   const [roster, setRoster] = useState([]);
   const [pronto, setPronto] = useState(false);
   const [aGuardar, setAGuardar] = useState(false);
+  const [aApagar, setAApagar] = useState(false);
   const [form, setForm] = useState({
     name: '',
     shirtNumber: '',
@@ -83,6 +84,31 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
       toast(t('jogador.naoGuardou', { erro: err.message }), 'error');
     } finally {
       setAGuardar(false);
+    }
+  }
+
+  /**
+   * Remover o jogador do plantel, com confirmação — não é um clique que se
+   * dá sem querer, e não há volta a dar. Quem tem histórico de jogos não
+   * chega a ver esta ação falhar: `players.remove` recusa-a antes, com a
+   * sugestão certa (desativar, não apagar).
+   */
+  async function apagarJogador() {
+    if (aApagar) return;
+    const ok = await confirmar(t('jogador.confirmaApagar', { nome: form.name }), {
+      okLabel: t('jogador.apagarBotao'),
+    });
+    if (!ok) return;
+    setAApagar(true);
+    try {
+      await players.remove(playerId);
+      sync.saveNow(userId, user?.email);
+      toast(t('jogador.apagado'), 'ok');
+      router.push(rotas.plantel(clubId, teamId));
+    } catch (err) {
+      toast(t('jogador.naoApagou', { erro: err.message }), 'error');
+    } finally {
+      setAApagar(false);
     }
   }
 
@@ -149,6 +175,17 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
         </label>
 
         <div className="form__actions">
+          {playerId ? (
+            <button
+              className="btn btn--danger btn--ghost"
+              type="button"
+              disabled={aApagar}
+              onClick={apagarJogador}
+            >
+              {aApagar ? t('jogador.aApagar') : t('jogador.apagarBotao')}
+            </button>
+          ) : null}
+          <span className="toolbar__spacer" />
           <button
             className="btn btn--ghost"
             type="button"
