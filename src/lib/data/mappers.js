@@ -143,6 +143,23 @@ export const matchMapper = {
     team_fouls: m.teamFouls ?? null,
     notes: m.notes || null,
     archived_at: iso(m.archivedAt),
+    // O resumo do jogo (estado, resultado, horas) NÃO se calcula aqui — vem já
+    // pronto de `buildMatchState`, gravado na linha do jogo em `endMatch()`
+    // (ver `src/app/match/live/page.jsx`). Os eventos continuam a ser a fonte
+    // de verdade; isto é só a fotografia final, para quem olhar para a tabela
+    // `matches` diretamente (SQL Editor, exportações) não ter de reconstruir
+    // tudo a partir dos eventos. Um jogo ainda em rascunho não tem nenhum
+    // destes campos localmente — por isso os valores por omissão aqui são
+    // exatamente os mesmos que o servidor já usa para um jogo por começar.
+    status: m.status || 'DRAFT',
+    started_at: iso(m.startedAt),
+    finished_at: iso(m.finishedAt),
+    team_score: m.teamScore ?? 0,
+    opponent_score: m.opponentScore ?? 0,
+    halftime_team_score: m.halftimeTeamScore ?? null,
+    halftime_opponent_score: m.halftimeOpponentScore ?? null,
+    current_period: m.currentPeriod ?? 0,
+    timer_status: m.timerStatus || 'STOPPED',
   }),
   fromRow: (r) => ({
     id: r.id,
@@ -162,6 +179,15 @@ export const matchMapper = {
     archivedAt: ms(r.archived_at),
     createdAt: ms(r.created_at),
     updatedAt: ms(r.updated_at),
+    status: r.status,
+    startedAt: ms(r.started_at),
+    finishedAt: ms(r.finished_at),
+    teamScore: r.team_score,
+    opponentScore: r.opponent_score,
+    halftimeTeamScore: r.halftime_team_score,
+    halftimeOpponentScore: r.halftime_opponent_score,
+    currentPeriod: r.current_period,
+    timerStatus: r.timer_status,
     dirty: false,
   }),
 };
