@@ -168,6 +168,8 @@ export async function handleStripeClaim(request: Request, env: BillingEnv): Prom
 
   const profilePatch: Record<string, unknown> = {
     licenca: purchase.plan,
+    license_status: "active",
+    license_source: "stripe",
     license_expires_at: expiresAt,
     stripe_last_checkout_session_id: sessionId,
   };
