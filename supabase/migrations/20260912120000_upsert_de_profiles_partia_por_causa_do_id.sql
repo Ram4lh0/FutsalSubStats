@@ -1,0 +1,27 @@
+-- 20260912120000_upsert_de_profiles_partia_por_causa_do_id.sql
+--
+-- Regressão real da correção do C1 (20260912104654), apanhada pelo
+-- utilizador minutos depois de publicada: "permission denied for table
+-- profiles" ao guardar um jogo, com ou sem rede — o que falhava era
+-- `sb.from('profiles').upsert({ id, email })`, em
+-- `src/lib/data/sync.js`, chamado sempre que a fila de sincronização corre.
+--
+-- A causa: o `upsert` do PostgREST não gera só
+--   insert into profiles (id, email) values (...)
+--   on conflict (id) do update set email = excluded.email
+-- Gera também `id = excluded.id` dentro do próprio `set`, mesmo a coluna do
+-- conflito vindo a ser reatribuída a si mesma. A correção do C1 só tinha
+-- concedido `update (name, email)` — sem `id` — e esse `set id = excluded.id`
+-- passou a pedir um privilégio que `authenticated` deixou de ter. Confirmado
+-- a sério: o mesmo upsert, reproduzido à mão como `authenticated`, falhava
+-- com exactamente esta mensagem; com `id` na lista de colunas, passa.
+--
+-- Não abre nada que a correção do C1 tivesse fechado: a política
+-- `profiles_atualizar` (0011) tem `with check (id = auth.uid())`, e isso não
+-- muda aqui. `auth.uid()` é fixo durante a sessão — a única forma de o
+-- "update" a `id` passar o `with check` é a linha continuar com o mesmo id
+-- que já tinha. Ou seja: conceder a coluna dá para o upsert se autoreferir
+-- (o que já fazia sem querer, sem que ninguém tivesse pedido), mas continua
+-- impossível mudar o id de um perfil para outro.
+
+grant update (id, name, email) on public.profiles to authenticated;
