@@ -2013,17 +2013,54 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .rivalout__n { font-size: 0.82rem; }
 }
 
-/* Tablets: o contador faz parte da própria célula do resultado adversário.
-   Fica imediatamente depois do botão `+`, em ambas as orientações, sem usar
-   deteção de sistema operativo nem coordenadas que mudam entre modelos. */
+/* Tablets: o contador vive encostado ao botão `+` do resultado adversário,
+   em ambas as orientações, sem usar deteção de sistema operativo nem
+   coordenadas que mudam entre modelos.
+ *
+ * Não faz parte do fluxo da célula (era `position: static`, a somar a sua
+ * própria largura à da célula) — é `position: absolute`, pendurado a seguir
+ * a ela. A diferença importa: o nome do adversário (linha 1) e as faltas
+ * (linha 3) partilham coluna com o resultado (linha 2), e essa coluna é
+ * `justify-items: center` — cada linha centra-se sobre a SUA própria
+ * largura. Com o contador a contar para a largura da linha do resultado,
+ * essa linha ficava mais larga do que o nome e as faltas por cima e por
+ * baixo, e o "0" do resultado deixava de cair centrado debaixo do nome — o
+ * nome (mais estreito) centrava-se num sítio, o resultado (mais o contador)
+ * centrava-se um pouco para a esquerda desse sítio. Pendurado fora do
+ * fluxo, a célula do resultado volta a pesar só o que pesa do lado de cá
+ * (o nosso resultado), as duas colunas `1fr` do cabeçalho voltam a ficar
+ * simétricas, e o relógio ao centro deixa de puxar para a direita. */
 @media (min-width: 721px) and (max-width: 1200px) {
   .rivalout--standalone { display: none; }
+  .scoreboard__score.is-right { position: relative; }
   .scoreboard__score > .rivalout--inline {
     display: inline-flex;
-    position: static;
-    transform: none;
-    margin-left: clamp(2px, 0.7vw, 8px);
+    position: absolute;
+    left: 100%;
+    right: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: clamp(2px, 0.6vw, 8px);
+    padding: 2px 5px;
     flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .scoreboard__score > .rivalout--inline .rivalout__lbl {
+    font-size: 0.42rem;
+    letter-spacing: 0.03em;
+  }
+}
+
+/* Entre os 1001px e ~1100px o botão "Parar tempo"/"Terminar 1.ª parte" chega
+ * a encostar-se ao pacote acima — é a largura mais apertada de todas em que
+ * o cabeçalho já tem o relógio ao centro (a partir de 1001px) mas ainda não
+ * sobra espaço nenhum a mais. Um iPad normal, na horizontal, cai mesmo aqui
+ * (1024px). O rótulo por extenso é o que pesa mais nesta caixa pequena — sem
+ * ele ainda dá para perceber o que é pelo contorno que acende e pelo texto
+ * ao fim de premido (o `title`), e cabe sem tocar nos botões ao lado. */
+@media (min-width: 1001px) and (max-width: 1100px) {
+  .scoreboard__score > .rivalout--inline .rivalout__lbl {
+    display: none;
   }
 }
 
