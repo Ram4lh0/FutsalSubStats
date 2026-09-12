@@ -303,6 +303,16 @@ test('o painel admin pode criar uma licença de clube já associada a outro club
   assert.ok(sb.chamadas.convites.includes('gerente2@clube.pt'));
 });
 
+test('convidar também deixa a conta com license_status activo', async () => {
+  const dados = cenario();
+  const sb = supabaseFalso(dados);
+  await convidar(sb, { email: 'nova@clube.pt', licenca: 'treinador' });
+
+  const perfil = dados.profiles.find((p) => p.email === 'nova@clube.pt');
+  assert.equal(perfil.license_status, 'active', 'sem isto a app trata a conta como sem licença');
+  assert.equal(perfil.license_source, 'legacy');
+});
+
 test('mudar a licença do gerente para treinador é recusado — tem dois escalões', async () => {
   const dados = cenario();
   const sb = supabaseFalso(dados);
@@ -320,6 +330,21 @@ test('mas a ana sobe a clube sem problema', async () => {
 
   assert.equal(r.licenca, 'clube');
   assert.equal(dados.profiles.find((p) => p.id === 'u-ana').licenca, 'clube');
+});
+
+test('mudar a licença também liga o estado que a app confere de verdade', async () => {
+  // `licenca` e `license_expires_at` não bastam: a app só considera a licença
+  // activa quando `license_status` é 'trial'/'active'/'grace' (ver
+  // src/lib/license.js). Uma conta com licença e validade certas mas
+  // `license_status` esquecido fica, na app, como se não tivesse licença
+  // nenhuma — foi exactamente isto que aconteceu a uma conta real.
+  const dados = cenario();
+  const r = await mudarLicenca(supabaseFalso(dados), { userId: 'u-ana', licenca: 'clube' });
+
+  assert.equal(r.licenca, 'clube');
+  const perfil = dados.profiles.find((p) => p.id === 'u-ana');
+  assert.equal(perfil.license_status, 'active', 'sem isto a app trata a conta como sem licença');
+  assert.equal(perfil.license_source, 'legacy');
 });
 
 test('a validade pode ser actualizada sem trocar o tipo de licença', async () => {
