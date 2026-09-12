@@ -158,8 +158,33 @@ export async function handleStripeClaim(request: Request, env: BillingEnv): Prom
   }
 
   if (!purchase || purchase.status === "failed" || purchase.status === "expired") return json({ error: "purchase_not_available" }, 404);
-  if (purchase.status === "paid" && purchase.account_email && purchase.account_email.toLowerCase() !== accountEmail) {
-    return json({ error: "already_claimed" }, 409);
+
+  // A8 da auditoria de 12/09/2026: ler o estado da compra, decidir com base
+  // nele, e só depois escrever era uma corrida — dois pedidos em simultâneo
+  // liam ambos "ainda não reclamada" antes de qualquer um escrever, e os
+  // dois avançavam para conceder a licença, cada um à sua conta. Confirmado
+  // em teste isolado: duas contas ficaram com a mesma compra.
+  //
+  // A troca de estado agora é uma única escrita condicional — um UPDATE que
+  // só mexe na linha se ela ainda estiver "unmatched" — e só quem
+  // efectivamente a mudar é que segue para conceder a licença. Quem perder a
+  // corrida volta a ler e, se a compra ficou de outra conta, é recusado; se
+  // por acaso ficou da mesma conta (um duplo-clique do próprio comprador),
+  // segue em frente sem tentar mudar o estado outra vez.
+  if (purchase.status === "paid") {
+    if (purchase.account_email && purchase.account_email.toLowerCase() !== accountEmail) {
+      return json({ error: "already_claimed" }, 409);
+    }
+  } else {
+    const reclamada = await reclamarSeAindaPorReclamar(env, sessionId, accountEmail);
+    if (reclamada) {
+      purchase = reclamada;
+    } else {
+      purchase = await findPurchaseBySession(env, sessionId);
+      if (!purchase || purchase.status !== "paid" || (purchase.account_email && purchase.account_email.toLowerCase() !== accountEmail)) {
+        return json({ error: "already_claimed" }, 409);
+      }
+    }
   }
 
   const expiresAt = purchase.license_expires_at || seasonLicenseEnd().toISOString();
@@ -284,6 +309,26 @@ async function findPurchaseBySession(env: BillingEnv, sessionId: string): Promis
     { headers: supabaseHeaders(env) }
   );
   if (!response.ok) throw new Error(`purchase lookup failed: ${response.status}`);
+  const rows = (await response.json()) as PurchaseRow[];
+  return rows[0] || null;
+}
+
+// A escrita que resolve a corrida da A8: só muda a linha se ela ainda
+// estiver "unmatched" (paga pelo webhook, ainda não atribuída a ninguém).
+// `Prefer: return=representation` devolve a linha atualizada quando o
+// `WHERE` bateu certo, e um array vazio quando não bateu — nesse caso outro
+// pedido já a mudou primeiro, e este PATCH não mexeu em nada.
+async function reclamarSeAindaPorReclamar(env: BillingEnv, sessionId: string, accountEmail: string): Promise<PurchaseRow | null> {
+  const base = supabaseBase(env);
+  const response = await fetch(
+    `${base}/rest/v1/license_purchases?stripe_session_id=eq.${encodeURIComponent(sessionId)}&status=eq.unmatched`,
+    {
+      method: "PATCH",
+      headers: supabaseHeaders(env, { Prefer: "return=representation" }),
+      body: JSON.stringify({ status: "paid", account_email: accountEmail, claimed_at: new Date().toISOString() }),
+    }
+  );
+  if (!response.ok) throw new Error(`purchase claim failed: ${response.status}`);
   const rows = (await response.json()) as PurchaseRow[];
   return rows[0] || null;
 }
