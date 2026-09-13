@@ -88,6 +88,11 @@ workflows:
       - name: Run checks and tests
         script: npm run check
 
+      - name: Remove live-update plugin from iOS build (Apple Guideline 2.5.2)
+        script: |
+          set -eu
+          npm uninstall @capgo/capacitor-updater --no-save
+
       - name: Build web bundle and sync iOS
         script: |
           npx next build
@@ -150,6 +155,11 @@ workflows:
 
       - name: Run checks and tests
         script: npm run check
+
+      - name: Remove live-update plugin from iOS build (Apple Guideline 2.5.2)
+        script: |
+          set -eu
+          npm uninstall @capgo/capacitor-updater --no-save
 
       - name: Build web bundle and sync iOS
         script: |
