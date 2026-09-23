@@ -96,7 +96,10 @@ export function podeMudarLicenca({ de, para, escaloesActivos }) {
  */
 export async function estado(sb) {
   const [perfis, clubes, escaloes, membros, acessos, jogos] = await Promise.all([
-    sb.from('profiles').select('id, email, licenca, license_expires_at, created_at').order('email'),
+    sb
+      .from('profiles')
+      .select('id, email, licenca, license_expires_at, created_at')
+      .order('created_at', { ascending: false }),
     sb.from('clubs').select('id, name, owner_id, archived_at'),
     sb.from('teams').select('id, name, club_id, archived_at'),
     sb.from('club_members').select('club_id, user_id'),
