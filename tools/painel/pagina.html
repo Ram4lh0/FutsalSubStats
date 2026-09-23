@@ -160,6 +160,14 @@ function validadeTexto(iso) {
   return iso ? soData(iso) : 'sem data';
 }
 
+function dataHora(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const data = d.toLocaleDateString('pt-PT');
+  const hora = d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+  return `${data} ${hora}`;
+}
+
 function opcoesClubes(seleccionado = '') {
   return '<option value="">Escolher clube</option>' +
     ESTADO.clubes.map((c) => (
@@ -250,7 +258,7 @@ function desenhar(estado) {
           ? c.partilhados.map((p) => `${texto(p.nome)} ${ETIQUETA(p.nivel, p.nivel)}`).join('<br>')
           : '<span class="muted">—</span>'}</td>
       <td>${c.jogos}</td>
-      <td class="small muted nowrap">${texto(soData(c.criadaEm) || '—')}</td>
+      <td class="small muted nowrap">${texto(dataHora(c.criadaEm))}</td>
       <td>
         <button class="discreto" data-gerir="${texto(c.id)}">gerir</button>
       </td>
