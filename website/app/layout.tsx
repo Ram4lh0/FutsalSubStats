@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image", title: "Futsal SubStats: minutos e estatísticas para treinadores de futsal", description: "Substituições, tempo em campo e estatísticas por jogador, mesmo sem internet.", images: ["/og-card.svg"] },
   other: { "codex-preview": "development" },
-  icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
+  icons: { icon: "/logo.png", shortcut: "/logo.png", apple: "/logo.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
