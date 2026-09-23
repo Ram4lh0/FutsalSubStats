@@ -5,8 +5,8 @@
 // Um treinador que já entrou uma vez não volta aqui: a sessão fica guardada no
 // dispositivo e renova-se sozinha.
 
-import { Suspense, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { limparDemo } from '@/lib/demo.js';
@@ -25,29 +25,6 @@ function AppleLogo() {
   );
 }
 
-// A9 (25/09/2026): o site de vendas manda para aqui com "?returnTo=" quando
-// alguém clica em Comprar, para a licença da compra ficar ligada à conta
-// certa desde o início — nunca a um email escrito à mão depois de pagar (ver
-// `worker/billing.ts` no projeto do site). Só se aceita voltar para um destino
-// desta lista: aceitar qualquer origem tornava isto um "open redirect" que
-// levava a sessão de alguém (o access_token vai no fragmento do URL) para um
-// site à escolha de quem construísse o link.
-const DESTINOS_DE_REGRESSO_PERMITIDOS = [
-  'https://futsalsubstats.r4m.workers.dev',
-  'http://localhost:3001',
-];
-
-function destinoDeRegressoValido(valor) {
-  if (!valor) return null;
-  try {
-    const url = new URL(valor);
-    if (!DESTINOS_DE_REGRESSO_PERMITIDOS.includes(url.origin)) return null;
-    return url.toString();
-  } catch {
-    return null;
-  }
-}
-
 function GoogleLogo() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -60,17 +37,7 @@ function GoogleLogo() {
 }
 
 export default function LoginPage() {
-  return (
-    <Suspense fallback={<p className="muted" style={{ padding: 20 }}>…</p>}>
-      <EcraDeLogin />
-    </Suspense>
-  );
-}
-
-function EcraDeLogin() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const returnTo = destinoDeRegressoValido(searchParams.get('returnTo'));
   const t = useT();
   const {
     signIn,
@@ -92,23 +59,11 @@ function EcraDeLogin() {
   const [aEnviar, setAEnviar] = useState(false);
   const [aRecuperar, setARecuperar] = useState(false);
 
-  // Já com sessão (ou sem servidor configurado), não há nada a fazer aqui —
-  // exceto, vindo do site de vendas (`returnTo`), mandar a sessão para lá em
-  // vez de para dentro da app.
+  // Já com sessão (ou sem servidor configurado), não há nada a fazer aqui.
   useEffect(() => {
     if (!ready) return;
-    if (!remote) {
-      router.replace(rotas.jogo());
-      return;
-    }
-    if (!session) return;
-    if (returnTo) {
-      const separador = returnTo.includes('#') ? '&' : '#';
-      window.location.href = `${returnTo}${separador}access_token=${encodeURIComponent(session.access_token)}`;
-      return;
-    }
-    router.replace(rotas.jogo());
-  }, [ready, remote, session, router, returnTo]);
+    if (!remote || session) router.replace(rotas.jogo());
+  }, [ready, remote, session, router]);
 
   // Chegar a este ecrã encerra qualquer experiência a meio. Se ficasse por
   // limpar, uma conta nova nascia com o FC Demonstração lá dentro.
@@ -161,10 +116,10 @@ function EcraDeLogin() {
         return;
       }
       markRecentSignup();
+      router.replace(rotas.jogo());
       return;
     }
-    // O redireccionamento (para a app, ou de volta para o site de vendas) fica
-    // a cargo do efeito acima, que já reage à sessão mudar.
+    router.replace(rotas.jogo());
   }
 
   async function entrarCom(provider) {

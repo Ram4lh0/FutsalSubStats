@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { translations, type Language } from "./translations";
+import { supabase } from "./supabase";
 
 const CONTACT_EMAIL = "review.FutsalSubStats@gmail.com";
 // A app já está na App Store — a Play Store ainda não. Quando o Android for
@@ -19,6 +20,23 @@ type CheckoutClaimState = {
   sessionId: string;
   email: string;
   status: ClaimStatus;
+};
+
+// A9 (25/09/2026, revisto): o login já não manda ninguém para fora do site —
+// acontece aqui mesmo, num diálogo, antes de seguir para o Stripe. A licença
+// continua a ficar ligada a uma conta verificada (nunca a um email escrito à
+// mão depois de pagar): o que mudou foi só onde a pessoa entra ou cria conta.
+type LoginMode = "entrar" | "criar";
+type LoginDialogStatus = "idle" | "loading" | "error" | "confirm-email";
+type LoginDialogState = {
+  type: "coach" | "club";
+  mode: LoginMode;
+  name: string;
+  email: string;
+  password: string;
+  passwordConfirm: string;
+  status: LoginDialogStatus;
+  error: string;
 };
 
 const demoPlayers = {
@@ -385,6 +403,101 @@ function CheckoutClaimDialog({
   </div>;
 }
 
+function friendlyAuthError(message: string, t: (typeof translations)[Language]): string {
+  const m = message.toLowerCase();
+  const e = t.loginDialog.errors;
+  if (m.includes("invalid login")) return e.wrongCredentials;
+  if (m.includes("already registered")) return e.emailInUse;
+  if (m.includes("password should be")) return e.passwordTooShort;
+  if (m.includes("email not confirmed")) return e.confirmEmail;
+  if (m.includes("failed to fetch")) return e.noConnection;
+  return e.generic;
+}
+
+function LoginDialog({
+  t,
+  state,
+  onChange,
+  onSubmit,
+  onToggleMode,
+  onClose,
+}: {
+  t: (typeof translations)[Language];
+  state: LoginDialogState;
+  onChange: (patch: Partial<LoginDialogState>) => void;
+  onSubmit: () => void;
+  onToggleMode: () => void;
+  onClose: () => void;
+}) {
+  const c = t.loginDialog;
+  const criar = state.mode === "criar";
+  const loading = state.status === "loading";
+
+  return <div className="claim-backdrop" role="presentation">
+    <div className="claim-modal" role="dialog" aria-modal="true" aria-label={criar ? c.titleCriar : c.titleEntrar}>
+      <button type="button" className="claim-close" onClick={onClose} aria-label={c.close}>×</button>
+      <span className="claim-icon"><Icon name="ball"/></span>
+      <h3>{criar ? c.titleCriar : c.titleEntrar}</h3>
+      <p>{state.status === "confirm-email" ? c.confirmEmailSent : c.intro}</p>
+      <>
+        {criar && <label className="claim-field">
+          <span>{c.nameLabel}</span>
+          <input
+            type="text"
+            value={state.name}
+            placeholder={c.namePlaceholder}
+            autoComplete="name"
+            onChange={(event) => onChange({ name: event.target.value })}
+            disabled={loading}
+          />
+        </label>}
+        <label className="claim-field">
+          <span>{c.emailLabel}</span>
+          <input
+            type="email"
+            value={state.email}
+            placeholder={c.emailPlaceholder}
+            autoComplete="email"
+            onChange={(event) => onChange({ email: event.target.value })}
+            onKeyDown={(event) => { if (event.key === "Enter") onSubmit(); }}
+            disabled={loading}
+          />
+        </label>
+        <label className="claim-field">
+          <span>{c.passwordLabel}</span>
+          <input
+            type="password"
+            value={state.password}
+            autoComplete={criar ? "new-password" : "current-password"}
+            onChange={(event) => onChange({ password: event.target.value })}
+            onKeyDown={(event) => { if (event.key === "Enter" && !criar) onSubmit(); }}
+            disabled={loading}
+          />
+        </label>
+        {criar && <label className="claim-field">
+          <span>{c.passwordConfirmLabel}</span>
+          <input
+            type="password"
+            value={state.passwordConfirm}
+            autoComplete="new-password"
+            onChange={(event) => onChange({ passwordConfirm: event.target.value })}
+            onKeyDown={(event) => { if (event.key === "Enter") onSubmit(); }}
+            disabled={loading}
+          />
+        </label>}
+        {state.status === "error" && <p className="claim-error">{state.error}</p>}
+        <button type="button" className="button" onClick={onSubmit} disabled={loading}>
+          {loading ? c.loading : criar ? c.submitCriar : c.submitEntrar}
+          <Icon name="arrow"/>
+        </button>
+        <button type="button" className="text-link" onClick={onToggleMode} disabled={loading} style={{ marginTop: 14 }}>
+          {criar ? c.toggleToEntrar : c.toggleToCriar}
+        </button>
+      </>
+    </div>
+  </div>;
+}
+
 export default function Home() {
   const [lang, setLang] = useState<Language>("pt");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -392,6 +505,7 @@ export default function Home() {
   const [checkoutLoading, setCheckoutLoading] = useState<"coach" | "club" | null>(null);
   const [checkoutErrorType, setCheckoutErrorType] = useState<"coach" | "club" | null>(null);
   const [checkoutClaim, setCheckoutClaim] = useState<CheckoutClaimState | null>(null);
+  const [loginDialog, setLoginDialog] = useState<LoginDialogState | null>(null);
   const t = useMemo(() => translations[lang], [lang]);
   useEffect(() => {
     const saved = window.localStorage.getItem("futsal-language") as Language | null;
@@ -405,29 +519,12 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("session_id");
     if (params.get("checkout") !== "success" || !sessionId) return;
-    // A9 (25/09/2026): quem chega aqui já passou pelo login antes de pagar
-    // (ver handleLicenseCheckout) — a licença já ficou ligada à conta certa
-    // no momento em que o pagamento foi confirmado (worker/billing.ts). Não
-    // há email nenhum para pedir outra vez, só confirmar.
+    // A9 (25/09/2026): quem chega aqui já entrou/criou conta no diálogo de
+    // login embutido no site antes de pagar (ver handleLicenseCheckout) — a
+    // licença já ficou ligada à conta certa no momento em que o pagamento
+    // foi confirmado (worker/billing.ts). Não há email nenhum para pedir
+    // outra vez, só confirmar.
     setCheckoutClaim({ sessionId, email: "", status: "success-existing" });
-  }, []);
-  // Depois do login (ver handleLicenseCheckout), a app manda de volta para
-  // aqui com "?buy=<plano>" e o access_token da sessão no fragmento do URL
-  // (nunca na query — o fragmento não viaja para o servidor nem fica nos
-  // logs). Isto continua a compra sozinho, sem a pessoa ter de clicar outra
-  // vez em Comprar.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const buy = params.get("buy");
-    if (!buy) return;
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const accessToken = hashParams.get("access_token");
-    // Limpa já o URL — o token não deve ficar no histórico do browser nem
-    // ser reutilizado se a pessoa recarregar a página.
-    window.history.replaceState(null, "", `${window.location.pathname}#licenses`);
-    if (!accessToken) return;
-    void iniciarCheckoutStripe(buy === "clube" ? "club" : "coach", accessToken);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const emailHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(t.contact.subject)}&body=${encodeURIComponent(t.contact.body)}`;
   // Sem loja, instalar é adicionar ao ecrã principal — e isso explica-se, não
@@ -462,15 +559,63 @@ export default function Home() {
       setCheckoutLoading(null);
     }
   };
-  // A9 (25/09/2026): a licença tem de ficar ligada a uma conta verificada,
-  // não a um email escrito à mão depois de pagar. Por isso comprar manda
-  // sempre primeiro para o login da app (quem já tem sessão guardada no
-  // telemóvel nem chega a ver o formulário) e só volta aqui, já com a sessão
-  // confirmada, para continuar para o Stripe.
-  const handleLicenseCheckout = (type: "coach" | "club") => {
-    const plan = type === "club" ? "clube" : "treinador";
-    const returnTo = `${window.location.origin}${window.location.pathname}?buy=${plan}`;
-    window.location.href = `${APP_URL}/login?returnTo=${encodeURIComponent(returnTo)}`;
+  // A9 (25/09/2026, revisto): a licença tem de ficar ligada a uma conta
+  // verificada, não a um email escrito à mão depois de pagar — mas isso já
+  // não obriga a sair do site. Se já houver sessão guardada neste browser
+  // (uma compra anterior, por exemplo), segue-se logo para o Stripe; senão
+  // abre-se o diálogo de entrar/criar conta aqui mesmo, e só depois de
+  // autenticado é que se continua.
+  const handleLicenseCheckout = async (type: "coach" | "club") => {
+    const { data } = await supabase().auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (accessToken) {
+      void iniciarCheckoutStripe(type, accessToken);
+      return;
+    }
+    setLoginDialog({ type, mode: "entrar", name: "", email: "", password: "", passwordConfirm: "", status: "idle", error: "" });
+  };
+  const submitLogin = async () => {
+    if (!loginDialog || loginDialog.status === "loading") return;
+    const email = loginDialog.email.trim().toLowerCase();
+    const password = loginDialog.password;
+    if (!email || !password) {
+      setLoginDialog({ ...loginDialog, status: "error", error: t.loginDialog.missingFields });
+      return;
+    }
+    if (loginDialog.mode === "criar" && password !== loginDialog.passwordConfirm) {
+      setLoginDialog({ ...loginDialog, status: "error", error: t.loginDialog.passwordMismatch });
+      return;
+    }
+    setLoginDialog({ ...loginDialog, status: "loading", error: "" });
+    const sb = supabase();
+    if (loginDialog.mode === "entrar") {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) {
+        setLoginDialog({ ...loginDialog, status: "error", error: friendlyAuthError(error.message, t) });
+        return;
+      }
+      const accessToken = data.session?.access_token;
+      const type = loginDialog.type;
+      setLoginDialog(null);
+      if (accessToken) void iniciarCheckoutStripe(type, accessToken);
+      return;
+    }
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name: loginDialog.name.trim() } } });
+    if (error) {
+      setLoginDialog({ ...loginDialog, status: "error", error: friendlyAuthError(error.message, t) });
+      return;
+    }
+    const accessToken = data.session?.access_token;
+    if (accessToken) {
+      const type = loginDialog.type;
+      setLoginDialog(null);
+      void iniciarCheckoutStripe(type, accessToken);
+      return;
+    }
+    // Sem sessão imediata: o projeto exige confirmar o email antes de a
+    // conta poder entrar. Fica-se no diálogo, já no modo de entrar, à
+    // espera que a pessoa confirme e volte para continuar a compra.
+    setLoginDialog({ ...loginDialog, mode: "entrar", status: "confirm-email", password: "", passwordConfirm: "" });
   };
   const submitCheckoutClaim = async () => {
     if (!checkoutClaim || checkoutClaim.status === "loading") return;
@@ -533,6 +678,14 @@ export default function Home() {
       onEmailChange={(email) => setCheckoutClaim({ ...checkoutClaim, email, status: checkoutClaim.status === "error" ? "idle" : checkoutClaim.status })}
       onSubmit={submitCheckoutClaim}
       onClose={() => setCheckoutClaim(null)}
+    />}
+    {loginDialog && <LoginDialog
+      t={t}
+      state={loginDialog}
+      onChange={(patch) => setLoginDialog({ ...loginDialog, ...patch })}
+      onSubmit={submitLogin}
+      onToggleMode={() => setLoginDialog({ ...loginDialog, mode: loginDialog.mode === "entrar" ? "criar" : "entrar", status: "idle", error: "" })}
+      onClose={() => setLoginDialog(null)}
     />}
     <footer><a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><img src="/logo.png" alt="" width={36} height={36}/></span><span>Futsal <b>SubStats</b></span></a><p>{t.footer.tagline}</p><div><a href={`mailto:${CONTACT_EMAIL}`}>{t.nav.contact}</a><a href="#licenses">{t.nav.licenses}</a><span>© 2026 Futsal SubStats</span></div></footer>
   </main>;
