@@ -376,7 +376,7 @@ function CheckoutClaimDialog({
   return <div className="claim-backdrop" role="presentation">
     <div className="claim-modal" role="dialog" aria-modal="true" aria-label={c.title}>
       <button type="button" className="claim-close" onClick={onClose} aria-label={c.close}>×</button>
-      <span className="claim-icon"><Icon name={done ? "check" : "ball"}/></span>
+      <span className={`claim-icon${done ? "" : " claim-icon--logo"}`}>{done ? <Icon name="check"/> : <img src="/logo.png" alt="" width={52} height={52}/>}</span>
       <h3>{c.title}</h3>
       <p>{done ? (claim.status === "success-invited" ? c.successInvited : c.successExisting) : c.intro}</p>
       {!done && <>
@@ -436,7 +436,7 @@ function LoginDialog({
   return <div className="claim-backdrop" role="presentation">
     <div className="claim-modal" role="dialog" aria-modal="true" aria-label={criar ? c.titleCriar : c.titleEntrar}>
       <button type="button" className="claim-close" onClick={onClose} aria-label={c.close}>×</button>
-      <span className="claim-icon"><Icon name="ball"/></span>
+      <span className="claim-icon claim-icon--logo"><img src="/logo.png" alt="" width={52} height={52}/></span>
       <h3>{criar ? c.titleCriar : c.titleEntrar}</h3>
       <p>{state.status === "confirm-email" ? c.confirmEmailSent : c.intro}</p>
       <>
