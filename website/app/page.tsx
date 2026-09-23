@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { translations, type Language } from "./translations";
 
 const CONTACT_EMAIL = "review.FutsalSubStats@gmail.com";
-// Add the public store URLs here when the apps are published.
-const APP_STORE_URL: string | null = null;
+// A app já está na App Store — a Play Store ainda não. Quando o Android for
+// publicado, troca-se o `null` pelo link real e o mesmo mecanismo passa a
+// valer também para Android.
+const APP_STORE_URL: string | null = "https://apps.apple.com/pt/app/futsal-substats/id6804845572";
 const PLAY_STORE_URL: string | null = null;
 // Onde a app vive. O botão de instalar leva aqui antes de explicar os passos:
 // "Adicionar ao ecrã principal" guarda a página **em que a pessoa está**, por
@@ -80,6 +82,14 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
   const [selectedField, setSelectedField] = useState<DemoPlayerNumber | null>(null);
   const [selectedBench, setSelectedBench] = useState<DemoPlayerNumber | null>(null);
   const [notice, setNotice] = useState("");
+  // Arrastar é só uma segunda forma de fazer a mesma troca — o toque
+  // continua a funcionar como antes. Usa-se o drag-and-drop nativo do browser
+  // (em vez de seguir o ponteiro à mão) para que o "fantasma" que se arrasta
+  // seja desenhado pelo próprio browser, sem se preocupar com as transformações
+  // 3D do `device-shell`.
+  const [draggingNumber, setDraggingNumber] = useState<DemoPlayerNumber | null>(null);
+  const [draggingZone, setDraggingZone] = useState<"field" | "bench" | null>(null);
+  const [dragOverNumber, setDragOverNumber] = useState<DemoPlayerNumber | null>(null);
   useEffect(() => {
     if (!running || seconds <= 0) return;
     const timer = window.setInterval(() => {
@@ -117,11 +127,34 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
     setSelectedField(null);
     setNotice(t.demo.pickField);
   };
+  const startDrag = (number: DemoPlayerNumber, zone: "field" | "bench") => (event: React.DragEvent<HTMLButtonElement>) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(number));
+    setDraggingNumber(number);
+    setDraggingZone(zone);
+  };
+  const endDrag = () => {
+    setDraggingNumber(null);
+    setDraggingZone(null);
+    setDragOverNumber(null);
+  };
+  const dragOverTarget = (number: DemoPlayerNumber, zone: "field" | "bench") => (event: React.DragEvent<HTMLButtonElement>) => {
+    if (!draggingZone || draggingZone === zone) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDragOverNumber(number);
+  };
+  const dropOnTarget = (number: DemoPlayerNumber, zone: "field" | "bench") => (event: React.DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (zone === "field" && draggingZone === "bench" && draggingNumber) swapPlayers(number, draggingNumber);
+    else if (zone === "bench" && draggingZone === "field" && draggingNumber) swapPlayers(draggingNumber, number);
+    endDrag();
+  };
   return <div className="match-window" aria-label={t.demo.label}>
     <div className="match-topbar"><span className="live-dot"><i /> {t.demo.live}</span><div className="match-score"><span className="score-team"><small>CAP</small><span className="score-stepper"><button type="button" aria-label={t.demo.decreaseHome} onClick={() => setHomeGoals((value) => Math.max(0, value - 1))}>−</button><b>{homeGoals}</b><button type="button" aria-label={t.demo.increaseHome} onClick={() => setHomeGoals((value) => value + 1)}>+</button></span></span><em>—</em><span className="score-team"><small>ADV</small><span className="score-stepper"><button type="button" aria-label={t.demo.decreaseAway} onClick={() => setAwayGoals((value) => Math.max(0, value - 1))}>−</button><b>{awayGoals}</b><button type="button" aria-label={t.demo.increaseAway} onClick={() => setAwayGoals((value) => value + 1)}>+</button></span></span></div><button className="icon-button" type="button" aria-label={t.demo.undo}>↶</button></div>
     <div className="timer-row"><div><small>{t.demo.part}</small><strong>{time}</strong></div><button type="button" className={`timer-control ${running ? "pause" : "play"}`} onClick={() => setRunning(!running)}><span>{running ? "Ⅱ" : "▶"}</span>{running ? t.demo.pause : t.demo.resume}</button></div>
     <div className="court"><span className="half-line"/><span className="center-circle"/><span className="area left"/><span className="area right"/>
-      {onCourt.map((number, index) => { const player = demoPlayers[number]; const position = fieldPositions[index]; const role = t.demo.roles[player.role]; return <button key={number} type="button" className={`field-player-card ${selectedField === number ? "selected" : ""} ${selectedBench ? "ready" : ""}`} style={{ left:`${position.x}%`, top:`${position.y}%` }} onClick={() => chooseField(number)} aria-label={`${player.name}, ${role}`}>
+      {onCourt.map((number, index) => { const player = demoPlayers[number]; const position = fieldPositions[index]; const role = t.demo.roles[player.role]; return <button key={number} type="button" draggable className={`field-player-card ${selectedField === number || (draggingZone === "field" && draggingNumber === number) ? "selected" : ""} ${selectedBench || draggingZone === "bench" ? "ready" : ""} ${dragOverNumber === number ? "selected" : ""}`} style={{ left:`${position.x}%`, top:`${position.y}%` }} onClick={() => chooseField(number)} onDragStart={startDrag(number, "field")} onDragEnd={endDrag} onDragOver={dragOverTarget(number, "field")} onDragLeave={() => setDragOverNumber((current) => current === number ? null : current)} onDrop={dropOnTarget(number, "field")} aria-label={`${player.name}, ${role}`}>
         <span className="player-card-top"><b>{player.number}</b><small>{role}</small><i>●</i></span>
         <strong>{player.name}</strong>
         <span className="player-time">{t.demo.totalTime} <b>{formatDuration(playerTimes[number])}</b></span>
@@ -130,7 +163,7 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
       <div className={`swap-notice ${notice ? "show" : ""}`}>{notice}</div>
     </div>
     <div className="bench-label"><span>{t.demo.bench}</span><small>{t.demo.tap}</small></div>
-    <div className="bench-list">{onBench.map((number) => { const player = demoPlayers[number]; const role = t.demo.roles[player.role]; return <button key={number} type="button" onClick={() => chooseBench(number)} className={`${selectedField ? "ready" : ""} ${selectedBench === number ? "selected" : ""}`} aria-label={`${player.number} ${player.name}, ${role}`}>
+    <div className="bench-list">{onBench.map((number) => { const player = demoPlayers[number]; const role = t.demo.roles[player.role]; return <button key={number} type="button" draggable onClick={() => chooseBench(number)} onDragStart={startDrag(number, "bench")} onDragEnd={endDrag} onDragOver={dragOverTarget(number, "bench")} onDragLeave={() => setDragOverNumber((current) => current === number ? null : current)} onDrop={dropOnTarget(number, "bench")} className={`${selectedField || draggingZone === "field" ? "ready" : ""} ${selectedBench === number || (draggingZone === "bench" && draggingNumber === number) ? "selected" : ""} ${dragOverNumber === number ? "selected" : ""}`} aria-label={`${player.number} ${player.name}, ${role}`}>
       <span className="bench-card-top"><b>{player.number}</b><small>{role}</small></span><strong>{player.name}</strong>
       <span className="bench-time">{t.demo.totalTime} <b>{formatDuration(playerTimes[number])}</b></span>
       <span className={exitedAt[number] === undefined ? "bench-status muted" : "bench-status"}>{exitedAt[number] === undefined ? t.demo.notEntered : `${t.demo.leftAgo} ${formatDuration(elapsed - exitedAt[number])}`}</span>
@@ -236,13 +269,14 @@ function InstallDialog({ t, onClose }: { t: (typeof translations)[Language]; onC
   // Quem está no telemóvel abre a app e faz os passos ali. Quem está no
   // computador não tem onde a instalar — o primeiro passo passa a ser levar o
   // link para o telemóvel, e o botão copia em vez de abrir.
+  //
+  // O iOS já tem loja: não há passos para explicar, só um botão que leva lá.
+  // Isto só interessa a quem chega aqui pelo diálogo de escolha manual (no
+  // computador) — num iPhone a sério, o `handleInstall` já vai direto à App
+  // Store sem passar por este ecrã.
   const noTelemovel = detectado;
-  const base = sistema === "ios" ? c.iosSteps : c.androidSteps;
-  const primeiro = noTelemovel
-    ? base[0]
-    : sistema === "ios"
-      ? c.iosPasteStep
-      : c.androidPasteStep;
+  const base = c.androidSteps;
+  const primeiro = noTelemovel ? base[0] : c.androidPasteStep;
   const passos = [primeiro, ...base.slice(1)];
 
   async function copiar() {
@@ -261,18 +295,27 @@ function InstallDialog({ t, onClose }: { t: (typeof translations)[Language]; onC
     <div className="install-modal" role="dialog" aria-modal="true" aria-label={c.title} onClick={(e) => e.stopPropagation()}>
       <button type="button" className="install-close" onClick={onClose} aria-label={c.close}>×</button>
       <h3>{c.title}</h3>
-      <p>{sistema ? c.intro : c.chooseHint}</p>
+      {sistema !== "ios" && <p>{sistema ? c.intro : c.chooseHint}</p>}
 
       {!sistema ? <>
         <div className="install-choice">
           <button type="button" onClick={() => setSistema("ios")}><Icon name="apple"/>{c.iphone}</button>
           <button type="button" onClick={() => setSistema("android")}><Icon name="android"/>{c.android}</button>
         </div>
+      </> : sistema === "ios" ? <>
+        {/* iOS já tem loja: nada para explicar, só o link — sem a barra do
+            ícone nem a frase de intro, que só faziam sentido para os passos
+            de "adicionar ao ecrã principal" que já não existem aqui. */}
+        <a className="button" href={APP_STORE_URL || APP_URL} target="_blank" rel="noreferrer">{c.downloadHere}<Icon name="arrow"/></a>
+        <p className="install-note">{c.offlineNote}</p>
+        <button type="button" className="install-back" onClick={() => setSistema(null)}>
+          {detectado ? c.wrongDevice : c.chooseTitle}
+        </button>
       </> : <>
         {/* O ícone que ela tem de procurar, à escala a que aparece no telemóvel.
             Vale mais do que a frase que o descreve. */}
         <div className="install-glyph">
-          <Icon name={sistema === "ios" ? "share" : "dots"}/>
+          <Icon name="dots"/>
           <span>{passos[1]}</span>
         </div>
         <ol className="install-steps">{passos.map((passo) => <li key={passo}>{passo}</li>)}</ol>
@@ -347,6 +390,7 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [installOpen, setInstallOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<"coach" | "club" | null>(null);
+  const [checkoutErrorType, setCheckoutErrorType] = useState<"coach" | "club" | null>(null);
   const [checkoutClaim, setCheckoutClaim] = useState<CheckoutClaimState | null>(null);
   const t = useMemo(() => translations[lang], [lang]);
   useEffect(() => {
@@ -361,33 +405,72 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("session_id");
     if (params.get("checkout") !== "success" || !sessionId) return;
-    setCheckoutClaim({ sessionId, email: "", status: "idle" });
+    // A9 (25/09/2026): quem chega aqui já passou pelo login antes de pagar
+    // (ver handleLicenseCheckout) — a licença já ficou ligada à conta certa
+    // no momento em que o pagamento foi confirmado (worker/billing.ts). Não
+    // há email nenhum para pedir outra vez, só confirmar.
+    setCheckoutClaim({ sessionId, email: "", status: "success-existing" });
+  }, []);
+  // Depois do login (ver handleLicenseCheckout), a app manda de volta para
+  // aqui com "?buy=<plano>" e o access_token da sessão no fragmento do URL
+  // (nunca na query — o fragmento não viaja para o servidor nem fica nos
+  // logs). Isto continua a compra sozinho, sem a pessoa ter de clicar outra
+  // vez em Comprar.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const buy = params.get("buy");
+    if (!buy) return;
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const accessToken = hashParams.get("access_token");
+    // Limpa já o URL — o token não deve ficar no histórico do browser nem
+    // ser reutilizado se a pessoa recarregar a página.
+    window.history.replaceState(null, "", `${window.location.pathname}#licenses`);
+    if (!accessToken) return;
+    void iniciarCheckoutStripe(buy === "clube" ? "club" : "coach", accessToken);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const emailHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(t.contact.subject)}&body=${encodeURIComponent(t.contact.body)}`;
-  // Enquanto não houver lojas, instalar é adicionar ao ecrã principal — e isso
-  // explica-se, não se faz por link. Quando as lojas existirem, a constante
-  // deixa de ser `null` e o botão passa a levar lá directamente.
+  // Sem loja, instalar é adicionar ao ecrã principal — e isso explica-se, não
+  // se faz por link. Com loja, o botão vai lá directamente, mas só quando o
+  // aparelho é mesmo esse: no computador continua a abrir-se o diálogo, para
+  // quem quiser escolher e levar o link para o telemóvel.
   const handleInstall = () => {
-    const storeUrl = /Android/i.test(window.navigator.userAgent) ? PLAY_STORE_URL : APP_STORE_URL;
+    const sistema = detectarSistema();
+    const storeUrl = sistema === "android" ? PLAY_STORE_URL : sistema === "ios" ? APP_STORE_URL : null;
     if (storeUrl) { window.location.href = storeUrl; return; }
     setInstallOpen(true);
   };
-  const handleLicenseCheckout = async (type: "coach" | "club", planName: string) => {
+  const iniciarCheckoutStripe = async (type: "coach" | "club", accessToken: string) => {
     setCheckoutLoading(type);
+    setCheckoutErrorType(null);
     try {
       const response = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: type === "club" ? "clube" : "treinador" }),
+        body: JSON.stringify({ plan: type === "club" ? "clube" : "treinador", accessToken }),
       });
       if (!response.ok) throw new Error("checkout_failed");
       const data = await response.json();
       if (!data?.url) throw new Error("checkout_missing_url");
       window.location.href = data.url;
-    } catch {
-      window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`${t.licenses.request}: ${planName}`)}`;
+    } catch (error) {
+      // Não redireciona para o email: um checkout que falha é um bug do
+      // Stripe/worker a resolver, não um pedido manual a substituir. Mostra
+      // o erro junto do botão para a pessoa tentar de novo ou nos contactar.
+      console.error("Falha ao abrir o checkout do Stripe:", error);
+      setCheckoutErrorType(type);
       setCheckoutLoading(null);
     }
+  };
+  // A9 (25/09/2026): a licença tem de ficar ligada a uma conta verificada,
+  // não a um email escrito à mão depois de pagar. Por isso comprar manda
+  // sempre primeiro para o login da app (quem já tem sessão guardada no
+  // telemóvel nem chega a ver o formulário) e só volta aqui, já com a sessão
+  // confirmada, para continuar para o Stripe.
+  const handleLicenseCheckout = (type: "coach" | "club") => {
+    const plan = type === "club" ? "clube" : "treinador";
+    const returnTo = `${window.location.origin}${window.location.pathname}?buy=${plan}`;
+    window.location.href = `${APP_URL}/login?returnTo=${encodeURIComponent(returnTo)}`;
   };
   const submitCheckoutClaim = async () => {
     if (!checkoutClaim || checkoutClaim.status === "loading") return;
@@ -414,7 +497,7 @@ export default function Home() {
 
   return <main>
     <header className="site-header">
-      <a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><Icon name="ball"/></span><span>Futsal <b>SubStats</b></span></a>
+      <a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><img src="/logo.png" alt="" width={36} height={36}/></span><span>Futsal <b>SubStats</b></span></a>
       <nav className={menuOpen ? "open" : ""} aria-label={t.nav.label}><a href="#try-demo" onClick={() => setMenuOpen(false)}>{t.nav.tryHere}</a><a href="#features" onClick={() => setMenuOpen(false)}>{t.nav.features}</a><a href="#licenses" onClick={() => setMenuOpen(false)}>{t.nav.licenses}</a><a href="#contact" onClick={() => setMenuOpen(false)}>{t.nav.contact}</a></nav>
       <div className="header-actions"><label className="language-select"><span className="sr-only">{t.nav.language}</span><Icon name="globe"/><b aria-hidden="true">{lang.toUpperCase()}</b><select aria-label={t.nav.language} value={lang} onChange={(e) => setLang(e.target.value as Language)}><option value="pt">PT</option><option value="en">EN</option><option value="es">ES</option></select></label><button type="button" className="button small header-install" onClick={handleInstall}>{t.nav.install}</button><button className="menu-button" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label={t.nav.menu}><span/><span/></button></div>
     </header>
@@ -439,7 +522,7 @@ export default function Home() {
 
     <section className="offline-section" id="offline"><div className="offline-glow"/><div className="offline-visual reveal"><div className="signal-rings"><i/><i/><i/></div><div className="offline-device"><span className="offline-notch"/><span className="offline-icon"><Icon name="wifi"/><b>{t.offline.local}</b></span><small>{t.offline.device}</small></div><div className="sync-path"><i/><i/><i/></div><div className="data-card data-one"><Icon name="folder"/><span><b>{t.offline.saved}</b><small>{t.offline.device}</small></span><Icon name="check"/></div><div className="data-card data-two"><Icon name="chart"/><span><b>{t.offline.synced}</b><small>{t.offline.connection}</small></span><Icon name="check"/></div></div><div className="offline-copy reveal"><span className="section-number">04</span><p>{t.offline.kicker}</p><h2>{t.offline.title}</h2><p>{t.offline.text}</p><div className="offline-detail"><Icon name="shield"/><div><b>{t.offline.privacyTitle}</b><span>{t.offline.privacyText}</span></div></div></div></section>
 
-    <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">05</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><div className="plan-price"><del>{plan.oldPrice}</del><strong>{plan.price}</strong><span>{t.licenses.perSeason}</span></div><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul><button className="button" type="button" disabled={checkoutLoading !== null} onClick={() => handleLicenseCheckout(type, plan.name)}>{checkoutLoading === type ? t.licenses.buying : t.licenses.buy}<Icon name="arrow"/></button></article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><button type="button" className="button" onClick={handleInstall}>{t.licenses.installNow}<Icon name="arrow"/></button></div></div></section>
+    <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">05</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><div className="plan-price"><del>{plan.oldPrice}</del><strong>{plan.price}</strong><span>{t.licenses.perSeason}</span></div><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul><button className="button" type="button" disabled={checkoutLoading !== null} onClick={() => handleLicenseCheckout(type)}>{checkoutLoading === type ? t.licenses.buying : t.licenses.buy}<Icon name="arrow"/></button>{checkoutErrorType === type && <p className="claim-error">{t.licenses.checkoutError}</p>}</article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><button type="button" className="button" onClick={handleInstall}>{t.licenses.installNow}<Icon name="arrow"/></button></div></div></section>
 
     <section className="contact-section" id="contact"><div className="contact-card reveal"><div><p>{t.contact.kicker}</p><h2>{t.contact.title}</h2><span>{t.contact.text}</span></div><a className="button" href={emailHref}><Icon name="mail"/>{t.contact.button}</a><small>{CONTACT_EMAIL}</small></div></section>
     <section className="faq-section"><div className="faq-heading reveal"><p>{t.faq.kicker}</p><h2>{t.faq.title}</h2></div><div className="faq-list reveal">{t.faq.items.map((item)=><details key={item.question}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
@@ -451,6 +534,6 @@ export default function Home() {
       onSubmit={submitCheckoutClaim}
       onClose={() => setCheckoutClaim(null)}
     />}
-    <footer><a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><Icon name="ball"/></span><span>Futsal <b>SubStats</b></span></a><p>{t.footer.tagline}</p><div><a href={`mailto:${CONTACT_EMAIL}`}>{t.nav.contact}</a><a href="#licenses">{t.nav.licenses}</a><span>© 2026 Futsal SubStats</span></div></footer>
+    <footer><a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><img src="/logo.png" alt="" width={36} height={36}/></span><span>Futsal <b>SubStats</b></span></a><p>{t.footer.tagline}</p><div><a href={`mailto:${CONTACT_EMAIL}`}>{t.nav.contact}</a><a href="#licenses">{t.nav.licenses}</a><span>© 2026 Futsal SubStats</span></div></footer>
   </main>;
 }
