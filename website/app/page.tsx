@@ -504,6 +504,7 @@ export default function Home() {
   const [installOpen, setInstallOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<"coach" | "club" | null>(null);
   const [checkoutErrorType, setCheckoutErrorType] = useState<"coach" | "club" | null>(null);
+  const [licenseWarning, setLicenseWarning] = useState<{ type: "coach" | "club"; kind: "same" | "club-covers" } | null>(null);
   const [checkoutClaim, setCheckoutClaim] = useState<CheckoutClaimState | null>(null);
   const [loginDialog, setLoginDialog] = useState<LoginDialogState | null>(null);
   const t = useMemo(() => translations[lang], [lang]);
@@ -524,6 +525,9 @@ export default function Home() {
     // licença já ficou ligada à conta certa no momento em que o pagamento
     // foi confirmado (worker/billing.ts). Não há email nenhum para pedir
     // outra vez, só confirmar.
+    // Só dá para saber se veio do Stripe depois de montar (lê a query
+    // string) — não é estado derivado do render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCheckoutClaim({ sessionId, email: "", status: "success-existing" });
   }, []);
   const emailHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(t.contact.subject)}&body=${encodeURIComponent(t.contact.body)}`;
@@ -549,6 +553,9 @@ export default function Home() {
       if (!response.ok) throw new Error("checkout_failed");
       const data = await response.json();
       if (!data?.url) throw new Error("checkout_missing_url");
+      // Navegação a seguir a um clique (fetch já resolvido), nunca durante
+      // o render.
+      // eslint-disable-next-line react-hooks/immutability
       window.location.href = data.url;
     } catch (error) {
       // Não redireciona para o email: um checkout que falha é um bug do
@@ -565,11 +572,50 @@ export default function Home() {
   // (uma compra anterior, por exemplo), segue-se logo para o Stripe; senão
   // abre-se o diálogo de entrar/criar conta aqui mesmo, e só depois de
   // autenticado é que se continua.
+  // Uma conta de Clube já cobre tudo — comprar Treinador por cima não faz
+  // sentido nenhum. E quem já tem Treinador não precisa de comprar Treinador
+  // outra vez, mas pode perfeitamente querer subir para Clube, por isso essa
+  // combinação segue em frente sem avisos. Lê-se o perfil sempre que se vai
+  // continuar para o Stripe (aqui, e também logo a seguir a um login/registo
+  // no diálogo), nunca em antecipação — é o único sítio onde isto interessa.
+  const checkLicenseAndProceed = async (type: "coach" | "club", accessToken: string, userId: string) => {
+    setCheckoutErrorType(null);
+    setLicenseWarning(null);
+    setCheckoutLoading(type);
+    const { data: profile } = await supabase()
+      .from("profiles")
+      .select("licenca, license_status, license_expires_at")
+      .eq("id", userId)
+      .maybeSingle();
+    const expiresAt = profile?.license_expires_at ? new Date(profile.license_expires_at).getTime() : null;
+    const active = Boolean(
+      profile &&
+      ["trial", "active", "grace"].includes(profile.license_status as string) &&
+      // Só corre a seguir a um clique em Comprar ou a um login, nunca
+      // durante o render.
+      // eslint-disable-next-line react-hooks/purity
+      (expiresAt === null || expiresAt > Date.now())
+    );
+    if (active && profile?.licenca === "clube") {
+      setCheckoutLoading(null);
+      setLicenseWarning({ type, kind: "club-covers" });
+      return;
+    }
+    if (active && profile?.licenca === "treinador" && type === "coach") {
+      setCheckoutLoading(null);
+      setLicenseWarning({ type, kind: "same" });
+      return;
+    }
+    void iniciarCheckoutStripe(type, accessToken);
+  };
   const handleLicenseCheckout = async (type: "coach" | "club") => {
+    setCheckoutErrorType(null);
+    setLicenseWarning(null);
     const { data } = await supabase().auth.getSession();
     const accessToken = data.session?.access_token;
-    if (accessToken) {
-      void iniciarCheckoutStripe(type, accessToken);
+    const userId = data.session?.user?.id;
+    if (accessToken && userId) {
+      void checkLicenseAndProceed(type, accessToken, userId);
       return;
     }
     setLoginDialog({ type, mode: "entrar", name: "", email: "", password: "", passwordConfirm: "", status: "idle", error: "" });
@@ -595,9 +641,10 @@ export default function Home() {
         return;
       }
       const accessToken = data.session?.access_token;
+      const userId = data.session?.user?.id;
       const type = loginDialog.type;
       setLoginDialog(null);
-      if (accessToken) void iniciarCheckoutStripe(type, accessToken);
+      if (accessToken && userId) void checkLicenseAndProceed(type, accessToken, userId);
       return;
     }
     const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name: loginDialog.name.trim() } } });
@@ -606,10 +653,11 @@ export default function Home() {
       return;
     }
     const accessToken = data.session?.access_token;
-    if (accessToken) {
+    const userId = data.session?.user?.id;
+    if (accessToken && userId) {
       const type = loginDialog.type;
       setLoginDialog(null);
-      void iniciarCheckoutStripe(type, accessToken);
+      void checkLicenseAndProceed(type, accessToken, userId);
       return;
     }
     // Sem sessão imediata: o projeto exige confirmar o email antes de a
@@ -667,7 +715,7 @@ export default function Home() {
 
     <section className="offline-section" id="offline"><div className="offline-glow"/><div className="offline-visual reveal"><div className="signal-rings"><i/><i/><i/></div><div className="offline-device"><span className="offline-notch"/><span className="offline-icon"><Icon name="wifi"/><b>{t.offline.local}</b></span><small>{t.offline.device}</small></div><div className="sync-path"><i/><i/><i/></div><div className="data-card data-one"><Icon name="folder"/><span><b>{t.offline.saved}</b><small>{t.offline.device}</small></span><Icon name="check"/></div><div className="data-card data-two"><Icon name="chart"/><span><b>{t.offline.synced}</b><small>{t.offline.connection}</small></span><Icon name="check"/></div></div><div className="offline-copy reveal"><span className="section-number">04</span><p>{t.offline.kicker}</p><h2>{t.offline.title}</h2><p>{t.offline.text}</p><div className="offline-detail"><Icon name="shield"/><div><b>{t.offline.privacyTitle}</b><span>{t.offline.privacyText}</span></div></div></div></section>
 
-    <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">05</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><div className="plan-price"><del>{plan.oldPrice}</del><strong>{plan.price}</strong><span>{t.licenses.perSeason}</span></div><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul><button className="button" type="button" disabled={checkoutLoading !== null} onClick={() => handleLicenseCheckout(type)}>{checkoutLoading === type ? t.licenses.buying : t.licenses.buy}<Icon name="arrow"/></button>{checkoutErrorType === type && <p className="claim-error">{t.licenses.checkoutError}</p>}</article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><button type="button" className="button" onClick={handleInstall}>{t.licenses.installNow}<Icon name="arrow"/></button></div></div></section>
+    <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">05</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><div className="plan-price"><del>{plan.oldPrice}</del><strong>{plan.price}</strong><span>{t.licenses.perSeason}</span></div><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul><button className="button" type="button" disabled={checkoutLoading !== null} onClick={() => handleLicenseCheckout(type)}>{checkoutLoading === type ? t.licenses.buying : t.licenses.buy}<Icon name="arrow"/></button>{checkoutErrorType === type && <p className="claim-error">{t.licenses.checkoutError}</p>}{licenseWarning?.type === type && <p className="claim-error">{licenseWarning.kind === "club-covers" ? t.licenses.alreadyOwnClub : t.licenses.alreadyOwnSame}</p>}</article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><button type="button" className="button" onClick={handleInstall}>{t.licenses.installNow}<Icon name="arrow"/></button></div></div></section>
 
     <section className="contact-section" id="contact"><div className="contact-card reveal"><div><p>{t.contact.kicker}</p><h2>{t.contact.title}</h2><span>{t.contact.text}</span></div><a className="button" href={emailHref}><Icon name="mail"/>{t.contact.button}</a><small>{CONTACT_EMAIL}</small></div></section>
     <section className="faq-section"><div className="faq-heading reveal"><p>{t.faq.kicker}</p><h2>{t.faq.title}</h2></div><div className="faq-list reveal">{t.faq.items.map((item)=><details key={item.question}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
