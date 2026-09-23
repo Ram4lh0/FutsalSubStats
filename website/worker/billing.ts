@@ -55,7 +55,7 @@ export async function handleStripeCheckout(request: Request, env: BillingEnv): P
   if (request.method === "OPTIONS") return emptyCors();
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  let body: { plan?: string; email?: string; successUrl?: string; cancelUrl?: string };
+  let body: { plan?: string; accessToken?: string; successUrl?: string; cancelUrl?: string };
   try {
     body = await request.json();
   } catch {
@@ -64,6 +64,16 @@ export async function handleStripeCheckout(request: Request, env: BillingEnv): P
 
   const plan = normalizarPlano(body.plan);
   if (!plan) return json({ error: "invalid_plan" }, 400);
+
+  // A9 (25/09/2026): a compra fica ligada a uma conta verificada por login —
+  // nunca a um email escrito à mão. O botão de comprar no site manda sempre
+  // primeiro para o login da app (ver website/app/page.tsx), e só volta aqui
+  // com o access_token dessa sessão. Sem ele, nem se cria a sessão do Stripe.
+  const accessToken = String(body.accessToken || "").trim();
+  if (!accessToken) return json({ error: "login_required" }, 401);
+
+  const verifiedUser = await verifySupabaseAccessToken(env, accessToken);
+  if (!verifiedUser) return json({ error: "invalid_session" }, 401);
 
   const price = plan === "clube" ? env.STRIPE_PRICE_CLUBE_ANUAL : env.STRIPE_PRICE_TREINADOR_ANUAL;
   const secret = env.STRIPE_SECRET_KEY;
@@ -86,8 +96,9 @@ export async function handleStripeCheckout(request: Request, env: BillingEnv): P
   params.set("tax_id_collection[enabled]", "true");
   params.set("metadata[plan]", plan);
   params.set("metadata[license_end_policy]", "season_june_30");
+  params.set("metadata[user_id]", verifiedUser.id);
   params.set("locale", "pt");
-  if (body.email && /^\S+@\S+\.\S+$/.test(body.email)) params.set("customer_email", body.email);
+  params.set("customer_email", verifiedUser.email);
 
   const response = await fetch(`${STRIPE_API}/checkout/sessions`, {
     method: "POST",
@@ -246,7 +257,46 @@ async function processCheckoutSession(env: BillingEnv, session: StripeCheckoutSe
   }
 
   const expiresAt = seasonLicenseEnd().toISOString();
+  const userId = session.metadata?.user_id || null;
+
+  if (userId) {
+    // Compra feita a partir do fluxo com login obrigatório (A9): a conta já
+    // é conhecida e verificada desde a criação da sessão do Stripe — aplica-se
+    // a licença logo aqui, sem precisar de pedir o email outra vez depois.
+    await upsertPurchase(env, session, { email, plan, status: "paid", expiresAt, raw });
+    await markPurchaseClaimed(env, session.id, email, userId, expiresAt);
+    const profilePatch: Record<string, unknown> = {
+      licenca: plan,
+      license_status: "active",
+      license_source: "stripe",
+      license_expires_at: expiresAt,
+      stripe_last_checkout_session_id: session.id,
+    };
+    if (session.customer) profilePatch.stripe_customer_id = session.customer;
+    if (session.payment_intent) profilePatch.stripe_last_payment_intent_id = session.payment_intent;
+    await patchProfile(env, userId, profilePatch);
+    return;
+  }
+
+  // Sem sessão verificada (ex.: um link do Stripe criado à mão, fora do
+  // site) — mantém o fluxo antigo de "reclamar" a compra com um email depois
+  // de pagar (ver handleStripeClaim).
   await upsertPurchase(env, session, { email, plan, status: "unmatched", expiresAt, raw });
+}
+
+async function verifySupabaseAccessToken(env: BillingEnv, accessToken: string): Promise<{ id: string; email: string } | null> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return null;
+  const base = env.SUPABASE_URL.replace(/\/+$/, "");
+  const response = await fetch(`${base}/auth/v1/user`, {
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  if (!response.ok) return null;
+  const data = (await response.json().catch(() => null)) as { id?: string; email?: string } | null;
+  if (!data?.id || !data?.email) return null;
+  return { id: data.id, email: data.email.trim().toLowerCase() };
 }
 
 async function findProfileByEmail(env: BillingEnv, email: string): Promise<ProfileRow | null> {
