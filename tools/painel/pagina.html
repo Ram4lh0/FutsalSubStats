@@ -99,7 +99,7 @@
     <thead>
       <tr>
         <th>Email</th><th>Licença</th><th>Estado</th><th>Clube</th><th>Escalões</th>
-        <th>Partilhados</th><th>Jogos</th><th></th>
+        <th>Partilhados</th><th>Jogos</th><th>Criada em</th><th></th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -171,7 +171,7 @@ function painelGestao(c) {
   const associados = c.associadoA || [];
   return `
     <tr class="gestao" data-gestao="${texto(c.id)}">
-      <td colspan="8">
+      <td colspan="9">
         <div class="gestao__grid">
           <div class="gestao__bloco">
             <h3>Licença</h3>
@@ -250,6 +250,7 @@ function desenhar(estado) {
           ? c.partilhados.map((p) => `${texto(p.nome)} ${ETIQUETA(p.nivel, p.nivel)}`).join('<br>')
           : '<span class="muted">—</span>'}</td>
       <td>${c.jogos}</td>
+      <td class="small muted nowrap">${texto(soData(c.criadaEm) || '—')}</td>
       <td>
         <button class="discreto" data-gerir="${texto(c.id)}">gerir</button>
       </td>
