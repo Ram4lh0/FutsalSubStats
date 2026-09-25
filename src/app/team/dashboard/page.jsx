@@ -20,12 +20,13 @@ import { rotas, comOrigem } from '@/lib/routes.js';
 import { Badge, Empty, StatCard, Ved } from '@/components/bits.jsx';
 import DataTable from '@/components/DataTable.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
-import { BarrasH, ColunasEspelhadas, EscadaForma, FitaForma } from '@/components/stats/graficos.jsx';
+import { BarrasH, ColunasEspelhadas, EscadaForma, FitaForma, Pizza } from '@/components/stats/graficos.jsx';
 import { CartaoTop } from '@/components/stats/Destaques.jsx';
 import { ListaGolos } from '@/components/stats/CartaoGolos.jsx';
 import {
   minutosPorJogador,
   golosPorFaixa,
+  golosPorTipo,
   formaRecente,
   casaEFora,
   curvaDeForma,
@@ -452,6 +453,7 @@ function Painel({ club, team, entries, roster, competitions }) {
   const disc = useMemo(() => disciplina(filtrados), [filtrados]);
   const parteMs = useMemo(() => parteDosJogos(filtrados, tipo), [filtrados, tipo]);
   const faixas = useMemo(() => golosPorFaixa(filtrados, { parteMs }), [filtrados, parteMs]);
+  const tiposDeGolo = useMemo(() => golosPorTipo(filtrados), [filtrados]);
   const atleta = useMemo(
     () => painelDoAtleta(filtrados, roster, atletaId, { parteMs, quantos: 5 }),
     [filtrados, roster, atletaId, parteMs]
@@ -644,6 +646,13 @@ function Painel({ club, team, entries, roster, competitions }) {
             ) : (
               <p className="muted">{t('painelv.semGolos')}</p>
             )}
+          </Bloco>
+
+          {/* -------------------------------------------- tipos de golo */}
+          <Bloco titulo={t('painelv.tiposDeGolo')}>
+            <Pizza
+              fatias={tiposDeGolo.map((f) => ({ ...f, rotulo: t(`golos.tipo.${f.chave}`) }))}
+            />
           </Bloco>
 
           {/* ------------------------------------------ forma e resultados */}

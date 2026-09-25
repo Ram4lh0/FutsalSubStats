@@ -23,6 +23,7 @@ import {
   tenMetreAlert,
   opponentYellowCardDialog,
   opponentCardsListDialog,
+  pickGoalType,
 } from '@/components/live/dialogs.jsx';
 import useNow from '@/lib/useNow.js';
 import { beep, unlockAudio } from '@/lib/beep.js';
@@ -204,7 +205,13 @@ function Live() {
       noneLabel: t('acao.naoRegistar'),
       extra: [{ id: OWN_GOAL, label: t('golos.autogolo') }],
     });
-    if (scorerId === undefined) return; // fechou o popup
+    // Fechar o popup do marcador não cancela o golo — já subiu ao marcador — só
+    // significa que ninguém vai ser identificado. Como foi marcado pergunta-se
+    // sempre, mesmo sem marcador (pedido a 25/09/2026).
+    if (scorerId === undefined) {
+      await askGoalType(st, golo);
+      return;
+    }
 
     // Autogolo: conta para o resultado mas não para nenhum marcador nosso, e por
     // isso também não faz sentido perguntar a assistência.
@@ -213,10 +220,14 @@ function Live() {
         A.attributeGoal(st, { targetEventId: golo.eventId, scorerId: null, ownGoal: true }),
         { sync: 'defer' }
       );
-      await recarregar();
+      const depois = await recarregar();
+      await askGoalType(depois?.state || st, golo);
       return;
     }
-    if (!scorerId) return;
+    if (!scorerId) {
+      await askGoalType(st, golo); // "não registar": sem marcador, mas com tipo na mesma
+      return;
+    }
     await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, scorerId }), {
       sync: 'defer',
     });
@@ -230,11 +241,32 @@ function Live() {
       allowNone: true,
       noneLabel: t('golos.semAssistencia'),
     });
-    if (!assistId) return;
-    await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, assistId }), {
+    // Só um fecho de popup (sem escolha nenhuma) pára aqui; "sem assistência" é
+    // uma escolha válida e segue para a pergunta seguinte.
+    if (assistId === undefined) return;
+    let stAtual = st;
+    if (assistId) {
+      await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, assistId }), {
+        sync: 'defer',
+      });
+      const depois = await recarregar();
+      stAtual = depois?.state || st;
+    }
+    await askGoalType(stAtual, golo);
+  }
+
+  /**
+   * Como foi o golo — sempre perguntado, com ou sem marcador (pedido a
+   * 25/09/2026). Alimenta o novo cartão do dashboard e as etiquetas no resumo
+   * do jogo; corrige-se depois na ficha do golo, tal como o marcador.
+   */
+  async function askGoalType(st, golo) {
+    const tipo = await pickGoalType(ui, t('acao.comoFoiOGolo'));
+    if (tipo === undefined) return;
+    await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, howScored: tipo }), {
       sync: 'defer',
     });
-    const depois = await recarregar();
+    await recarregar();
   }
 
   /**

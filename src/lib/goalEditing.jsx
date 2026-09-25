@@ -11,7 +11,7 @@ import { Dialog } from './ui.jsx';
 import { events, loadMatch } from './data/repository.js';
 import * as sync from './data/sync.js';
 import * as A from '@/domain/actions.js';
-import { EVENT, normalizePosition } from '@/domain/constants.js';
+import { EVENT, normalizePosition, GOAL_TYPES } from '@/domain/constants.js';
 import { fmt } from '@/domain/clock.js';
 import { t } from '@/lib/i18n/index.js';
 
@@ -79,6 +79,7 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
     nosso ? (goal.ownGoal ? OWN_GOAL : goal.scorerId || '') : goal.goalkeeperId || ''
   );
   const [assist, setAssist] = useState(goal.assistId || '');
+  const [tipo, setTipo] = useState(goal.howScored || '');
   const [minuto, setMinuto] = useState(fmt(goal.matchElapsedMs));
 
   function guardar() {
@@ -96,6 +97,7 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
       patch.scorerId = patch.ownGoal ? null : quem || null;
       patch.assistId = patch.ownGoal ? null : assist || null;
       if (patch.scorerId && patch.scorerId === patch.assistId) patch.assistId = null;
+      patch.howScored = tipo || null;
     } else {
       patch.goalkeeperId = quem || null;
     }
@@ -147,6 +149,20 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
                     #{p.number} {p.name}
                   </option>
                 ))}
+            </select>
+          </label>
+        ) : null}
+
+        {nosso ? (
+          <label className="field">
+            <span className="field__label">{t('golos.comoFoiOGolo')}</span>
+            <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="">{t('golos.tipoPorRegistar')}</option>
+              {GOAL_TYPES.map((g) => (
+                <option key={g} value={g}>
+                  {t(`golos.tipo.${g}`)}
+                </option>
+              ))}
             </select>
           </label>
         ) : null}

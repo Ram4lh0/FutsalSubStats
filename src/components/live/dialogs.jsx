@@ -7,7 +7,7 @@
 // pedaços ligados por callbacks.
 
 import { Dialog } from '@/lib/ui.jsx';
-import { POSITIONS, PLAYER_MATCH_STATUS } from '@/domain/constants.js';
+import { POSITIONS, PLAYER_MATCH_STATUS, GOAL_TYPES } from '@/domain/constants.js';
 import { fmt } from '@/domain/clock.js';
 import { playerMatchStats } from '@/domain/stats.js';
 import { positionLabel } from '@/lib/format.js';
@@ -238,6 +238,30 @@ export function opponentCardsListDialog(ui, state) {
       ) : (
         <p className="muted">{t('dialogo.semAmareladosAdv')}</p>
       )}
+    </Dialog>
+  ));
+}
+
+/**
+ * Como foi marcado o golo — bola parada, transição, etc. (pedido a
+ * 25/09/2026). Fechar sem escolher é uma opção válida: nem sempre há tempo ou
+ * vontade de classificar cada golo, e o resto do fluxo (marcador, assistência)
+ * já fica registado de qualquer forma.
+ */
+export function pickGoalType(ui, title) {
+  return ui.open((close) => (
+    <Dialog title={title} onClose={() => close(undefined)}>
+      <div className="picklist">
+        {GOAL_TYPES.map((tipo) => (
+          <button
+            key={tipo}
+            className="picklist__item picklist__item--special"
+            onClick={() => close(tipo)}
+          >
+            {t(`golos.tipo.${tipo}`)}
+          </button>
+        ))}
+      </div>
     </Dialog>
   ));
 }

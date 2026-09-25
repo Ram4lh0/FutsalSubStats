@@ -128,6 +128,18 @@ export const UNDOABLE_EVENTS = new Set([
 
 export const CARD = { YELLOW: 'YELLOW', RED: 'RED' };
 
+// Como foi marcado o golo (pedido a 25/09/2026). Guardado em metadata.howScored
+// via o mecanismo já existente do GOAL_ATTRIBUTED — sem coluna nova.
+export const GOAL_TYPE = {
+  BOLA_PARADA: 'BOLA_PARADA',
+  TRANSICAO: 'TRANSICAO',
+  ORGANIZACAO: 'ORGANIZACAO',
+  INDIVIDUAL: 'INDIVIDUAL',
+  OUTRO: 'OUTRO',
+};
+
+export const GOAL_TYPES = Object.values(GOAL_TYPE);
+
 export const STINT_END_REASON = {
   SUBSTITUTED: 'SUBSTITUTED',
   HALFTIME: 'HALFTIME',

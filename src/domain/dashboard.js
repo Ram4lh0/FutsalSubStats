@@ -16,7 +16,7 @@
 // com uma excepção declarada: os minutos por jogador, onde um jogo em curso
 // ainda diz alguma coisa sobre quem está a jogar hoje.
 
-import { MATCH_STATUS, normalizePosition, timingOf, timingConfig } from './constants.js';
+import { MATCH_STATUS, normalizePosition, timingOf, timingConfig, GOAL_TYPES } from './constants.js';
 import { clubAggregate, matchResult, playerMatchStats } from './stats.js';
 
 /** Um jogo terminado. É a unidade de tudo o que se conta aqui. */
@@ -361,6 +361,24 @@ export function painelDoAtleta(
  * vê é ruído; mais e a "queda nos últimos minutos" — que é o que se vem cá
  * procurar — dilui-se dentro de uma barra larga.
  */
+/**
+ * Quantos golos nossos de cada tipo (bola parada, transição, ...), somados a
+ * todos os jogos terminados. Golos sem tipo apontado (jogos antigos, ou golos
+ * cuja pergunta foi fechada sem escolher) simplesmente não entram na conta —
+ * não há "por classificar" a mostrar aqui, só o que se sabe de facto.
+ */
+export function golosPorTipo(entries) {
+  const contagem = Object.fromEntries(GOAL_TYPES.map((tipo) => [tipo, 0]));
+  for (const { state } of terminados(entries)) {
+    for (const g of state.goals || []) {
+      if (g.team === 'US' && g.howScored && g.howScored in contagem) {
+        contagem[g.howScored] += 1;
+      }
+    }
+  }
+  return GOAL_TYPES.map((tipo) => ({ chave: tipo, valor: contagem[tipo] }));
+}
+
 export function golosPorFaixa(entries, { faixaMs = 5 * 60_000, parteMs = 20 * 60_000 } = {}) {
   const nFaixas = Math.max(1, Math.ceil(parteMs / faixaMs));
   const vazio = () =>

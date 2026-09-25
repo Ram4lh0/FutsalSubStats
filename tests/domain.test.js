@@ -399,6 +399,30 @@ test('golos guardam marcador e assistência, atribuídos depois do apito', () =>
   assert.equal(playerMatchStats(after.players.p5, clockMs, { goals: after.goals }).goals, 0);
 });
 
+test('golos guardam como foram marcados, tal como marcador e assistência', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+
+  let st = step(ctx, (s) => A.teamGoalBy(s, 'p5', T0 + 3 * MIN), T0 + 3 * MIN);
+  const goalId = st.goals[0].eventId;
+  assert.equal(st.goals[0].howScored, null, 'antes de responder, fica por classificar');
+
+  st = step(
+    ctx,
+    (s) => A.attributeGoal(s, { targetEventId: goalId, howScored: 'BOLA_PARADA' }, T0 + 3.3 * MIN),
+    T0 + 3.3 * MIN
+  );
+  assert.equal(st.goals[0].howScored, 'BOLA_PARADA');
+
+  // Corrigível depois, como qualquer outro campo do golo.
+  st = step(
+    ctx,
+    (s) => A.attributeGoal(s, { targetEventId: goalId, howScored: 'TRANSICAO' }, T0 + 40 * MIN),
+    T0 + 40 * MIN
+  );
+  assert.equal(st.goals[0].howScored, 'TRANSICAO');
+});
+
 test('atribuições antigas sem id estável ainda ligam ao golo e à falta', () => {
   const ctx = { squad: makeSquad(), events: [] };
   step(ctx, (s) => A.startFirstHalf(s, T0), T0);

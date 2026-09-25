@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import {
   minutosPorJogador,
   golosPorFaixa,
+  golosPorTipo,
   formaRecente,
   casaEFora,
   curvaDeForma,
@@ -269,6 +270,34 @@ test('um golo nos descontos entra na última faixa em vez de se perder', () => {
     jogo({ golos: [{ team: 'US', period: 1, matchElapsedMs: 23 * MIN }] }),
   ]);
   assert.equal(r.primeira[r.primeira.length - 1].marcados, 1);
+});
+
+test('tipos de golo: só os nossos, e só os que têm o tipo apontado', () => {
+  const r = golosPorTipo([
+    jogo({
+      golos: [
+        { team: 'US', period: 1, matchElapsedMs: 3 * MIN, howScored: 'BOLA_PARADA' },
+        { team: 'US', period: 1, matchElapsedMs: 5 * MIN, howScored: 'BOLA_PARADA' },
+        { team: 'US', period: 2, matchElapsedMs: 22 * MIN, howScored: 'INDIVIDUAL' },
+        // Golo do adversário: nunca tem tipo, e mesmo que tivesse não devia contar.
+        { team: 'THEM', period: 1, matchElapsedMs: 10 * MIN, howScored: 'TRANSICAO' },
+        // Golo nosso ainda por classificar: fica de fora, não vira "outro".
+        { team: 'US', period: 1, matchElapsedMs: 12 * MIN, howScored: null },
+      ],
+    }),
+  ]);
+
+  const porChave = Object.fromEntries(r.map((f) => [f.chave, f.valor]));
+  assert.equal(porChave.BOLA_PARADA, 2);
+  assert.equal(porChave.INDIVIDUAL, 1);
+  assert.equal(porChave.TRANSICAO, 0);
+  assert.equal(porChave.ORGANIZACAO, 0);
+  assert.equal(porChave.OUTRO, 0);
+  assert.equal(
+    r.reduce((a, f) => a + f.valor, 0),
+    3,
+    'só os três golos nossos e classificados'
+  );
 });
 
 test('um jogo por terminar não entra nas contas', () => {

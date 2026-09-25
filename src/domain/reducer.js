@@ -619,6 +619,7 @@ function applyEvent(state, ev) {
         assistId: md.assistId || null,
         ownGoal: !!md.ownGoal,
         goalkeeperId: null,
+        howScored: null,
       });
       break;
     }
@@ -640,6 +641,8 @@ function applyEvent(state, ev) {
       if ('scorerId' in md) goal.scorerId = md.scorerId || null;
       if ('assistId' in md) goal.assistId = md.assistId || null;
       if ('ownGoal' in md) goal.ownGoal = !!md.ownGoal;
+      // Como foi marcado (bola parada, transição, ...) — pedido a 25/09/2026.
+      if ('howScored' in md) goal.howScored = md.howScored || null;
       // Num golo sofrido o que há para corrigir é quem estava à baliza.
       if ('goalkeeperId' in md) goal.goalkeeperId = md.goalkeeperId || null;
       // O minuto pode ser acertado a frio: um golo registado tarde de mais fica
@@ -669,6 +672,7 @@ function applyEvent(state, ev) {
         // Quem estava à baliza neste momento. Não é preciso perguntar: o estado
         // do campo já sabe, e fica fixo no instante do golo.
         goalkeeperId: state.court.GOALKEEPER || null,
+        howScored: null,
       });
       const { nos, eles } = shorthandedCount(state, ev.matchElapsedMs);
       const running =

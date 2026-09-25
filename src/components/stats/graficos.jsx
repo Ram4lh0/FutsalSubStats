@@ -286,3 +286,69 @@ export function FitaForma({ jogos, onAbrir }) {
     </ol>
   );
 }
+
+/* --------------------------------------------------------- tipos de golo */
+
+/**
+ * Donut com a repartição dos golos por como foram marcados.
+ *
+ * Cinco fatias no máximo (as opções de `GOAL_TYPE`) — não é o tipo de gráfico
+ * que aguenta muitas categorias, mas para "bola parada / transição /
+ * organização / jogada individual / outro" cinco cores fixas do tema chegam e
+ * sobram, sem inventar paleta nova.
+ *
+ * Um `<circle>` com `stroke-dasharray` por fatia, não um `<path>` de arco: para
+ * cinco fatias a matemática de um arco SVG (grandes-ângulos, sentido, ponto de
+ * chegada) é mais código e mais frágil do que rodar o desenho -90° e ir
+ * empurrando o traço à volta do círculo com o comprimento de cada fatia.
+ */
+export function Pizza({ fatias }) {
+  const t = useT();
+  const total = fatias.reduce((a, f) => a + (f.valor || 0), 0);
+  if (!total) return <p className="muted">{t('painelv.semGolosClassificados')}</p>;
+
+  const RAIO = 60;
+  const CIRC = 2 * Math.PI * RAIO;
+  let acumulado = 0;
+
+  return (
+    <div className="pizza">
+      <svg className="graf graf--pizza" viewBox="0 0 160 160" role="img" aria-label={t('painelv.tiposDeGolo')}>
+        <g transform="rotate(-90 80 80)">
+          <circle cx="80" cy="80" r={RAIO} className="pizza__fundo" />
+          {fatias
+            .filter((f) => f.valor > 0)
+            .map((f) => {
+              const comprimento = (f.valor / total) * CIRC;
+              const offset = -acumulado;
+              acumulado += comprimento;
+              return (
+                <circle
+                  key={f.chave}
+                  cx="80"
+                  cy="80"
+                  r={RAIO}
+                  className={`pizza__fatia pizza__fatia--${f.chave}`}
+                  strokeDasharray={`${comprimento} ${CIRC - comprimento}`}
+                  strokeDashoffset={offset}
+                />
+              );
+            })}
+        </g>
+        <text x="80" y="80" textAnchor="middle" dominantBaseline="central" className="pizza__total">
+          {total}
+        </text>
+      </svg>
+      <ul className="pizza__legenda">
+        {fatias
+          .filter((f) => f.valor > 0)
+          .map((f) => (
+            <li key={f.chave} className="pizza__item">
+              <span className={`pizza__dot pizza__dot--${f.chave}`} aria-hidden="true" />
+              {f.rotulo} <b>{f.valor}</b>
+            </li>
+          ))}
+      </ul>
+    </div>
+  );
+}

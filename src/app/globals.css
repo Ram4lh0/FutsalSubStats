@@ -2925,6 +2925,29 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .legenda__cor--sofridos { background: var(--danger); margin-left: 10px; }
 .legenda__cor--assistencias { background: var(--info); margin-left: 10px; }
 
+/* Donut dos tipos de golo (BOLA_PARADA/TRANSICAO/ORGANIZACAO/INDIVIDUAL/OUTRO)
+   — cinco cores fixas do tema, a mesma associação em toda a app: cada tipo é
+   sempre a mesma cor, aqui e nas etiquetas do resumo do jogo. */
+.pizza { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.graf--pizza { width: 120px; height: 120px; flex: 0 0 auto; }
+.pizza__fundo { fill: none; stroke: var(--line); stroke-width: 22; }
+.pizza__fatia { fill: none; stroke-width: 22; stroke-linecap: butt; }
+.pizza__fatia--BOLA_PARADA { stroke: var(--primary); }
+.pizza__fatia--TRANSICAO { stroke: var(--info); }
+.pizza__fatia--ORGANIZACAO { stroke: var(--warn); }
+.pizza__fatia--INDIVIDUAL { stroke: var(--danger); }
+.pizza__fatia--OUTRO { stroke: var(--muted); }
+.pizza__total { font-size: 28px; font-weight: 800; fill: var(--text); }
+.pizza__legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; }
+.pizza__item { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.pizza__item b { color: var(--text); font-variant-numeric: tabular-nums; }
+.pizza__dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: 0 0 auto; }
+.pizza__dot--BOLA_PARADA { background: var(--primary); }
+.pizza__dot--TRANSICAO { background: var(--info); }
+.pizza__dot--ORGANIZACAO { background: var(--warn); }
+.pizza__dot--INDIVIDUAL { background: var(--danger); }
+.pizza__dot--OUTRO { background: var(--muted); }
+
 /* A fita dos últimos jogos. Desliza ao lado quando não couber, em vez de
    embrulhar: uma série lê-se numa linha só ou deixa de ser uma série. */
 .fita {
