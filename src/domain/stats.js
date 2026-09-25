@@ -14,6 +14,23 @@ export function stintsWithDuration(player, clockMs) {
 }
 
 /**
+ * Tempo real (sem pausas) que o jogador passou em campo, somado entrada a
+ * entrada, usando o relógio de parede de cada uma (`startWallMs`/`endWallMs`,
+ * gravados no reducer a partir de `ev.createdAt`).
+ *
+ * Serve só para o tempo de banco em `playerMatchStats`: ao contrário do tempo
+ * em campo (que pára quando o cronómetro pára), o tempo de banco conta-se em
+ * tempo real — quem está a aquecer não pára de esperar só porque o jogo foi
+ * interrompido.
+ */
+function courtWallMs(player, nowWallMs) {
+  return player.stints.reduce(
+    (total, s) => total + Math.max(0, (s.endWallMs ?? nowWallMs) - s.startWallMs),
+    0
+  );
+}
+
+/**
  * Disciplina de um jogador num jogo.
  *
  * Dois amarelos no mesmo jogo NÃO são guardados como dois amarelos: são uma
@@ -42,15 +59,31 @@ function emCampoAos(stints, ms) {
   return stints.some((s) => s.startMatchMs <= ms && (s.endMatchMs == null || s.endMatchMs > ms));
 }
 
-export function playerMatchStats(player, clockMs, { goals = [], cards = [], fouls = [] } = {}) {
+export function playerMatchStats(
+  player,
+  clockMs,
+  { goals = [], cards = [], fouls = [] } = {},
+  nowWallMs = Date.now()
+) {
   const stints = stintsWithDuration(player, clockMs);
   const courtMs = stints.reduce((a, s) => a + s.durationMs, 0);
   const entries = stints.length;
   const durations = stints.map((s) => s.durationMs);
 
-  // Tempo válido de jogo para este jogador: pára na expulsão (regra 3.10).
-  const validUntil = player.expelledAtMatchMs ?? clockMs;
-  const benchMs = Math.max(0, validUntil - (player.availableFromMs || 0) - courtMs);
+  // Tempo de banco em tempo real (25/09/2026): tempo de parede desde que ficou
+  // disponível, menos o tempo de parede que passou em campo — nunca o tempo de
+  // cronómetro, que pára nas pausas e faria o banco parecer mais curto do que
+  // foi. `nowWallMs` é o "agora" para quem ainda está em jogo; para um jogo já
+  // terminado, quem chama isto passa antes `state.finishedAt`.
+  const benchMs =
+    player.availableFromWallMs == null
+      ? 0
+      : Math.max(
+          0,
+          (player.expelledAtWallMs ?? nowWallMs) -
+            player.availableFromWallMs -
+            courtWallMs(player, nowWallMs)
+        );
 
   const current = stints.find((s) => s.open) || null;
   const closed = stints.filter((s) => !s.open);
@@ -95,9 +128,12 @@ export function playerMatchStats(player, clockMs, { goals = [], cards = [], foul
 
 export function matchStatsTable(state, now = Date.now()) {
   const clockMs = readClock(state, now).matchMs;
+  // Jogo terminado: o "agora" do banco é o apito final, não o instante em que
+  // isto está a ser consultado — senão o banco crescia sozinho depois do jogo.
+  const nowWallMs = state.finishedAt || now;
   const opts = { goals: state.goals || [], cards: state.cards || [], fouls: state.fouls || [] };
   return Object.values(state.players)
-    .map((p) => playerMatchStats(p, clockMs, opts))
+    .map((p) => playerMatchStats(p, clockMs, opts, nowWallMs))
     .sort((a, b) => b.courtMs - a.courtMs || a.number - b.number);
 }
 
@@ -192,12 +228,13 @@ export function clubAggregate(entries, roster = []) {
       else agg.losses += 1;
     }
     const clockMs = state.elapsedMatchMs;
+    const nowWallMs = state.finishedAt || Date.now();
     for (const p of Object.values(state.players)) {
       const s = playerMatchStats(p, clockMs, {
         goals: state.goals || [],
         cards: state.cards || [],
         fouls: state.fouls || [],
-      });
+      }, nowWallMs);
       const acc = (agg.perPlayer[p.playerId] ||= emptyPlayerAggregate(p));
       acc.matches += 1;
       if (!acc.fromRoster) {

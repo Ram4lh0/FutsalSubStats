@@ -149,11 +149,13 @@ function jogadorDoPlantel(roster, playerId) {
 function statsDoJogador(state, playerId) {
   const p = jogadorDaEntrada(state, playerId);
   if (!p) return null;
-  return playerMatchStats(p, state.elapsedMatchMs || 0, {
-    goals: state.goals || [],
-    cards: state.cards || [],
-    fouls: state.fouls || [],
-  });
+  const nowWallMs = state.finishedAt || Date.now();
+  return playerMatchStats(
+    p,
+    state.elapsedMatchMs || 0,
+    { goals: state.goals || [], cards: state.cards || [], fouls: state.fouls || [] },
+    nowWallMs
+  );
 }
 
 function vazioFaixas(nFaixas, faixaMs) {
