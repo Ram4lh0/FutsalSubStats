@@ -240,6 +240,7 @@ export default {
   'evento.POWER_PLAY_ENDED': 'Fim do 5v4',
   'evento.OPPONENT_EXPULSION_ADDED': 'Expulsão do adversário',
   'evento.OPPONENT_EXPULSION_REMOVED': 'Expulsão do adversário retirada',
+  'evento.OPPONENT_YELLOW_CARD': 'Amarelo do adversário',
 
   /* --------------------------------------------- jogo de experiência */
   'soLeitura.criarConta': 'Criar conta',
@@ -902,6 +903,14 @@ export default {
   'dialogo.entrada': 'Entrada {n}',
   'dialogo.agora': 'agora',
   'dialogo.aindaNaoEntrou': 'Ainda não entrou em campo.',
+  'dialogo.amareloAdvTitulo': 'Amarelo do adversário',
+  'dialogo.amareloAdvNumero': 'Número da camisola',
+  'dialogo.registar': 'Registar',
+  'dialogo.amareladosAdvTitulo': 'Amarelados do adversário',
+  'dialogo.amareladosAdvDica': 'Toca num cartão para o remover.',
+  'dialogo.primeiroAmareloAdv': 'Amarelo',
+  'dialogo.segundoAmareloAdv': 'Segundo amarelo (expulsão)',
+  'dialogo.semAmareladosAdv': 'Nenhum amarelo apontado ao adversário.',
   'dialogo.periodoLinha': ' — {parte}.ª parte — {inicio} a {fim} — ',
 
   /* ------------------------------------------------------ ecrã de jogo */
@@ -932,6 +941,8 @@ export default {
   'vivo.menosExpulsao': 'Menos uma expulsão do adversário',
   'vivo.maisExpulsao': 'Mais uma expulsão do adversário',
   'vivo.jogamCom': 'Jogam com {n}',
+  'vivo.verAmareladosAdv': 'Ver amarelados do adversário',
+  'vivo.registarAmareloAdv': 'Amarelo do adversário',
   'vivo.jogamComCinco': 'Jogam com cinco',
   'vivo.sancaoPorIniciar': 'Expulso · sanção por iniciar',
   'vivo.comecarMin': 'Começar {n} min',
@@ -962,6 +973,10 @@ export default {
   'acao.segundoAmarelo': 'Segundo amarelo',
   'acao.expulsoPorAmarelos': '{nome} expulso por acumulação de amarelos.',
   'acao.amareloPara': 'Amarelo para {nome}.',
+  'acao.confirmaSegundoAmareloAdv':
+    'Segundo amarelo do adversário #{numero}. Conta como uma expulsão do adversário.',
+  'acao.expulsoAdvPorAmarelos': 'Adversário #{numero} expulso por acumulação de amarelos.',
+  'acao.confirmaRemoverAmareloAdv': 'Remover o amarelo do adversário #{numero}?',
   'acao.confirmaVermelho':
     'Cartão vermelho para #{numero} {nome}? Fica expulso e a equipa joga reduzida.',
   'acao.vermelho': 'Vermelho',

@@ -239,6 +239,7 @@ export default {
   'evento.POWER_PLAY_ENDED': '5v4 ended',
   'evento.OPPONENT_EXPULSION_ADDED': 'Opponent sent off',
   'evento.OPPONENT_EXPULSION_REMOVED': 'Opponent sending-off removed',
+  'evento.OPPONENT_YELLOW_CARD': 'Opponent yellow card',
 
   /* -------------------------------------------------- practice match */
   'soLeitura.criarConta': 'Create account',
@@ -899,6 +900,14 @@ export default {
   'dialogo.entrada': 'Spell {n}',
   'dialogo.agora': 'now',
   'dialogo.aindaNaoEntrou': 'Has not been on court yet.',
+  'dialogo.amareloAdvTitulo': 'Opponent yellow card',
+  'dialogo.amareloAdvNumero': 'Shirt number',
+  'dialogo.registar': 'Record',
+  'dialogo.amareladosAdvTitulo': 'Opponent yellow cards',
+  'dialogo.amareladosAdvDica': 'Tap a card to remove it.',
+  'dialogo.primeiroAmareloAdv': 'Yellow',
+  'dialogo.segundoAmareloAdv': 'Second yellow (sent off)',
+  'dialogo.semAmareladosAdv': 'No opponent yellow cards recorded.',
   'dialogo.periodoLinha': ' — half {parte} — {inicio} to {fim} — ',
 
   /* --------------------------------------------------------- live screen */
@@ -929,6 +938,8 @@ export default {
   'vivo.menosExpulsao': 'One fewer opponent sent off',
   'vivo.maisExpulsao': 'One more opponent sent off',
   'vivo.jogamCom': 'They play with {n}',
+  'vivo.verAmareladosAdv': 'View opponent yellow cards',
+  'vivo.registarAmareloAdv': 'Opponent yellow card',
   'vivo.jogamComCinco': 'They play with five',
   'vivo.sancaoPorIniciar': 'Sent off · penalty not started',
   'vivo.comecarMin': 'Start {n} min',
@@ -959,6 +970,10 @@ export default {
   'acao.segundoAmarelo': 'Second yellow',
   'acao.expulsoPorAmarelos': '{nome} sent off for two yellows.',
   'acao.amareloPara': 'Yellow for {nome}.',
+  'acao.confirmaSegundoAmareloAdv':
+    'Second yellow for opponent #{numero}. Counts as an opponent sending-off.',
+  'acao.expulsoAdvPorAmarelos': 'Opponent #{numero} sent off for two yellows.',
+  'acao.confirmaRemoverAmareloAdv': 'Remove the yellow card for opponent #{numero}?',
   'acao.confirmaVermelho':
     'Red card for #{numero} {nome}? They are sent off and the team plays short.',
   'acao.vermelho': 'Red',

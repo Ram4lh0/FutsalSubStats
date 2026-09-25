@@ -238,6 +238,7 @@ export default {
   'evento.POWER_PLAY_ENDED': 'Fin del 5v4',
   'evento.OPPONENT_EXPULSION_ADDED': 'Expulsión del rival',
   'evento.OPPONENT_EXPULSION_REMOVED': 'Expulsión del rival retirada',
+  'evento.OPPONENT_YELLOW_CARD': 'Amarilla del rival',
 
   /* ------------------------------------------------ partido de prueba */
   'soLeitura.criarConta': 'Crear cuenta',
@@ -899,6 +900,14 @@ export default {
   'dialogo.entrada': 'Entrada {n}',
   'dialogo.agora': 'ahora',
   'dialogo.aindaNaoEntrou': 'Todavía no ha entrado en pista.',
+  'dialogo.amareloAdvTitulo': 'Amarilla del rival',
+  'dialogo.amareloAdvNumero': 'Número de camiseta',
+  'dialogo.registar': 'Registrar',
+  'dialogo.amareladosAdvTitulo': 'Amarillas del rival',
+  'dialogo.amareladosAdvDica': 'Toca una tarjeta para quitarla.',
+  'dialogo.primeiroAmareloAdv': 'Amarilla',
+  'dialogo.segundoAmareloAdv': 'Segunda amarilla (expulsión)',
+  'dialogo.semAmareladosAdv': 'No hay amarillas del rival registradas.',
   'dialogo.periodoLinha': ' — {parte}.ª parte — {inicio} a {fim} — ',
 
   /* ------------------------------------------------------ pantalla de juego */
@@ -929,6 +938,8 @@ export default {
   'vivo.menosExpulsao': 'Una expulsión menos del rival',
   'vivo.maisExpulsao': 'Una expulsión más del rival',
   'vivo.jogamCom': 'Juegan con {n}',
+  'vivo.verAmareladosAdv': 'Ver amarillas del rival',
+  'vivo.registarAmareloAdv': 'Amarilla del rival',
   'vivo.jogamComCinco': 'Juegan con cinco',
   'vivo.sancaoPorIniciar': 'Expulsado · sanción sin empezar',
   'vivo.comecarMin': 'Empezar {n} min',
@@ -959,6 +970,10 @@ export default {
   'acao.segundoAmarelo': 'Segunda amarilla',
   'acao.expulsoPorAmarelos': '{nome} expulsado por acumulación de amarillas.',
   'acao.amareloPara': 'Amarilla para {nome}.',
+  'acao.confirmaSegundoAmareloAdv':
+    'Segunda amarilla del rival #{numero}. Cuenta como una expulsión del rival.',
+  'acao.expulsoAdvPorAmarelos': 'Rival #{numero} expulsado por acumulación de amarillas.',
+  'acao.confirmaRemoverAmareloAdv': '¿Quitar la amarilla del rival #{numero}?',
   'acao.confirmaVermelho':
     '¿Tarjeta roja para #{numero} {nome}? Queda expulsado y el equipo juega en inferioridad.',
   'acao.vermelho': 'Roja',

@@ -809,6 +809,36 @@ test('o contador de expulsões do adversário não desce abaixo de zero', () => 
   assert.equal(st.opponentExpulsions, 0);
 });
 
+test('amarelo do adversário: um segundo ao mesmo número expulsa, e desfazer corrige tudo', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+
+  let st = step(ctx, (s) => A.opponentYellowCard(s, { number: 7 }, T0 + 2 * MIN), T0 + 2 * MIN);
+  assert.equal(st.opponentCards.length, 1);
+  assert.equal(st.opponentCards[0].number, 7);
+  assert.equal(st.opponentCards[0].secondYellow, false);
+  assert.equal(st.opponentExpulsions, 0, 'um só amarelo não expulsa ninguém');
+
+  // Amarelo a outro número: não interfere com o #7.
+  st = step(ctx, (s) => A.opponentYellowCard(s, { number: 9 }, T0 + 3 * MIN), T0 + 3 * MIN);
+  assert.equal(st.opponentCards.length, 2);
+  assert.equal(st.opponentExpulsions, 0);
+
+  // Segundo amarelo do #7: soma ao contador de expulsões do adversário, tal
+  // como um golpe manual no botão "+" já fazia.
+  st = step(ctx, (s) => A.opponentYellowCard(s, { number: 7 }, T0 + 5 * MIN), T0 + 5 * MIN);
+  assert.equal(st.opponentCards.length, 3);
+  assert.equal(st.opponentCards[2].secondYellow, true);
+  assert.equal(st.opponentExpulsions, 1);
+
+  // Desfazer o segundo amarelo: a expulsão desaparece, mas o primeiro do #7 fica.
+  const segundo = st.allEvents.find((e) => e.id === st.opponentCards[2].eventId);
+  st = step(ctx, (s) => A.undoEvent(s, segundo, T0 + 6 * MIN), T0 + 6 * MIN);
+  assert.equal(st.opponentCards.length, 2, 'o cartão desfeito deixa de contar');
+  assert.equal(st.opponentExpulsions, 0, 'sem o segundo amarelo, deixa de ser expulsão');
+  assert.ok(st.opponentCards.some((c) => c.number === 7 && !c.secondYellow));
+});
+
 /* -------------------------------------------------------------------- 5v4 */
 
 /** Como makeSquad, mas com as posições preferidas preenchidas. */

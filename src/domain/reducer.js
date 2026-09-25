@@ -258,6 +258,8 @@ export function buildMatchState(match, squad, events) {
     powerPlayOverrideGk: null,
     // Expulsões do adversário ainda por cumprir, contadas à mão.
     opponentExpulsions: 0,
+    // Amarelos do adversário, por número de camisola (não há plantel deles).
+    opponentCards: [],
   };
 
   for (const row of squad) {
@@ -775,6 +777,24 @@ function applyEvent(state, ev) {
     }
     case EVENT.OPPONENT_EXPULSION_REMOVED: {
       state.opponentExpulsions = Math.max(0, state.opponentExpulsions - 1);
+      break;
+    }
+
+    // Amarelo do adversário, apontado só pelo número (pedido a 25/09/2026).
+    // Um segundo amarelo ao mesmo número é sozinho uma expulsão — soma-se ao
+    // mesmo contador de "expulsos do adversário" de cima, manual e sem
+    // cronómetro. Não há aqui suspensão nenhuma a controlar, de propósito.
+    case EVENT.OPPONENT_YELLOW_CARD: {
+      const numero = md.number;
+      if (numero == null) break;
+      const jaTinha = state.opponentCards.some((c) => c.number === numero);
+      state.opponentCards.push({
+        eventId: ev.id,
+        number: numero,
+        matchElapsedMs: ev.matchElapsedMs,
+        secondYellow: jaTinha,
+      });
+      if (jaTinha) state.opponentExpulsions += 1;
       break;
     }
 
