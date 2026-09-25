@@ -195,23 +195,26 @@ test('jogo completo: tempos em campo, banco e entradas', () => {
   assert.equal(st.firstHalfMs, 10 * MIN);
   assert.equal(st.secondHalfMs, 10 * MIN);
 
-  const s = (id) => playerMatchStats(st.players[id], clock);
+  // Tempo de banco em tempo real (25/09/2026): para um jogo já terminado, o
+  // "agora" do banco é o apito final (st.finishedAt), não o instante em que
+  // o teste corre.
+  const s = (id) => playerMatchStats(st.players[id], clock, {}, st.finishedAt);
 
   // Ana: as duas partes inteiras
   assert.equal(s('p1').courtMs, 20 * MIN);
   assert.equal(s('p1').entries, 2, 'começar a 2.ª parte cria uma nova entrada');
-  assert.equal(s('p1').benchMs, 0);
+  assert.equal(s('p1').benchMs, 5 * MIN, 'Ana: só o intervalo (5min reais) conta como banco, nunca esteve fora de campo antes disso');
 
   // Carlos: só os primeiros 2 minutos
   assert.equal(s('p3').courtMs, 2 * MIN);
   assert.equal(s('p3').entries, 1);
-  assert.equal(s('p3').benchMs, 18 * MIN);
+  assert.equal(s('p3').benchMs, 24 * MIN, 'Carlos: 26min reais de jogo menos os 2min reais em que esteve em campo');
 
   // Filipe: entrou aos 2' e fez a 2.ª parte inteira
   assert.equal(s('p6').courtMs, 18 * MIN);
   assert.equal(s('p6').entries, 2);
   assert.equal(s('p6').avgStintMs, 9 * MIN);
-  assert.equal(s('p6').benchMs, 2 * MIN);
+  assert.equal(s('p6').benchMs, 7 * MIN, 'Filipe: 26min reais menos os 19min reais em campo (9 na 1.ª parte + 10 na 2.ª)');
   assert.equal(s('p6').longestStintMs, 10 * MIN);
 
   // Bruno: expulso aos 13' de jogo — o tempo posterior não conta como banco
@@ -219,18 +222,18 @@ test('jogo completo: tempos em campo, banco e entradas', () => {
   assert.equal(bruno.expelled, true);
   assert.equal(st.players.p2.expelledAtMatchMs, 13 * MIN);
   assert.equal(bruno.courtMs, 13 * MIN);
-  assert.equal(bruno.benchMs, 0);
+  assert.equal(bruno.benchMs, 5 * MIN, 'Bruno: como a Ana, só o intervalo conta — a expulsão só corta o resto do jogo');
   assert.equal(bruno.entries, 2);
 
   // Hugo: convocado mas nunca jogou
   assert.equal(s('p8').courtMs, 0);
   assert.equal(s('p8').entries, 0);
-  assert.equal(s('p8').benchMs, 20 * MIN);
+  assert.equal(s('p8').benchMs, 26 * MIN, 'Hugo: nunca jogou, banco = duração real do jogo inteiro (não os 20min de cronómetro)');
 
   // Gonçalo: só a 2.ª parte
   assert.equal(s('p7').courtMs, 10 * MIN);
   assert.equal(s('p7').entries, 1);
-  assert.equal(s('p7').benchMs, 10 * MIN);
+  assert.equal(s('p7').benchMs, 16 * MIN, "Gonçalo: 26min reais menos os 10min reais em campo (só a 2.ª parte)");
 });
 
 test('o intervalo não pode ser "retomado" como se fosse a primeira parte', () => {

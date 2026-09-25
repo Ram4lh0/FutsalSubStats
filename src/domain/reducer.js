@@ -94,6 +94,9 @@ function openStint(state, playerId, ev, position) {
     endMatchMs: null,
     startPeriodMs: ev.periodElapsedMs,
     endPeriodMs: null,
+    // Tempo real (sem pausas) — só usado para o tempo de banco (stats.js).
+    startWallMs: ev.createdAt,
+    endWallMs: null,
     startingPosition: position || p.position || null,
     endingReason: null,
   });
@@ -108,6 +111,7 @@ function closeStint(state, playerId, ev, reason) {
   open.endPeriod = state.currentPeriod;
   open.endMatchMs = ev.matchElapsedMs;
   open.endPeriodMs = ev.periodElapsedMs;
+  open.endWallMs = ev.createdAt;
   open.endingReason = reason;
 }
 
@@ -124,6 +128,7 @@ function expel(state, ev, playerId) {
   p.status = PLAYER_MATCH_STATUS.EXPELLED;
   p.position = null;
   p.expelledAtMatchMs = ev.matchElapsedMs;
+  p.expelledAtWallMs = ev.createdAt;
   p.penaltyRequired = estavaEmCampo;
 }
 
@@ -268,8 +273,13 @@ export function buildMatchState(match, squad, events) {
           : PLAYER_MATCH_STATUS.ON_BENCH,
       position: row.initialLocation === LOCATION.COURT ? row.initialPosition : null,
       expelledAtMatchMs: null,
+      expelledAtWallMs: null,
       penaltyRequired: null,
       availableFromMs: 0,
+      // Preenchido no FIRST_HALF_STARTED (para quem já está no plantel inicial)
+      // ou aqui, no SQUAD_UPDATED (para quem entra a meio) — ver stats.js para
+      // o porquê de precisar de um relógio de parede paralelo ao do jogo.
+      availableFromWallMs: null,
       stints: [],
     };
     if (row.initialLocation === LOCATION.COURT && row.initialPosition) {
@@ -334,7 +344,10 @@ function applyEvent(state, ev) {
       // Jogador acrescentado com o jogo já a decorrer: só conta banco a partir daqui.
       for (const added of md.added || []) {
         const p = state.players[added.playerId];
-        if (p) p.availableFromMs = ev.matchElapsedMs;
+        if (p) {
+          p.availableFromMs = ev.matchElapsedMs;
+          p.availableFromWallMs = ev.createdAt;
+        }
       }
       for (const removed of md.removed || []) {
         const p = state.players[removed.playerId];
@@ -351,6 +364,12 @@ function applyEvent(state, ev) {
       state.timerStartedAt = ev.createdAt;
       state.status = MATCH_STATUS.FIRST_HALF_RUNNING;
       state.startedAt = ev.createdAt;
+      // Quem já estava no plantel antes do apito só passa a "disponível" (para
+      // efeitos de tempo de banco em relógio real) agora — antes disto não há
+      // jogo a decorrer.
+      for (const jogador of Object.values(state.players)) {
+        if (jogador.availableFromWallMs == null) jogador.availableFromWallMs = ev.createdAt;
+      }
       for (const pos of POSITIONS) {
         const pid = state.court[pos];
         if (pid) openStint(state, pid, ev, pos);
