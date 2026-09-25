@@ -153,3 +153,91 @@ export function stintsDialog(ui, state, p, clockMs) {
     </Dialog>
   ));
 }
+
+/**
+ * Pedir o número do adversário que levou amarelo. Só o número: a app não tem
+ * o plantel deles, por isso é o único dado que dá para apontar (pedido a
+ * 25/09/2026).
+ *
+ * Input não controlado de propósito: esta função corre uma vez só (`ui.open`
+ * chama-a de novo em cada renderização do `UIProvider`, sem hooks — ver
+ * lib/ui.jsx), por isso o valor tem de viver no próprio campo do DOM, não
+ * numa variável de React que se perdia a cada nova renderização.
+ */
+export function opponentYellowCardDialog(ui) {
+  const campo = { current: null };
+  return ui.open((close) => (
+    <Dialog title={t('dialogo.amareloAdvTitulo')} onClose={() => close(null)}>
+      <form
+        className="form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const numero = Number(campo.current?.value);
+          if (!Number.isInteger(numero) || numero < 1 || numero > 99) return;
+          close(numero);
+        }}
+      >
+        <label className="field">
+          <span className="field__label">{t('dialogo.amareloAdvNumero')}</span>
+          <input
+            ref={(el) => {
+              campo.current = el;
+            }}
+            className="input"
+            type="number"
+            min={1}
+            max={99}
+            inputMode="numeric"
+            autoFocus
+          />
+        </label>
+        <button className="btn btn--primary" type="submit">
+          {t('dialogo.registar')}
+        </button>
+      </form>
+    </Dialog>
+  ));
+}
+
+/**
+ * Consultar (e corrigir) os amarelos do adversário apontados até agora.
+ *
+ * Tocar num cartão da lista devolve-o para quem chamou remover — a
+ * confirmação e a remoção em si ficam do lado de fora (ver
+ * `verCartoesAdversario` em match/live/page.jsx), tal como já acontece com o
+ * botão "Desfazer" do rodapé.
+ */
+export function opponentCardsListDialog(ui, state) {
+  const cartoes = state.opponentCards || [];
+  return ui.open((close) => (
+    <Dialog title={t('dialogo.amareladosAdvTitulo')} onClose={() => close(null)}>
+      {cartoes.length ? (
+        <>
+          <p className="muted small">{t('dialogo.amareladosAdvDica')}</p>
+          <div className="picklist">
+            {cartoes.map((c) => {
+              const ev = state.allEvents?.find((e) => e.id === c.eventId);
+              return (
+                <button
+                  key={c.eventId}
+                  className="picklist__item"
+                  onClick={() => (ev ? close({ eventId: c.eventId, number: c.number, event: ev }) : null)}
+                  disabled={!ev}
+                >
+                  <span className="cardchip cardchip--yellow" />
+                  <span className="picklist__num">#{c.number}</span>
+                  <span className="picklist__name">
+                    {c.secondYellow ? t('dialogo.segundoAmareloAdv') : t('dialogo.primeiroAmareloAdv')}
+                  </span>
+                  <span className="picklist__pos">{fmt(c.matchElapsedMs)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <p className="muted">{t('dialogo.semAmareladosAdv')}</p>
+      )}
+    </Dialog>
+  ));
+}

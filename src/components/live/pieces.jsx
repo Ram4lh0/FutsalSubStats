@@ -104,6 +104,7 @@ function ScoreCell({ team, score, side, interactive, on, children = null }) {
  */
 export function RivalOut({ state, on, variant = 'standalone' }) {
   const n = state.opponentExpulsions || 0;
+  const amarelos = (state.opponentCards || []).length;
   return (
     <span
       className={`rivalout rivalout--${variant} ${n ? 'is-on' : ''}`}
@@ -124,6 +125,26 @@ export function RivalOut({ state, on, variant = 'standalone' }) {
           className="rivalout__b"
           aria-label={t('vivo.maisExpulsao')}
           onClick={() => on.opponentExpulsion(1)}
+        >
+          +
+        </button>
+      </span>
+      {/* Amarelos do adversário: um cartão só se sabe pelo número (não há
+          plantel deles). Encostado ao contador de expulsões de propósito —
+          pedido a 25/09/2026 — para não abrir mais uma caixa no ecrã. */}
+      <span className="rivalout__linha">
+        <button
+          className="rivalout__b rivalout__b--cards"
+          aria-label={t('vivo.verAmareladosAdv')}
+          onClick={on.verCartoesAdversario}
+        >
+          <span className="cardchip cardchip--yellow" />
+          <span className="rivalout__n">{amarelos}</span>
+        </button>
+        <button
+          className="rivalout__b"
+          aria-label={t('vivo.registarAmareloAdv')}
+          onClick={on.registarAmareloAdversario}
         >
           +
         </button>

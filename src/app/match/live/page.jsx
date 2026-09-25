@@ -21,6 +21,8 @@ import {
   positionMenu,
   stintsDialog,
   tenMetreAlert,
+  opponentYellowCardDialog,
+  opponentCardsListDialog,
 } from '@/components/live/dialogs.jsx';
 import useNow from '@/lib/useNow.js';
 import { beep, unlockAudio } from '@/lib/beep.js';
@@ -466,6 +468,50 @@ function Live() {
     await commit(A.redCard(state, { playerId: p.playerId }));
   }
 
+  /**
+   * Amarelo do adversário: só o número, porque não há plantel deles (pedido a
+   * 25/09/2026). Um segundo amarelo ao mesmo número é anunciado antes de ser
+   * aplicado, tal como no amarelo dos nossos — expulsa e conta para o "expulsos
+   * do adversário" ali ao lado.
+   */
+  async function registarAmareloAdversario() {
+    const numero = await opponentYellowCardDialog(ui);
+    if (numero == null) return;
+    const jaTinha = (state.opponentCards || []).some((c) => c.number === numero);
+    if (jaTinha) {
+      const ok = await confirmar(
+        t('acao.confirmaSegundoAmareloAdv', { numero }),
+        { okLabel: t('acao.segundoAmarelo') }
+      );
+      if (!ok) return;
+    }
+    await commit(A.opponentYellowCard(state, { number: numero }));
+    if (jaTinha) toast(t('acao.expulsoAdvPorAmarelos', { numero }), 'ok', 8000);
+  }
+
+  /**
+   * Consultar os amarelos do adversário — e corrigir um número apontado por
+   * engano. Reabre a lista depois de cada remoção, para dar para tirar mais do
+   * que um sem ter de voltar a tocar no botão.
+   */
+  async function verCartoesAdversario() {
+    // `recarregar` só actualiza o estado do React na próxima renderização —
+    // esta função continua a correr com o `state` de quando começou, por isso
+    // segue-se aqui o estado mais recente à mão, não o de fora.
+    let estadoAtual = state;
+    let escolha = await opponentCardsListDialog(ui, estadoAtual);
+    while (escolha) {
+      const ok = await confirmar(t('acao.confirmaRemoverAmareloAdv', { numero: escolha.number }));
+      if (ok) {
+        await events.markUndone(escolha.eventId, null, { sync: 'defer' });
+        await events.append(A.undoEvent(estadoAtual, escolha.event), { sync: 'defer' });
+        const novo = await recarregar();
+        if (novo?.state) estadoAtual = novo.state;
+      }
+      escolha = await opponentCardsListDialog(ui, estadoAtual);
+    }
+  }
+
   function cardItems(p, close) {
     const cartoes = playerCards(p.playerId, state.cards);
     const temAmarelo = state.cards.some((c) => c.playerId === p.playerId && c.type === CARD.YELLOW);
@@ -783,6 +829,8 @@ function Live() {
     adjustClock: (deltaMs) => commit(A.adjustClock(state, deltaMs, Date.now()), { sync: 'defer' }),
     togglePowerPlay: (ligar) => commit(A.setPowerPlay(state, ligar)),
     opponentExpulsion: (delta) => commit(A.opponentExpulsion(state, delta)),
+    registarAmareloAdversario,
+    verCartoesAdversario,
   };
 
   // O intervalo tem ecrã próprio: sem cronómetro e sem forma de "retomar" a

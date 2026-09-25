@@ -129,6 +129,16 @@ export const opponentExpulsion = (s, delta, now) =>
     now
   );
 
+/**
+ * Amarelo do adversário — identificado só pelo número, porque a app não
+ * conhece o plantel deles. Um segundo amarelo ao mesmo número conta-se
+ * sozinho no reducer, que já sabe que isso é uma expulsão (ver
+ * OPPONENT_YELLOW_CARD em reducer.js) — não há aqui nenhuma "suspensão" a
+ * cronometrar, só o mesmo contador manual que já existia.
+ */
+export const opponentYellowCard = (s, { number }, now) =>
+  makeEvent(s, EVENT.OPPONENT_YELLOW_CARD, { metadata: { number } }, now);
+
 export const goal = (s, kind, now, extra = {}) => makeEvent(s, kind, extra, now);
 
 export const foul = (s, kind, now) => makeEvent(s, kind, {}, now);
