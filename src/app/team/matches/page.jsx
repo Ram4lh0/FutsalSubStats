@@ -23,6 +23,7 @@ export default function TeamMatchesPage() {
 }
 
 function Conteudo() {
+  const t = useT();
   const { clubId, teamId } = useRouteParams();
   const router = useRouter();
   const { userId } = useAuth();
@@ -52,11 +53,11 @@ function Conteudo() {
                 data-tour="create-match"
                 onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}
               >
-                Criar jogo
+                {t('escalao.criarJogo')}
               </button>
             }
           >
-            Este escalão ainda não tem jogos.
+            {t('escalao.semJogos')}
           </Empty>
         )
       }

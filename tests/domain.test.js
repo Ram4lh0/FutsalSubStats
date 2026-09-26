@@ -182,6 +182,27 @@ test('o tempo não avança com o cronómetro parado', () => {
   assert.equal(st.status, MATCH_STATUS.FIRST_HALF_PAUSED);
 });
 
+test('"saiu há" conta em tempo real, mesmo com o cronómetro parado', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(
+    ctx,
+    (s) => A.substitute(s, { playerOutId: 'p3', playerInId: 'p6', position: 'LEFT_WINGER' }, T0 + 2 * MIN),
+    T0 + 2 * MIN
+  );
+  const st = step(ctx, (s) => A.pauseClock(s, T0 + 3 * MIN), T0 + 3 * MIN);
+  const clock = readClock(st, T0 + 10 * MIN).matchMs;
+  assert.equal(clock, 3 * MIN, 'o cronómetro ficou nos 3 minutos');
+
+  const carlos = playerMatchStats(st.players.p3, clock, {}, T0 + 10 * MIN);
+  assert.equal(carlos.sinceLeftMs, 8 * MIN, 'saiu aos 2min reais e agora são 10: 8min, não 1');
+  assert.equal(
+    playerMatchStats(st.players.p6, clock, {}, T0 + 10 * MIN).sinceLeftMs,
+    null,
+    'quem está em campo não tem "saiu há"'
+  );
+});
+
 test('jogo completo: tempos em campo, banco e entradas', () => {
   const { st } = playFullMatch();
   const clock = st.elapsedMatchMs;
@@ -409,10 +430,10 @@ test('golos guardam como foram marcados, tal como marcador e assistência', () =
 
   st = step(
     ctx,
-    (s) => A.attributeGoal(s, { targetEventId: goalId, howScored: 'BOLA_PARADA' }, T0 + 3.3 * MIN),
+    (s) => A.attributeGoal(s, { targetEventId: goalId, howScored: 'LIVRE' }, T0 + 3.3 * MIN),
     T0 + 3.3 * MIN
   );
-  assert.equal(st.goals[0].howScored, 'BOLA_PARADA');
+  assert.equal(st.goals[0].howScored, 'LIVRE');
 
   // Corrigível depois, como qualquer outro campo do golo.
   st = step(

@@ -1798,6 +1798,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .picklist__item.is-active { border-color: var(--primary); }
 .picklist__item--clear { color: var(--muted); }
 .picklist__item--special { color: var(--warn); border-color: rgba(245, 158, 11, 0.45); }
+.picklist--grelha { display: grid; grid-template-columns: 1fr 1fr; }
+.picklist--grelha .picklist__item { justify-content: center; text-align: center; }
 .picklist__num { font-weight: 800; min-width: 42px; }
 .picklist__name { flex: 1; font-weight: 600; }
 .picklist__pos { color: var(--muted); font-size: 0.8rem; }
@@ -1970,17 +1972,31 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
  * A caixa tem largura mínima para o `0` e o `1` não fazerem o marcador saltar
  * de lado quando o número muda. */
 .rivalout {
-  display: inline-flex; flex-direction: column; align-items: center; gap: 1px;
-  position: absolute; right: 10px; top: 50%; transform: translateY(-42%);
-  margin-left: 0; padding: 3px 6px;
+  /* Grelha de duas colunas: rótulo à esquerda, controlos à direita, e o título
+     por cima a ocupar as duas. As linhas são `display: contents`, para os dois
+     rótulos (e os dois grupos de botões) ficarem alinhados entre si. */
+  display: inline-grid; grid-template-columns: auto auto; align-items: center;
+  column-gap: 5px; row-gap: 1px;
+  position: absolute; right: 10px; top: 50%; transform: translateY(-36%);
+  margin-left: 0; padding: 4px 7px;
   border: 1px solid var(--line); border-radius: 9px;
-  opacity: 0.65;
+  background: rgba(255, 255, 255, 0.02);
 }
+/* A caixa pode encostar-se à zona de toque do `+` das faltas por cima; o que
+   não é botão deixa o toque passar para trás, para nunca se perder uma falta. */
+.rivalout { pointer-events: none; }
+.rivalout button { pointer-events: auto; }
 .rivalout--inline { display: none; }
-/* Enquanto houver algum, deixa de ser um pormenor: acende e fica opaco. */
-.rivalout.is-on { opacity: 1; border-color: var(--info); background: rgba(56, 189, 248, 0.1); }
-.rivalout__lbl { font-size: 0.48rem; letter-spacing: 0.06em; color: var(--muted); line-height: 1; white-space: nowrap; }
-.rivalout__linha { display: flex; align-items: center; gap: 2px; }
+/* Com alguém expulso deixa de ser um pormenor: o card acende. */
+.rivalout.is-on { border-color: var(--info); background: rgba(56, 189, 248, 0.1); }
+.rivalout__titulo {
+  grid-column: 1 / -1; justify-self: center;
+  font-size: 0.5rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); line-height: 1.1; white-space: nowrap; margin-bottom: 1px;
+}
+.rivalout__linha { display: contents; }
+.rivalout__lbl { font-size: 0.6rem; color: var(--muted); line-height: 1; white-space: nowrap; }
+.rivalout__ctrl { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
 .rivalout__n { min-width: 1.1ch; text-align: center; font-size: 0.9rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .rivalout.is-on .rivalout__n { color: var(--info); }
 .rivalout__b {
@@ -1992,30 +2008,67 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .rivalout__b:disabled { opacity: 0.3; cursor: default; }
 /* Botão dos amarelos do adversário: mais largo que os outros porque leva o
    cartãozinho + o número lado a lado, não só um caracter. */
-.rivalout__b--cards { width: auto; min-width: 18px; padding: 0 3px; display: inline-flex; align-items: center; gap: 2px; }
-.rivalout__b--cards .cardchip { width: 8px; height: 11px; }
-.rivalout__b--cards .rivalout__n { font-size: 0.72rem; font-weight: 700; color: inherit; }
+/* `.rivalout .…` e não só a classe: as regras de ecrã estreito mais abaixo
+   fixam a largura de `.rivalout__b`, e com essa largura o cartão encolhia até
+   virar um risco (era esse o "cartão fininho"). */
+.rivalout .rivalout__b--cards { width: auto; min-width: 18px; padding: 0 3px; display: inline-flex; align-items: center; gap: 4px; }
+/* O cartão tem de se ler como um cartão: proporção de um cartão a sério, e
+   nunca encolhe para dar lugar ao número. */
+.rivalout__b--cards .cardchip { flex: none; width: 10px; height: 14px; vertical-align: 0; }
+.rivalout .rivalout__b--cards .rivalout__n { font-size: 0.9rem; font-weight: 800; color: var(--text); }
+.rivalout .has-cards .rivalout__b--cards .rivalout__n { color: #facc15; }
 
 @media (max-width: 520px) {
+  /* Jogo corrido: à direita do relógio. Não desce mais do que isto: logo abaixo
+     está a linha do "Faltam … · total …", que no tempo extra fica bem mais
+     comprida e passava por baixo do card. */
   .rivalout {
     right: 6px;
-    padding: 2px 4px;
+    padding: 3px 4px;
+    column-gap: 3px;
+    row-gap: 0;
     border-radius: 8px;
     transform: translateY(-38%);
   }
-  .rivalout__lbl {
-    max-width: 96px;
-    font-size: 0.44rem;
-    letter-spacing: 0.04em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .rivalout__titulo { font-size: 0.46rem; letter-spacing: 0.05em; margin-bottom: 0; }
+  .rivalout__lbl { font-size: 0.52rem; }
   .rivalout__b {
-    width: 16px;
+    width: 14px;
     height: 16px;
     font-size: 0.78rem;
   }
   .rivalout__n { font-size: 0.82rem; }
+  .rivalout .rivalout__b--cards { padding: 0 2px; gap: 3px; }
+  .rivalout .rivalout__b--cards .rivalout__n { font-size: 0.82rem; }
+
+  /* Jogo cronometrado: à direita do relógio estão os +10s/+1s, e o card ficava
+     por cima deles. Desce para a fila do "Terminar", que aí está sozinho: a fila
+     ganha a altura do card e guarda-lhe o lado direito, e o botão centra-se no
+     espaço que sobra. */
+  .live__head--cronometrado > .live__controls {
+    min-height: 52px;
+    align-items: center;
+    padding-right: 104px;
+  }
+  .live__head--cronometrado > .rivalout--standalone {
+    top: auto;
+    bottom: 8px;
+    transform: none;
+  }
+}
+/* 360px (muitos Android): rótulos um pouco mais pequenos para o card não
+   chegar ao relógio. */
+@media (max-width: 374px) {
+  .rivalout { column-gap: 2px; padding: 3px; }
+  .rivalout__lbl { font-size: 0.48rem; }
+}
+/* Abaixo disso já não há onde pôr os nomes das linhas: fica o título e os
+   controlos, um por baixo do outro — o cartão amarelo diz qual é qual. */
+@media (max-width: 340px) {
+  .rivalout { grid-template-columns: auto; }
+  .rivalout__lbl { display: none; }
+  .rivalout__ctrl { justify-content: center; }
+  .live__head--cronometrado > .live__controls { padding-right: 70px; }
 }
 
 /* Tablets: o contador vive encostado ao botão `+` do resultado adversário,
@@ -2039,7 +2092,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .rivalout--standalone { display: none; }
   .scoreboard__score.is-right { position: relative; }
   .scoreboard__score > .rivalout--inline {
-    display: inline-flex;
+    display: inline-grid;
     position: absolute;
     left: 100%;
     right: auto;
@@ -2050,8 +2103,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
     flex: 0 0 auto;
     white-space: nowrap;
   }
-  .scoreboard__score > .rivalout--inline .rivalout__lbl {
-    font-size: 0.42rem;
+  .scoreboard__score > .rivalout--inline .rivalout__titulo {
+    font-size: 0.44rem;
     letter-spacing: 0.03em;
   }
 }
@@ -2060,11 +2113,25 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
  * a encostar-se ao pacote acima — é a largura mais apertada de todas em que
  * o cabeçalho já tem o relógio ao centro (a partir de 1001px) mas ainda não
  * sobra espaço nenhum a mais. Um iPad normal, na horizontal, cai mesmo aqui
- * (1024px). O rótulo por extenso é o que pesa mais nesta caixa pequena — sem
- * ele ainda dá para perceber o que é pelo contorno que acende e pelo texto
- * ao fim de premido (o `title`), e cabe sem tocar nos botões ao lado. */
+ * (1024px). Os rótulos são o que pesa mais nesta caixa pequena: até aos 1200px
+ * saem os nomes das linhas (e as duas linhas ficam numa coluna), e até aos
+ * 1100px sai também o título. Percebe-se na mesma pelo cartão amarelo, pelo
+ * contorno que acende e pelo `title`, e cabe sem tocar nos botões ao lado. */
+@media (min-width: 1001px) and (max-width: 1200px) {
+  .scoreboard__score > .rivalout--inline { grid-template-columns: auto; }
+  .scoreboard__score > .rivalout--inline .rivalout__lbl { display: none; }
+  .scoreboard__score > .rivalout--inline .rivalout__ctrl { justify-content: center; }
+}
+/* Logo acima dos 1200px o card volta a ficar à direita do relógio, e com os
+   nomes das linhas chegava ao `−` do resultado deles (sobretudo em espanhol e
+   com o tempo extra a alargar o relógio). Até aos 1320px vai sem eles. */
+@media (min-width: 1201px) and (max-width: 1320px) {
+  .live__head > .rivalout--standalone { grid-template-columns: auto; }
+  .live__head > .rivalout--standalone .rivalout__lbl { display: none; }
+  .live__head > .rivalout--standalone .rivalout__ctrl { justify-content: center; }
+}
 @media (min-width: 1001px) and (max-width: 1100px) {
-  .scoreboard__score > .rivalout--inline .rivalout__lbl {
+  .scoreboard__score > .rivalout--inline .rivalout__titulo {
     display: none;
   }
 }
@@ -2925,16 +2992,25 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .legenda__cor--sofridos { background: var(--danger); margin-left: 10px; }
 .legenda__cor--assistencias { background: var(--info); margin-left: 10px; }
 
-/* Donut dos tipos de golo (BOLA_PARADA/TRANSICAO/ORGANIZACAO/INDIVIDUAL/OUTRO)
-   — cinco cores fixas do tema, a mesma associação em toda a app: cada tipo é
-   sempre a mesma cor, aqui e nas etiquetas do resumo do jogo. */
+/* Donut dos tipos de golo — uma cor fixa por tipo. Oito tipos não cabem nas
+   cinco cores do tema, por isso os quatro lances de bola parada (fora, canto,
+   livre, penálti) levam tons próprios e os outros ficam com as do tema. */
+:root {
+  --golo-fora: #a78bfa;
+  --golo-canto: #f472b6;
+  --golo-livre: #facc15;
+  --golo-penalti: #fb923c;
+}
 .pizza { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .graf--pizza { width: 120px; height: 120px; flex: 0 0 auto; }
 .pizza__fundo { fill: none; stroke: var(--line); stroke-width: 22; }
 .pizza__fatia { fill: none; stroke-width: 22; stroke-linecap: butt; }
-.pizza__fatia--BOLA_PARADA { stroke: var(--primary); }
+.pizza__fatia--FORA { stroke: var(--golo-fora); }
+.pizza__fatia--CANTO { stroke: var(--golo-canto); }
+.pizza__fatia--LIVRE { stroke: var(--golo-livre); }
+.pizza__fatia--PENALTI { stroke: var(--golo-penalti); }
 .pizza__fatia--TRANSICAO { stroke: var(--info); }
-.pizza__fatia--ORGANIZACAO { stroke: var(--warn); }
+.pizza__fatia--ORGANIZACAO { stroke: var(--primary); }
 .pizza__fatia--INDIVIDUAL { stroke: var(--danger); }
 .pizza__fatia--OUTRO { stroke: var(--muted); }
 .pizza__total { font-size: 28px; font-weight: 800; fill: var(--text); }
@@ -2942,9 +3018,12 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .pizza__item { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 .pizza__item b { color: var(--text); font-variant-numeric: tabular-nums; }
 .pizza__dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: 0 0 auto; }
-.pizza__dot--BOLA_PARADA { background: var(--primary); }
+.pizza__dot--FORA { background: var(--golo-fora); }
+.pizza__dot--CANTO { background: var(--golo-canto); }
+.pizza__dot--LIVRE { background: var(--golo-livre); }
+.pizza__dot--PENALTI { background: var(--golo-penalti); }
 .pizza__dot--TRANSICAO { background: var(--info); }
-.pizza__dot--ORGANIZACAO { background: var(--warn); }
+.pizza__dot--ORGANIZACAO { background: var(--primary); }
 .pizza__dot--INDIVIDUAL { background: var(--danger); }
 .pizza__dot--OUTRO { background: var(--muted); }
 

@@ -251,7 +251,9 @@ export function opponentCardsListDialog(ui, state) {
 export function pickGoalType(ui, title) {
   return ui.open((close) => (
     <Dialog title={title} onClose={() => close(undefined)}>
-      <div className="picklist">
+      {/* Oito opções: em duas colunas cabem todas sem deslizar, que a meio de
+          um jogo é um toque e não uma procura. */}
+      <div className="picklist picklist--grelha">
         {GOAL_TYPES.map((tipo) => (
           <button
             key={tipo}

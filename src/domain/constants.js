@@ -130,8 +130,16 @@ export const CARD = { YELLOW: 'YELLOW', RED: 'RED' };
 
 // Como foi marcado o golo (pedido a 25/09/2026). Guardado em metadata.howScored
 // via o mecanismo já existente do GOAL_ATTRIBUTED — sem coluna nova.
+//
+// A 26/09/2026 a "bola parada" deu lugar aos quatro lances que ela juntava —
+// fora, canto, livre e penálti —, que é o que o treinador quer distinguir. O
+// valor antigo `BOLA_PARADA` deixa de se oferecer, mas um golo que já o tenha
+// continua a mostrar-se (há tradução para ele); só não entra no gráfico.
 export const GOAL_TYPE = {
-  BOLA_PARADA: 'BOLA_PARADA',
+  FORA: 'FORA',
+  CANTO: 'CANTO',
+  LIVRE: 'LIVRE',
+  PENALTI: 'PENALTI',
   TRANSICAO: 'TRANSICAO',
   ORGANIZACAO: 'ORGANIZACAO',
   INDIVIDUAL: 'INDIVIDUAL',
