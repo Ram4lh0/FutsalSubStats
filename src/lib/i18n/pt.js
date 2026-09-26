@@ -1006,6 +1006,7 @@ export default {
   'acao.confirmaSegundoAmareloAdv':
     'Segundo amarelo do adversário #{numero}. Conta como uma expulsão do adversário.',
   'acao.expulsoAdvPorAmarelos': 'Adversário #{numero} expulso por acumulação de amarelos.',
+  'acao.advJaExpulso': 'Esse jogador já foi expulso.',
   'acao.confirmaRemoverAmareloAdv': 'Remover o amarelo do adversário #{numero}?',
   'acao.comoFoiOGolo': 'Como foi o golo?',
   'acao.confirmaVermelho':

@@ -511,9 +511,15 @@ function Live() {
    * do adversário" ali ao lado.
    */
   async function registarAmareloAdversario() {
-    const numero = await opponentYellowCardDialog(ui);
+    const numero = await opponentYellowCardDialog(ui, state);
     if (numero == null) return;
-    const jaTinha = (state.opponentCards || []).some((c) => c.number === numero);
+    const doNumero = (state.opponentCards || []).filter((c) => c.number === numero);
+    // O diálogo já não deixa passar, mas a regra vive também aqui.
+    if (doNumero.some((c) => c.secondYellow)) {
+      toast(t('acao.advJaExpulso'), 'error');
+      return;
+    }
+    const jaTinha = doNumero.length > 0;
     if (jaTinha) {
       const ok = await confirmar(
         t('acao.confirmaSegundoAmareloAdv', { numero }),

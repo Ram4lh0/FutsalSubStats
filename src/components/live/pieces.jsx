@@ -138,7 +138,15 @@ export function RivalOut({ state, on, variant = 'standalone' }) {
       {/* Amarelos: só se sabe o número da camisola (não há plantel deles). O
           cartão + contagem abre a lista, onde se corrige; o `+` aponta um novo. */}
       <span className={`rivalout__linha ${amarelos ? 'has-cards' : ''}`}>
-        <span className="rivalout__lbl">{t('vivo.advAmarelos')}</span>
+        {/* O nome da linha também abre a lista: toda a zona dos amarelos se
+            toca, menos o `+`, que aponta um novo. */}
+        <button
+          type="button"
+          className="rivalout__lbl rivalout__lbl--btn"
+          onClick={on.verCartoesAdversario}
+        >
+          {t('vivo.advAmarelos')}
+        </button>
         <span className="rivalout__ctrl">
           <button
             className="rivalout__b rivalout__b--cards"

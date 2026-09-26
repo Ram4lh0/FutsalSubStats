@@ -1480,6 +1480,9 @@ ul { padding: 0; list-style: none; }
 
 .empty { text-align: center; color: var(--muted); padding: 44px 20px; display: flex; flex-direction: column; gap: 16px; align-items: center; }
 .error { white-space: pre-wrap; text-align: left; font-size: 0.75rem; color: var(--danger); }
+/* Aviso que aparece dentro de um formulário: vazio não ocupa lugar. */
+.error--aviso { margin: 0; font-size: 0.9rem; font-weight: 600; }
+.error--aviso:empty { display: none; }
 
 /* ------------------------------------------------------------------ tabelas */
 
@@ -1996,6 +1999,12 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 }
 .rivalout__linha { display: contents; }
 .rivalout__lbl { font-size: 0.6rem; color: var(--muted); line-height: 1; white-space: nowrap; }
+/* "Amarelos:" é um botão (abre a lista), mas lê-se como o rótulo de cima. */
+.rivalout__lbl--btn {
+  background: none; border: 0; margin: 0; padding: 3px 0; font-family: inherit;
+  text-align: left; cursor: pointer; border-radius: 4px;
+}
+.rivalout__lbl--btn:active { background: rgba(255, 255, 255, 0.12); }
 .rivalout__ctrl { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
 .rivalout__n { min-width: 1.1ch; text-align: center; font-size: 0.9rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .rivalout.is-on .rivalout__n { color: var(--info); }

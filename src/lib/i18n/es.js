@@ -1003,6 +1003,7 @@ export default {
   'acao.confirmaSegundoAmareloAdv':
     'Segunda amarilla del rival #{numero}. Cuenta como una expulsión del rival.',
   'acao.expulsoAdvPorAmarelos': 'Rival #{numero} expulsado por acumulación de amarillas.',
+  'acao.advJaExpulso': 'Ese jugador ya ha sido expulsado.',
   'acao.confirmaRemoverAmareloAdv': '¿Quitar la amarilla del rival #{numero}?',
   'acao.comoFoiOGolo': '¿Cómo fue el gol?',
   'acao.confirmaVermelho':
