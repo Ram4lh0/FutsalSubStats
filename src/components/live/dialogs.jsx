@@ -164,8 +164,10 @@ export function stintsDialog(ui, state, p, clockMs) {
  * lib/ui.jsx), por isso o valor tem de viver no próprio campo do DOM, não
  * numa variável de React que se perdia a cada nova renderização.
  */
-export function opponentYellowCardDialog(ui) {
+export function opponentYellowCardDialog(ui, state) {
   const campo = { current: null };
+  const aviso = { current: null };
+  const cartoes = state?.opponentCards || [];
   return ui.open((close) => (
     <Dialog title={t('dialogo.amareloAdvTitulo')} onClose={() => close(null)}>
       <form
@@ -174,6 +176,12 @@ export function opponentYellowCardDialog(ui) {
           e.preventDefault();
           const numero = Number(campo.current?.value);
           if (!Number.isInteger(numero) || numero < 1 || numero > 99) return;
+          // Dois amarelos já são uma expulsão: um terceiro ao mesmo número não
+          // existe. Avisa aqui, com o número ainda escrito, para se corrigir.
+          if (cartoes.some((c) => c.number === numero && c.secondYellow)) {
+            if (aviso.current) aviso.current.textContent = t('acao.advJaExpulso');
+            return;
+          }
           close(numero);
         }}
       >
@@ -189,8 +197,18 @@ export function opponentYellowCardDialog(ui) {
             max={99}
             inputMode="numeric"
             autoFocus
+            onInput={() => {
+              if (aviso.current) aviso.current.textContent = '';
+            }}
           />
         </label>
+        <p
+          className="error error--aviso"
+          role="alert"
+          ref={(el) => {
+            aviso.current = el;
+          }}
+        />
         <button className="btn btn--primary" type="submit">
           {t('dialogo.registar')}
         </button>
