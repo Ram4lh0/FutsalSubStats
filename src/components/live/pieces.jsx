@@ -71,7 +71,7 @@ function ScoreCell({ team, score, side, interactive, on, children = null }) {
   return (
     <div className={`scoreboard__score ${side}`}>
       {interactive ? (
-        <button className="scorebtn" aria-label="Menos um golo" onClick={() => on.removeGoal(team)}>
+        <button className="scorebtn" aria-label={t('vivo.menosGolo')} onClick={() => on.removeGoal(team)}>
           −
         </button>
       ) : null}
@@ -79,7 +79,7 @@ function ScoreCell({ team, score, side, interactive, on, children = null }) {
       {interactive ? (
         <button
           className="scorebtn scorebtn--add"
-          aria-label="Mais um golo"
+          aria-label={t('vivo.maisGolo')}
           onClick={() => on.addGoal(team)}
         >
           +
@@ -105,49 +105,57 @@ function ScoreCell({ team, score, side, interactive, on, children = null }) {
 export function RivalOut({ state, on, variant = 'standalone' }) {
   const n = state.opponentExpulsions || 0;
   const amarelos = (state.opponentCards || []).length;
+  // Um card só, com título e uma linha por assunto (pedido a 26/09/2026): antes
+  // eram dois contadores empilhados sem nome, e o dos amarelos não se percebia
+  // o que era.
   return (
     <span
       className={`rivalout rivalout--${variant} ${n ? 'is-on' : ''}`}
       title={n ? t('vivo.jogamCom', { n: MAX_ON_COURT - n }) : t('vivo.jogamComCinco')}
     >
-      <span className="rivalout__lbl">{t('vivo.expAdvCurto')}</span>
+      <span className="rivalout__titulo">{t('vivo.advTitulo')}</span>
       <span className="rivalout__linha">
-        <button
-          className="rivalout__b"
-          aria-label={t('vivo.menosExpulsao')}
-          disabled={!n}
-          onClick={() => on.opponentExpulsion(-1)}
-        >
-          −
-        </button>
-        <span className="rivalout__n">{n}</span>
-        <button
-          className="rivalout__b"
-          aria-label={t('vivo.maisExpulsao')}
-          onClick={() => on.opponentExpulsion(1)}
-        >
-          +
-        </button>
+        <span className="rivalout__lbl">{t('vivo.advExpulsos')}</span>
+        <span className="rivalout__ctrl">
+          <button
+            className="rivalout__b"
+            aria-label={t('vivo.menosExpulsao')}
+            disabled={!n}
+            onClick={() => on.opponentExpulsion(-1)}
+          >
+            −
+          </button>
+          <span className="rivalout__n">{n}</span>
+          <button
+            className="rivalout__b"
+            aria-label={t('vivo.maisExpulsao')}
+            onClick={() => on.opponentExpulsion(1)}
+          >
+            +
+          </button>
+        </span>
       </span>
-      {/* Amarelos do adversário: um cartão só se sabe pelo número (não há
-          plantel deles). Encostado ao contador de expulsões de propósito —
-          pedido a 25/09/2026 — para não abrir mais uma caixa no ecrã. */}
-      <span className="rivalout__linha">
-        <button
-          className="rivalout__b rivalout__b--cards"
-          aria-label={t('vivo.verAmareladosAdv')}
-          onClick={on.verCartoesAdversario}
-        >
-          <span className="cardchip cardchip--yellow" />
-          <span className="rivalout__n">{amarelos}</span>
-        </button>
-        <button
-          className="rivalout__b"
-          aria-label={t('vivo.registarAmareloAdv')}
-          onClick={on.registarAmareloAdversario}
-        >
-          +
-        </button>
+      {/* Amarelos: só se sabe o número da camisola (não há plantel deles). O
+          cartão + contagem abre a lista, onde se corrige; o `+` aponta um novo. */}
+      <span className={`rivalout__linha ${amarelos ? 'has-cards' : ''}`}>
+        <span className="rivalout__lbl">{t('vivo.advAmarelos')}</span>
+        <span className="rivalout__ctrl">
+          <button
+            className="rivalout__b rivalout__b--cards"
+            aria-label={t('vivo.verAmareladosAdv')}
+            onClick={on.verCartoesAdversario}
+          >
+            <span className="cardchip cardchip--yellow" />
+            <span className="rivalout__n">{amarelos}</span>
+          </button>
+          <button
+            className="rivalout__b"
+            aria-label={t('vivo.registarAmareloAdv')}
+            onClick={on.registarAmareloAdversario}
+          >
+            +
+          </button>
+        </span>
       </span>
     </span>
   );
@@ -160,16 +168,16 @@ function FoulsCell({ state, team, side, interactive, on }) {
   return (
     <div className={`scoreboard__fouls ${side} ${quente ? 'is-hot' : ''}`}>
       {interactive ? (
-        <button className="foulbtn" aria-label="Menos uma falta" onClick={() => on.removeFoul(team)}>
+        <button className="foulbtn" aria-label={t('vivo.menosFalta')} onClick={() => on.removeFoul(team)}>
           −
         </button>
       ) : null}
       <span className="foulbtn__n">{n}</span>
-      <span className="foulbtn__label">{n === 1 ? 'falta' : 'faltas'}</span>
+      <span className="foulbtn__label">{n === 1 ? t('vivo.falta') : t('vivo.faltas')}</span>
       {interactive ? (
         <button
           className="foulbtn foulbtn--add"
-          aria-label="Mais uma falta"
+          aria-label={t('vivo.maisFalta')}
           onClick={() => on.addFoul(team)}
         >
           +
@@ -365,7 +373,7 @@ function CourtCard({ pos, p, state, sel, clockMs, on, arrasto }) {
       </div>
       <span
         className="pcard__goal"
-        title="Golo deste jogador"
+        title={t('vivo.goloDoJogador')}
         data-no-drag
         onPointerDown={(e) => e.stopPropagation()}
         onPointerUp={(e) => e.stopPropagation()}

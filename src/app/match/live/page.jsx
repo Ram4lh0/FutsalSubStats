@@ -87,7 +87,11 @@ function Live() {
   const state = carregado?.state || null;
   const match = carregado?.match || null;
   const aCorrer = state?.timerStatus === 'RUNNING';
-  const now = useNow(250, Boolean(aCorrer));
+  // O batimento não pode parar com o cronómetro: o "Saiu há" dos jogadores no
+  // banco conta em tempo real. Parado, basta um por segundo — é o que esse
+  // número mostra.
+  const emCurso = Boolean(state) && state.status !== MATCH_STATUS.FINISHED;
+  const now = useNow(aCorrer ? 250 : 1000, emCurso);
   const clockMs = state ? clockMsOf(state, now) : 0;
 
   // Enquanto o jogo está aberto, o ecrã não adormece. Não é só com o cronómetro
@@ -570,7 +574,7 @@ function Live() {
           }}
         >
           <span className="cardchip cardchip--red" />
-          Cartão vermelho
+          {t('acao.cartaoVermelho')}
         </button>
       </>
     );
@@ -708,7 +712,7 @@ function Live() {
                 finishFirst();
               }}
             >
-              Terminar 1.ª parte
+              {t('acao.terminarPrimeira')}
             </button>
           ) : (
             <button
@@ -718,7 +722,7 @@ function Live() {
                 finishGame();
               }}
             >
-              Terminar jogo
+              {t('acao.terminarJogo')}
             </button>
           )}
           <button
@@ -728,7 +732,7 @@ function Live() {
               abandon();
             }}
           >
-            Abandonar jogo (terminar já)
+            {t('acao.abandonarJogo')}
           </button>
           <button
             className="menu__item"
@@ -737,7 +741,7 @@ function Live() {
               router.push(comOrigem(rotas.jogoHistorico(matchId), { de: 'live' }));
             }}
           >
-            Histórico de ações
+            {t('historico.titulo')}
           </button>
         </div>
       </Dialog>
@@ -891,7 +895,7 @@ function Live() {
               className="btn btn--ghost"
               onClick={() => router.push(comOrigem(rotas.jogoHistorico(matchId), { de: 'live' }))}
             >
-              Histórico
+              {t('acao.historico')}
             </button>
           </div>
         </header>
@@ -909,12 +913,19 @@ function Live() {
   }
 
   const periodLabel =
-    state.currentPeriod === 1 ? '1.ª PARTE' : state.currentPeriod === 2 ? '2.ª PARTE' : '—';
+    state.currentPeriod === 1
+      ? t('vivo.primeiraParte')
+      : state.currentPeriod === 2
+        ? t('vivo.segundaParte')
+        : '—';
   const undoable = state.lastUndoable;
 
   return (
     <div className="live">
-      <header className="live__head" data-tour="live-clock">
+      <header
+        className={`live__head ${timing === MATCH_TIMING.TIMED ? 'live__head--cronometrado' : ''}`}
+        data-tour="live-clock"
+      >
         <Scoreboard
           state={state}
           ourName={ourName}
@@ -942,22 +953,19 @@ function Live() {
             <button
               className={`btn btn--big ${aCorrer ? 'btn--warn' : 'btn--primary'}`}
               onClick={() =>
-                commit(
-                  aCorrer ? A.pauseClock(state) : A.resumeClock(state),
-                  aCorrer ? 'Tempo parado.' : 'Tempo retomado.'
-                )
+                commit(aCorrer ? A.pauseClock(state) : A.resumeClock(state))
               }
             >
-              {aCorrer ? 'Parar tempo' : 'Retomar tempo'}
+              {aCorrer ? t('vivo.pararTempo') : t('vivo.retomarTempo')}
             </button>
           ) : null}
           {state.currentPeriod === 1 ? (
             <button className="btn btn--big btn--fecha" onClick={finishFirst}>
-              Terminar 1.ª parte
+              {t('acao.terminarPrimeira')}
             </button>
           ) : (
             <button className="btn btn--big btn--fecha" onClick={finishGame}>
-              Terminar jogo
+              {t('acao.terminarJogo')}
             </button>
           )}
         </div>
@@ -1017,10 +1025,10 @@ function Live() {
           className="btn btn--ghost btn--big"
           onClick={() => router.push(comOrigem(rotas.jogoHistorico(matchId), { de: 'live' }))}
         >
-          Histórico
+          {t('acao.historico')}
         </button>
         <button className="btn btn--ghost btn--big" onClick={moreMenu}>
-          Mais ações
+          {t('acao.maisAcoes')}
         </button>
 
         {/* Num jogo cronometrado o relógio pára e recomeça a toda a hora. Este
@@ -1029,14 +1037,11 @@ function Live() {
           <button
             className={`btn btn--big clocktoggle ${aCorrer ? 'btn--warn' : 'btn--primary'}`}
             onClick={() =>
-              commit(
-                aCorrer ? A.pauseClock(state) : A.resumeClock(state),
-                aCorrer ? 'Tempo parado.' : 'Tempo retomado.'
-              )
+              commit(aCorrer ? A.pauseClock(state) : A.resumeClock(state))
             }
           >
             <span className="clocktoggle__icon">{aCorrer ? '⏸' : '▶'}</span>
-            <span>{aCorrer ? 'Parar tempo' : 'Retomar'}</span>
+            <span>{aCorrer ? t('vivo.pararTempo') : t('vivo.retomar')}</span>
           </button>
         ) : null}
       </footer>

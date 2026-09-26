@@ -104,7 +104,16 @@ export function playerMatchStats(
     longestStintMs: durations.length ? Math.max(...durations) : 0,
     shortestStintMs: durations.length ? Math.min(...durations) : 0,
     currentStintMs: current ? current.durationMs : null,
-    sinceLeftMs: !onCourt && last ? Math.max(0, clockMs - last.endMatchMs) : null,
+    // "Saiu há": em tempo real, tal como o tempo de banco (26/09/2026). Quem
+    // saiu continua a descansar enquanto o cronómetro está parado — é para isso
+    // que o treinador olha quando decide quem volta a entrar. Os períodos
+    // gravados antes de haver `endWallMs` caem no tempo de cronómetro.
+    sinceLeftMs:
+      !onCourt && last
+        ? last.endWallMs != null
+          ? Math.max(0, nowWallMs - last.endWallMs)
+          : Math.max(0, clockMs - last.endMatchMs)
+        : null,
     expelled: player.status === PLAYER_MATCH_STATUS.EXPELLED,
     expulsions: player.status === PLAYER_MATCH_STATUS.EXPELLED ? 1 : 0,
     goals: goals.filter((g) => g.scorerId === player.playerId).length,

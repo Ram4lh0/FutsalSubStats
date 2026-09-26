@@ -276,8 +276,12 @@ test('tipos de golo: só os nossos, e só os que têm o tipo apontado', () => {
   const r = golosPorTipo([
     jogo({
       golos: [
-        { team: 'US', period: 1, matchElapsedMs: 3 * MIN, howScored: 'BOLA_PARADA' },
-        { team: 'US', period: 1, matchElapsedMs: 5 * MIN, howScored: 'BOLA_PARADA' },
+        { team: 'US', period: 1, matchElapsedMs: 3 * MIN, howScored: 'CANTO' },
+        { team: 'US', period: 1, matchElapsedMs: 5 * MIN, howScored: 'CANTO' },
+        { team: 'US', period: 1, matchElapsedMs: 7 * MIN, howScored: 'PENALTI' },
+        // Valor antigo (antes de 26/09/2026): continua gravado, mas já não é uma
+        // fatia do gráfico — não se inventa a qual dos quatro lances pertencia.
+        { team: 'US', period: 1, matchElapsedMs: 8 * MIN, howScored: 'BOLA_PARADA' },
         { team: 'US', period: 2, matchElapsedMs: 22 * MIN, howScored: 'INDIVIDUAL' },
         // Golo do adversário: nunca tem tipo, e mesmo que tivesse não devia contar.
         { team: 'THEM', period: 1, matchElapsedMs: 10 * MIN, howScored: 'TRANSICAO' },
@@ -288,15 +292,19 @@ test('tipos de golo: só os nossos, e só os que têm o tipo apontado', () => {
   ]);
 
   const porChave = Object.fromEntries(r.map((f) => [f.chave, f.valor]));
-  assert.equal(porChave.BOLA_PARADA, 2);
+  assert.equal(porChave.CANTO, 2);
+  assert.equal(porChave.PENALTI, 1);
+  assert.equal(porChave.FORA, 0);
+  assert.equal(porChave.LIVRE, 0);
+  assert.equal('BOLA_PARADA' in porChave, false);
   assert.equal(porChave.INDIVIDUAL, 1);
   assert.equal(porChave.TRANSICAO, 0);
   assert.equal(porChave.ORGANIZACAO, 0);
   assert.equal(porChave.OUTRO, 0);
   assert.equal(
     r.reduce((a, f) => a + f.valor, 0),
-    3,
-    'só os três golos nossos e classificados'
+    4,
+    'só os golos nossos classificados com um tipo atual'
   );
 });
 

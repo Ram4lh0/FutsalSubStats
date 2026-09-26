@@ -117,23 +117,23 @@ function Assistente() {
   const provaEscolhida = provas.find((c) => c.id === info.competitionId) || null;
   const limiteConvocados = maxSquadOf(provaEscolhida);
 
-  if (!roster) return <p className="muted">A carregar…</p>;
+  if (!roster) return <p className="muted">{t('comum.aCarregar')}</p>;
 
   if (!roster.length) {
     return (
       <>
-        <PageHead title="Novo jogo" backTo={rotas.escalao(clubId, teamId)} />
+        <PageHead title={t('escalao.novoJogo')} backTo={rotas.escalao(clubId, teamId)} />
         <Empty
           action={
             <button
               className="btn btn--primary"
               onClick={() => router.push(rotas.jogadorNovo(clubId, teamId))}
             >
-              Criar jogador
+              {t('plantel.criarJogador')}
             </button>
           }
         >
-          Não existem jogadores ativos. Crie o plantel antes de marcar um jogo.
+          {t('novo.semJogadoresAtivos')}
         </Empty>
       </>
     );
@@ -146,20 +146,18 @@ function Assistente() {
     return (
       <>
         <PageHead
-          title="Novo jogo"
+          title={t('escalao.novoJogo')}
           subtitle={team?.name}
           backTo={rotas.escalao(clubId, teamId)}
         />
         <Empty
           action={
             <button className="btn btn--primary" onClick={criarProva}>
-              Criar competição
+              {t('novo.criarProvaCurto')}
             </button>
           }
         >
-          Este escalão ainda não tem competições. Todo o jogo pertence a uma — campeonato, taça ou
-          particulares — para as estatísticas de cada prova ficarem separadas. Crie aqui a primeira e
-          continue.
+          {t('novo.semCompeticoesTexto')}
         </Empty>
       </>
     );
@@ -299,7 +297,7 @@ function Assistente() {
 
   return (
     <>
-      <PageHead title="Novo jogo" subtitle={[club?.name, team?.name].filter(Boolean).join(" · ")} backTo={rotas.jogos(clubId, teamId)} />
+      <PageHead title={t('escalao.novoJogo')} subtitle={[club?.name, team?.name].filter(Boolean).join(" · ")} backTo={rotas.jogos(clubId, teamId)} />
 
       <ol className="stepper">
         {ETAPAS.map((chave, i) => (
@@ -551,7 +549,7 @@ function Confirmacao({
 
       <div className="wizard__nav">
         <button className="btn btn--ghost" type="button" onClick={onVoltar}>
-          Voltar
+          {t('comum.voltar')}
         </button>
         <button
           className="btn btn--ghost"
@@ -559,7 +557,7 @@ function Confirmacao({
           disabled={aGuardar}
           onClick={() => onGuardar(false)}
         >
-          {aGuardar ? 'A guardar…' : 'Guardar jogo'}
+          {aGuardar ? t('comum.aGuardar') : t('novo.guardarJogo')}
         </button>
         <button
           className="btn btn--primary"
@@ -568,7 +566,7 @@ function Confirmacao({
           data-tour="match-save-open"
           onClick={() => onGuardar(true)}
         >
-          {aGuardar ? 'A guardar…' : 'Guardar e abrir'}
+          {aGuardar ? t('comum.aGuardar') : t('novo.guardarEAbrir')}
         </button>
       </div>
     </div>
