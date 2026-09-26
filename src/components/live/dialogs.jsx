@@ -270,15 +270,16 @@ export function pickGoalType(ui, title) {
   return ui.open((close) => (
     <Dialog title={title} onClose={() => close(undefined)}>
       {/* Oito opções: em duas colunas cabem todas sem deslizar, que a meio de
-          um jogo é um toque e não uma procura. */}
+          um jogo é um toque e não uma procura. Mesmo aspeto que a lista de
+          quem marcou / quem assistiu, que é o passo imediatamente antes. */}
       <div className="picklist picklist--grelha">
         {GOAL_TYPES.map((tipo) => (
           <button
             key={tipo}
-            className="picklist__item picklist__item--special"
+            className="picklist__item"
             onClick={() => close(tipo)}
           >
-            {t(`golos.tipo.${tipo}`)}
+            <span className="picklist__name">{t(`golos.tipo.${tipo}`)}</span>
           </button>
         ))}
       </div>
