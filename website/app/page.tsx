@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { translations, type Language } from "./translations";
 import { supabase } from "./supabase";
 
@@ -86,6 +86,24 @@ function Icon({ name }: { name: IconName }) {
   return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }
 
+type DemoZone = "field" | "bench";
+type DemoDrag = {
+  number: DemoPlayerNumber;
+  zone: DemoZone;
+  pointerId: number;
+  x: number;
+  y: number;
+  source: HTMLButtonElement;
+  ghost: HTMLDivElement | null;
+};
+
+/** O jogador (da outra zona) que está debaixo do dedo, ou `null`. */
+function demoTargetAt(x: number, y: number, from: DemoZone): DemoPlayerNumber | null {
+  const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-demo-zone]");
+  if (!el || el.dataset.demoZone === from) return null;
+  return Number(el.dataset.demoNumber) as DemoPlayerNumber;
+}
+
 function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
   const initialClock = 9 * 60 + 42;
   const [seconds, setSeconds] = useState(initialClock);
@@ -101,13 +119,21 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
   const [selectedBench, setSelectedBench] = useState<DemoPlayerNumber | null>(null);
   const [notice, setNotice] = useState("");
   // Arrastar é só uma segunda forma de fazer a mesma troca — o toque
-  // continua a funcionar como antes. Usa-se o drag-and-drop nativo do browser
-  // (em vez de seguir o ponteiro à mão) para que o "fantasma" que se arrasta
-  // seja desenhado pelo próprio browser, sem se preocupar com as transformações
-  // 3D do `device-shell`.
+  // continua a funcionar como antes.
+  //
+  // É feito com eventos de ponteiro, e não com o `draggable` do HTML: esse não
+  // existe no toque, e num telemóvel arrastar não fazia nada. É a mesma técnica
+  // da app (src/lib/arrastar.js): um toque só vira arrasto depois de 10px, um
+  // clone do cartão segue o dedo — posto no `body`, fora das transformações 3D
+  // do `device-shell` — e o alvo é o que estiver debaixo do dedo ao largar.
   const [draggingNumber, setDraggingNumber] = useState<DemoPlayerNumber | null>(null);
-  const [draggingZone, setDraggingZone] = useState<"field" | "bench" | null>(null);
+  const [draggingZone, setDraggingZone] = useState<DemoZone | null>(null);
   const [dragOverNumber, setDragOverNumber] = useState<DemoPlayerNumber | null>(null);
+  const drag = useRef<DemoDrag | null>(null);
+  // Com o rato, largar ainda dispara um clique no cartão de onde se partiu —
+  // que o selecionava como se tivesse sido tocado.
+  const ignoreClick = useRef(false);
+  useEffect(() => () => { drag.current?.ghost?.remove(); }, []);
   useEffect(() => {
     if (!running || seconds <= 0) return;
     const timer = window.setInterval(() => {
@@ -145,34 +171,78 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
     setSelectedField(null);
     setNotice(t.demo.pickField);
   };
-  const startDrag = (number: DemoPlayerNumber, zone: "field" | "bench") => (event: React.DragEvent<HTMLButtonElement>) => {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", String(number));
-    setDraggingNumber(number);
-    setDraggingZone(zone);
-  };
-  const endDrag = () => {
+  const endDrag = (current: DemoDrag) => {
+    current.ghost?.remove();
     setDraggingNumber(null);
     setDraggingZone(null);
     setDragOverNumber(null);
   };
-  const dragOverTarget = (number: DemoPlayerNumber, zone: "field" | "bench") => (event: React.DragEvent<HTMLButtonElement>) => {
-    if (!draggingZone || draggingZone === zone) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    setDragOverNumber(number);
+  const pointerDown = (number: DemoPlayerNumber, zone: DemoZone) => (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    drag.current = { number, zone, pointerId: event.pointerId, x: event.clientX, y: event.clientY, source: event.currentTarget, ghost: null };
   };
-  const dropOnTarget = (number: DemoPlayerNumber, zone: "field" | "bench") => (event: React.DragEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    if (zone === "field" && draggingZone === "bench" && draggingNumber) swapPlayers(number, draggingNumber);
-    else if (zone === "bench" && draggingZone === "field" && draggingNumber) swapPlayers(draggingNumber, number);
-    endDrag();
+  const pointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const current = drag.current;
+    if (!current || current.pointerId !== event.pointerId) return;
+    const dx = event.clientX - current.x;
+    const dy = event.clientY - current.y;
+    if (!current.ghost) {
+      if (Math.hypot(dx, dy) < 10) return;
+      try { current.source.setPointerCapture(event.pointerId); } catch { /* o ponteiro já acabou */ }
+      const box = current.source.getBoundingClientRect();
+      const ghost = document.createElement("div");
+      // O cartão do banco só tem o aspeto certo dentro de `.bench-list`.
+      ghost.className = current.zone === "bench" ? "drag-ghost bench-list" : "drag-ghost";
+      ghost.style.left = `${box.left}px`;
+      ghost.style.top = `${box.top}px`;
+      ghost.style.width = `${box.width}px`;
+      const clone = current.source.cloneNode(true) as HTMLElement;
+      clone.removeAttribute("style");
+      clone.setAttribute("aria-hidden", "true");
+      clone.classList.add("selected");
+      ghost.appendChild(clone);
+      document.body.appendChild(ghost);
+      current.ghost = ghost;
+      setDraggingNumber(current.number);
+      setDraggingZone(current.zone);
+    }
+    current.ghost.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+    setDragOverNumber(demoTargetAt(event.clientX, event.clientY, current.zone));
   };
+  const pointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const current = drag.current;
+    if (!current || current.pointerId !== event.pointerId) return;
+    drag.current = null;
+    if (!current.ghost) return; // foi um toque: o clique trata disso
+    const target = demoTargetAt(event.clientX, event.clientY, current.zone);
+    endDrag(current);
+    ignoreClick.current = true;
+    window.setTimeout(() => { ignoreClick.current = false; }, 0);
+    if (!target) return;
+    if (current.zone === "field") swapPlayers(current.number, target);
+    else swapPlayers(target, current.number);
+  };
+  const pointerCancel = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const current = drag.current;
+    if (!current || current.pointerId !== event.pointerId) return;
+    drag.current = null;
+    if (current.ghost) endDrag(current);
+  };
+  const dragHandlers = (number: DemoPlayerNumber, zone: DemoZone) => ({
+    "data-demo-zone": zone,
+    "data-demo-number": number,
+    onPointerDown: pointerDown(number, zone),
+    onPointerMove: pointerMove,
+    onPointerUp: pointerUp,
+    onPointerCancel: pointerCancel,
+    // Sem isto, um toque longo abre o menu de contexto do browser por cima.
+    onContextMenu: (event: React.MouseEvent) => event.preventDefault(),
+  });
   return <div className="match-window" aria-label={t.demo.label}>
     <div className="match-topbar"><span className="live-dot"><i /> {t.demo.live}</span><div className="match-score"><span className="score-team"><small>CAP</small><span className="score-stepper"><button type="button" aria-label={t.demo.decreaseHome} onClick={() => setHomeGoals((value) => Math.max(0, value - 1))}>−</button><b>{homeGoals}</b><button type="button" aria-label={t.demo.increaseHome} onClick={() => setHomeGoals((value) => value + 1)}>+</button></span></span><em>—</em><span className="score-team"><small>ADV</small><span className="score-stepper"><button type="button" aria-label={t.demo.decreaseAway} onClick={() => setAwayGoals((value) => Math.max(0, value - 1))}>−</button><b>{awayGoals}</b><button type="button" aria-label={t.demo.increaseAway} onClick={() => setAwayGoals((value) => value + 1)}>+</button></span></span></div><button className="icon-button" type="button" aria-label={t.demo.undo}>↶</button></div>
     <div className="timer-row"><div><small>{t.demo.part}</small><strong>{time}</strong></div><button type="button" className={`timer-control ${running ? "pause" : "play"}`} onClick={() => setRunning(!running)}><span>{running ? "Ⅱ" : "▶"}</span>{running ? t.demo.pause : t.demo.resume}</button></div>
     <div className="court"><span className="half-line"/><span className="center-circle"/><span className="area left"/><span className="area right"/>
-      {onCourt.map((number, index) => { const player = demoPlayers[number]; const position = fieldPositions[index]; const role = t.demo.roles[player.role]; return <button key={number} type="button" draggable className={`field-player-card ${selectedField === number || (draggingZone === "field" && draggingNumber === number) ? "selected" : ""} ${selectedBench || draggingZone === "bench" ? "ready" : ""} ${dragOverNumber === number ? "selected" : ""}`} style={{ left:`${position.x}%`, top:`${position.y}%` }} onClick={() => chooseField(number)} onDragStart={startDrag(number, "field")} onDragEnd={endDrag} onDragOver={dragOverTarget(number, "field")} onDragLeave={() => setDragOverNumber((current) => current === number ? null : current)} onDrop={dropOnTarget(number, "field")} aria-label={`${player.name}, ${role}`}>
+      {onCourt.map((number, index) => { const player = demoPlayers[number]; const position = fieldPositions[index]; const role = t.demo.roles[player.role]; return <button key={number} type="button" {...dragHandlers(number, "field")} className={`field-player-card ${selectedField === number || (draggingZone === "field" && draggingNumber === number) ? "selected" : ""} ${selectedBench || draggingZone === "bench" ? "ready" : ""} ${dragOverNumber === number ? "selected" : ""}`} style={{ left:`${position.x}%`, top:`${position.y}%` }} onClick={() => { if (!ignoreClick.current) chooseField(number); }} aria-label={`${player.name}, ${role}`}>
         <span className="player-card-top"><b>{player.number}</b><small>{role}</small><i>●</i></span>
         <strong>{player.name}</strong>
         <span className="player-time">{t.demo.totalTime} <b>{formatDuration(playerTimes[number])}</b></span>
@@ -181,7 +251,7 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
       <div className={`swap-notice ${notice ? "show" : ""}`}>{notice}</div>
     </div>
     <div className="bench-label"><span>{t.demo.bench}</span><small>{t.demo.tap}</small></div>
-    <div className="bench-list">{onBench.map((number) => { const player = demoPlayers[number]; const role = t.demo.roles[player.role]; return <button key={number} type="button" draggable onClick={() => chooseBench(number)} onDragStart={startDrag(number, "bench")} onDragEnd={endDrag} onDragOver={dragOverTarget(number, "bench")} onDragLeave={() => setDragOverNumber((current) => current === number ? null : current)} onDrop={dropOnTarget(number, "bench")} className={`${selectedField || draggingZone === "field" ? "ready" : ""} ${selectedBench === number || (draggingZone === "bench" && draggingNumber === number) ? "selected" : ""} ${dragOverNumber === number ? "selected" : ""}`} aria-label={`${player.number} ${player.name}, ${role}`}>
+    <div className="bench-list">{onBench.map((number) => { const player = demoPlayers[number]; const role = t.demo.roles[player.role]; return <button key={number} type="button" {...dragHandlers(number, "bench")} onClick={() => { if (!ignoreClick.current) chooseBench(number); }} className={`${selectedField || draggingZone === "field" ? "ready" : ""} ${selectedBench === number || (draggingZone === "bench" && draggingNumber === number) ? "selected" : ""} ${dragOverNumber === number ? "selected" : ""}`} aria-label={`${player.number} ${player.name}, ${role}`}>
       <span className="bench-card-top"><b>{player.number}</b><small>{role}</small></span><strong>{player.name}</strong>
       <span className="bench-time">{t.demo.totalTime} <b>{formatDuration(playerTimes[number])}</b></span>
       <span className={exitedAt[number] === undefined ? "bench-status muted" : "bench-status"}>{exitedAt[number] === undefined ? t.demo.notEntered : `${t.demo.leftAgo} ${formatDuration(elapsed - exitedAt[number])}`}</span>
