@@ -169,6 +169,19 @@ workflows:
           node tools/check-store-config.mjs --output out
           npx cap sync ios
 
+      - name: Confirm live updates (OTA) are absent from the iOS build
+        script: |
+          set -eu
+          # Apple Guideline 2.5.2 + purchases must only be validated by store code.
+          # If the plugin survived the sync, stop here instead of shipping it.
+          if grep -qi "capgo" ios/App/CapApp-SPM/Package.swift; then
+            echo "ERRO: CapgoCapacitorUpdater ainda esta no Package.swift do iOS."; exit 1
+          fi
+          if grep -q "CapacitorUpdaterPlugin" ios/App/App/capacitor.config.json; then
+            echo "ERRO: CapacitorUpdaterPlugin ainda esta registado no iOS."; exit 1
+          fi
+          echo "OK: o iOS vai sem o plugin de atualizacoes ao vivo."
+
       - name: Set up iOS code signing
         script: |
           set -euo pipefail
