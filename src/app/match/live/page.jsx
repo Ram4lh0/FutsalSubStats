@@ -47,6 +47,7 @@ import {
   FOUL_LIMIT,
   timingOf,
   timingConfig,
+  goalTypesFor,
 } from '@/domain/constants.js';
 import { clubShort, opponentShort, mensagemErro, eventLabel } from '@/lib/format.js';
 import { t } from '@/lib/i18n/index.js';
@@ -264,8 +265,12 @@ function Live() {
    * 25/09/2026). Alimenta o novo cartão do dashboard e as etiquetas no resumo
    * do jogo; corrige-se depois na ficha do golo, tal como o marcador.
    */
-  async function askGoalType(st, golo) {
-    const tipo = await pickGoalType(ui, t('acao.comoFoiOGolo'));
+  async function askGoalType(st, golo, team = 'US') {
+    const tipo = await pickGoalType(
+      ui,
+      team === 'THEM' ? t('acao.comoFoiOGoloSofrido') : t('acao.comoFoiOGolo'),
+      goalTypesFor(team)
+    );
     if (tipo === undefined) return;
     await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, howScored: tipo }), {
       sync: 'defer',
@@ -288,12 +293,19 @@ function Live() {
     const st = await commit(A.goal(state, EVENT.OPPONENT_GOAL_ADDED));
     const depois = new Set(emCurso(st));
     const libertado = antes.find((id) => !depois.has(id));
-    if (!libertado) return;
+    // Primeiro a notícia urgente (quem pode voltar a entrar), depois a pergunta.
+    if (libertado) {
+      const p = st.players[libertado];
+      anunciadas.current.add(st.penalties.find((x) => x.playerId === libertado)?.id);
+      beep();
+      toast(t('acao.goloSofridoLiberta', { numero: p.number, nome: p.name }), 'ok', 8000);
+    }
 
-    const p = st.players[libertado];
-    anunciadas.current.add(st.penalties.find((x) => x.playerId === libertado)?.id);
-    beep();
-    toast(t('acao.goloSofridoLiberta', { numero: p.number, nome: p.name }), 'ok', 8000);
+    // Como foi o golo sofrido (pedido a 04/10/2026) — a mesma pergunta dos
+    // golos marcados, com "erro individual" no lugar de "jogada individual".
+    // Fechar sem escolher deixa o golo sem tipo, corrigível na ficha do golo.
+    const golo = [...st.goals].reverse().find((g) => g.team === 'THEM');
+    if (golo) await askGoalType(st, golo, 'THEM');
   }
 
   /* --------------------------------------------------------------- faltas */

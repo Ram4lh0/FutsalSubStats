@@ -148,6 +148,28 @@ export const GOAL_TYPE = {
 
 export const GOAL_TYPES = Object.values(GOAL_TYPE);
 
+// Como foi o golo SOFRIDO (pedido a 04/10/2026). Os mesmos lances, com uma
+// troca: num golo sofrido a "jogada individual" que interessa ao treinador é o
+// erro individual de um dos nossos. Valor novo, e não `INDIVIDUAL` reaproveitado,
+// porque quer dizer outra coisa — e um golo sofrido com tipo só é mostrado pelas
+// versões que conhecem esta lista (as antigas só leem o tipo dos golos marcados).
+// Guardado no mesmo `metadata.howScored` do GOAL_ATTRIBUTED: nenhum evento novo.
+export const CONCEDED_GOAL_TYPES = [
+  GOAL_TYPE.FORA,
+  GOAL_TYPE.CANTO,
+  GOAL_TYPE.LIVRE,
+  GOAL_TYPE.PENALTI,
+  GOAL_TYPE.TRANSICAO,
+  GOAL_TYPE.ORGANIZACAO,
+  'ERRO_INDIVIDUAL',
+  GOAL_TYPE.OUTRO,
+];
+
+/** Os tipos que fazem sentido para um golo nosso ('US') ou sofrido ('THEM'). */
+export function goalTypesFor(team) {
+  return team === 'THEM' ? CONCEDED_GOAL_TYPES : GOAL_TYPES;
+}
+
 export const STINT_END_REASON = {
   SUBSTITUTED: 'SUBSTITUTED',
   HALFTIME: 'HALFTIME',

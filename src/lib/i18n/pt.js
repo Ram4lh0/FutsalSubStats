@@ -329,6 +329,7 @@ export default {
   'painelv.difCurta': 'Diferença',
   'painelv.semGolos': 'Ainda não há golos registados.',
   'painelv.tiposDeGolo': 'Tipos de golo',
+  'painelv.tiposDeGoloSofrido': 'Tipos de golo sofrido',
   'painelv.semGolosClassificados': 'Ainda não há golos com o tipo apontado.',
   'painelv.forma': 'Forma e resultados',
   'painelv.v': 'V',
@@ -878,6 +879,7 @@ export default {
   'golos.tipo.ORGANIZACAO': 'Organização',
   'golos.tipo.INDIVIDUAL': 'Jogada individual',
   'golos.tipo.OUTRO': 'Outro',
+  'golos.tipo.ERRO_INDIVIDUAL': 'Erro individual',
   'golos.marcadorPorRegistar': 'Marcador por registar',
   'golos.sofridoCom': 'Sofrido com {nome} à baliza',
   'golos.assist': 'assist. {nome}',
@@ -1009,6 +1011,7 @@ export default {
   'acao.advJaExpulso': 'Esse jogador já foi expulso.',
   'acao.confirmaRemoverAmareloAdv': 'Remover o amarelo do adversário #{numero}?',
   'acao.comoFoiOGolo': 'Como foi o golo?',
+  'acao.comoFoiOGoloSofrido': 'Como foi o golo sofrido?',
   'acao.confirmaVermelho':
     'Cartão vermelho para #{numero} {nome}? Fica expulso e a equipa joga reduzida.',
   'acao.vermelho': 'Vermelho',

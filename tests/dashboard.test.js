@@ -308,6 +308,30 @@ test('tipos de golo: só os nossos, e só os que têm o tipo apontado', () => {
   );
 });
 
+test('tipos de golo sofrido: só os deles, com erro individual no lugar da jogada individual', () => {
+  const r = golosPorTipo(
+    [
+      jogo({
+        golos: [
+          { team: 'THEM', period: 1, matchElapsedMs: 3 * MIN, howScored: 'ERRO_INDIVIDUAL' },
+          { team: 'THEM', period: 1, matchElapsedMs: 6 * MIN, howScored: 'ERRO_INDIVIDUAL' },
+          { team: 'THEM', period: 2, matchElapsedMs: 25 * MIN, howScored: 'CANTO' },
+          // Sem tipo: fica de fora.
+          { team: 'THEM', period: 2, matchElapsedMs: 30 * MIN, howScored: null },
+          // Golo nosso: não entra na conta dos sofridos.
+          { team: 'US', period: 1, matchElapsedMs: 9 * MIN, howScored: 'CANTO' },
+        ],
+      }),
+    ],
+    'THEM'
+  );
+  const porChave = Object.fromEntries(r.map((f) => [f.chave, f.valor]));
+  assert.equal(porChave.ERRO_INDIVIDUAL, 2);
+  assert.equal(porChave.CANTO, 1);
+  assert.equal('INDIVIDUAL' in porChave, false);
+  assert.equal(r.reduce((a, f) => a + f.valor, 0), 3);
+});
+
 test('um jogo por terminar não entra nas contas', () => {
   const r = golosPorFaixa([
     jogo({

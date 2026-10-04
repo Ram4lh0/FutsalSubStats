@@ -266,14 +266,14 @@ export function opponentCardsListDialog(ui, state) {
  * vontade de classificar cada golo, e o resto do fluxo (marcador, assistência)
  * já fica registado de qualquer forma.
  */
-export function pickGoalType(ui, title) {
+export function pickGoalType(ui, title, tipos = GOAL_TYPES) {
   return ui.open((close) => (
     <Dialog title={title} onClose={() => close(undefined)}>
       {/* Oito opções: em duas colunas cabem todas sem deslizar, que a meio de
           um jogo é um toque e não uma procura. Mesmo aspeto que a lista de
           quem marcou / quem assistiu, que é o passo imediatamente antes. */}
       <div className="picklist picklist--grelha">
-        {GOAL_TYPES.map((tipo) => (
+        {tipos.map((tipo) => (
           <button
             key={tipo}
             className="picklist__item"

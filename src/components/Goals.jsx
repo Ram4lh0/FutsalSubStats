@@ -48,7 +48,7 @@ export function GoalsTimeline({ state, ourName, opponentName, onEdit, emptyText 
                   {t('golos.assist', { nome: nome(g.assistId) })}
                 </span>
               ) : null}
-              {nosso && g.howScored ? (
+              {g.howScored ? (
                 <span className="goalline__detail goalline__detail--tipo">
                   {t(`golos.tipo.${g.howScored}`)}
                 </span>

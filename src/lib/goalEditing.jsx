@@ -11,7 +11,7 @@ import { Dialog } from './ui.jsx';
 import { events, loadMatch } from './data/repository.js';
 import * as sync from './data/sync.js';
 import * as A from '@/domain/actions.js';
-import { EVENT, normalizePosition, GOAL_TYPES } from '@/domain/constants.js';
+import { EVENT, normalizePosition, goalTypesFor } from '@/domain/constants.js';
 import { fmt } from '@/domain/clock.js';
 import { t } from '@/lib/i18n/index.js';
 
@@ -100,6 +100,7 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
       patch.howScored = tipo || null;
     } else {
       patch.goalkeeperId = quem || null;
+      patch.howScored = tipo || null;
     }
     onSave(patch);
   }
@@ -153,19 +154,22 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
           </label>
         ) : null}
 
-        {nosso ? (
-          <label className="field">
-            <span className="field__label">{t('golos.comoFoiOGolo')}</span>
-            <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)}>
-              <option value="">{t('golos.tipoPorRegistar')}</option>
-              {GOAL_TYPES.map((g) => (
-                <option key={g} value={g}>
-                  {t(`golos.tipo.${g}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
+        <label className="field">
+          <span className="field__label">{t('golos.comoFoiOGolo')}</span>
+          <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+            <option value="">{t('golos.tipoPorRegistar')}</option>
+            {goalTypesFor(nosso ? 'US' : 'THEM').map((g) => (
+              <option key={g} value={g}>
+                {t(`golos.tipo.${g}`)}
+              </option>
+            ))}
+            {/* Um tipo antigo que já não se oferece (ex.: BOLA_PARADA) continua
+                a aparecer selecionado em vez de desaparecer em silêncio. */}
+            {tipo && !goalTypesFor(nosso ? 'US' : 'THEM').includes(tipo) ? (
+              <option value={tipo}>{t(`golos.tipo.${tipo}`)}</option>
+            ) : null}
+          </select>
+        </label>
 
         <label className="field">
           <span className="field__label">{t('golos.minuto')}</span>

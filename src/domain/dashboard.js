@@ -16,7 +16,7 @@
 // com uma excepção declarada: os minutos por jogador, onde um jogo em curso
 // ainda diz alguma coisa sobre quem está a jogar hoje.
 
-import { MATCH_STATUS, normalizePosition, timingOf, timingConfig, GOAL_TYPES } from './constants.js';
+import { MATCH_STATUS, normalizePosition, timingOf, timingConfig, goalTypesFor } from './constants.js';
 import { clubAggregate, matchResult, playerMatchStats } from './stats.js';
 
 /** Um jogo terminado. É a unidade de tudo o que se conta aqui. */
@@ -367,16 +367,19 @@ export function painelDoAtleta(
  * cuja pergunta foi fechada sem escolher) simplesmente não entram na conta —
  * não há "por classificar" a mostrar aqui, só o que se sabe de facto.
  */
-export function golosPorTipo(entries) {
-  const contagem = Object.fromEntries(GOAL_TYPES.map((tipo) => [tipo, 0]));
+export function golosPorTipo(entries, team = 'US') {
+  // `team` = 'US' para os marcados, 'THEM' para os sofridos (04/10/2026) —
+  // cada um com a sua lista de tipos (ver `goalTypesFor`).
+  const tipos = goalTypesFor(team);
+  const contagem = Object.fromEntries(tipos.map((tipo) => [tipo, 0]));
   for (const { state } of terminados(entries)) {
     for (const g of state.goals || []) {
-      if (g.team === 'US' && g.howScored && g.howScored in contagem) {
+      if (g.team === team && g.howScored && g.howScored in contagem) {
         contagem[g.howScored] += 1;
       }
     }
   }
-  return GOAL_TYPES.map((tipo) => ({ chave: tipo, valor: contagem[tipo] }));
+  return tipos.map((tipo) => ({ chave: tipo, valor: contagem[tipo] }));
 }
 
 export function golosPorFaixa(entries, { faixaMs = 5 * 60_000, parteMs = 20 * 60_000 } = {}) {
