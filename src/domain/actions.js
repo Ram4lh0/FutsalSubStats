@@ -86,6 +86,35 @@ export const startSecondHalf = (s, now) =>
 
 export const finishMatch = (s, now) => makeEvent(s, EVENT.MATCH_FINISHED, {}, now);
 
+/**
+ * Terminar o jogo num minuto escolhido (esqueceram-se de o terminar a tempo).
+ * `ajustado` diz ao reducer que o instante real do fim é o desse minuto, e não
+ * o de agora. As versões antigas ignoram o campo e usam os tempos do evento,
+ * que já são os certos.
+ */
+export const finishMatchAt = (s, ms, now) =>
+  makeEvent(
+    s,
+    EVENT.MATCH_FINISHED,
+    {
+      matchElapsedMs: ms,
+      periodElapsedMs: s.currentPeriod === 2 ? Math.max(0, ms - (s.firstHalfMs || 0)) : ms,
+      metadata: { ajustado: true },
+    },
+    now
+  );
+
+/** Corrigir o minuto de fim de um jogo já terminado. */
+export const adjustEnd = (s, ms, now) =>
+  correction(
+    s,
+    {
+      endMatchMs: ms,
+      endPeriodMs: s.currentPeriod === 2 ? Math.max(0, ms - (s.firstHalfMs || 0)) : ms,
+    },
+    now
+  );
+
 export const substitute = (s, { playerOutId, playerInId, position }, now) =>
   makeEvent(s, EVENT.SUBSTITUTION, { playerOutId, playerInId, position }, now);
 
