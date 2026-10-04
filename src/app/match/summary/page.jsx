@@ -13,6 +13,7 @@ import { Badge, Empty, StatCard, StatusBadge } from '@/components/bits.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import * as GE from '@/lib/goalEditing.jsx';
+import * as FIM from '@/lib/fimEditing.jsx';
 import { clubs, teams, competitions, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { matchSummaryCsv, download, slug } from '@/lib/data/exporter.js';
@@ -114,6 +115,17 @@ function Resumo() {
         matchId,
         ourName: clubShort(club),
         opponentName: opponentShort(match),
+        syncUser: { userId, email: user?.email },
+      })
+    )
+      carregar();
+  }
+
+  async function ajustarFim() {
+    if (
+      await FIM.adjustEnd(ui, {
+        matchId,
+        periodDurationMs: match.periodDurationMs,
         syncUser: { userId, email: user?.email },
       })
     )
@@ -284,6 +296,13 @@ function Resumo() {
             <button className="btn btn--ghost" onClick={corrigirResultado}>
               {t('resumo.corrigirResultado')}
             </button>
+            {state.startedAt ? (
+              <button className="btn btn--ghost" onClick={ajustarFim}>
+                {state.status === MATCH_STATUS.FINISHED
+                  ? t('resumo.ajustarFim')
+                  : t('resumo.terminarAoMinuto')}
+              </button>
+            ) : null}
             <button className="btn btn--ghost" onClick={editarNotas}>
               {t('resumo.notas')}
             </button>

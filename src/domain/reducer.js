@@ -22,6 +22,7 @@ import {
   CARD,
   normalizePosition,
 } from './constants.js';
+import { periodoNoFim } from './fimDoJogo.js';
 
 function findLastIndex(arr, pred) {
   for (let i = arr.length - 1; i >= 0; i--) if (pred(arr[i])) return i;
@@ -218,6 +219,61 @@ function clearFromCourt(state, playerId) {
   return pos;
 }
 
+
+/** Guarda o troço de relógio que arrancou (se algum) depois de um evento. */
+function registarSegmento(state) {
+  if (state.timerStatus !== TIMER_STATUS.RUNNING || state.timerStartedAt == null) return;
+  const ult = state.segmentos[state.segmentos.length - 1];
+  if (ult && ult.startedAt === state.timerStartedAt && ult.elapsedMs === state.elapsedMatchMs) return;
+  state.segmentos.push({ elapsedMs: state.elapsedMatchMs, startedAt: state.timerStartedAt });
+}
+
+/** Instante real (ms) em que o relógio marcou `ms`; null se não houver troço. */
+function relogioDeParede(state, ms) {
+  let seg = null;
+  for (const s of state.segmentos) if (s.elapsedMs <= ms) seg = s;
+  return seg ? seg.startedAt + (ms - seg.elapsedMs) : null;
+}
+
+/**
+ * Fim ajustado de um jogo já terminado (MATCH_CORRECTED com endMatchMs).
+ * Aplica-se uma vez, no fim da reconstrução, por cima do estado já completo:
+ * os eventos antigos nunca são reinterpretados, só o seu efeito é cortado.
+ */
+function aplicarAjusteFim(state) {
+  const aj = state.ajusteFim;
+  if (!aj || state.status !== MATCH_STATUS.FINISHED) return;
+  const original = state.elapsedMatchMs;
+  state.fimOriginalMs = original;
+  const X = Math.min(aj.endMatchMs, original);
+  const periodoX = aj.endPeriodMs != null ? aj.endPeriodMs : periodoNoFim(state, X);
+  if (X >= original) return;
+  const wallX = relogioDeParede(state, X);
+
+  for (const p of Object.values(state.players)) {
+    p.stints = p.stints.filter((st) => st.startMatchMs < X);
+    for (const st of p.stints) {
+      if (st.endMatchMs == null || st.endMatchMs > X) {
+        st.endMatchMs = X;
+        st.endPeriodMs = periodoX;
+        if (wallX != null && (st.endWallMs == null || st.endWallMs > wallX)) st.endWallMs = wallX;
+        st.endingReason = STINT_END_REASON.MATCH_FINISHED;
+      }
+    }
+    p.stints.forEach((st, i) => (st.stintNumber = i + 1));
+  }
+
+  state.powerPlays = state.powerPlays.filter((pp) => pp.startMatchMs < X);
+  for (const pp of state.powerPlays) {
+    if (pp.endMatchMs == null || pp.endMatchMs > X) pp.endMatchMs = X;
+  }
+
+  state.elapsedMatchMs = X;
+  state.periodElapsedMs = periodoX;
+  if (state.currentPeriod === 2) state.secondHalfMs = periodoX;
+  if (wallX != null && state.finishedAt != null) state.finishedAt = Math.min(wallX, state.finishedAt);
+}
+
 /**
  * @param {object} match  linha da tabela matches (configuração estática)
  * @param {array}  squad  linhas de match_squad
@@ -260,6 +316,11 @@ export function buildMatchState(match, squad, events) {
     opponentExpulsions: 0,
     // Amarelos do adversário, por número de camisola (não há plantel deles).
     opponentCards: [],
+    // Troços em que o relógio andou: a que instante real correspondeu cada
+    // minuto de jogo. Serve para ajustar o fim (tempo de banco em relógio real).
+    segmentos: [],
+    ajusteFim: null,
+    fimOriginalMs: null,
   };
 
   for (const row of squad) {
@@ -303,7 +364,10 @@ export function buildMatchState(match, squad, events) {
   for (const ev of ordered) {
     applyEvent(state, ev);
     syncPowerPlay(state, ev);
+    registarSegmento(state);
   }
+
+  aplicarAjusteFim(state);
 
   // O resultado ao intervalo é DERIVADO dos golos da 1.ª parte, não fotografado
   // no apito. Corrigir um golo a frio — acrescentar um que faltava, mudar o
@@ -748,18 +812,31 @@ function applyEvent(state, ev) {
     case EVENT.MATCH_FINISHED: {
       state.elapsedMatchMs = ev.matchElapsedMs;
       state.periodElapsedMs = ev.periodElapsedMs;
-      closeAllStints(state, ev, STINT_END_REASON.MATCH_FINISHED);
+      // Fim num minuto escolhido (esqueceram-se de terminar): o instante real
+      // desse minuto vem do relógio, não do momento em que se carregou no botão.
+      let fim = ev;
+      if (md.ajustado === true) {
+        const w = relogioDeParede(state, ev.matchElapsedMs);
+        if (w != null) fim = { ...ev, createdAt: w };
+      }
+      closeAllStints(state, fim, STINT_END_REASON.MATCH_FINISHED);
       if (state.currentPeriod === 2) state.secondHalfMs = ev.periodElapsedMs;
       state.timerStatus = TIMER_STATUS.STOPPED;
       state.timerStartedAt = null;
       state.status = MATCH_STATUS.FINISHED;
-      state.finishedAt = ev.createdAt;
+      state.finishedAt = fim.createdAt;
       break;
     }
 
     case EVENT.MATCH_CORRECTED: {
       if (md.teamScore != null) state.teamScore = md.teamScore;
       if (md.opponentScore != null) state.opponentScore = md.opponentScore;
+      if (md.endMatchMs != null && Number.isFinite(Number(md.endMatchMs))) {
+        state.ajusteFim = {
+          endMatchMs: Number(md.endMatchMs),
+          endPeriodMs: md.endPeriodMs != null ? Number(md.endPeriodMs) : null,
+        };
+      }
       break;
     }
 
