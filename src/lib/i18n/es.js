@@ -327,6 +327,7 @@ export default {
   'painelv.difCurta': 'Diferencia',
   'painelv.semGolos': 'Todavía no hay goles registrados.',
   'painelv.tiposDeGolo': 'Tipos de gol',
+  'painelv.tiposDeGoloSofrido': 'Tipos de gol encajado',
   'painelv.semGolosClassificados': 'Todavía no hay goles con el tipo registrado.',
   'painelv.forma': 'Forma y resultados',
   'painelv.v': 'V',
@@ -875,6 +876,7 @@ export default {
   'golos.tipo.ORGANIZACAO': 'Juego organizado',
   'golos.tipo.INDIVIDUAL': 'Jugada individual',
   'golos.tipo.OUTRO': 'Otro',
+  'golos.tipo.ERRO_INDIVIDUAL': 'Error individual',
   'golos.marcadorPorRegistar': 'Goleador sin registrar',
   'golos.sofridoCom': 'Encajado con {nome} bajo palos',
   'golos.assist': 'asist. {nome}',
@@ -1006,6 +1008,7 @@ export default {
   'acao.advJaExpulso': 'Ese jugador ya ha sido expulsado.',
   'acao.confirmaRemoverAmareloAdv': '¿Quitar la amarilla del rival #{numero}?',
   'acao.comoFoiOGolo': '¿Cómo fue el gol?',
+  'acao.comoFoiOGoloSofrido': '¿Cómo fue el gol encajado?',
   'acao.confirmaVermelho':
     '¿Tarjeta roja para #{numero} {nome}? Queda expulsado y el equipo juega en inferioridad.',
   'acao.vermelho': 'Roja',

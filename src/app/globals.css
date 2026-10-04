@@ -3035,6 +3035,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .pizza__fatia--TRANSICAO { stroke: var(--info); }
 .pizza__fatia--ORGANIZACAO { stroke: var(--primary); }
 .pizza__fatia--INDIVIDUAL { stroke: var(--danger); }
+.pizza__fatia--ERRO_INDIVIDUAL { stroke: var(--danger); }
 .pizza__fatia--OUTRO { stroke: var(--muted); }
 .pizza__total { font-size: 28px; font-weight: 800; fill: var(--text); }
 .pizza__legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; }
@@ -3048,6 +3049,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .pizza__dot--TRANSICAO { background: var(--info); }
 .pizza__dot--ORGANIZACAO { background: var(--primary); }
 .pizza__dot--INDIVIDUAL { background: var(--danger); }
+.pizza__dot--ERRO_INDIVIDUAL { background: var(--danger); }
 .pizza__dot--OUTRO { background: var(--muted); }
 
 /* A fita dos últimos jogos. Desliza ao lado quando não couber, em vez de

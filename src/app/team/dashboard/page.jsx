@@ -454,6 +454,7 @@ function Painel({ club, team, entries, roster, competitions }) {
   const parteMs = useMemo(() => parteDosJogos(filtrados, tipo), [filtrados, tipo]);
   const faixas = useMemo(() => golosPorFaixa(filtrados, { parteMs }), [filtrados, parteMs]);
   const tiposDeGolo = useMemo(() => golosPorTipo(filtrados), [filtrados]);
+  const tiposDeGoloSofrido = useMemo(() => golosPorTipo(filtrados, 'THEM'), [filtrados]);
   const atleta = useMemo(
     () => painelDoAtleta(filtrados, roster, atletaId, { parteMs, quantos: 5 }),
     [filtrados, roster, atletaId, parteMs]
@@ -652,6 +653,14 @@ function Painel({ club, team, entries, roster, competitions }) {
           <Bloco titulo={t('painelv.tiposDeGolo')}>
             <Pizza
               fatias={tiposDeGolo.map((f) => ({ ...f, rotulo: t(`golos.tipo.${f.chave}`) }))}
+            />
+          </Bloco>
+
+          {/* ------------------------------------ tipos de golo sofrido */}
+          <Bloco titulo={t('painelv.tiposDeGoloSofrido')}>
+            <Pizza
+              titulo={t('painelv.tiposDeGoloSofrido')}
+              fatias={tiposDeGoloSofrido.map((f) => ({ ...f, rotulo: t(`golos.tipo.${f.chave}`) }))}
             />
           </Bloco>
 

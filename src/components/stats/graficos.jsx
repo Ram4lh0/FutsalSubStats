@@ -302,7 +302,7 @@ export function FitaForma({ jogos, onAbrir }) {
  * chegada) é mais código e mais frágil do que rodar o desenho -90° e ir
  * empurrando o traço à volta do círculo com o comprimento de cada fatia.
  */
-export function Pizza({ fatias }) {
+export function Pizza({ fatias, titulo }) {
   const t = useT();
   const total = fatias.reduce((a, f) => a + (f.valor || 0), 0);
   if (!total) return <p className="muted">{t('painelv.semGolosClassificados')}</p>;
@@ -313,7 +313,7 @@ export function Pizza({ fatias }) {
 
   return (
     <div className="pizza">
-      <svg className="graf graf--pizza" viewBox="0 0 160 160" role="img" aria-label={t('painelv.tiposDeGolo')}>
+      <svg className="graf graf--pizza" viewBox="0 0 160 160" role="img" aria-label={titulo || t('painelv.tiposDeGolo')}>
         <g transform="rotate(-90 80 80)">
           <circle cx="80" cy="80" r={RAIO} className="pizza__fundo" />
           {fatias

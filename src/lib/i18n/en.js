@@ -328,6 +328,7 @@ export default {
   'painelv.difCurta': 'Difference',
   'painelv.semGolos': 'No goals recorded yet.',
   'painelv.tiposDeGolo': 'Goal types',
+  'painelv.tiposDeGoloSofrido': 'Goals conceded by type',
   'painelv.semGolosClassificados': 'No goals with a type recorded yet.',
   'painelv.forma': 'Form and results',
   'painelv.v': 'W',
@@ -875,6 +876,7 @@ export default {
   'golos.tipo.ORGANIZACAO': 'Organised play',
   'golos.tipo.INDIVIDUAL': 'Individual play',
   'golos.tipo.OUTRO': 'Other',
+  'golos.tipo.ERRO_INDIVIDUAL': 'Individual error',
   'golos.marcadorPorRegistar': 'Scorer not recorded',
   'golos.sofridoCom': 'Conceded with {nome} in goal',
   'golos.assist': 'assist {nome}',
@@ -1006,6 +1008,7 @@ export default {
   'acao.advJaExpulso': 'That player has already been sent off.',
   'acao.confirmaRemoverAmareloAdv': 'Remove the yellow card for opponent #{numero}?',
   'acao.comoFoiOGolo': 'How was the goal scored?',
+  'acao.comoFoiOGoloSofrido': 'How was the goal conceded?',
   'acao.confirmaVermelho':
     'Red card for #{numero} {nome}? They are sent off and the team plays short.',
   'acao.vermelho': 'Red',
