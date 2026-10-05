@@ -59,6 +59,15 @@ function emCampoAos(stints, ms) {
   return stints.some((s) => s.startMatchMs <= ms && (s.endMatchMs == null || s.endMatchMs > ms));
 }
 
+// Se o golo guardou quem estava em campo, é isso que conta: um golo e uma troca
+// no mesmo milissegundo deixariam o tempo decidir mal. Golos sem essa lista
+// (minuto acertado a frio) voltam ao cálculo pelos períodos em campo.
+function estavaEmCampo(golo, playerId, stints) {
+  return golo.onCourtIds
+    ? golo.onCourtIds.includes(playerId)
+    : emCampoAos(stints, golo.matchElapsedMs);
+}
+
 export function playerMatchStats(
   player,
   clockMs,
@@ -121,9 +130,11 @@ export function playerMatchStats(
     // Participações em golos: quem estava em campo quando o golo aconteceu.
     // Não é mérito individual — é a leitura de que a equipa marca (ou sofre)
     // com este jogador dentro das quatro linhas.
-    goalShare: goals.filter((g) => g.team === 'US' && emCampoAos(stints, g.matchElapsedMs)).length,
+    goalShare: goals.filter(
+      (g) => g.team === 'US' && estavaEmCampo(g, player.playerId, stints)
+    ).length,
     concededShare: goals.filter(
-      (g) => g.team === 'THEM' && emCampoAos(stints, g.matchElapsedMs)
+      (g) => g.team === 'THEM' && estavaEmCampo(g, player.playerId, stints)
     ).length,
     // Golos sofridos enquanto este jogador estava à baliza.
     conceded: goals.filter((g) => g.team === 'THEM' && g.goalkeeperId === player.playerId).length,
