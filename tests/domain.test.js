@@ -510,6 +510,39 @@ test('os golos sofridos ficam no guarda-redes que estava em campo', () => {
   assert.equal(st.goals[2].goalkeeperId, null);
 });
 
+test('golo e troca no mesmo milissegundo: a participação é de quem estava antes da troca', () => {
+  // Caso real (Ferreira do Zêzere × Leões de Porto Salvo, 25/09/2026): golo
+  // sofrido e troca de guarda-redes com o relógio parado, ambos no mesmo
+  // instante. O que entrou depois do golo ficava com a participação.
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.pauseClock(s, T0 + 2 * MIN), T0 + 2 * MIN);
+  step(ctx, (s) => A.goal(s, EVENT.OPPONENT_GOAL_ADDED, T0 + 3 * MIN), T0 + 3 * MIN);
+  let st = step(
+    ctx,
+    (s) => A.substitute(s, { playerOutId: 'p1', playerInId: 'p6', position: 'GOALKEEPER' }, T0 + 3 * MIN),
+    T0 + 3 * MIN
+  );
+  assert.equal(st.goals[0].matchElapsedMs, st.players.p6.stints[0].startMatchMs, 'mesmo instante');
+
+  const opts = { goals: st.goals };
+  const p1 = playerMatchStats(st.players.p1, 2 * MIN, opts);
+  const p6 = playerMatchStats(st.players.p6, 2 * MIN, opts);
+  assert.equal(p1.conceded, 1);
+  assert.equal(p1.concededShare, 1, 'estava na baliza quando o golo entrou');
+  assert.equal(p6.conceded, 0);
+  assert.equal(p6.concededShare, 0, 'só entrou depois do golo');
+
+  // Minuto acertado a frio: deixa de haver lista e volta a contar o tempo.
+  st = step(
+    ctx,
+    (s) => A.attributeGoal(s, { targetEventId: st.goals[0].eventId, matchElapsedMs: 1 * MIN, period: 1 }, T0 + 4 * MIN),
+    T0 + 4 * MIN
+  );
+  assert.equal(st.goals[0].onCourtIds, null);
+  assert.equal(playerMatchStats(st.players.p1, 2 * MIN, { goals: st.goals }).concededShare, 1);
+});
+
 test('estatísticas do clube incluem jogadores novos e dados atuais do plantel', () => {
   const roster = [
     { id: 'p1', name: 'Ana Silva', shirtNumber: 99 },

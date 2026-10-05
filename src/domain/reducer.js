@@ -213,6 +213,13 @@ function positionOf(state, playerId) {
   return null;
 }
 
+// Quem está em campo neste evento. Guardado em cada golo porque um golo e uma
+// troca podem cair no mesmo milissegundo (relógio parado): aí só a ordem dos
+// eventos diz quem estava lá — o tempo não chega (05/10/2026).
+function emCampoAgora(state) {
+  return POSITIONS.map((pos) => state.court[pos]).filter(Boolean);
+}
+
 function clearFromCourt(state, playerId) {
   const pos = positionOf(state, playerId);
   if (pos) state.court[pos] = null;
@@ -684,6 +691,7 @@ function applyEvent(state, ev) {
         ownGoal: !!md.ownGoal,
         goalkeeperId: null,
         howScored: null,
+        onCourtIds: emCampoAgora(state),
       });
       break;
     }
@@ -714,6 +722,9 @@ function applyEvent(state, ev) {
       if (md.matchElapsedMs != null) {
         goal.matchElapsedMs = md.matchElapsedMs;
         if (md.period) goal.period = md.period;
+        // Quem estava em campo no toque já não vale para o minuto acertado:
+        // as participações voltam a sair dos períodos em campo.
+        goal.onCourtIds = null;
       }
       break;
     }
@@ -737,6 +748,7 @@ function applyEvent(state, ev) {
         // do campo já sabe, e fica fixo no instante do golo.
         goalkeeperId: state.court.GOALKEEPER || null,
         howScored: null,
+        onCourtIds: emCampoAgora(state),
       });
       const { nos, eles } = shorthandedCount(state, ev.matchElapsedMs);
       const running =

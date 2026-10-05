@@ -56,7 +56,9 @@ function periodOf(state, ms, fallback) {
  */
 function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
   const nosso = goal.team === 'US';
-  const emCampo = onCourtAt(state, goal.matchElapsedMs);
+  const emCampo = goal.onCourtIds
+    ? Object.values(state.players).filter((p) => goal.onCourtIds.includes(p.playerId))
+    : onCourtAt(state, goal.matchElapsedMs);
   const jogadores = emCampo.length ? emCampo : Object.values(state.players);
   const guardaRedes = Object.values(state.players).filter((p) => {
     const estavaNaBaliza = (p.stints || []).some(
