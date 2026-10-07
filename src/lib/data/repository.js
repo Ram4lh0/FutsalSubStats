@@ -17,6 +17,7 @@ import * as db from './local.js';
 import { donoAtual } from './owner.js';
 import { notifyLocalChange } from './sync.js';
 import { uid } from '../../domain/actions.js';
+import { compararEscaloes } from '../../domain/escaloes.js';
 import { buildMatchState } from '../../domain/reducer.js';
 import {
   LOCATION,
@@ -174,7 +175,7 @@ export const teams = {
     const rows = await db.byIndex(db.STORES.teams, 'by_club', clubId);
     return rows
       .filter((t) => !t.archivedAt)
-      .sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+      .sort(compararEscaloes);
   },
   get: (id) => db.get(db.STORES.teams, id),
 
