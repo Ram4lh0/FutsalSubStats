@@ -101,7 +101,7 @@ function JogoEntrada() {
   }, [confirmar, estado, initialSyncReady, router, t, tempoMinimo, user]);
 
   if (!tempoMinimo || !estado || (remote && !initialSyncReady) || estado.escaloes.length) {
-    return <PostLoginLoading />;
+    return <PostLoginLoading clube={clubeComFoto(estado?.clubes)} />;
   }
 
   const clubeDono = estado.clubes.find((club) => souDonoDe(club));
@@ -140,15 +140,38 @@ function JogoEntrada() {
   );
 }
 
-function PostLoginLoading() {
+/**
+ * O clube cujo emblema se mostra enquanto a app se prepara: o da conta
+ * primeiro; quem é convidado vê o do clube onde treina. Sem foto, nenhum.
+ */
+function clubeComFoto(clubes) {
+  const comFoto = (clubes || []).filter((c) => c.logoUrl);
+  return comFoto.find((c) => souDonoDe(c)) || comFoto[0] || null;
+}
+
+/**
+ * O ecrã de arranque. Quando o clube tem foto, é o emblema que aparece no lugar
+ * da bola — pedido em feedback: o clube que pôs foto quer vê-la ao abrir a app.
+ * Antes era um aviso à parte, por cima deste ecrã, e os dois faziam o mesmo
+ * papel ao mesmo tempo.
+ *
+ * A foto vem da base local, por isso está cá logo ao arrancar e mesmo sem rede.
+ * Logo a seguir a entrar numa conta pode ainda não ter descido do servidor:
+ * aparece a bola, e o emblema entra quando os dados chegarem.
+ */
+function PostLoginLoading({ clube }) {
   const t = useT();
   return (
     <div className="postlogin" role="status" aria-live="polite">
-      <div className="postlogin__mark" aria-hidden="true">
-        <span className="postlogin__ball" />
-        <span className="postlogin__line postlogin__line--one" />
-        <span className="postlogin__line postlogin__line--two" />
-      </div>
+      {clube ? (
+        <img className="postlogin__emblema" src={clube.logoUrl} alt={clube.name} />
+      ) : (
+        <div className="postlogin__mark" aria-hidden="true">
+          <span className="postlogin__ball" />
+          <span className="postlogin__line postlogin__line--one" />
+          <span className="postlogin__line postlogin__line--two" />
+        </div>
+      )}
       <h1>{t('jogo.aPrepararTitulo')}</h1>
       <p>{t('jogo.aPrepararTexto')}</p>
     </div>
