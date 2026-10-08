@@ -2292,62 +2292,74 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
 }
 .floatbtn__icon { font-size: 1.5rem; line-height: 1; }
-/* Espaço para o botão não tapar o fim da coluna. */
-.halftime__right { padding-bottom: 130px; }
 /* Espaço para o botão não tapar o fim da barra de ações. */
 .live__bar { padding-right: 120px; }
 .pcard--empty.is-locked { border-color: rgba(239, 68, 68, 0.55); color: #ff9a9a; opacity: 0.85; }
 
-/* Duas colunas com deslize independente: consulta-se as estatísticas da 1.ª
-   parte sem perder de vista a formação que se está a montar ao lado. */
+/* Uma só coluna, e quem desliza é ela inteira: o cinco da 2.ª parte em cima,
+   as estatísticas por baixo. Presa à altura que sobra do ecrã (ver
+   `.live--pause`), para o cabeçalho com o resultado não fugir com o deslize.
+
+   `overscroll-behavior` fica em `auto` pela razão que já custou um erro: aqui
+   há sempre conteúdo a transbordar, mas um `contain` num contentor curto
+   engolia a roda do rato. */
 .halftime {
-  display: grid;
-  grid-template-columns: 1fr 1.1fr;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   min-width: 0;
-  /* Sem altura mínima zero, as duas colunas esticam-se até caber tudo e o
-     deslize de dentro nunca chega a acontecer — era isso que travava o rato no
-     computador enquanto o dedo funcionava no iPad. */
   min-height: 0;
   height: 100%;
   align-self: stretch;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: auto;
+  /* Espaço para o botão flutuante não tapar o fim da tabela. */
+  padding-bottom: 130px;
 }
-.halftime > * { min-width: 0; min-height: 0; }
-.halftime__left, .halftime__right {
-  /* `min-height: 0` outra vez: um item de grelha recusa-se a encolher abaixo do
-     conteúdo, e sem encolher não há o que deslizar. */
-  min-height: 0;
+.halftime > * { min-width: 0; flex-shrink: 0; }
+.halftime__bloco {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 14px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  /* `contain` e não `none`: dentro da coluna o deslize é dela, e ao chegar ao
-     fim não arrasta a página atrás.
-
-     Tem uma armadilha, e foi metade deste erro: um elemento com `overflow: auto`
-     é um contentor de deslize mesmo quando não há nada a transbordar, e com
-     `contain` ele engole a roda do rato em vez de a passar a quem está por
-     fora. Enquanto a faixa crescia com o conteúdo, as colunas nunca
-     transbordavam — e a roda não fazia nada em lado nenhum, embora a página
-     tivesse barra de deslize. No dedo funcionava, porque o toque começa no
-     elemento e arrasta o que estiver por baixo.
-
-     Agora que as colunas deslizam mesmo, o `contain` continuava a ser uma
-     armadilha à espera: a coluna curta — a do resultado, quase sempre — não
-     transborda, e mesmo assim engolia o gesto de quem lhe passasse o dedo por
-     cima. Ao alto fica `auto`, como nas tabelas, pela mesma razão. Não se perde
-     nada: no intervalo a página está presa ao ecrã e não há para onde
-     encadear. */
-  overscroll-behavior-x: contain;
-  overscroll-behavior-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .halftime__title { display: flex; align-items: center; gap: 10px; }
-.halftime__score { color: var(--muted); margin-bottom: 10px; }
-.halftime__actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.halftime__score { color: var(--muted); margin: 0; }
+.halftime__actions { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+.halftime__mais { text-align: center; font-size: 0.8rem; margin: 0; }
+.halftime__sub { margin: 0 0 6px; font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+.halftime__pizzas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.halftime__pizzas > * { min-width: 0; }
+
+/* Amarelos do adversário: uma ficha por número. Amarelo vivo para quem está a
+   um cartão da expulsão — é a informação que se usa na 2.ª parte —, vermelho
+   apagado para quem já saiu. */
+.adv-cartoes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.adv-cartoes__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  font-size: 0.85rem;
+}
+.adv-cartoes__numero { font-weight: 800; }
+.adv-cartoes__item.is-amarelo { border-color: rgba(250, 204, 21, 0.7); background: rgba(250, 204, 21, 0.14); }
+.adv-cartoes__item.is-amarelo .adv-cartoes__numero { color: #facc15; }
+.adv-cartoes__item.is-expulso { border-color: rgba(239, 68, 68, 0.45); opacity: 0.7; }
+.adv-cartoes__item.is-expulso .adv-cartoes__numero { color: #f87171; text-decoration: line-through; }
+/* Amarelo cheio sobre branco quase não se vê — o mesmo acerto do
+   `.cartao-cor--amarelo`. */
+@media (prefers-color-scheme: light) {
+  .adv-cartoes__item.is-amarelo .adv-cartoes__numero { color: #b45309; }
+}
 
 /* Cartões estreitos: um golo é uma linha curta (minuto, quem, editar) e não
    precisa da largura toda do ecrã. */
@@ -2512,15 +2524,12 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .form__row { grid-template-columns: 1fr; }
   .live__head { grid-template-columns: 1fr; justify-items: center; gap: 6px; padding: 6px 10px; }
   .live__controls { justify-content: center; flex-wrap: wrap; max-width: 100%; }
-  /* Em vertical as duas colunas passam a ser duas secções uma debaixo da outra,
-     e quem desliza é a página — que é o que se espera de um telemóvel. Por isso
-     a altura do intervalo volta a ser a do conteúdo: presa ao ecrã, o que não
-     coubesse ficava cortado sem forma de lá chegar. */
+  /* Em vertical quem desliza é a página, e não a coluna do intervalo — que é o
+     que se espera de um telemóvel. Por isso a altura do intervalo volta a ser a
+     do conteúdo: presa ao ecrã, o que não coubesse ficava cortado sem forma de
+     lá chegar. */
   .live--pause { height: auto; }
-  .halftime { grid-template-columns: 1fr; height: auto; overflow: visible; }
-  /* `visible` desfaz o contentor de deslize, e com ele o `overscroll-behavior`
-     que estava a comer a roda do rato. */
-  .halftime__left, .halftime__right { overflow: visible; overscroll-behavior: auto; }
+  .halftime { height: auto; overflow: visible; }
   .scoreboard__name { max-width: 30vw; }
 }
 

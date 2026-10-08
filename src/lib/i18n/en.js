@@ -860,6 +860,17 @@ export default {
   'intervalo.faltasCurto': 'F',
   'intervalo.faltasSofridasCurto': 'FS',
   'intervalo.entradas': 'Spells',
+  'intervalo.maisAbaixo': '↓ Goals, minutes, fouls and cards below',
+  'intervalo.minutos': 'Minutes on court',
+  'intervalo.mediaMinutos': 'Dashed line: squad average ({tempo})',
+  'intervalo.faltasJogador': 'Fouls per player',
+  'intervalo.faltasEmRisco': 'In orange: already on a yellow card.',
+  'intervalo.semFaltas': 'No player has committed a foul yet.',
+  'intervalo.amarelosAdversario': 'Opponent yellow cards',
+  'intervalo.advAmarelo': 'yellow at {tempo}',
+  'intervalo.advExpulso': 'sent off · 2nd yellow at {tempo}',
+  'intervalo.advDica': 'In yellow: one card away from a sending-off.',
+  'intervalo.tiposDeGolo': 'Goal types',
 
   /* -------------------------------------------------------------- goals */
   'golos.semGolos': 'No goals yet.',
