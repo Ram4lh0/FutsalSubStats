@@ -860,6 +860,17 @@ export default {
   'intervalo.faltasCurto': 'F',
   'intervalo.faltasSofridasCurto': 'FR',
   'intervalo.entradas': 'Entradas',
+  'intervalo.maisAbaixo': '↓ Goles, minutos, faltas y tarjetas más abajo',
+  'intervalo.minutos': 'Minutos en pista',
+  'intervalo.mediaMinutos': 'Línea discontinua: media de la plantilla ({tempo})',
+  'intervalo.faltasJogador': 'Faltas por jugador',
+  'intervalo.faltasEmRisco': 'En naranja: ya tiene amarilla.',
+  'intervalo.semFaltas': 'Ningún jugador ha cometido faltas todavía.',
+  'intervalo.amarelosAdversario': 'Amarillas del rival',
+  'intervalo.advAmarelo': 'amarilla en el {tempo}',
+  'intervalo.advExpulso': 'expulsado · 2.ª amarilla en el {tempo}',
+  'intervalo.advDica': 'En amarillo: a una tarjeta de la expulsión.',
+  'intervalo.tiposDeGolo': 'Tipos de gol',
 
   /* -------------------------------------------------------------- goles */
   'golos.semGolos': 'Todavía no hay goles.',
