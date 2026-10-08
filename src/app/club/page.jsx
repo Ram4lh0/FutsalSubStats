@@ -129,15 +129,30 @@ function Escaloes() {
         }
       />
 
-      {mostrarEscaloes && podeCriarEscalao && souDono ? (
+      {/* No modo de lista é aqui, e só aqui, que o dono chega ao clube: com
+          escalões criados, o `/club` sem `view` salta logo para o plantel do
+          primeiro, e o "Editar clube" do cabeçalho nunca chegava a ver-se. */}
+      {mostrarEscaloes && souDono ? (
         <div className="form__actions form__actions--left club-list-actions">
-          <button
-            className="btn btn--primary btn--tiny"
-            data-tour="create-team"
-            onClick={() => router.push(rotas.escalaoNovo(clubId))}
-          >
-            {t('clube.criarEscalao')}
-          </button>
+          {podeCriarEscalao ? (
+            <button
+              className="btn btn--primary btn--tiny"
+              data-tour="create-team"
+              onClick={() => router.push(rotas.escalaoNovo(clubId))}
+            >
+              {t('clube.criarEscalao')}
+            </button>
+          ) : null}
+          {soLeitura ? null : (
+            <button
+              className="btn btn--ghost btn--tiny"
+              onClick={() =>
+                router.push(comOrigem(rotas.clubeEditar(clubId), { atras: rotas.escaloes(clubId) }))
+              }
+            >
+              {t('clube.editarTitulo')}
+            </button>
+          )}
         </div>
       ) : null}
 
@@ -186,11 +201,12 @@ function Escaloes() {
                 </button>
               )}
               <header className="club-card__head">
-                {/* O escalão mostra a sua foto se a tiver; se não, as iniciais
-                    sobre a cor do clube, que é a que já usava. */}
+                {/* O escalão mostra a sua foto se a tiver; se não, a do clube —
+                    põe-se uma vez e serve a todos. Sem nenhuma das duas, as
+                    iniciais sobre a cor do clube. */}
                 <Emblema
                   nome={team.shortName || team.name}
-                  foto={team.logoUrl}
+                  foto={team.logoUrl || club.logoUrl}
                   cor={club.primaryColor}
                 />
                 <div>
