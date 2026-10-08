@@ -1107,6 +1107,7 @@ export default {
   'resumo.variosPeriodosVer': '{n} spells · see when',
   'resumo.golos': 'Goals',
   'resumo.semGolos': 'There were no goals.',
+  'resumo.graficos': 'Charts',
   'resumo.jogadores': 'Players',
   'resumo.expulso': 'Sent off',
   'resumo.verPeriodos': 'Spells',

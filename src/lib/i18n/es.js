@@ -1107,6 +1107,7 @@ export default {
   'resumo.variosPeriodosVer': '{n} periodos · ver cuándo',
   'resumo.golos': 'Goles',
   'resumo.semGolos': 'No hubo goles.',
+  'resumo.graficos': 'Gráficos',
   'resumo.jogadores': 'Jugadores',
   'resumo.expulso': 'Expulsado',
   'resumo.verPeriodos': 'Periodos',

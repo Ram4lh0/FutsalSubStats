@@ -9,6 +9,7 @@ import useRouteParams from '@/lib/useRouteParams.js';
 import PageHead from '@/components/PageHead.jsx';
 import DataTable from '@/components/DataTable.jsx';
 import { GoalsByHalf } from '@/components/Goals.jsx';
+import GraficosDoJogo from '@/components/stats/GraficosDoJogo.jsx';
 import { Badge, Empty, StatCard, StatusBadge } from '@/components/bits.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
@@ -390,6 +391,16 @@ function Resumo() {
           emptyText={
             state.status === MATCH_STATUS.FINISHED ? t('resumo.semGolos') : t('golos.semGolos')
           }
+        />
+      </div>
+
+      <h2 className="section">{t('resumo.graficos')}</h2>
+      <div className="resumo__graficos">
+        <GraficosDoJogo
+          state={state}
+          linhas={tabela}
+          classeBloco="card resumo__grafico"
+          parteMs={match.periodDurationMs || 20 * 60_000}
         />
       </div>
 
