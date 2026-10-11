@@ -74,7 +74,6 @@ const PROTEGIDOS = [
   'src/lib/store.js',
   'src/components/LicenseLimitDialog.jsx',
   'src/app/account/page.jsx',
-  'capacitor.config.json',
 ];
 
 if (!minimaNativa) {

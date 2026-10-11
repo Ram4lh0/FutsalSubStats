@@ -28,8 +28,8 @@ O `npm run publicar:pacote` faz cumprir a parte que se pode verificar:
 
 - `--minima-nativa` é **obrigatório**;
 - recusa o pacote se mudou algum ficheiro das compras (`src/lib/store.js`,
-  `LicenseLimitDialog.jsx`, `src/app/account/page.jsx`) ou o
-  `capacitor.config.json` desde a versão da loja — marcada com a tag
+  `LicenseLimitDialog.jsx`, `src/app/account/page.jsx`) desde a versão da
+  loja — marcada com a tag
   `loja-v<versão>`. **Cada versão que vai para a loja leva essa tag:**
 
 ```bash
