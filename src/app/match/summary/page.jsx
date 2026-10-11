@@ -2,7 +2,7 @@
 
 // Resumo do jogo (secção 4.10).
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
@@ -201,21 +201,42 @@ function Resumo() {
   }
 
   function verPeriodos(s) {
+    // O intervalo fecha todas as entradas, por isso cada uma cabe inteira numa
+    // parte e o total da parte é só a soma das entradas que lá começaram.
+    const partes = [];
+    for (const x of s.stints) {
+      const ultima = partes[partes.length - 1];
+      if (ultima && ultima.periodo === x.startPeriod) {
+        ultima.entradas.push(x);
+        ultima.totalMs += x.durationMs;
+      } else {
+        partes.push({ periodo: x.startPeriod, entradas: [x], totalMs: x.durationMs });
+      }
+    }
+
     ui.open((close) => (
       <Dialog title={`#${s.number} ${s.name}`} onClose={() => close(null)}>
         {s.stints.length ? (
           <ul className="stintlist">
-            {s.stints.map((x) => (
-              <li key={x.stintNumber}>
-                <strong>Entrada {x.stintNumber}</strong>
-                {` — ${x.startPeriod}.ª parte — ${fmt(x.startMatchMs)} a ${
-                  x.open ? 'em curso' : fmt(x.endMatchMs)
-                } — `}
-                <span className="mono">{fmt(x.durationMs)}</span>
-                {x.startingPosition ? (
-                  <span className="muted"> · {positionLabel(x.startingPosition)}</span>
-                ) : null}
-              </li>
+            {partes.map((p) => (
+              <Fragment key={p.periodo}>
+                {p.entradas.map((x) => (
+                  <li key={x.stintNumber}>
+                    <strong>Entrada {x.stintNumber}</strong>
+                    {` — ${x.startPeriod}.ª parte — ${fmt(x.startMatchMs)} a ${
+                      x.open ? 'em curso' : fmt(x.endMatchMs)
+                    } — `}
+                    <span className="mono">{fmt(x.durationMs)}</span>
+                    {x.startingPosition ? (
+                      <span className="muted"> · {positionLabel(x.startingPosition)}</span>
+                    ) : null}
+                  </li>
+                ))}
+                <li className="stintlist__total">
+                  <strong>Total {p.periodo}.ª parte:</strong>{' '}
+                  <span className="mono">{fmt(p.totalMs)}</span>
+                </li>
+              </Fragment>
             ))}
           </ul>
         ) : (

@@ -20,6 +20,9 @@ export default function useRouteParams() {
     matchId: q.get(PARAM.match) || null,
     playerId: q.get(PARAM.player) || null,
     competitionId: q.get(PARAM.competition) || null,
+    trainingId: q.get(PARAM.training) || null,
+    playId: q.get(PARAM.play) || null,
+    share: q.get(PARAM.share) || null,
     // De onde se veio, para o botão "atrás" não atirar sempre para o mesmo
     // sítio. O resumo e o histórico são as duas páginas a que se chega por
     // caminhos diferentes.

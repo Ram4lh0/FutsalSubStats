@@ -42,13 +42,14 @@ function areaFromPath(pathname) {
   if (/^\/staff\/?$/.test(pathname || '')) return 'staff';
   if (/^\/account\/?$|^\/password\/?$|^\/privacy\/?$|^\/delete-account\/?$/.test(pathname || '')) return 'profile';
   if (/^\/jogo\/?$/.test(pathname || '') || /^\/match\//.test(pathname || '') || /^\/team\/matches/.test(pathname || '')) return 'game';
+  if (/^\/team\/(training|tactics)(\/|$)/.test(pathname || '')) return 'training';
   if (/^\/club/.test(pathname || '') || /^\/team\/(roster|competitions|competition|edit|new|access|players)/.test(pathname || '')) return 'teams';
   if (/^\/team(\/dashboard|\/player)?\/?$/.test(pathname || '')) return 'analysis';
   return 'teams';
 }
 
 function isPublicPath(pathname) {
-  return /^\/login\/?$|^\/privacy\/?$|^\/delete-account\/?$/.test(pathname || '');
+  return /^\/login\/?$|^\/privacy\/?$|^\/delete-account\/?$|^\/jogada\/?$/.test(pathname || '');
 }
 
 function targetFor(area, selected) {
@@ -57,6 +58,7 @@ function targetFor(area, selected) {
   if (!selected?.club?.id || !selected?.team?.id) return rotas.jogo();
   if (area === 'game') return rotas.jogos(selected.club.id, selected.team.id);
   if (area === 'analysis') return rotas.escalao(selected.club.id, selected.team.id);
+  if (area === 'training') return rotas.treinos(selected.club.id, selected.team.id);
   return rotas.plantel(selected.club.id, selected.team.id);
 }
 
@@ -88,6 +90,16 @@ function Icon({ type }) {
         <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
         <path d="M3.5 20c.5-3.2 2-5 4.5-5s4 1.8 4.5 5" />
         <path d="M11.5 20c.5-3.2 2-5 4.5-5s4 1.8 4.5 5" />
+      </svg>
+    );
+  }
+  if (type === 'training') {
+    // Um apito.
+    return (
+      <svg {...common}>
+        <path d="M3 10.5a4.5 4.5 0 0 0 4.5 4.5h3.7l2.3 3.6a3 3 0 0 0 5.1-.2l1.6-2.9a3 3 0 0 0-.9-3.9L15 8H7.5A4.5 4.5 0 0 0 3 10.5Z" />
+        <circle cx="7.5" cy="10.5" r="1.4" />
+        <path d="M13 8V5.5" />
       </svg>
     );
   }
@@ -180,6 +192,7 @@ export default function MainNavigation() {
 
   const navItems = [
     { id: 'game', label: t('nav.jogo') },
+    { id: 'training', label: t('nav.treino') },
     { id: 'teams', label: t('nav.equipas') },
     { id: 'analysis', label: t('nav.analise') },
     ...(licencaClube ? [{ id: 'staff', label: t('nav.equipaTecnica') }] : []),

@@ -88,11 +88,6 @@ workflows:
       - name: Run checks and tests
         script: npm run check
 
-      - name: Remove live-update plugin from iOS build (Apple Guideline 2.5.2)
-        script: |
-          set -eu
-          npm uninstall @capgo/capacitor-updater --no-save
-
       - name: Build web bundle and sync iOS
         script: |
           npx next build
@@ -156,11 +151,6 @@ workflows:
       - name: Run checks and tests
         script: npm run check
 
-      - name: Remove live-update plugin from iOS build (Apple Guideline 2.5.2)
-        script: |
-          set -eu
-          npm uninstall @capgo/capacitor-updater --no-save
-
       - name: Build web bundle and sync iOS
         script: |
           set -eu
@@ -169,18 +159,16 @@ workflows:
           node tools/check-store-config.mjs --output out
           npx cap sync ios
 
-      - name: Confirm live updates (OTA) are absent from the iOS build
+      - name: Confirm live updates (OTA) are present in the iOS build
         script: |
           set -eu
-          # Apple Guideline 2.5.2 + purchases must only be validated by store code.
-          # If the plugin survived the sync, stop here instead of shipping it.
-          if grep -qi "capgo" ios/App/CapApp-SPM/Package.swift; then
-            echo "ERRO: CapgoCapacitorUpdater ainda esta no Package.swift do iOS."; exit 1
+          # Desde a 1.8.0 o iOS tem OTA, so para coisas pequenas que nunca mudam o
+          # proposito da app (ATUALIZACOES.md, seccao 0). As compras nunca vao por
+          # OTA: o `npm run publicar:pacote` recusa pacotes que lhes mexam.
+          if ! grep -qi "capgo" ios/App/CapApp-SPM/Package.swift; then
+            echo "ERRO: falta o CapgoCapacitorUpdater no Package.swift do iOS."; exit 1
           fi
-          if grep -q "CapacitorUpdaterPlugin" ios/App/App/capacitor.config.json; then
-            echo "ERRO: CapacitorUpdaterPlugin ainda esta registado no iOS."; exit 1
-          fi
-          echo "OK: o iOS vai sem o plugin de atualizacoes ao vivo."
+          echo "OK: o iOS leva o plugin de atualizacoes ao vivo."
 
       - name: Set up iOS code signing
         script: |

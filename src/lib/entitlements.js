@@ -1,7 +1,8 @@
 import { supabase } from './supabase/client.js';
 import { EVENT } from '../domain/constants.js';
 import { profile, raw as db } from './data/repository.js';
-import { localLicenseActive } from './license.js';
+import { localClubLicenseActive, localLicenseActive } from './license.js';
+import { donoAtual } from './data/owner.js';
 
 export { localClubLicenseActive, localLicenseActive } from './license.js';
 
@@ -96,4 +97,56 @@ export async function claimMatchStart(matchId) {
   const { data, error } = await sb.rpc('claim_match_start', { p_match_id: matchId });
   if (error) return offlineEntitlementFallback();
   return data;
+}
+
+/* ------------------------------------------------------------ jogadas */
+
+export const FREE_PLAY_LIMIT = 3;
+
+/**
+ * Esta conta entra pela licença de outra pessoa neste escalão?
+ *
+ * Um treinador associado (nível `editar` ou `ver`) só existe dentro de um
+ * clube com licença Clube — é o dono que paga. O servidor confirma (ver
+ * `plays_limite_gratis` e `pode_ver_biblioteca`); aqui é para o ecrã saber o
+ * que mostrar sem rede.
+ */
+function associado(team) {
+  return Boolean(team?.nivel && team.nivel !== 'dono');
+}
+
+/** Licença Clube: a biblioteca do clube e copiar jogadas entre escalões. */
+export async function temLicencaClube(teamId) {
+  const [perfil, team] = await Promise.all([profile.get(), db.get(db.STORES.teams, teamId)]);
+  return localClubLicenseActive(perfil) || associado(team);
+}
+
+/**
+ * Pode criar mais uma jogada?
+ *
+ * Sem licença são 3 por conta, para sempre: apagar não devolve a vaga. Conta o
+ * maior de dois números — o do servidor (certo entre aparelhos) e o deste
+ * aparelho (o que vale sem rede, e que já inclui o que ainda não subiu).
+ *
+ * @returns {Promise<{allowed: boolean, licensed: boolean, used?: number, limit: number}>}
+ */
+export async function podeCriarJogada(teamId) {
+  const [perfil, team] = await Promise.all([profile.get(), db.get(db.STORES.teams, teamId)]);
+  if (localLicenseActive(perfil) || associado(team)) {
+    return { allowed: true, licensed: true, limit: FREE_PLAY_LIMIT };
+  }
+  const eu = donoAtual();
+  const locais = eu ? (await db.all(db.STORES.plays)).filter((p) => p.createdBy === eu).length : 0;
+  let remotas = 0;
+  const sb = supabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb.rpc('my_free_plays_used');
+      if (!error && Number.isFinite(Number(data))) remotas = Number(data);
+    } catch {
+      /* sem rede (ou servidor sem a função ainda): vale a conta local */
+    }
+  }
+  const used = Math.max(locais, remotas);
+  return { allowed: used < FREE_PLAY_LIMIT, licensed: false, used, limit: FREE_PLAY_LIMIT };
 }

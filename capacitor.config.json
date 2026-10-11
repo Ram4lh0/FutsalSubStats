@@ -15,8 +15,8 @@
     "CapacitorUpdater": {
       "_": "Atualizações ao vivo, alojadas por nós. Ver ATUALIZACOES.md.",
 
-      "_autoUpdate": "Desligado na versao 1.5.0: usar apenas o codigo incluido na compilacao da loja para validar as compras.",
-      "autoUpdate": false,
+      "_autoUpdate": "Ligado outra vez na 1.8.0, nas duas plataformas, só para coisas pequenas (correções, textos, ajustes de ecrã) que nunca mudam o propósito da app. Funcionalidades novas e tudo o que toca nas compras vão sempre pela loja — o `publicar:pacote` recusa um pacote que mexa nos ficheiros das compras. Ver ATUALIZACOES.md §0. (Esteve desligado na 1.5.0 durante o problema das compras no iOS, resolvido na 1.5.1.)",
+      "autoUpdate": true,
 
       "_updateUrl": "A função no Supabase que responde 'há novidade?'. O identificador do projeto não é segredo — já vai dentro da app, no endereço do Supabase.",
       "updateUrl": "https://bkfkpfhcysuyiotwkaty.supabase.co/functions/v1/atualizacao",

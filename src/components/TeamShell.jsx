@@ -69,6 +69,8 @@ function Shell({ clubId, teamId, children }) {
 
   const emAnalise = /^\/team(\/dashboard|\/player)?\/?$/.test(pathname || '');
   const emJogo = /^\/team\/matches\/?$/.test(pathname || '');
+  // A aba Treino: calendário (com as presenças por baixo) e quadro tático.
+  const emTreino = /^\/team\/(training|tactics)(\/|$)/.test(pathname || '');
   const abasEquipas = [
     { label: t('escalao.plantel'), to: rotas.plantel(clubId, teamId) },
     { label: t('escalao.competicoes'), to: rotas.competicoes(clubId, teamId) },
@@ -77,7 +79,11 @@ function Shell({ clubId, teamId, children }) {
     { label: t('escalao.estatisticas'), to: rotas.escalao(clubId, teamId) },
     { label: t('escalao.painel'), to: rotas.painelEscalao(clubId, teamId) },
   ];
-  const abas = emAnalise ? abasAnalise : abasEquipas;
+  const abasTreino = [
+    { label: t('treino.calendario'), to: rotas.treinos(clubId, teamId) },
+    { label: t('treino.quadroTatico'), to: rotas.quadroTatico(clubId, teamId) },
+  ];
+  const abas = emTreino ? abasTreino : emAnalise ? abasAnalise : abasEquipas;
 
   return (
     <>
@@ -94,7 +100,7 @@ function Shell({ clubId, teamId, children }) {
             </button>
           )}
         </div>
-      ) : soLeitura || emAnalise ? null : (
+      ) : soLeitura || emAnalise || emTreino ? null : (
         <div className="area-actions area-actions--compact">
           <button
             className="btn btn--ghost btn--tiny"

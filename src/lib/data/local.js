@@ -9,7 +9,7 @@
 // sempre, e só depois se tenta enviar. Um pavilhão sem rede não muda nada.
 
 const DB_NAME = 'futsal-live';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export const STORES = {
   profile: 'profile',
@@ -21,6 +21,11 @@ export const STORES = {
   matches: 'matches',
   matchSquad: 'match_squad',
   matchEvents: 'match_events',
+  // A aba Treino (versão 4): rotina semanal, treinos, presenças e jogadas.
+  trainingRoutines: 'training_routines',
+  trainingSessions: 'training_sessions',
+  trainingAttendance: 'training_attendance',
+  plays: 'plays',
 };
 
 /* Linhas por enviar: quem tem `dirty` ainda não chegou ao servidor. */
@@ -108,6 +113,16 @@ export function open() {
         s.createIndex('by_client_event', 'clientEventId', { unique: true });
         s.createIndex('by_sync', 'syncedAtIndex');
       }
+      for (const nome of [STORES.trainingRoutines, STORES.trainingSessions, STORES.plays]) {
+        if (!db.objectStoreNames.contains(nome)) {
+          const s = db.createObjectStore(nome, { keyPath: 'id' });
+          s.createIndex('by_team', 'teamId');
+        }
+      }
+      if (!db.objectStoreNames.contains(STORES.trainingAttendance)) {
+        const s = db.createObjectStore(STORES.trainingAttendance, { keyPath: 'id' });
+        s.createIndex('by_session', 'sessionId');
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => {
@@ -176,7 +191,12 @@ export async function all(store) {
 export async function byIndex(store, index, value) {
   const db = await open();
   if (!db) {
-    const field = { by_club: 'clubId', by_match: 'matchId', by_team: 'teamId' }[index];
+    const field = {
+      by_club: 'clubId',
+      by_match: 'matchId',
+      by_team: 'teamId',
+      by_session: 'sessionId',
+    }[index];
     return [...memory[store].values()].filter((r) => r[field] === value);
   }
   return await wrap(tx(db, store, 'readonly').index(index).getAll(value));

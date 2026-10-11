@@ -267,3 +267,126 @@ export const eventMapper = {
     syncedAt: ms(r.created_at),
   }),
 };
+
+/* ------------------------------------------------------------------ treino */
+
+// As datas dos treinos são texto `AAAA-MM-DD` dos dois lados, e as horas
+// `HH:MM`. Um treino é "terça às 19h30" no fuso do pavilhão — passar isso por
+// milissegundos e fusos horários só abria a porta a um treino mudar de dia.
+
+export const routineMapper = {
+  table: 'training_routines',
+  toRow: (r) => ({
+    id: r.id,
+    team_id: r.teamId,
+    weekday: Number(r.weekday),
+    start_time: r.startTime,
+    duration_min: Number(r.durationMin) || 90,
+    location: r.location || null,
+    deleted_at: iso(r.deletedAt),
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    teamId: r.team_id,
+    weekday: r.weekday,
+    startTime: r.start_time,
+    durationMin: r.duration_min,
+    location: r.location,
+    deletedAt: ms(r.deleted_at),
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};
+
+export const trainingSessionMapper = {
+  table: 'training_sessions',
+  toRow: (s) => ({
+    id: s.id,
+    team_id: s.teamId,
+    routine_id: s.routineId || null,
+    date: s.date,
+    start_time: s.startTime,
+    duration_min: Number(s.durationMin) || 90,
+    location: s.location || null,
+    status: s.status === 'CANCELADO' ? 'CANCELADO' : 'AGENDADO',
+    edited: !!s.edited,
+    notes: s.notes || null,
+    deleted_at: iso(s.deletedAt),
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    teamId: r.team_id,
+    routineId: r.routine_id,
+    date: r.date,
+    startTime: r.start_time,
+    durationMin: r.duration_min,
+    location: r.location,
+    status: r.status,
+    edited: r.edited,
+    notes: r.notes,
+    deletedAt: ms(r.deleted_at),
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};
+
+export const attendanceMapper = {
+  table: 'training_attendance',
+  toRow: (a) => ({
+    id: a.id,
+    session_id: a.sessionId,
+    player_id: a.playerId,
+    status: a.status,
+    note: a.note || null,
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    sessionId: r.session_id,
+    playerId: r.player_id,
+    status: r.status,
+    note: r.note,
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};
+
+export const playMapper = {
+  table: 'plays',
+  toRow: (p) => ({
+    id: p.id,
+    team_id: p.teamId,
+    // O servidor volta a preencher o clube a partir do escalão; vai na mesma
+    // para a linha local e a do servidor dizerem o mesmo.
+    club_id: p.clubId || null,
+    // Só quando se sabe: em branco, o servidor põe quem está a enviar.
+    ...(p.createdBy ? { created_by: p.createdBy } : {}),
+    shared_with_club: !!p.sharedWithClub,
+    title: p.title,
+    category: p.category || 'MOVIMENTACAO',
+    description: p.description || null,
+    data: p.data,
+    share_token: p.shareToken || null,
+    share_expires_at: iso(p.shareExpiresAt),
+    deleted_at: iso(p.deletedAt),
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    teamId: r.team_id,
+    clubId: r.club_id,
+    createdBy: r.created_by,
+    sharedWithClub: !!r.shared_with_club,
+    title: r.title,
+    category: r.category,
+    description: r.description,
+    data: r.data,
+    shareToken: r.share_token,
+    shareExpiresAt: ms(r.share_expires_at),
+    deletedAt: ms(r.deleted_at),
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};
