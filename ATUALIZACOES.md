@@ -11,6 +11,36 @@ na loja — não muda.
 
 ---
 
+## 0. A regra de ouro (iOS e Android, desde a 1.8.0)
+
+**Por OTA só vai o que é pequeno e nunca muda o propósito da app.** É a
+condição da Apple para permitir código descarregado (contrato de programador,
+3.3.1(B)): não mudar o propósito da app face ao que foi revisto e anunciado, não criar uma loja de
+código, não contornar a segurança do sistema.
+
+| Pode ir por OTA | Vai sempre pela loja (Codemagic → revisão) |
+|---|---|
+| Correções de erros | Funcionalidades novas (ex.: a aba Treino) |
+| Textos, traduções | Tudo o que toca nas compras e licenças |
+| Ajustes de ecrã, cores, disposição | Plugins novos, permissões, `capacitor.config.json` |
+
+O `npm run publicar:pacote` faz cumprir a parte que se pode verificar:
+
+- `--minima-nativa` é **obrigatório**;
+- recusa o pacote se mudou algum ficheiro das compras (`src/lib/store.js`,
+  `LicenseLimitDialog.jsx`, `src/app/account/page.jsx`) ou o
+  `capacitor.config.json` desde a versão da loja — marcada com a tag
+  `loja-v<versão>`. **Cada versão que vai para a loja leva essa tag:**
+
+```bash
+git tag loja-v1.8.0 <commit-que-foi-para-a-loja> && git push origin loja-v1.8.0
+```
+
+O OTA esteve desligado (`autoUpdate: false`) na 1.5.0, durante o problema das
+compras no iOS; voltou a ligar-se na 1.8.0, nas duas plataformas.
+
+---
+
 ## 1. O que pode e o que não pode ir por aqui
 
 | Vai por ar | Continua a exigir versão nova na loja |

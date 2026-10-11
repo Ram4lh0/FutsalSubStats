@@ -16,6 +16,10 @@ import {
   matchMapper,
   squadMapper,
   eventMapper,
+  routineMapper,
+  trainingSessionMapper,
+  attendanceMapper,
+  playMapper,
 } from './mappers.js';
 import { EVENT } from '../../domain/constants.js';
 
@@ -415,7 +419,69 @@ export async function push(userId, email) {
     total += 1;
   }
 
+  total += await pushTreino(sb);
+
   return { pushed: total };
+}
+
+/* ------------------------------------------------------------------ treino */
+
+/**
+ * As tabelas da aba Treino, por ordem de dependência: a rotina antes dos
+ * treinos que nasceram dela, os treinos antes das presenças.
+ */
+const TREINO = [
+  [db.STORES.trainingRoutines, routineMapper],
+  [db.STORES.trainingSessions, trainingSessionMapper],
+  [db.STORES.trainingAttendance, attendanceMapper],
+  [db.STORES.plays, playMapper],
+];
+
+/**
+ * O servidor já tem as tabelas do treino?
+ *
+ * Enquanto a migração não estiver aplicada num projeto, o Supabase responde
+ * "tabela não existe". Isso não pode encravar a fila dos jogos — que é o que
+ * importa num pavilhão —, por isso o treino fica só no aparelho e volta a
+ * tentar-se na próxima abertura da app.
+ */
+let treinoNoServidor = true;
+
+function semTabela(error) {
+  return /PGRST205|42P01|PGRST202/.test(`${error?.code || ''}`) ||
+    /does not exist|schema cache/i.test(`${error?.message || ''}`);
+}
+
+export function treinoSoLocal() {
+  return !treinoNoServidor;
+}
+
+async function pushTreino(sb) {
+  if (!treinoNoServidor) return 0;
+  let total = 0;
+  for (const [store, mapper] of TREINO) {
+    const linhas = await dirtyRows(store);
+    if (!linhas.length) continue;
+    const { error } = await sb.from(mapper.table).upsert(linhas.map((r) => mapper.toRow(r)));
+    if (error) {
+      if (semTabela(error)) {
+        treinoNoServidor = false;
+        console.warn('treino: o servidor ainda não tem as tabelas — fica só neste aparelho.');
+        return total;
+      }
+      // Jogada recusada por já se terem usado as 3 grátis (criada noutro
+      // aparelho sem rede, por exemplo). Fica no aparelho; não pode encravar
+      // a fila nem acender o aviso de erro de sincronização.
+      if (/free_play_limit/.test(`${error.hint || ''} ${error.message || ''}`)) {
+        console.warn('jogadas: limite das 3 grátis atingido no servidor — ficam só neste aparelho.');
+        continue;
+      }
+      throw etiqueta(error, mapper.table);
+    }
+    await clean(store, linhas);
+    total += linhas.length;
+  }
+  return total;
 }
 
 async function claimStartedMatches(sb, jogos, eventos) {
@@ -531,6 +597,10 @@ const TABELAS_COM_MARCA = [
   'matches',
   'match_squad',
   'match_events',
+  'training_routines',
+  'training_sessions',
+  'training_attendance',
+  'plays',
 ];
 
 /**
@@ -682,6 +752,8 @@ export async function pull(userId, { repararJogosIncompletos = false } = {}) {
   );
   total += await merge(db.STORES.players, jogadores.map(playerMapper.fromRow));
 
+  total += await pullTreino(sb, trazer);
+
   const jogos = await trazer('matches', () =>
     sb.from('matches').select('*').in('club_id', ids)
   );
@@ -732,6 +804,43 @@ export async function pull(userId, { repararJogosIncompletos = false } = {}) {
   guardarMarcas(userId, novas);
   if (total) notifyDataUpdated();
   return { pulled: total };
+}
+
+async function pullTreino(sb, trazer) {
+  if (!treinoNoServidor) return 0;
+  const escalaoIds = (await db.all(db.STORES.teams)).map((t) => t.id);
+  if (!escalaoIds.length) return 0;
+  let total = 0;
+  try {
+    const rotinas = await trazer('training_routines', () =>
+      sb.from('training_routines').select('*').in('team_id', escalaoIds)
+    );
+    total += await merge(db.STORES.trainingRoutines, rotinas.map(routineMapper.fromRow));
+
+    const treinos = await trazer('training_sessions', () =>
+      sb.from('training_sessions').select('*').in('team_id', escalaoIds).order('updated_at')
+    );
+    total += await merge(db.STORES.trainingSessions, treinos.map(trainingSessionMapper.fromRow));
+
+    // As presenças penduram-se no treino; quem filtra é a segurança por linha,
+    // que só deixa ver as dos escalões a que se tem acesso.
+    const presencas = await trazer('training_attendance', () =>
+      sb.from('training_attendance').select('*').order('updated_at')
+    );
+    total += await merge(db.STORES.trainingAttendance, presencas.map(attendanceMapper.fromRow));
+
+    // Sem filtro por escalão: além das jogadas dos meus escalões vêm as da
+    // biblioteca do clube (partilhadas por outros escalões). Quem decide o que
+    // chega é a segurança por linha do servidor.
+    const jogadas = await trazer('plays', () =>
+      sb.from('plays').select('*').order('updated_at')
+    );
+    total += await merge(db.STORES.plays, jogadas.map(playMapper.fromRow));
+  } catch (err) {
+    if (!semTabela(err)) throw err;
+    treinoNoServidor = false;
+  }
+  return total;
 }
 
 async function repararEventosDeJogosIncompletos(sb, jogoIds) {
@@ -995,6 +1104,9 @@ export async function pendingCount() {
     db.STORES.players,
     db.STORES.matches,
     db.STORES.matchSquad,
+    // Sem servidor para o treino, as linhas dele não são "por enviar": ficam
+    // no aparelho, e contá-las deixava o aviso de pendentes aceso para sempre.
+    ...(treinoNoServidor ? TREINO.map(([store]) => store) : []),
   ];
   let n = 0;
   for (const s of stores) n += (await dirtyRows(s)).length;

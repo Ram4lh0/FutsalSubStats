@@ -34,6 +34,7 @@ const GLOBAIS = new Set([
   'createImageBitmap', 'Image', 'FileReader', 'ImageBitmap',
   'File', 'FileReader', 'FormData', 'Headers', 'Request', 'Response', 'AbortController',
   'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame',
+  'MediaRecorder', 'HTMLCanvasElement', 'Path2D',
   'cancelAnimationFrame', 'queueMicrotask', 'structuredClone', 'Event', 'CustomEvent',
   'ResizeObserver', 'IntersectionObserver', 'MutationObserver', 'screen', 'history',
   'Audio', 'AudioContext', 'webkitAudioContext', 'performance', 'process', 'globalThis',

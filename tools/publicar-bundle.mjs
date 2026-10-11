@@ -61,6 +61,54 @@ const plataforma = opcao('plataforma'); // 'ios' | 'android' | nada = as duas
 
 /* ------------------------------------------------------------ verificações */
 
+// As regras do OTA (ATUALIZACOES.md §0). Por ar só vai o que é pequeno e não
+// muda o propósito da app — é a condição da Apple para o permitir. Duas
+// guardas tornam isso uma regra e não uma memória:
+//
+//   1. `--minima-nativa` é obrigatório: um pacote nunca chega a uma casca mais
+//      antiga do que aquela para que foi feito.
+//   2. Os ficheiros das compras não podem ter mudado desde essa versão da loja
+//      (tag `loja-v<minima-nativa>`). Compras por OTA são o que a Apple mais
+//      vigia (regra 3.1.1) — mudar alguma coisa ali vai sempre pela revisão.
+const PROTEGIDOS = [
+  'src/lib/store.js',
+  'src/components/LicenseLimitDialog.jsx',
+  'src/app/account/page.jsx',
+  'capacitor.config.json',
+];
+
+if (!minimaNativa) {
+  console.error(
+    'Falta `--minima-nativa <versão da loja>` (ex.: --minima-nativa 1.8.0).\n' +
+      'É obrigatório: diz a que cascas nativas este pacote pode chegar.'
+  );
+  process.exit(1);
+}
+
+{
+  const git = (...a) => execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8' }).trim();
+  const tag = `loja-v${minimaNativa}`;
+  try {
+    git('rev-parse', '-q', '--verify', `refs/tags/${tag}`);
+  } catch {
+    console.error(
+      `Não existe a tag \`${tag}\`. Marca o commit que foi para a loja com:\n` +
+        `  git tag ${tag} <commit> && git push origin ${tag}\n` +
+        'É contra ela que se confirma que este pacote não mexe nas compras.'
+    );
+    process.exit(1);
+  }
+  const mudados = git('diff', '--name-only', tag, '--', ...PROTEGIDOS).split('\n').filter(Boolean);
+  if (mudados.length) {
+    console.error(
+      `Este pacote mexe em ficheiros das compras desde ${tag}:\n  ` +
+        mudados.join('\n  ') +
+        '\nIsso não pode ir por OTA — vai pela loja (Codemagic → revisão).'
+    );
+    process.exit(1);
+  }
+}
+
 if (!existsSync(join(OUT, 'index.html'))) {
   console.error('Não há `out/index.html`. Corre `npm run build` primeiro.');
   process.exit(1);

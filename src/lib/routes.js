@@ -20,6 +20,11 @@ export const PARAM = {
   match: 'm',
   player: 'p',
   competition: 'k',
+  training: 'ts',
+  play: 'j',
+  // O token do link público de uma jogada. Não é um id da base: é a chave que
+  // abre aquela jogada a quem não tem conta.
+  share: 's',
 };
 
 function comIds(base, ids = {}) {
@@ -88,6 +93,18 @@ export const rotas = {
   jogadorNovo: (club, team) => comIds('/team/players/new', { club, team }),
   jogador: (club, team, player) => comIds('/team/player', { club, team, player }),
   jogadorEditar: (club, team, player) => comIds('/team/player/edit', { club, team, player }),
+
+  /* ------------------------------------------------------------- treino */
+  // A aba Treino tem duas sub-abas, como a Análise: o calendário (com as
+  // presenças por baixo) e o quadro tático.
+  treinos: (club, team) => comIds('/team/training', { club, team }),
+  treino: (club, team, training) => comIds('/team/training/session', { club, team, training }),
+  rotinaTreino: (club, team) => comIds('/team/training/routine', { club, team }),
+  quadroTatico: (club, team) => comIds('/team/tactics', { club, team }),
+  jogada: (club, team, play) => comIds('/team/tactics/play', { club, team, play }),
+  // O link que vai por WhatsApp. Abre sem conta nem app, e por isso fica fora
+  // de `/team`.
+  jogadaPublica: (share) => comIds('/jogada', { share }),
 
   /* --------------------------------------------------------------- jogo */
   jogoPreparar: (match) => comIds('/match/setup', { match }),
