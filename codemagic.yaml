@@ -3,8 +3,10 @@
 #  └────────────────────────────────────────────────────────────────────┘
 #
 #  web-pwa-ci             corre a cada push: testes, verificadores e build.
+#                         Em Linux, para não ocupar a vaga do Mac.
 #  ios-capacitor-preview  compila para simulador, sem assinatura. Serve para
-#                         confirmar que o projeto iOS não partiu.
+#                         confirmar que o projeto iOS não partiu. Corrido à
+#                         mão, para não ficar à frente do ios-testflight.
 #  ios-testflight         o que interessa: compila assinado e envia para o
 #                         TestFlight. É corrido à mão, não a cada push.
 #  android-preview        o mesmo do preview do iOS, mas para Android: um APK de
@@ -26,7 +28,7 @@ workflows:
   web-pwa-ci:
     name: Futsal SubStats Web/PWA CI
     max_build_duration: 30
-    instance_type: mac_mini_m2
+    instance_type: linux_x2
 
     environment:
       node: lts
@@ -71,15 +73,6 @@ workflows:
       cache_paths:
         - node_modules
         - ~/Library/Developer/Xcode/DerivedData
-
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-          source: true
-      cancel_previous_builds: true
 
     scripts:
       - name: Install dependencies
