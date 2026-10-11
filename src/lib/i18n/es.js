@@ -944,7 +944,7 @@ export default {
   'vivo.parado': 'PARADO',
   'vivo.inferioridade': '{n} en pista — inferioridad numérica',
   'vivo.tempoDeJogo': 'Tiempo jugado {tempo}',
-  'vivo.emJogoHa': 'En pista desde hace {tempo}',
+  'vivo.emJogoHa': 'Tiempo en pista {tempo}',
   'vivo.aSair': 'SALE',
   'vivo.aEntrar': 'ENTRA',
   'vivo.emSancao': 'En sanción',
