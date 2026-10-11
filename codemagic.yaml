@@ -65,7 +65,7 @@ workflows:
 
     environment:
       node: lts
-      xcode: 26.6
+      xcode: 26.5
       vars:
         NEXT_TELEMETRY_DISABLED: "1"
 
@@ -115,7 +115,7 @@ workflows:
 
     environment:
       node: lts
-      xcode: 26.6
+      xcode: 26.5
       cocoapods: default
       groups:
         - appstore
