@@ -42,13 +42,32 @@ export function linkWhatsApp(texto) {
  * `location` para outro domínio é o que o Capacitor entrega ao sistema (e daí
  * ao WhatsApp); no browser abre-se noutro separador.
  */
-export function abrirFora(url) {
+export function abrirFora(url, janela = null) {
   if (typeof window === 'undefined') return;
   if (nativo()) {
     window.location.href = url;
     return;
   }
+  if (janela && !janela.closed) {
+    janela.location.href = url;
+    return;
+  }
   window.open(url, '_blank', 'noopener');
+}
+
+/**
+ * Um separador em branco aberto já, no toque, para ser preenchido depois.
+ *
+ * O browser só deixa abrir separadores no instante do toque. Quando antes de
+ * abrir o link é preciso esperar pelo servidor (sincronizar a jogada), abrir
+ * no fim da espera era bloqueado como popup. No invólucro nativo não é preciso:
+ * devolve null e o `abrirFora` segue pelo caminho de sempre.
+ */
+export function prepararJanela() {
+  if (typeof window === 'undefined' || nativo()) return null;
+  const janela = window.open('about:blank', '_blank');
+  if (janela) janela.opener = null;
+  return janela;
 }
 
 /** A folha de partilha do sistema, quando existe (telemóveis, Safari). */
