@@ -19,6 +19,7 @@ import {
   SYNC,
 } from '../src/lib/data/sync.js';
 import { restore, dump } from '../src/lib/data/repository.js';
+import { jogadas } from '../src/lib/data/treino.js';
 import * as A from '../src/domain/actions.js';
 import { EVENT, LOCATION } from '../src/domain/constants.js';
 
@@ -40,6 +41,8 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
     // A descarga passou a fazer duas perguntas novas: a licença da conta e os
     // acessos por escalão.
     team_access: [],
+    // As tabelas da aba Treino.
+    training_routines: [], training_sessions: [], training_attendance: [], plays: [],
   };
   const chamadas = { upserts: 0, rpc: 0, selects: 0 };
 
@@ -245,6 +248,24 @@ test('a fila envia tudo por ordem e limpa a marca de pendente', async () => {
   // Nada fica por enviar depois de o servidor confirmar.
   const porEnviar = (await db.all(db.STORES.clubs)).filter((c) => c.dirty);
   assert.equal(porEnviar.length, 0);
+});
+
+test('um link novo de uma jogada sobe sozinho, sem mais nada por enviar', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao } = await cenario();
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+
+  const jogada = await jogadas.guardar(escalao.id, { title: 'Saída de pressão', data: {} });
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(servidor.tabelas.plays.length, 1, 'a jogada subiu sem clube nem jogo por enviar');
+
+  // O caso do WhatsApp: com tudo o resto em dia, só o link novo está por subir.
+  const comLink = await jogadas.novoLink(jogada.id);
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  assert.equal(servidor.tabelas.plays[0].share_token, comLink.shareToken, 'o token chegou ao servidor');
+  assert.equal((await jogadas.get(jogada.id)).dirty, false, 'e deixou de estar por enviar');
 });
 
 test('reenviar a fila não duplica nada', async () => {

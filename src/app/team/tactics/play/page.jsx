@@ -100,10 +100,14 @@ function Editor({ clubId, teamId, playId, roster }) {
     let vivo = true;
     (async () => {
       if (!playId) {
-        carregadoId.current = null;
         // Entrar pelo endereço também conta: sem vaga, não há editor.
         const p = await podeCriarJogada(teamId);
         if (!vivo) return;
+        // Só depois da espera: marcado antes, uma passagem cancelada a meio
+        // (o React em desenvolvimento corre cada efeito duas vezes) deixava a
+        // seguinte achar que já estava carregado — e o editor ficava em
+        // "A carregar…" para sempre.
+        carregadoId.current = null;
         if (!p.allowed) return setSemVaga(true);
         setMeta({ id: null, title: t('tatica.jogadaNova'), category: 'MOVIMENTACAO', description: '' });
         setData(jogadaNova('meio'));

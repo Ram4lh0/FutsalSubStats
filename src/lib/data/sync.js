@@ -190,8 +190,16 @@ export async function push(userId, email) {
   const eventos = todosEventosLocais
     .filter((e) => !e.syncedAt)
     .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
+  // O treino (rotina, treinos, presenças e jogadas) também conta como trabalho
+  // por fazer. Antes só se olhava para o clube e os jogos: um link novo de uma
+  // jogada, sozinho, saía por aqui sem nunca chegar ao `pushTreino` — e o
+  // `flush` ainda dava tudo como sincronizado.
+  const treinoSujo = treinoNoServidor
+    ? (await Promise.all(TREINO.map(([store]) => dirtyRows(store)))).some((l) => l.length)
+    : false;
 
   if (
+    !treinoSujo &&
     !clubesSujos.length &&
     !escaloesSujos.length &&
     !competicoesSujas.length &&
