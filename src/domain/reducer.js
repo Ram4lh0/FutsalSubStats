@@ -363,8 +363,21 @@ export function buildMatchState(match, squad, events) {
   // onde só os eventos viajam.
   const undone = eventosDesfeitos(events);
 
+  // A atribuição de um golo ou de uma falta desfaz-se com ela. Sem isto, apagar
+  // a falta deixava a atribuição órfã, e o recurso dos eventos legados (ver
+  // `encontrarFaltaLegada`) ia colá-la a outra falta qualquer sem jogador.
+  const atribuicaoDeDesfeito = (e) =>
+    (e.eventType === EVENT.FOUL_ATTRIBUTED || e.eventType === EVENT.GOAL_ATTRIBUTED) &&
+    undone.has(e.metadata?.targetEventId);
+
   const ordered = events
-    .filter((e) => !e.undoneAt && !undone.has(e.id) && e.eventType !== EVENT.EVENT_UNDONE)
+    .filter(
+      (e) =>
+        !e.undoneAt &&
+        !undone.has(e.id) &&
+        e.eventType !== EVENT.EVENT_UNDONE &&
+        !atribuicaoDeDesfeito(e)
+    )
     .slice()
     .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
 
@@ -789,12 +802,16 @@ function applyEvent(state, ev) {
     // Faltas acumuladas. Guardadas com a parte em que aconteceram, por isso a
     // contagem zera sozinha na segunda parte e o total do jogo continua a ser
     // a soma das duas — sem precisar de dois contadores separados.
+    //
+    // Uma falta acrescentada depois (no intervalo ou no resumo) traz a parte em
+    // `metadata.period`: aí a parte que está a decorrer não diz nada — no resumo
+    // é sempre a 2.ª, mesmo para uma falta dos primeiros minutos.
     case EVENT.TEAM_FOUL_ADDED:
     case EVENT.OPPONENT_FOUL_ADDED: {
       state.fouls.push({
         eventId: ev.id,
         team: ev.eventType === EVENT.TEAM_FOUL_ADDED ? 'US' : 'THEM',
-        period: state.currentPeriod,
+        period: md.period ?? state.currentPeriod,
         matchElapsedMs: ev.matchElapsedMs,
         playerId: md.playerId || null,
       });
@@ -802,11 +819,17 @@ function applyEvent(state, ev) {
     }
 
     // Como nos golos: o contador sobe no instante do toque e o autor vem a
-    // seguir, num evento que completa o anterior sem o reescrever.
+    // seguir, num evento que completa o anterior sem o reescrever. Corrigida a
+    // frio, a mesma atribuição pode acertar também o minuto (e com ele a parte).
     case EVENT.FOUL_ATTRIBUTED: {
       const f = state.fouls.find((x) => x.eventId === md.targetEventId)
         || encontrarFaltaLegada(state, md);
-      if (f) f.playerId = md.playerId || null;
+      if (!f) break;
+      if ('playerId' in md) f.playerId = md.playerId || null;
+      if (md.matchElapsedMs != null) {
+        f.matchElapsedMs = md.matchElapsedMs;
+        if (md.period) f.period = md.period;
+      }
       break;
     }
 

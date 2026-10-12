@@ -9,12 +9,14 @@ import useRouteParams from '@/lib/useRouteParams.js';
 import PageHead from '@/components/PageHead.jsx';
 import DataTable from '@/components/DataTable.jsx';
 import { GoalsByHalf } from '@/components/Goals.jsx';
+import { FoulsByHalf } from '@/components/Fouls.jsx';
 import GraficosDoJogo from '@/components/stats/GraficosDoJogo.jsx';
 import { Badge, Empty, StatCard, StatusBadge } from '@/components/bits.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import * as GE from '@/lib/goalEditing.jsx';
 import * as FIM from '@/lib/fimEditing.jsx';
+import * as FE from '@/lib/foulEditing.jsx';
 import { clubs, teams, competitions, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { matchSummaryCsv, download, slug } from '@/lib/data/exporter.js';
@@ -135,6 +137,31 @@ function Resumo() {
 
   async function editarGolo(goal) {
     if (await GE.editGoal(ui, { matchId, goal, syncUser: { userId, email: user?.email } })) carregar();
+  }
+
+  async function acrescentarFalta() {
+    if (
+      await FE.addFoul(ui, {
+        matchId,
+        ourName: clubShort(club),
+        opponentName: opponentShort(match),
+        syncUser: { userId, email: user?.email },
+      })
+    )
+      carregar();
+  }
+
+  async function editarFalta(foul) {
+    if (
+      await FE.editFoul(ui, {
+        matchId,
+        foul,
+        ourName: clubShort(club),
+        opponentName: opponentShort(match),
+        syncUser: { userId, email: user?.email },
+      })
+    )
+      carregar();
   }
 
   async function editarNotas() {
@@ -412,6 +439,24 @@ function Resumo() {
           emptyText={
             state.status === MATCH_STATUS.FINISHED ? t('resumo.semGolos') : t('golos.semGolos')
           }
+        />
+      </div>
+
+      <div className="halftime__title">
+        <h2 className="section">{t('faltas.titulo')}</h2>
+        <span className="live__spacer" />
+        {state.startedAt ? (
+          <button className="btn btn--ghost btn--tiny" onClick={acrescentarFalta}>
+            {t('faltas.adicionar')}
+          </button>
+        ) : null}
+      </div>
+      <div className="card">
+        <FoulsByHalf
+          state={state}
+          ourName={clubShort(club)}
+          opponentName={opponentShort(match)}
+          onEdit={state.startedAt ? editarFalta : undefined}
         />
       </div>
 
