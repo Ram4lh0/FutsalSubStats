@@ -28,6 +28,7 @@ import {
 import useNow from '@/lib/useNow.js';
 import { beep, unlockAudio } from '@/lib/beep.js';
 import * as GE from '@/lib/goalEditing.jsx';
+import * as FE from '@/lib/foulEditing.jsx';
 import { clubs, events, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import * as A from '@/domain/actions.js';
@@ -861,6 +862,15 @@ function Live() {
       await recarregar();
   }
 
+  async function acrescentarFalta() {
+    if (await FE.addFoul(ui, { matchId, ourName, opponentName: rivalName })) await recarregar();
+  }
+
+  async function editarFalta(foul) {
+    if (await FE.editFoul(ui, { matchId, foul, ourName, opponentName: rivalName }))
+      await recarregar();
+  }
+
   /* ------------------------------------------------------------- desenho */
 
   const on = {
@@ -924,6 +934,8 @@ function Live() {
           opponentName={rivalName}
           onEditGoal={editarGolo}
           onCorrectScore={corrigirResultado}
+          onAddFoul={acrescentarFalta}
+          onEditFoul={editarFalta}
           onStart={startSecondHalf}
         />
       </div>

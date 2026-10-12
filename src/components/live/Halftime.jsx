@@ -16,7 +16,9 @@ import { useState } from 'react';
 import DataTable from '@/components/DataTable.jsx';
 import CourtPicker, { countFilled } from '@/components/CourtPicker.jsx';
 import { GoalsTimeline } from '@/components/Goals.jsx';
+import { FoulsTimeline } from '@/components/Fouls.jsx';
 import { playerMatchStats } from '@/domain/stats.js';
+import { foulsInPeriod } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
 import { PLAYER_MATCH_STATUS } from '@/domain/constants.js';
 import GraficosDoJogo from '@/components/stats/GraficosDoJogo.jsx';
@@ -28,6 +30,8 @@ export default function Halftime({
   opponentName,
   onEditGoal,
   onCorrectScore,
+  onAddFoul,
+  onEditFoul,
   onStart,
 }) {
   const t = useT();
@@ -101,6 +105,34 @@ export default function Halftime({
           ourName={ourName}
           opponentName={opponentName}
           onEdit={onEditGoal}
+        />
+      </div>
+
+      {/* As faltas que ficaram por apontar acrescentam-se aqui, antes de
+          começar a 2.ª parte — depois já ninguém se lembra de quem foi. */}
+      <div className="halftime__bloco">
+        <div className="halftime__title">
+          <h3 className="section section--tight">
+            {t('faltas.titulo')}{' '}
+            <span className="muted">
+              {t('faltas.contagem', {
+                nos: foulsInPeriod(state, 'US', 1),
+                eles: foulsInPeriod(state, 'THEM', 1),
+              })}
+            </span>
+          </h3>
+          <span className="live__spacer" />
+          {onAddFoul ? (
+            <button className="btn btn--ghost btn--tiny" onClick={onAddFoul}>
+              {t('faltas.adicionar')}
+            </button>
+          ) : null}
+        </div>
+        <FoulsTimeline
+          state={state}
+          ourName={ourName}
+          opponentName={opponentName}
+          onEdit={onEditFoul}
         />
       </div>
 

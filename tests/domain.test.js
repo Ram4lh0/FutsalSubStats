@@ -710,6 +710,74 @@ test('as faltas guardam o jogador nosso envolvido: quem a fez ou quem a sofreu',
   assert.equal(foulsTotal(st, 'THEM'), 1, 'continua a contar como falta da equipa deles');
 });
 
+test('faltas a frio: acrescentar no resumo uma falta da 1.ª parte, corrigir e apagar', () => {
+  const { ctx } = playFullMatch();
+  let st = buildMatchState(match, ctx.squad, ctx.events);
+  const antes1 = foulsInPeriod(st, 'US', 1);
+  const antes2 = foulsInPeriod(st, 'US', 2);
+  const T = T0 + 60 * MIN;
+
+  // No resumo a parte a decorrer é a 2.ª, mas a falta foi aos 3' — conta na 1.ª.
+  st = step(
+    ctx,
+    (s) => A.lateFoul(s, { team: 'US', playerId: 'p2', matchElapsedMs: 3 * MIN, period: 1 }, T),
+    T
+  );
+  assert.equal(foulsInPeriod(st, 'US', 1), antes1 + 1, 'entra na 1.ª parte');
+  assert.equal(foulsInPeriod(st, 'US', 2), antes2, 'a 2.ª não mexe');
+  const nova = st.fouls.find((f) => f.matchElapsedMs === 3 * MIN && f.team === 'US');
+  assert.equal(nova.playerId, 'p2', 'já leva o jogador');
+
+  // Afinal foi aos 13' (2.ª parte) e quem a fez foi o p3.
+  st = step(
+    ctx,
+    (s) =>
+      A.correctFoul(
+        s,
+        { targetEventId: nova.eventId, playerId: 'p3', matchElapsedMs: 13 * MIN, period: 2 },
+        T + 1
+      ),
+    T + 1
+  );
+  const corrigida = st.fouls.find((f) => f.eventId === nova.eventId);
+  assert.equal(corrigida.playerId, 'p3');
+  assert.equal(corrigida.period, 2);
+  assert.equal(foulsInPeriod(st, 'US', 1), antes1);
+  assert.equal(foulsInPeriod(st, 'US', 2), antes2 + 1);
+
+  // Apagar essa falta em concreto: some, e a atribuição não salta para outra.
+  const semJogador = st.fouls.filter((f) => !f.playerId).map((f) => f.eventId);
+  const alvo = st.allEvents.find((e) => e.id === nova.eventId);
+  st = step(ctx, (s) => A.undoEvent(s, alvo, T + 2), T + 2);
+  assert.ok(!st.fouls.some((f) => f.eventId === nova.eventId));
+  assert.equal(foulsInPeriod(st, 'US', 2), antes2);
+  assert.deepEqual(
+    st.fouls.filter((f) => !f.playerId).map((f) => f.eventId),
+    semJogador,
+    'nenhuma outra falta herdou o p3'
+  );
+});
+
+test('falta acrescentada no intervalo e falta do adversário guardam quem a sofreu', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  // Uma falta sem autor registada durante o jogo — não pode herdar nada.
+  let st = step(ctx, (s) => A.foul(s, EVENT.TEAM_FOUL_ADDED, T0 + 2 * MIN), T0 + 2 * MIN);
+  const semAutor = st.fouls[0].eventId;
+  st = step(ctx, (s) => A.finishFirstHalf(s, T0 + 20 * MIN), T0 + 20 * MIN);
+  assert.equal(st.status, MATCH_STATUS.HALFTIME);
+
+  st = step(
+    ctx,
+    (s) =>
+      A.lateFoul(s, { team: 'THEM', playerId: 'p4', matchElapsedMs: 7 * MIN, period: 1 }, T0 + 22 * MIN),
+    T0 + 22 * MIN
+  );
+  assert.equal(foulsInPeriod(st, 'THEM', 1), 1);
+  assert.equal(playerMatchStats(st.players.p4, st.elapsedMatchMs, { fouls: st.fouls }).foulsSuffered, 1);
+  assert.equal(st.fouls.find((f) => f.eventId === semAutor).playerId, null);
+});
+
 test('repor jogador após expulsão abre uma nova entrada', () => {
   const { ctx } = playFullMatch();
   const events = ctx.events.filter((e) => e.eventType !== EVENT.MATCH_FINISHED);

@@ -176,6 +176,34 @@ export const foul = (s, kind, now) => makeEvent(s, kind, {}, now);
 export const attributeFoul = (s, { targetEventId, playerId }, now) =>
   makeEvent(s, EVENT.FOUL_ATTRIBUTED, { playerId, metadata: { targetEventId, playerId } }, now);
 
+/**
+ * Falta que ficou por registar, acrescentada depois — no intervalo ou no
+ * resumo. Leva logo o jogador, o minuto e a parte: já não há relógio a correr
+ * que diga quando foi.
+ */
+export const lateFoul = (s, { team, playerId = null, matchElapsedMs, period }, now) =>
+  makeEvent(
+    s,
+    team === 'US' ? EVENT.TEAM_FOUL_ADDED : EVENT.OPPONENT_FOUL_ADDED,
+    {
+      period,
+      matchElapsedMs,
+      periodElapsedMs: period === 2 ? matchElapsedMs - (s.firstHalfMs || 0) : matchElapsedMs,
+      playerId,
+      metadata: { playerId, period, aPosteriori: true },
+    },
+    now
+  );
+
+/** Corrige uma falta já registada: o jogador e, se vier, o minuto. */
+export const correctFoul = (s, { targetEventId, playerId, matchElapsedMs, period }, now) =>
+  makeEvent(
+    s,
+    EVENT.FOUL_ATTRIBUTED,
+    { playerId, metadata: { targetEventId, playerId, matchElapsedMs, period } },
+    now
+  );
+
 /** Golo da equipa com marcador já conhecido (botão "G" do cartão do jogador). */
 export const teamGoalBy = (s, playerId, now) =>
   makeEvent(
