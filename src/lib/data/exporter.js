@@ -4,6 +4,7 @@
 import { fmt } from '../../domain/clock.js';
 import { matchStatsTable, powerPlayTotals } from '../../domain/stats.js';
 import { foulsTotal, foulsInPeriod } from '../../domain/reducer.js';
+import { REGISTO, resumoRegistos, temRegistos } from '../../domain/registos.js';
 // Nada vem já de `constants.js`: as etiquetas que este ficheiro usava — posições,
 // estados, eventos — passaram para os dicionários, e chegam aqui pelas funções
 // de `format.js`. O CSV sai no idioma em que a app está a ser vista.
@@ -26,9 +27,18 @@ export function toCsv(rows) {
   return '\uFEFF' + rows.map((r) => r.map(csvEscape).join(';')).join('\r\n');
 }
 
+/** As colunas dos registos extra de um jogador, pela ordem do cabeçalho. */
+function colunasDeRegistos(j) {
+  if (!j) return [0, 0, 0, 0, 0, 0];
+  return [j.remates, j.rematesBaliza, j.recuperacoes, j.defesas, j.positivas, j.negativas];
+}
+
 export function matchSummaryCsv({ club, match, state, team, competition }) {
   const table = matchStatsTable(state, Date.now());
   const pp = powerPlayTotals(state, state.elapsedMatchMs);
+  // Registos extra: só quando o jogo os tem. Um jogo sem eles sai como sempre.
+  const reg = temRegistos(state) ? resumoRegistos(state, Date.now()) : null;
+  const regDe = new Map((reg?.jogadores || []).map((j) => [j.playerId, j]));
   const rows = [
     [t('csv.clube'), club?.name || ''],
     [t('prep.adversario'), match.opponentName],
@@ -51,6 +61,12 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
     [t('csv.faltasDeles'), foulsTotal(state, 'THEM')],
     [t('resumo.tempo5v4'), fmt(pp.totalMs)],
     [t('resumo.periodos5v4'), pp.count],
+    ...(reg?.tipos.has(REGISTO.FORA)
+      ? [[t('registos.csv.foras'), `${reg.foras.US}-${reg.foras.THEM}`]]
+      : []),
+    ...(reg?.tipos.has(REGISTO.CANTO)
+      ? [[t('registos.csv.cantos'), `${reg.cantos.US}-${reg.cantos.THEM}`]]
+      : []),
     ...pp.periodos.map((x) => [
       t('csv.periodo5v4', { n: x.numero }),
       t('csv.detalhe5v4', {
@@ -76,6 +92,16 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
       t('ficha.partGolos'),
       t('ficha.partSofridos'),
       t('csv.estado'),
+      ...(reg
+        ? [
+            t('registos.col.remates'),
+            t('registos.col.aBaliza'),
+            t('registos.total.recuperacao'),
+            t('registos.col.defesas'),
+            t('registos.csv.acoesPositivas'),
+            t('registos.csv.acoesNegativas'),
+          ]
+        : []),
     ],
   ];
   for (const p of table) {
@@ -94,6 +120,7 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
       p.goalShare,
       p.concededShare,
       p.expelled ? t('resumo.expulso') : '',
+      ...(reg ? colunasDeRegistos(regDe.get(p.playerId)) : []),
     ]);
   }
   rows.push([]);
@@ -159,6 +186,10 @@ export function matchEventsCsv({ match, state }) {
       t('historico.tempo'),
       t('historico.detalhe'),
       t('historico.anulado'),
+      t('registos.csv.registo'),
+      t('registos.csv.resultado'),
+      'x',
+      'y',
     ],
   ];
   for (const e of state.allEvents) {
@@ -171,14 +202,23 @@ export function matchEventsCsv({ match, state }) {
     ]
       .filter(Boolean)
       .join(' · ');
+    // Os registos levam os ids tal como estão guardados (`remate`,
+    // `DEFENDIDO`): são estáveis, ao contrário das etiquetas, e é o que serve
+    // a quem vai cruzar o ficheiro noutro programa.
+    const md = e.metadata || {};
+    const ehRegisto = e.eventType === 'STAT_RECORDED' || e.eventType === 'STAT_CORRECTED';
     rows.push([
       e.seq,
-      eventLabel(e.eventType) || e.eventType,
+      eventLabel(e.eventType, e, state.players) || e.eventType,
       e.period,
       fmt(e.matchElapsedMs),
       fmt(e.periodElapsedMs),
       detail,
       e.undoneAt ? t('csv.sim') : '',
+      ehRegisto ? md.registo || '' : '',
+      ehRegisto ? md.resultado || '' : '',
+      ehRegisto && md.x != null ? md.x : '',
+      ehRegisto && md.y != null ? md.y : '',
     ]);
   }
   return toCsv(rows);

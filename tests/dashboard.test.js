@@ -21,6 +21,11 @@ import {
   parteDosJogos,
   disciplina,
   painelDoAtleta,
+  registosDaEpoca,
+  rematesPorJogo,
+  eficacia,
+  recuperacoesPorJogador,
+  mapaDaEpoca,
 } from '../src/domain/dashboard.js';
 
 const MIN = 60_000;
@@ -556,4 +561,95 @@ test('cada faixa traz a média por jogo, e não só o total', () => {
   assert.equal(r.primeira[0].marcados, 2);
   assert.equal(r.primeira[0].mediaMarcados, 1, 'dois golos em dois jogos');
   assert.equal(r.primeira[0].mediaSofridos, 0.5);
+});
+
+/* ------------------------------------------- registos extra por escalão */
+
+/** Um STAT_RECORDED já gravado, como o reducer o deixa em `state.events`. */
+function reg(id, registo, { playerId = null, resultado, equipa = 'US', x = 0.5, y = 0.5, goloEventId } = {}) {
+  return {
+    id,
+    eventType: 'STAT_RECORDED',
+    playerId,
+    period: 1,
+    matchElapsedMs: MIN,
+    metadata: { v: 1, registo, equipa, resultado, x, y, goloEventId },
+  };
+}
+
+function comRegistos(base, eventos) {
+  return { ...base, state: { ...base.state, events: eventos } };
+}
+
+test('sem registos, os blocos novos ficam vazios', () => {
+  const jogos = [jogo({ id: 'a' }), jogo({ id: 'b', quando: 2 })];
+  assert.equal(registosDaEpoca(jogos).size, 0);
+  assert.deepEqual(rematesPorJogo(jogos), []);
+  assert.equal(eficacia(jogos).percentagem, null);
+  assert.deepEqual(recuperacoesPorJogador(jogos), []);
+  assert.deepEqual(mapaDaEpoca(jogos, 'remate'), []);
+});
+
+test('remates por jogo e eficácia só com jogos terminados e com remates', () => {
+  const golo = { eventId: 'g1', team: 'US', period: 1, matchElapsedMs: MIN };
+  const j1 = comRegistos(jogo({ id: 'a', quando: 1, golos: [golo] }), [
+    reg('r1', 'remate', { playerId: 'p1', resultado: 'DEFENDIDO' }),
+    reg('r2', 'remate', { playerId: 'p1', resultado: 'GOLO', goloEventId: 'g1' }),
+    reg('r3', 'remate', { playerId: 'p2', resultado: 'FORA' }),
+  ]);
+  const j2 = comRegistos(jogo({ id: 'b', quando: 2 }), [
+    reg('r4', 'remate', { playerId: 'p1', resultado: 'DEFENDIDO' }),
+  ]);
+  // A decorrer: não conta.
+  const j3 = comRegistos(jogo({ id: 'c', quando: 3, status: 'SECOND_HALF_RUNNING' }), [
+    reg('r5', 'remate', { playerId: 'p1', resultado: 'DEFENDIDO' }),
+  ]);
+  // Terminado mas sem remates: não entra como zero.
+  const j4 = jogo({ id: 'd', quando: 4 });
+
+  const porJogo = rematesPorJogo([j3, j2, j1, j4]);
+  assert.deepEqual(
+    porJogo.map((j) => [j.matchId, j.remates, j.aBaliza, j.golos]),
+    [['a', 3, 2, 1], ['b', 1, 1, 0]]
+  );
+  const e = eficacia([j1, j2, j3, j4]);
+  assert.equal(e.jogos, 2);
+  assert.equal(e.remates, 4);
+  assert.equal(e.aBaliza, 3);
+  assert.equal(e.golos, 1);
+  assert.equal(e.percentagem, 33);
+  assert.equal(e.rematesPorJogo, 2);
+  assert.deepEqual([...registosDaEpoca([j1, j3])], ['remate']);
+});
+
+test('recuperações por jogador contam o tempo só dos jogos com recuperações', () => {
+  const jogadores = {
+    p1: emCampo('p1', 'Ana', 1, 20 * MIN),
+    p2: emCampo('p2', 'Rui', 2, 10 * MIN),
+  };
+  const j1 = comRegistos(jogo({ id: 'a', jogadores }), [
+    reg('r1', 'recuperacao', { playerId: 'p1' }),
+    reg('r2', 'recuperacao', { playerId: 'p1' }),
+    reg('r3', 'recuperacao', { playerId: 'p2' }),
+  ]);
+  // Jogo sem recuperações registadas: o tempo dele não dilui a média.
+  const j2 = jogo({ id: 'b', quando: 2, jogadores });
+  const r = recuperacoesPorJogador([j1, j2]);
+  assert.deepEqual(
+    r.map((j) => [j.playerId, j.recuperacoes, j.courtMs, j.por10]),
+    [['p1', 2, 20 * MIN, 1], ['p2', 1, 10 * MIN, 1]]
+  );
+});
+
+test('o mapa da época junta os pontos de todos os jogos terminados', () => {
+  const j1 = comRegistos(jogo({ id: 'a' }), [
+    reg('r1', 'recuperacao', { playerId: 'p1', x: 0.2, y: 0.3 }),
+    reg('r2', 'remate', { playerId: 'p1', resultado: 'FORA', x: 0.9, y: 0.4 }),
+  ]);
+  const j2 = comRegistos(jogo({ id: 'b', quando: 2 }), [
+    reg('r3', 'recuperacao', { playerId: 'p2', x: 0.6, y: 0.7 }),
+    reg('r4', 'recuperacao', { playerId: 'p2', x: null, y: null }),
+  ]);
+  const pontos = mapaDaEpoca([j1, j2], 'recuperacao');
+  assert.deepEqual(pontos.map((m) => m.id), ['a:r1', 'b:r3']);
 });
