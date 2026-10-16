@@ -23,6 +23,12 @@ import {
   desassociarClube,
 } from '../tools/painel/api.mjs';
 import { hostAceite, chaveDoPedido, chaveCorrecta } from '../tools/painel/guardas.mjs';
+import {
+  catalogoDoPainel,
+  definirRegistos,
+  registosDoClube,
+  registosDoEscalao,
+} from '../tools/painel/registos.mjs';
 
 /* ------------------------------------------------------------ validações */
 
@@ -144,8 +150,15 @@ function supabaseFalso(tabelas) {
           },
         };
       },
-      upsert(linha) {
-        tabelas[nome].push(linha);
+      upsert(linha, opcoes) {
+        // Como no Postgres: com `onConflict`, a linha com a mesma chave é
+        // substituída em vez de repetida.
+        const chaves = opcoes?.onConflict ? opcoes.onConflict.split(',') : null;
+        const i = chaves
+          ? tabelas[nome].findIndex((l) => chaves.every((k) => l[k] === linha[k]))
+          : -1;
+        if (i >= 0) tabelas[nome][i] = { ...tabelas[nome][i], ...linha };
+        else tabelas[nome].push(linha);
         return Promise.resolve({ error: null });
       },
       delete() {
@@ -385,4 +398,76 @@ test('uma conta que não existe dá uma mensagem clara', async () => {
     () => mudarLicenca(supabaseFalso(cenario()), { userId: 'u-ninguem', licenca: 'clube' }),
     /Não há conta nenhuma/
   );
+});
+
+/* ------------------------------------------- registos extra por escalão */
+
+test('o catálogo do painel tem os seis registos da fase 1', () => {
+  assert.deepEqual(
+    catalogoDoPainel().map((r) => r.id),
+    ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao']
+  );
+});
+
+test('um escalão sem config lê-se como sem registos', async () => {
+  const dados = { ...cenario(), team_stat_config: [] };
+  const r = await registosDoEscalao(supabaseFalso(dados), 't-1');
+  assert.deepEqual(r.registos, []);
+  assert.equal(r.nome, 'A1');
+});
+
+test('definir os registos grava a lista validada, pela ordem do catálogo', async () => {
+  const dados = { ...cenario(), team_stat_config: [] };
+  const sb = supabaseFalso(dados);
+  const r = await definirRegistos(sb, { teamId: 't-1', registos: ['canto', 'remate', 'remate'] });
+  assert.deepEqual(r.registos, ['remate', 'canto']);
+  assert.deepEqual(dados.team_stat_config, [{ team_id: 't-1', registos: ['remate', 'canto'] }]);
+  assert.match(r.mensagem, /A1/);
+
+  // Gravar outra vez substitui, não repete.
+  await definirRegistos(sb, { teamId: 't-1', registos: ['recuperacao'] });
+  assert.equal(dados.team_stat_config.length, 1);
+  assert.deepEqual((await registosDoEscalao(sb, 't-1')).registos, ['recuperacao']);
+});
+
+test('desligar tudo grava uma lista vazia em vez de apagar a linha', async () => {
+  const dados = { ...cenario(), team_stat_config: [{ team_id: 't-1', registos: ['remate'] }] };
+  await definirRegistos(supabaseFalso(dados), { teamId: 't-1', registos: [] });
+  assert.deepEqual(dados.team_stat_config, [{ team_id: 't-1', registos: [] }]);
+});
+
+test('um registo fora do catálogo é recusado sem tocar no Supabase', async () => {
+  const dados = { ...cenario(), team_stat_config: [] };
+  await assert.rejects(
+    () => definirRegistos(supabaseFalso(dados), { teamId: 't-1', registos: ['remate', 'nota'] }),
+    /nota/
+  );
+  await assert.rejects(
+    () => definirRegistos(supabaseFalso(dados), { teamId: 't-1', registos: 'remate' }),
+    /array/
+  );
+  assert.deepEqual(dados.team_stat_config, []);
+});
+
+test('não se ligam registos num escalão arquivado ou que não existe', async () => {
+  const dados = { ...cenario(), team_stat_config: [] };
+  await assert.rejects(
+    () => definirRegistos(supabaseFalso(dados), { teamId: 't-velho', registos: ['remate'] }),
+    /Não há escalão activo/
+  );
+  await assert.rejects(
+    () => definirRegistos(supabaseFalso(dados), { teamId: 't-nada', registos: ['remate'] }),
+    /Não há escalão activo/
+  );
+  assert.deepEqual(dados.team_stat_config, []);
+});
+
+test('os registos do clube vêm por escalão activo', async () => {
+  const dados = { ...cenario(), team_stat_config: [{ team_id: 't-2', registos: ['fora', 'canto'] }] };
+  const r = await registosDoClube(supabaseFalso(dados), 'c-a');
+  assert.deepEqual(
+    r.escaloes.map((e) => [e.teamId, e.registos]),
+    [['t-1', []], ['t-2', ['fora', 'canto']]]
+  );
+  assert.equal(r.catalogo.length, 6);
 });

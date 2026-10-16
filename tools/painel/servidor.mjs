@@ -54,6 +54,7 @@ import {
   associarClube,
   desassociarClube,
 } from './api.mjs';
+import { registosDoClube, definirRegistos } from './registos.mjs';
 import { hostAceite, chaveDoPedido, chaveCorrecta } from './guardas.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -130,6 +131,17 @@ const servidor = createServer(async (req, res) => {
     if (req.method === 'POST' && caminho === '/api/desassociar-clube') {
       const { userId, clubeId } = await corpoJson(req);
       return responder(res, 200, await desassociarClube(sb, { userId, clubeId }));
+    }
+
+    // Os registos extra (remates, recuperações, …) dos escalões de um clube.
+    if (req.method === 'GET' && caminho === '/api/registos') {
+      const clubeId = new URL(req.url, 'http://x').searchParams.get('clube');
+      return responder(res, 200, await registosDoClube(sb, clubeId));
+    }
+
+    if (req.method === 'POST' && caminho === '/api/registos') {
+      const { teamId, registos } = await corpoJson(req);
+      return responder(res, 200, await definirRegistos(sb, { teamId, registos }));
     }
 
     return responder(res, 404, { erro: 'Não há nada aqui.' });
