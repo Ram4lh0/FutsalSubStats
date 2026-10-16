@@ -353,6 +353,29 @@ export const attendanceMapper = {
   }),
 };
 
+/* ------------------------------------------- registos ligados por escalão */
+
+/**
+ * Que registos extra tem cada escalão ligados (`team_stat_config`).
+ *
+ * Só `fromRow`: a app nunca escreve esta tabela, quem a muda é o painel de
+ * administração. O `id` repete o `teamId` para a linha servir às funções
+ * genéricas do armazenamento local (o modo sem IndexedDB e o `merge` chaveiam
+ * por `id`).
+ */
+export const teamStatConfigMapper = {
+  table: 'team_stat_config',
+  fromRow: (r) => ({
+    id: r.team_id,
+    teamId: r.team_id,
+    registos: Array.isArray(r.registos) ? r.registos : [],
+    opcoes: r.opcoes && typeof r.opcoes === 'object' ? r.opcoes : {},
+    updatedAt: ms(r.updated_at),
+  }),
+};
+
+/* ---------------------------------------------------------------- jogadas */
+
 export const playMapper = {
   table: 'plays',
   toRow: (p) => ({

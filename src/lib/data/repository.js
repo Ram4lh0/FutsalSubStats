@@ -662,6 +662,19 @@ export const events = {
   },
 };
 
+/* ------------------------------------------- registos extra por escalão */
+
+/**
+ * Que registos extra tem um escalão ligados (ver domain/registos.js). Só de
+ * leitura: a config vem do servidor e só o painel de administração a muda.
+ */
+export const statConfig = {
+  async get(teamId) {
+    if (!teamId) return null;
+    return db.get(db.STORES.teamStatConfig, teamId);
+  },
+};
+
 /* -------------------------------------------------------- carregar um jogo */
 
 export async function loadMatch(matchId) {
