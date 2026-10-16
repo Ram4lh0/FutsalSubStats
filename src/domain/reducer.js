@@ -914,6 +914,12 @@ function applyEvent(state, ev) {
       break;
     }
 
+    // Registos extra (remates, recuperações, …): não mexem no resultado, nos
+    // tempos nem nas faltas. Lêem-se de `state.events` (domain/registos.js).
+    case EVENT.STAT_RECORDED:
+    case EVENT.STAT_CORRECTED:
+      break;
+
     default:
       state.warnings.push(`Evento desconhecido: ${ev.eventType}`);
   }
