@@ -18,6 +18,7 @@
 
 import { MATCH_STATUS, normalizePosition, timingOf, timingConfig, goalTypesFor } from './constants.js';
 import { clubAggregate, matchResult, playerMatchStats } from './stats.js';
+import { A_BALIZA, REGISTO, RESULTADO_REMATE, paraMarcadores, recuperacoesPor10, registosDoJogo } from './registos.js';
 
 /** Um jogo terminado. É a unidade de tudo o que se conta aqui. */
 const acabado = (e) => e?.state?.status === MATCH_STATUS.FINISHED;
@@ -599,4 +600,96 @@ export function disciplina(entries, { limite = 5 } = {}) {
     comSofridas: jogadores.some((j) => j.sofridas > 0),
     jogadores,
   };
+}
+
+/* ------------------------------------------- registos extra por escalão */
+
+// Remates, recuperações, … (domain/registos.js). Como o resto do painel, só
+// contam jogos terminados. E só os jogos que têm esse registo: um jogo em que
+// ninguém apontou remates não é um jogo com zero remates, é um jogo sem dados.
+
+/** Que registos aparecem nestes jogos: decide que blocos se mostram. */
+export function registosDaEpoca(entries) {
+  const tipos = new Set();
+  for (const e of terminados(entries)) for (const r of registosDoJogo(e.state)) tipos.add(r.registo);
+  return tipos;
+}
+
+/** Remates e remates à baliza, nossos, jogo a jogo (do mais antigo ao mais recente). */
+export function rematesPorJogo(entries) {
+  return terminados(entries)
+    .map((e) => {
+      const remates = registosDoJogo(e.state).filter((r) => r.registo === REGISTO.REMATE);
+      if (!remates.length) return null;
+      return {
+        matchId: e.match.id,
+        adversario: e.match.opponentShortName || e.match.opponentName || '',
+        scheduledAt: e.match.scheduledAt || null,
+        remates: remates.length,
+        aBaliza: remates.filter((r) => A_BALIZA.has(r.resultado)).length,
+        golos: remates.filter((r) => r.resultado === RESULTADO_REMATE.GOLO).length,
+      };
+    })
+    .filter(Boolean);
+}
+
+/** Golos por remate à baliza, nos jogos com remates registados. */
+export function eficacia(entries) {
+  const jogos = rematesPorJogo(entries);
+  const soma = (k) => jogos.reduce((t, j) => t + j[k], 0);
+  const remates = soma('remates');
+  const aBaliza = soma('aBaliza');
+  const golos = soma('golos');
+  return {
+    jogos: jogos.length,
+    remates,
+    aBaliza,
+    golos,
+    rematesPorJogo: jogos.length ? remates / jogos.length : 0,
+    percentagem: aBaliza ? Math.round((golos / aBaliza) * 100) : null,
+  };
+}
+
+/**
+ * Recuperações por jogador: total e por 10 minutos em campo. O tempo em campo
+ * conta só dos jogos com recuperações registadas, senão a média descia com
+ * jogos em que ninguém as apontou.
+ */
+export function recuperacoesPorJogador(entries) {
+  const porJogador = new Map();
+  for (const e of terminados(entries)) {
+    const recs = registosDoJogo(e.state).filter((r) => r.registo === REGISTO.RECUPERACAO);
+    if (!recs.length) continue;
+    for (const p of Object.values(e.state.players || {})) {
+      const s = playerMatchStats(p, e.state.elapsedMatchMs);
+      const n = recs.filter((r) => r.playerId === p.playerId).length;
+      if (!s.courtMs && !n) continue;
+      const atual = porJogador.get(p.playerId) || {
+        playerId: p.playerId,
+        name: p.name,
+        number: p.number,
+        recuperacoes: 0,
+        courtMs: 0,
+        jogos: 0,
+      };
+      atual.recuperacoes += n;
+      atual.courtMs += s.courtMs;
+      atual.jogos += 1;
+      porJogador.set(p.playerId, atual);
+    }
+  }
+  return [...porJogador.values()]
+    .map((j) => ({ ...j, por10: recuperacoesPor10(j.recuperacoes, j.courtMs) }))
+    .sort((a, b) => b.recuperacoes - a.recuperacoes || (a.number ?? 0) - (b.number ?? 0));
+}
+
+/** Todos os pontos de um registo na época, para um mapa só. */
+export function mapaDaEpoca(entries, registo) {
+  return terminados(entries).flatMap((e) =>
+    paraMarcadores(registosDoJogo(e.state), { registos: [registo] }).map((m) => ({
+      ...m,
+      id: `${e.match.id}:${m.id}`,
+      matchId: e.match.id,
+    }))
+  );
 }

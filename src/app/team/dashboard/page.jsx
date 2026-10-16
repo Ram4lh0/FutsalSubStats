@@ -23,6 +23,7 @@ import { useUI, Dialog } from '@/lib/ui.jsx';
 import { BarrasH, ColunasEspelhadas, EscadaForma, FitaForma, Pizza } from '@/components/stats/graficos.jsx';
 import { CartaoTop } from '@/components/stats/Destaques.jsx';
 import { ListaGolos } from '@/components/stats/CartaoGolos.jsx';
+import BlocosDaEpoca from '@/components/registos/BlocosDaEpoca.jsx';
 import {
   minutosPorJogador,
   golosPorFaixa,
@@ -756,6 +757,9 @@ function Painel({ club, team, entries, roster, competitions }) {
               <p className="muted">{t('painelv.semFaltas')}</p>
             )}
           </Bloco>
+
+          {/* Registos extra (remates, recuperações, …): só com jogos que os tenham. */}
+          <BlocosDaEpoca entries={filtrados} Bloco={Bloco} />
         </>
       )}
     </div>

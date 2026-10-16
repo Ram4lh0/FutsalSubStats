@@ -440,3 +440,23 @@ test('compatibilidade: o reducer da 1.8.2 lê um jogo com STAT_* e dá o mesmo r
   assert.ok(antigoCom.warnings.length > 0);
   assert.ok(antigoCom.warnings.every((w) => /STAT_(RECORDED|CORRECTED)/.test(w)));
 });
+
+/* ------------------------------------------------------------------ CSV */
+
+test('CSV: as colunas dos registos só aparecem num jogo que os tem', async () => {
+  const { matchSummaryCsv, matchEventsCsv } = await import('../src/lib/data/exporter.js');
+  const matchRow = { ...match, opponentName: 'Adversário', scheduledAt: T0, homeOrAway: 'HOME' };
+  const com = estado(jogoCompleto({ comRegistos: true }));
+  const sem = estado(semRegistos(jogoCompleto({ comRegistos: true })));
+
+  const csvCom = matchSummaryCsv({ club: { name: 'Clube' }, match: matchRow, state: com });
+  const csvSem = matchSummaryCsv({ club: { name: 'Clube' }, match: matchRow, state: sem });
+  assert.match(csvCom, /Remates;À baliza;Recuperações;Defesas;Ações \+;Ações −/);
+  assert.match(csvCom, /Cantos \(nós-eles\);0-1/);
+  assert.doesNotMatch(csvSem, /À baliza/);
+  assert.doesNotMatch(csvSem, /Cantos \(nós-eles\)/);
+
+  const eventos = matchEventsCsv({ match: matchRow, state: com });
+  assert.match(eventos, /Remate · #5 · Defendido/);
+  assert.match(eventos, /;remate;DEFENDIDO;0\.8;0\.4/);
+});

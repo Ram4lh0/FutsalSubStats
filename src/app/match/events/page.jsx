@@ -56,7 +56,7 @@ function Historico() {
 
   async function anular(e) {
     const ok = await confirmar(
-      t('historico.confirmaAnular', { acao: eventLabel(e.eventType) }),
+      t('historico.confirmaAnular', { acao: eventLabel(e.eventType, e, state.players) }),
       { okLabel: t('historico.anular') }
     );
     if (!ok) return;
@@ -107,7 +107,7 @@ function Historico() {
           {state.allEvents.map((e) => (
             <tr key={e.id} className={e.undoneAt ? 'is-undone' : ''}>
               <td className="num mono">{e.seq}</td>
-              <td>{eventLabel(e.eventType) || e.eventType}</td>
+              <td>{eventLabel(e.eventType, e, state.players) || e.eventType}</td>
               <td className="num">{e.period || '—'}</td>
               <td className="num mono">{fmt(e.matchElapsedMs)}</td>
               <td className="muted">
