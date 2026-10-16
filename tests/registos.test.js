@@ -460,3 +460,41 @@ test('CSV: as colunas dos registos só aparecem num jogo que os tem', async () =
   assert.match(eventos, /Remate · #5 · Defendido/);
   assert.match(eventos, /;remate;DEFENDIDO;0\.8;0\.4/);
 });
+
+/* ------------------------------------------------------------ etiquetas */
+
+test('cada registo tem nome e resultados nas três línguas', async () => {
+  const { registoLabel, eventLabel } = await import('../src/lib/format.js');
+  const { definirIdioma } = await import('../src/lib/i18n/index.js');
+  const jogadores = { p7: { number: 7, name: 'Zé' } };
+  const esperado = {
+    pt: ['Remate · #7 · Defendido', 'Fora · a favor deles', 'Ação negativa · #7'],
+    en: ['Shot · #7 · Saved', 'Kick-in · theirs', 'Negative action · #7'],
+    es: ['Tiro · #7 · Parado', 'Saque de banda · a su favor', 'Acción negativa · #7'],
+  };
+  try {
+    for (const [lingua, [remate, fora, acao]] of Object.entries(esperado)) {
+      definirIdioma(lingua);
+      assert.equal(registoLabel({ registo: 'remate', playerId: 'p7', resultado: 'DEFENDIDO' }, jogadores), remate);
+      assert.equal(registoLabel({ registo: 'fora', equipa: 'THEM' }, jogadores), fora);
+      assert.equal(
+        eventLabel('STAT_RECORDED', { playerId: 'p7', metadata: { registo: 'acao', resultado: 'NEGATIVA' } }, jogadores),
+        acao
+      );
+    }
+  } finally {
+    definirIdioma('pt');
+  }
+  // Um registo que esta versão não conhece fica com o nome genérico.
+  assert.equal(eventLabel('STAT_RECORDED', { metadata: { registo: 'duelo' } }), 'Registo');
+  assert.equal(eventLabel('STAT_CORRECTED'), 'Registo corrigido');
+});
+
+test('contagem por jogador para os números dos botões do cartão', async () => {
+  const { contagemPorJogador } = await import('../src/domain/registos.js');
+  const c = contagemPorJogador(estado(jogoComRegistos()));
+  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, positivas: 0, negativas: 0 });
+  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, positivas: 2, negativas: 1 });
+  assert.equal(c.get('p1').defesa_gr, 1);
+  assert.equal(c.has('p7'), false);
+});
