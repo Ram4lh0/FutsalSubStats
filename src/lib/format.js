@@ -10,6 +10,7 @@
 // precisam de saber — em que idioma alguém está a olhar para eles.
 
 import { t, localeAtual } from './i18n/index.js';
+import { CATALOGO, eRegistoConhecido } from '../domain/registos.js';
 
 // O ano não entra nas datas: cada clube tem uma época associada e todos os jogos
 // que se vêem no ecrã são dessa época.
@@ -70,8 +71,37 @@ export function homeAwayLabel(v) {
    sempre por uma função é o que permite trocar o idioma sem tocar em quem as
    chama. */
 
-export function eventLabel(tipo) {
+/**
+ * O nome de um tipo de evento. Com o próprio evento à mão, um registo extra
+ * diz qual é: "Remate · #7 · Defendido" em vez de só "Registo". `jogadores` é
+ * o `state.players` do jogo, para pôr o número.
+ */
+export function eventLabel(tipo, evento = null, jogadores = null) {
+  if (tipo === 'STAT_RECORDED' && evento?.metadata?.registo) {
+    return registoLabel(
+      { ...evento.metadata, playerId: evento.playerId || evento.metadata.playerId || null },
+      jogadores
+    );
+  }
   return tipo ? t(`evento.${tipo}`) : '';
+}
+
+/**
+ * Um registo extra numa linha: o que foi, de quem (ou a favor de quem) e o
+ * resultado. Um registo que esta versão não conhece fica com o nome genérico.
+ */
+export function registoLabel(r, jogadores = null) {
+  if (!r?.registo || !eRegistoConhecido(r.registo)) return t('evento.STAT_RECORDED');
+  const partes = [
+    r.registo === 'acao' && r.resultado
+      ? t(`registos.resultado.${r.resultado}`)
+      : t(`registos.nome.${r.registo}`),
+  ];
+  const jogador = r.playerId ? jogadores?.[r.playerId] : null;
+  if (jogador) partes.push(`#${jogador.number}`);
+  else if (CATALOGO[r.registo].por === 'equipa') partes.push(t(`registos.aFavor.${r.equipa === 'THEM' ? 'THEM' : 'US'}`));
+  if (r.resultado && r.registo !== 'acao') partes.push(t(`registos.resultado.${r.resultado}`));
+  return partes.join(' · ');
 }
 
 export function footLabel(f) {

@@ -24,6 +24,11 @@ import {
 import { openPenalties, PENALTY_STATUS, canReplaceExpelled } from '@/domain/penalties.js';
 import { positionShort } from '@/lib/format.js';
 import { t } from '@/lib/i18n/index.js';
+import { contagemPorJogador } from '@/domain/registos.js';
+import BotoesRegistos, { temBotoesNoCartao } from '@/components/registos/BotoesRegistos.jsx';
+
+// Sem registos extra ligados: o cartão fica exactamente como sempre foi.
+const SEM_REGISTOS = new Set();
 
 /* --------------------------------------------------------------- marcador */
 
@@ -276,8 +281,10 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
 
 /* ------------------------------------------------------------------ campo */
 
-export function Court({ state, sel, clockMs, penaltyMs, on, arrasto }) {
+export function Court({ state, sel, clockMs, penaltyMs, on, arrasto, ligados = SEM_REGISTOS }) {
   const emCampo = countOnCourt(state);
+  // Os números dos botões dos registos, contados uma vez para os cinco cartões.
+  const contagem = ligados.size ? contagemPorJogador(state) : null;
   return (
     <section className="court">
       <div className="court__bg" />
@@ -294,6 +301,8 @@ export function Court({ state, sel, clockMs, penaltyMs, on, arrasto }) {
             clockMs={clockMs}
             on={on}
             arrasto={arrasto}
+            ligados={ligados}
+            contagem={contagem?.get(p.playerId)}
           />
         ) : (
           <EmptySlot
@@ -313,7 +322,7 @@ export function Court({ state, sel, clockMs, penaltyMs, on, arrasto }) {
   );
 }
 
-function CourtCard({ pos, p, state, sel, clockMs, on, arrasto }) {
+function CourtCard({ pos, p, state, sel, clockMs, on, arrasto, ligados = SEM_REGISTOS, contagem = null }) {
   const selecionado = sel?.kind === 'court' && sel.playerId === p.playerId;
   const aEntrar = sel?.kind === 'bench';
   const s = playerMatchStats(state.players[p.playerId] || p, clockMs);
@@ -379,22 +388,40 @@ function CourtCard({ pos, p, state, sel, clockMs, on, arrasto }) {
           {t('vivo.emJogoHa', { tempo: fmt(s.currentStintMs ?? 0) })}
         </span>
       </div>
-      <span
-        className="pcard__goal"
-        title={t('vivo.goloDoJogador')}
-        data-no-drag
-        onPointerDown={(e) => e.stopPropagation()}
-        onPointerUp={(e) => e.stopPropagation()}
-        onPointerCancel={(e) => e.stopPropagation()}
-        onClick={(e) => {
-          e.stopPropagation();
-          on.scoreFor(p);
-        }}
-      >
-        G
-      </span>
+      {temBotoesNoCartao(ligados, pos) ? (
+        <BotoesRegistos
+          pos={pos}
+          p={p}
+          ligados={ligados}
+          contagem={contagem}
+          on={on}
+          golo={<BotaoGolo p={p} on={on} inline />}
+        />
+      ) : (
+        <BotaoGolo p={p} on={on} />
+      )}
       {selecionado ? <span className="pcard__flag">{t('vivo.aSair')}</span> : null}
     </button>
+  );
+}
+
+/** O G do cartão: golo deste jogador. Com registos extra vai no fim da linha deles. */
+function BotaoGolo({ p, on, inline = false }) {
+  return (
+    <span
+      className={inline ? 'pcard__goal pcard__goal--inline' : 'pcard__goal'}
+      title={t('vivo.goloDoJogador')}
+      data-no-drag
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onPointerCancel={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        on.scoreFor(p);
+      }}
+    >
+      G
+    </span>
   );
 }
 

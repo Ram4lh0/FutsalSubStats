@@ -56,6 +56,9 @@ import { rotas, comOrigem } from '@/lib/routes.js';
 import useEcraAceso from '@/lib/ecraAceso.js';
 import useArrasto from '@/lib/arrastar.js';
 import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
+import useRegistos from '@/lib/useRegistos.js';
+import useAcoesRegistos from '@/components/registos/useAcoesRegistos.js';
+import BarraRegistos from '@/components/registos/BarraRegistos.jsx';
 
 const OWN_GOAL = '__OWN_GOAL__';
 
@@ -88,6 +91,19 @@ function Live() {
 
   const state = carregado?.state || null;
   const match = carregado?.match || null;
+
+  // Registos extra (remates, recuperações, …) ligados para este escalão. Sem
+  // nenhum, o ecrã fica exactamente como sempre. Os handlers vivem num hook
+  // próprio; `commit` e `scoreFor` são declarados mais abaixo e só se chamam
+  // depois de o ecrã estar desenhado.
+  const ligados = useRegistos(match?.teamId);
+  const registos = useAcoesRegistos({
+    state,
+    ligados,
+    commit: (ev) => commit(ev),
+    marcarGolo: (p, opcoes) => scoreFor(p, opcoes),
+    nomes: () => ({ nos: ourName, eles: rivalName }),
+  });
   const aCorrer = state?.timerStatus === 'RUNNING';
   // O batimento não pode parar com o cronómetro: o "Saiu há" dos jogadores no
   // banco conta em tempo real. Parado, basta um por segundo — é o que esse
@@ -195,10 +211,14 @@ function Live() {
    * separado — assim o marcador nunca fica à espera de dois toques, e fechar o
    * popup deixa apenas um golo por atribuir (corrigível no resumo).
    */
-  async function scoreFor(p) {
-    const st = await commit(A.teamGoalBy(state, p.playerId));
+  async function scoreFor(p, { comRemate = null } = {}) {
+    let st = await commit(A.teamGoalBy(state, p.playerId));
     const golo = lastTeamGoal(st);
-    if (golo) await askAssist(st, golo, p.playerId);
+    if (!golo) return;
+    // Remate que deu golo (registos extra): grava-se já, preso a este golo, e
+    // só depois se pergunta a assistência.
+    if (comRemate) st = (await commit(comRemate(st, golo.eventId))) || st;
+    await askAssist(st, golo, p.playerId);
   }
 
   async function addTeamGoal() {
@@ -895,6 +915,7 @@ function Live() {
     opponentExpulsion: (delta) => commit(A.opponentExpulsion(state, delta)),
     registarAmareloAdversario,
     verCartoesAdversario,
+    ...registos.on,
   };
 
   // O intervalo tem ecrã próprio: sem cronómetro e sem forma de "retomar" a
@@ -1005,6 +1026,16 @@ function Live() {
           não pode ficar abaixo da dobra, à espera que alguém deslize para a ver. */}
       <Penalties state={state} clockMs={clockMs} penaltyMs={penaltyMs()} on={on} />
 
+      {ligados.size ? (
+        <BarraRegistos
+          state={state}
+          ligados={ligados}
+          ourName={ourName}
+          opponentName={rivalName}
+          on={on}
+        />
+      ) : null}
+
       <div data-tour="live-court">
         <Court
           state={state}
@@ -1013,6 +1044,7 @@ function Live() {
           penaltyMs={penaltyMs()}
           on={on}
           arrasto={arrasto}
+          ligados={ligados}
         />
 
         <Bench state={state} sel={sel} clockMs={clockMs} on={on} arrasto={arrasto} />
@@ -1026,20 +1058,23 @@ function Live() {
             if (!undoable) return;
             const ok = await confirmar(
               t('acao.confirmaDesfazer', {
-                acao: eventLabel(undoable.eventType),
+                acao: eventLabel(undoable.eventType, undoable, state.players),
                 tempo: fmt(undoable.matchElapsedMs),
               }),
               { okLabel: t('acao.desfazer'), danger: false }
             );
             if (!ok) return;
-            await events.markUndone(undoable.id, null, { sync: 'defer' });
-            await events.append(A.undoEvent(state, undoable), { sync: 'defer' });
+            // Quase sempre é só um. Um remate com golo leva o golo com ele.
+            for (const alvo of registos.alvosDoDesfazer(undoable)) {
+              await events.markUndone(alvo.id, null, { sync: 'defer' });
+              await events.append(A.undoEvent(state, alvo), { sync: 'defer' });
+            }
             setSel(null);
             await recarregar();
           }}
         >
           {undoable
-            ? t('acao.desfazerRotulo', { acao: eventLabel(undoable.eventType) })
+            ? t('acao.desfazerRotulo', { acao: eventLabel(undoable.eventType, undoable, state.players) })
             : t('acao.nadaParaDesfazer')}
         </button>
 

@@ -399,6 +399,28 @@ export function resumoRegistos(state, now = Date.now()) {
   };
 }
 
+/**
+ * Quantos de cada registo tem cada jogador, para os números nos botões do
+ * cartão: Map playerId → { remate, recuperacao, defesa_gr, positivas, negativas }.
+ */
+export function contagemPorJogador(state) {
+  const out = new Map();
+  for (const r of registosDoJogo(state)) {
+    if (!r.playerId) continue;
+    if (!out.has(r.playerId)) {
+      out.set(r.playerId, { remate: 0, recuperacao: 0, defesa_gr: 0, positivas: 0, negativas: 0 });
+    }
+    const c = out.get(r.playerId);
+    if (r.registo === REGISTO.ACAO) {
+      if (r.resultado === RESULTADO_ACAO.POSITIVA) c.positivas += 1;
+      else if (r.resultado === RESULTADO_ACAO.NEGATIVA) c.negativas += 1;
+    } else if (r.registo in c) {
+      c[r.registo] += 1;
+    }
+  }
+  return out;
+}
+
 /** Recuperações por 10 minutos em campo. Abaixo de um minuto não diz nada. */
 export function recuperacoesPor10(recuperacoes, courtMs) {
   return courtMs >= 60 * 1000 ? (recuperacoes * 600000) / courtMs : null;
