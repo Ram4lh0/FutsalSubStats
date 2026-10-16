@@ -1462,3 +1462,36 @@ test('a percentagem de jogos com 5v4 ignora os que ainda não começaram', () =>
   assert.equal(pp.jogosTotal, 2, 'o que não começou fica de fora da conta');
   assert.equal(pp.percentagemJogos, 50);
 });
+
+test('registos (STAT_*) pelo meio não mexem no resultado, tempos nem faltas', () => {
+  const { ctx, st: antes } = playFullMatch();
+  // Um registo a seguir a cada evento do jogo, com o mesmo instante.
+  const comRegistos = [];
+  for (const ev of ctx.events) {
+    comRegistos.push(ev);
+    const stat = {
+      ...A.makeEvent(buildMatchState(match, ctx.squad, comRegistos), EVENT.STAT_RECORDED, {
+        playerId: 'p2',
+        metadata: { v: 1, registo: 'recuperacao', equipa: 'US', x: 0.5, y: 0.5 },
+      }, ev.createdAt),
+      seq: ev.seq + 0.5,
+    };
+    comRegistos.push(stat);
+  }
+  comRegistos.push({
+    ...A.makeEvent(antes, EVENT.STAT_CORRECTED, { metadata: { v: 1, targetEventId: comRegistos[1].id } }),
+    seq: 999,
+  });
+  const depois = buildMatchState(match, ctx.squad, comRegistos);
+  assert.equal(depois.teamScore, antes.teamScore);
+  assert.equal(depois.opponentScore, antes.opponentScore);
+  assert.equal(depois.elapsedMatchMs, antes.elapsedMatchMs);
+  assert.equal(depois.firstHalfMs, antes.firstHalfMs);
+  assert.equal(depois.secondHalfMs, antes.secondHalfMs);
+  assert.deepEqual(depois.fouls, antes.fouls);
+  assert.deepEqual(depois.goals, antes.goals);
+  for (const id of Object.keys(antes.players)) {
+    assert.deepEqual(depois.players[id].stints, antes.players[id].stints);
+  }
+  assert.deepEqual(depois.warnings, []);
+});
