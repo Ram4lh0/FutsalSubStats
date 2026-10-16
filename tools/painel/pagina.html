@@ -65,6 +65,11 @@
   #recado { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; display: none; }
   #recado.ok { display: block; background: rgba(34,197,94,.12); color: var(--primary); }
   #recado.erro { display: block; background: rgba(239,68,68,.12); color: var(--danger); }
+  .registos__escalao { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .registos__escalao:last-child { border-bottom: 0; }
+  .registos__escalao strong { min-width: 120px; }
+  .registos__escalao label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--text); }
+  .registos__escalao input[type="checkbox"] { min-width: 0; width: 16px; height: 16px; }
 </style>
 </head>
 <body>
@@ -109,7 +114,7 @@
 <h2>Clubes</h2>
 <div class="cartao">
   <table id="clubes">
-    <thead><tr><th>Clube</th><th>Dono</th><th>Escalões</th></tr></thead>
+    <thead><tr><th>Clube</th><th>Dono</th><th>Escalões</th><th></th></tr></thead>
     <tbody></tbody>
   </table>
 </div>
@@ -266,8 +271,12 @@ function desenhar(estado) {
     ${CONTA_ABERTA === c.id ? painelGestao(c) : ''}`).join('');
 
   $('#clubes tbody').innerHTML = estado.clubes.map((c) => `
-    <tr><td>${texto(c.nome)}</td><td class="small muted">${texto(c.dono)}</td><td>${c.escaloes}</td></tr>
-  `).join('') || '<tr><td colspan="3" class="muted">Ainda não há clubes.</td></tr>';
+    <tr>
+      <td>${texto(c.nome)}</td><td class="small muted">${texto(c.dono)}</td><td>${c.escaloes}</td>
+      <td><button class="discreto" data-registos="${texto(c.id)}">registos</button></td>
+    </tr>
+    ${CLUBE_ABERTO === c.id ? painelRegistos() : ''}
+  `).join('') || '<tr><td colspan="4" class="muted">Ainda não há clubes.</td></tr>';
 
   // A lista de clubes do formulário só muda quando os clubes mudam, mas
   // reescrevê-la é mais barato do que descobrir se mudou.
@@ -404,6 +413,81 @@ $('#tabela').addEventListener('submit', async (e) => {
     }
     recado(r.mensagem, 'ok');
     await carregar();
+  } catch (err) {
+    recado(err.message, 'erro');
+  } finally {
+    botao.disabled = false;
+  }
+});
+
+/* ------------------------------------------- registos extra por escalão */
+
+// Remates, recuperações, … por escalão. Só nós os ligamos, na fase 1: para os
+// clubes Personalizado e para a conta Demo FC. A app só os lê.
+let CLUBE_ABERTO = null;
+let REGISTOS_DO_CLUBE = null;
+
+function painelRegistos() {
+  const r = REGISTOS_DO_CLUBE;
+  if (!r || r.clubeId !== CLUBE_ABERTO) {
+    return '<tr class="gestao"><td colspan="4" class="muted small">A carregar…</td></tr>';
+  }
+  const linhas = r.escaloes.map((e) => `
+    <form class="registos__escalao" data-registos-form="${texto(e.teamId)}">
+      <strong>${texto(e.nome)}</strong>
+      ${r.catalogo.map((reg) => `
+        <label>
+          <input type="checkbox" name="registo" value="${texto(reg.id)}" ${e.registos.includes(reg.id) ? 'checked' : ''} />
+          ${texto(reg.nome)}
+        </label>`).join('')}
+      <button type="submit" class="discreto">Guardar</button>
+      <span class="small muted">${e.atualizadoEm ? `mudado a ${texto(dataHora(e.atualizadoEm))}` : 'sem config'}</span>
+    </form>`).join('');
+  return `
+    <tr class="gestao">
+      <td colspan="4">
+        <div class="gestao__bloco">
+          <h3>Registos extra no jogo ao vivo</h3>
+          ${linhas || '<span class="muted small">Este clube não tem escalões activos.</span>'}
+        </div>
+      </td>
+    </tr>`;
+}
+
+async function abrirRegistos(clubeId) {
+  REGISTOS_DO_CLUBE = null;
+  desenhar(ESTADO);
+  try {
+    REGISTOS_DO_CLUBE = await pedir(`/api/registos?clube=${encodeURIComponent(clubeId)}`);
+  } catch (err) {
+    CLUBE_ABERTO = null;
+    recado(err.message, 'erro');
+  }
+  desenhar(ESTADO);
+}
+
+$('#clubes').addEventListener('click', (e) => {
+  const botao = e.target.closest('[data-registos]');
+  if (!botao) return;
+  CLUBE_ABERTO = CLUBE_ABERTO === botao.dataset.registos ? null : botao.dataset.registos;
+  if (CLUBE_ABERTO) abrirRegistos(CLUBE_ABERTO);
+  else desenhar(ESTADO);
+});
+
+$('#clubes').addEventListener('submit', async (e) => {
+  const form = e.target.closest('[data-registos-form]');
+  if (!form) return;
+  e.preventDefault();
+  const botao = form.querySelector('button[type="submit"]');
+  botao.disabled = true;
+  try {
+    const registos = new FormData(form).getAll('registo');
+    const r = await pedir('/api/registos', {
+      method: 'POST',
+      body: JSON.stringify({ teamId: form.dataset.registosForm, registos }),
+    });
+    recado(r.mensagem, 'ok');
+    await abrirRegistos(CLUBE_ABERTO);
   } catch (err) {
     recado(err.message, 'erro');
   } finally {
