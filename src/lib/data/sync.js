@@ -20,6 +20,7 @@ import {
   trainingSessionMapper,
   attendanceMapper,
   playMapper,
+  teamStatConfigMapper,
 } from './mappers.js';
 import { EVENT } from '../../domain/constants.js';
 
@@ -609,6 +610,7 @@ const TABELAS_COM_MARCA = [
   'training_sessions',
   'training_attendance',
   'plays',
+  'team_stat_config',
 ];
 
 /**
@@ -761,6 +763,7 @@ export async function pull(userId, { repararJogosIncompletos = false } = {}) {
   total += await merge(db.STORES.players, jogadores.map(playerMapper.fromRow));
 
   total += await pullTreino(sb, trazer);
+  total += await pullConfigDosRegistos(sb, trazer);
 
   const jogos = await trazer('matches', () =>
     sb.from('matches').select('*').in('club_id', ids)
@@ -849,6 +852,32 @@ async function pullTreino(sb, trazer) {
     treinoNoServidor = false;
   }
   return total;
+}
+
+/**
+ * A configuração dos registos extra de cada escalão. Só desce: nada no
+ * `push`, a app nunca a escreve.
+ *
+ * Num servidor sem a migração a tabela não existe. Isso não pode encravar o
+ * resto da descarga: fica sem config (nenhum botão extra) e volta a tentar-se
+ * na próxima abertura da app.
+ */
+let configDosRegistosNoServidor = true;
+
+async function pullConfigDosRegistos(sb, trazer) {
+  if (!configDosRegistosNoServidor) return 0;
+  const escalaoIds = (await db.all(db.STORES.teams)).map((t) => t.id);
+  if (!escalaoIds.length) return 0;
+  try {
+    const linhas = await trazer('team_stat_config', () =>
+      sb.from('team_stat_config').select('*').in('team_id', escalaoIds)
+    );
+    return await merge(db.STORES.teamStatConfig, linhas.map(teamStatConfigMapper.fromRow));
+  } catch (err) {
+    if (!semTabela(err)) throw err;
+    configDosRegistosNoServidor = false;
+    return 0;
+  }
 }
 
 async function repararEventosDeJogosIncompletos(sb, jogoIds) {

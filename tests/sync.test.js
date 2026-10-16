@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import * as db from '../src/lib/data/local.js';
-import { clubs, teams, competitions, players, matches, squad, events, loadMatch } from '../src/lib/data/repository.js';
+import { clubs, teams, competitions, players, matches, squad, events, loadMatch, statConfig } from '../src/lib/data/repository.js';
 import {
   flush,
   push,
@@ -21,6 +21,7 @@ import {
 import { restore, dump } from '../src/lib/data/repository.js';
 import { jogadas } from '../src/lib/data/treino.js';
 import * as A from '../src/domain/actions.js';
+import { registar } from '../src/domain/registos.js';
 import { EVENT, LOCATION } from '../src/domain/constants.js';
 
 const UTILIZADOR = '11111111-1111-4111-8111-111111111111';
@@ -34,7 +35,7 @@ const LEGACY_FOUL_ATTRIBUTION_ID = '99999999-aaaa-4aaa-8aaa-999999999999';
 const STABLE_FOUL_ATTRIBUTION_ID = '88888888-bbbb-4bbb-8bbb-888888888888';
 
 /** Servidor de mentira: guarda o que recebe e conta as chamadas. */
-function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
+function servidorFalso({ falhaEm, semUpdatedAtEventos = false, semConfigDosRegistos = false } = {}) {
   const tabelas = {
     profiles: [], clubs: [], teams: [], competitions: [],
     players: [], matches: [], match_squad: [], match_events: [],
@@ -43,6 +44,8 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
     team_access: [],
     // As tabelas da aba Treino.
     training_routines: [], training_sessions: [], training_attendance: [], plays: [],
+    // Os registos extra ligados por escalão (só desce).
+    team_stat_config: [],
   };
   const chamadas = { upserts: 0, rpc: 0, selects: 0 };
 
@@ -71,6 +74,12 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
       let de = null;
       let ate = null;
       let erro = null;
+      // Servidor sem a migração dos registos: a tabela não existe.
+      if (nome === 'team_stat_config' && semConfigDosRegistos) {
+        erro = Object.assign(new Error('Could not find the table public.team_stat_config in the schema cache'), {
+          code: 'PGRST205',
+        });
+      }
       const linhas = () => {
         chamadas.selects += 1;
         let out = tabelas[nome] || [];
@@ -161,6 +170,7 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false } = {}) {
             { tabela: 'matches', marca: maior('matches') },
             { tabela: 'match_squad', marca: maior('match_squad') },
             { tabela: 'match_events', marca: maior('match_events') },
+            { tabela: 'team_stat_config', marca: maior('team_stat_config') },
           ],
           error: null,
         };
@@ -1813,4 +1823,89 @@ test('e a segunda descarga continua a não trazer nada', async () => {
   await limpar();
   await pull(UTILIZADOR);
   assert.equal((await pull(UTILIZADOR)).pulled, 0, 'a segunda passagem devia vir vazia');
+});
+
+/* ------------------------------------------- registos extra por escalão */
+
+test('os registos (STAT_*) entram na fila e sobem no push, sem localOnly', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { jogo, jogador } = await cenario();
+  const { state } = await loadMatch(jogo.id);
+  const ev = registar(state, { registo: 'recuperacao', playerId: jogador.id, x: 0.3, y: 0.4 });
+  assert.equal(ev.localOnly, undefined);
+  await events.append(ev);
+  assert.ok((await events.pending()).some((e) => e.id === ev.id), 'fica na fila');
+
+  await push(UTILIZADOR, 'treinador@exemplo.pt');
+  const noServidor = servidor.tabelas.match_events.find((e) => e.client_event_id === ev.clientEventId);
+  assert.ok(noServidor, 'o registo chegou ao servidor');
+  assert.equal(noServidor.event_type, 'STAT_RECORDED');
+  assert.equal(noServidor.metadata.registo, 'recuperacao');
+  assert.equal(noServidor.metadata.x, 0.3);
+  assert.equal((await events.pending()).length, 0, 'a fila ficou vazia');
+
+  // E volta a descer igual noutro aparelho.
+  await limpar();
+  await pull(UTILIZADOR);
+  const descido = (await events.listByMatch(jogo.id)).find((e) => e.clientEventId === ev.clientEventId);
+  assert.equal(descido.eventType, 'STAT_RECORDED');
+  assert.equal(descido.metadata.registo, 'recuperacao');
+});
+
+test('a config dos registos desce no pull e nunca sobe', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { escalao } = await cenario();
+  await push(UTILIZADOR);
+
+  servidor.tabelas.team_stat_config.push({
+    team_id: escalao.id,
+    registos: ['remate', 'recuperacao'],
+    opcoes: {},
+    updated_at: daqui(60),
+  });
+  assert.equal(await hasRemoteChanges(UTILIZADOR), true, 'a config nova pede descarga');
+  await pull(UTILIZADOR);
+
+  const config = await statConfig.get(escalao.id);
+  assert.deepEqual(config.registos, ['remate', 'recuperacao']);
+  assert.equal(config.teamId, escalao.id);
+  assert.equal(config.dirty, undefined, 'não é uma linha por enviar');
+
+  const upsertsAntes = servidor.chamadas.upserts;
+  await push(UTILIZADOR);
+  assert.equal(servidor.chamadas.upserts, upsertsAntes, 'nada sobe por causa da config');
+
+  // Desligar no painel chega ao aparelho na descarga seguinte.
+  servidor.tabelas.team_stat_config[0] = {
+    ...servidor.tabelas.team_stat_config[0],
+    registos: [],
+    updated_at: daqui(120),
+  };
+  await pull(UTILIZADOR);
+  assert.deepEqual((await statConfig.get(escalao.id)).registos, []);
+});
+
+test('um escalão sem config não tem registos ligados', async () => {
+  await limpar();
+  setRemote(servidorFalso());
+  const { escalao } = await cenario();
+  assert.equal(await statConfig.get(escalao.id), null);
+  assert.equal(await statConfig.get(null), null);
+});
+
+// Fica no fim: depois disto o módulo deixa de pedir a config até reabrir a app.
+test('servidor sem a tabela da config: a descarga segue sem ela', async () => {
+  await limpar();
+  const servidor = servidorFalso({ semConfigDosRegistos: true });
+  setRemote(servidor);
+  const { jogo } = await cenario();
+  await push(UTILIZADOR);
+
+  await limpar();
+  await pull(UTILIZADOR);
+  assert.ok(await matches.get(jogo.id), 'os jogos chegaram à mesma');
 });
