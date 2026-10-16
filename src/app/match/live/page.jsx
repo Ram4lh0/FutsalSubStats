@@ -29,6 +29,7 @@ import useNow from '@/lib/useNow.js';
 import { beep, unlockAudio } from '@/lib/beep.js';
 import * as GE from '@/lib/goalEditing.jsx';
 import * as FE from '@/lib/foulEditing.jsx';
+import * as RE from '@/lib/registoEditing.jsx';
 import { clubs, events, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import * as A from '@/domain/actions.js';
@@ -891,6 +892,11 @@ function Live() {
       await recarregar();
   }
 
+  async function editarRegisto(registo) {
+    if (await RE.editRegisto(ui, { matchId, registo, ourName, opponentName: rivalName }))
+      await recarregar();
+  }
+
   /* ------------------------------------------------------------- desenho */
 
   const on = {
@@ -957,6 +963,7 @@ function Live() {
           onCorrectScore={corrigirResultado}
           onAddFoul={acrescentarFalta}
           onEditFoul={editarFalta}
+          onEditRegisto={editarRegisto}
           onStart={startSecondHalf}
         />
       </div>

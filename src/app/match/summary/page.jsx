@@ -11,12 +11,15 @@ import DataTable from '@/components/DataTable.jsx';
 import { GoalsByHalf } from '@/components/Goals.jsx';
 import { FoulsByHalf } from '@/components/Fouls.jsx';
 import GraficosDoJogo from '@/components/stats/GraficosDoJogo.jsx';
+import PainelRegistos from '@/components/registos/PainelRegistos.jsx';
+import ListaRegistos from '@/components/registos/ListaRegistos.jsx';
 import { Badge, Empty, StatCard, StatusBadge } from '@/components/bits.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import * as GE from '@/lib/goalEditing.jsx';
 import * as FIM from '@/lib/fimEditing.jsx';
 import * as FE from '@/lib/foulEditing.jsx';
+import * as RE from '@/lib/registoEditing.jsx';
 import { clubs, teams, competitions, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { matchSummaryCsv, download, slug } from '@/lib/data/exporter.js';
@@ -24,6 +27,7 @@ import { matchStatsTable, matchResult, powerPlayTotals } from '@/domain/stats.js
 import { foulsTotal, foulsInPeriod } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
+import { temRegistos } from '@/domain/registos.js';
 import {
   clubShort,
   opponentShort,
@@ -156,6 +160,19 @@ function Resumo() {
       await FE.editFoul(ui, {
         matchId,
         foul,
+        ourName: clubShort(club),
+        opponentName: opponentShort(match),
+        syncUser: { userId, email: user?.email },
+      })
+    )
+      carregar();
+  }
+
+  async function editarRegisto(registo) {
+    if (
+      await RE.editRegisto(ui, {
+        matchId,
+        registo,
         ourName: clubShort(club),
         opponentName: opponentShort(match),
         syncUser: { userId, email: user?.email },
@@ -459,6 +476,30 @@ function Resumo() {
           onEdit={state.startedAt ? editarFalta : undefined}
         />
       </div>
+
+      {/* Registos extra: aparecem sempre que o jogo os tiver, esteja o
+          registo ligado no escalão ou não. */}
+      {temRegistos(state) ? (
+        <>
+          <h2 className="section">{t('registos.titulo')}</h2>
+          <div className="card">
+            <PainelRegistos
+              state={state}
+              ourName={clubShort(club)}
+              opponentName={opponentShort(match)}
+            />
+          </div>
+          <h2 className="section">{t('registos.lista')}</h2>
+          <div className="card">
+            <ListaRegistos
+              state={state}
+              ourName={clubShort(club)}
+              opponentName={opponentShort(match)}
+              onEdit={editarRegisto}
+            />
+          </div>
+        </>
+      ) : null}
 
       <h2 className="section">{t('resumo.graficos')}</h2>
       <div className="resumo__graficos">

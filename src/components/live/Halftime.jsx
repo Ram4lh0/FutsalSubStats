@@ -22,6 +22,9 @@ import { foulsInPeriod } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
 import { PLAYER_MATCH_STATUS } from '@/domain/constants.js';
 import GraficosDoJogo from '@/components/stats/GraficosDoJogo.jsx';
+import PainelRegistos from '@/components/registos/PainelRegistos.jsx';
+import ListaRegistos from '@/components/registos/ListaRegistos.jsx';
+import { temRegistos } from '@/domain/registos.js';
 import { useT } from '@/lib/i18n/index.js';
 
 export default function Halftime({
@@ -32,6 +35,7 @@ export default function Halftime({
   onCorrectScore,
   onAddFoul,
   onEditFoul,
+  onEditRegisto,
   onStart,
 }) {
   const t = useT();
@@ -135,6 +139,23 @@ export default function Halftime({
           onEdit={onEditFoul}
         />
       </div>
+
+      {/* Registos extra (remates, recuperações, …): só se o jogo os tiver. */}
+      {temRegistos(state) ? (
+        <div className="halftime__bloco">
+          <h3 className="section section--tight">{t('registos.titulo')}</h3>
+          <PainelRegistos state={state} ourName={ourName} opponentName={opponentName} />
+          <details className="registos__corrigir">
+            <summary>{t('registos.corrigirLista')}</summary>
+            <ListaRegistos
+              state={state}
+              ourName={ourName}
+              opponentName={opponentName}
+              onEdit={onEditRegisto}
+            />
+          </details>
+        </div>
+      ) : null}
 
       <GraficosDoJogo state={state} linhas={linhas} classeBloco="halftime__bloco" />
 
