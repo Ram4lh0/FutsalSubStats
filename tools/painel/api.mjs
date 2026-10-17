@@ -94,6 +94,21 @@ export function podeMudarLicenca({ de, para, escaloesActivos }) {
  * vez o `--clubes`, e aqui não vale a pena esse risco por umas centenas de
  * linhas.
  */
+/**
+ * Os registos extra de cada escalão (`team_stat_config`), em Map teamId -> lista.
+ * Sem a tabela (servidor sem a migração) o painel continua a abrir, só sem
+ * add-ons.
+ */
+async function configDosRegistos(sb) {
+  const mapa = new Map();
+  const { data, error } = await sb.from('team_stat_config').select('team_id, registos');
+  if (error) return mapa;
+  for (const linha of data || []) {
+    if (Array.isArray(linha.registos)) mapa.set(linha.team_id, linha.registos);
+  }
+  return mapa;
+}
+
 export async function estado(sb) {
   const [perfis, clubes, escaloes, membros, acessos, jogos] = await Promise.all([
     sb
@@ -109,6 +124,9 @@ export async function estado(sb) {
 
   const erro = [perfis, clubes, escaloes, membros, acessos, jogos].find((r) => r.error);
   if (erro) throw new Error(erro.error.message);
+
+  const registosPorEscalao = await configDosRegistos(sb);
+  const registosDe = (teamId) => registosPorEscalao.get(teamId) || [];
 
   const clubesActivos = (clubes.data || []).filter((c) => !c.archived_at);
   const escaloesActivos = (escaloes.data || []).filter((t) => !t.archived_at);
@@ -145,6 +163,7 @@ export async function estado(sb) {
         nome: x.escalao.name,
         clube: clubePorId.get(x.escalao.club_id)?.name || '?',
         nivel: x.nivel,
+        registos: registosDe(x.escalao.id),
       }));
 
     // Os jogos que esta conta produziu: os dos escalões do seu clube. Os
@@ -163,6 +182,12 @@ export async function estado(sb) {
       criadaEm: p.created_at || null,
       clube: meuClube ? { id: meuClube.id, nome: meuClube.name } : null,
       escaloes: meusEscaloes.map((t) => t.name),
+      // Os add-ons (registos extra) de cada escalão do seu clube. Quem tem
+      // acesso a um destes escalões fica com os mesmos: a config é do escalão,
+      // não da conta. Ver `partilhados[].registos` do outro lado.
+      escaloesComRegistos: meusEscaloes
+        .map((t) => ({ teamId: t.id, nome: t.name, registos: registosDe(t.id) }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt')),
       associadoA: associadoA.map((c) => ({ id: c.id, nome: c.name })),
       partilhados,
       jogos: totalJogos,
