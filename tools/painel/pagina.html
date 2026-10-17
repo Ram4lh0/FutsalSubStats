@@ -65,7 +65,10 @@
   #recado { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; display: none; }
   #recado.ok { display: block; background: rgba(34,197,94,.12); color: var(--primary); }
   #recado.erro { display: block; background: rgba(239,68,68,.12); color: var(--danger); }
-  .registos__escalao { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  form.registos__escalao { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .addons__grupo { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+  .addons__nome-grupo { min-width: 170px; }
+  .addons__falta { font-size: 12px; color: var(--danger); }
   .registos__escalao:last-child { border-bottom: 0; }
   .registos__escalao strong { min-width: 120px; }
   .registos__escalao label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--text); }
@@ -234,11 +237,43 @@ function painelGestao(c) {
 
 /* ------------------------------------------------ add-ons de cada conta */
 
-// Os add-ons são os registos extra do jogo ao vivo (remates, recuperações, …).
+// Os add-ons são os registos extra do jogo ao vivo (remates, …) e todas as
+// features que nascem desligadas (src/domain/addons.js). O catálogo vem do
+// servidor, por isso uma entrada nova aparece aqui sozinha, no seu grupo.
 // Ficam no escalão, não na conta: liga-os o dono do clube, e quem tem acesso a
 // um desses escalões fica automaticamente com os mesmos.
-const nomeRegisto = (id) => (ESTADO.catalogoRegistos || []).find((r) => r.id === id)?.nome || id;
-const listaRegistos = (ids) => ids.length ? ids.map(nomeRegisto).join(', ') : 'sem add-ons';
+const catalogoAddons = () => ESTADO?.catalogoAddons || { grupos: [], itens: [] };
+const nomeAddon = (id) => catalogoAddons().itens.find((i) => i.id === id)?.nome || id;
+const ligadosDe = (e) => [...(e.registos || []), ...(e.addons || [])];
+const listaAddons = (e) => {
+  const ids = ligadosDe(e);
+  return ids.length ? ids.map(nomeAddon).join(', ') : 'sem add-ons';
+};
+
+/** As caixas de um escalão, agrupadas como no catálogo. */
+function caixasAddons(e, catalogo = catalogoAddons()) {
+  const ligados = new Set(ligadosDe(e));
+  return catalogo.grupos.map((g) => {
+    const itens = catalogo.itens.filter((i) => i.grupo === g.id);
+    if (!itens.length) return '';
+    return `
+      <div class="addons__grupo">
+        <span class="small muted addons__nome-grupo">${texto(g.nome)}</span>
+        ${itens.map((i) => {
+          const faltam = i.depende.filter((d) => !ligados.has(d)).map(nomeAddon);
+          const marcado = i.paraTodos || ligados.has(i.id);
+          return `
+            <label>
+              <input type="checkbox" name="${i.campo === 'registos' ? 'registo' : 'addon'}" value="${texto(i.id)}"
+                ${marcado ? 'checked' : ''} ${i.paraTodos ? 'disabled' : ''} />
+              ${texto(i.nome)}
+              ${i.paraTodos ? '<span class="muted small">(todos)</span>' : ''}
+              ${marcado && faltam.length ? `<span class="addons__falta">precisa de ${texto(faltam.join(', '))}</span>` : ''}
+            </label>`;
+        }).join('')}
+      </div>`;
+  }).join('');
+}
 
 /** Quem, além do dono, vê este escalão (e por isso fica com os mesmos add-ons). */
 function quemHerda(teamId) {
@@ -248,7 +283,6 @@ function quemHerda(teamId) {
 }
 
 function blocoAddons(c) {
-  const catalogo = ESTADO.catalogoRegistos || [];
   const proprios = c.escaloesComRegistos || [];
   const herdados = c.partilhados || [];
 
@@ -257,11 +291,7 @@ function blocoAddons(c) {
     return `
       <form class="registos__escalao" data-registos-form="${texto(e.teamId)}">
         <strong>${texto(e.nome)}</strong>
-        ${catalogo.map((reg) => `
-          <label>
-            <input type="checkbox" name="registo" value="${texto(reg.id)}" ${e.registos.includes(reg.id) ? 'checked' : ''} />
-            ${texto(reg.nome)}
-          </label>`).join('')}
+        ${caixasAddons(e)}
         ${herdam.length ? `<span class="small muted">também para ${texto(herdam.join(', '))}</span>` : ''}
       </form>`;
   }).join('');
@@ -269,7 +299,7 @@ function blocoAddons(c) {
   const herdadosHtml = herdados.length
     ? `<p class="small muted" style="margin:10px 0 4px">Herdados dos escalões partilhados com esta conta:</p>
        ${herdados.map((p) => `
-         <div class="small">${texto(p.nome)} <span class="muted">(${texto(p.clube)})</span>: ${texto(listaRegistos(p.registos))}</div>`).join('')}
+         <div class="small">${texto(p.nome)} <span class="muted">(${texto(p.clube)})</span>: ${texto(listaAddons(p))}</div>`).join('')}
        <p class="small muted" style="margin:4px 0 0">Mudam-se na conta do dono desse clube.</p>`
     : '';
 
@@ -282,7 +312,7 @@ function blocoAddons(c) {
   }
   return `
     <div class="gestao__bloco" style="grid-column: 1 / -1">
-      <h3>Add-ons (registos extra no jogo ao vivo)</h3>
+      <h3>Add-ons</h3>
       ${formularios}
       ${herdadosHtml}
     </div>`;
@@ -317,8 +347,8 @@ function desenhar(estado) {
             ? `<span class="muted small">associado a ${texto(c.associadoA.map((x) => x.nome).join(', '))}</span>`
             : '<span class="muted small">—</span>'}</td>
       <td class="small">${(c.escaloesComRegistos || []).length
-          ? c.escaloesComRegistos.map((e) => `${texto(e.nome)}${e.registos.length
-              ? ` <span class="muted">+ ${texto(e.registos.map(nomeRegisto).join(', '))}</span>`
+          ? c.escaloesComRegistos.map((e) => `${texto(e.nome)}${ligadosDe(e).length
+              ? ` <span class="muted">+ ${texto(ligadosDe(e).map(nomeAddon).join(', '))}</span>`
               : ''}`).join('<br>')
           : '<span class="muted">—</span>'}</td>
       <td class="small">${c.partilhados.length
@@ -335,7 +365,7 @@ function desenhar(estado) {
   $('#clubes tbody').innerHTML = estado.clubes.map((c) => `
     <tr>
       <td>${texto(c.nome)}</td><td class="small muted">${texto(c.dono)}</td><td>${c.escaloes}</td>
-      <td><button class="discreto" data-registos="${texto(c.id)}">registos</button></td>
+      <td><button class="discreto" data-registos="${texto(c.id)}">add-ons</button></td>
     </tr>
     ${CLUBE_ABERTO === c.id ? painelRegistos() : ''}
   `).join('') || '<tr><td colspan="4" class="muted">Ainda não há clubes.</td></tr>';
@@ -445,6 +475,7 @@ $('#tabela').addEventListener('submit', async (e) => {
     e.preventDefault();
     const caixas = [...formRegistos.querySelectorAll('input')];
     const registos = new FormData(formRegistos).getAll('registo');
+    const addons = new FormData(formRegistos).getAll('addon');
     caixas.forEach((c) => { c.disabled = true; });
     try {
       const r = await pedir('/api/registos', {
@@ -452,6 +483,7 @@ $('#tabela').addEventListener('submit', async (e) => {
         body: JSON.stringify({
           teamId: formRegistos.dataset.registosForm,
           registos,
+          addons,
         }),
       });
       recado(r.mensagem, 'ok');
@@ -522,18 +554,14 @@ function painelRegistos() {
   const linhas = r.escaloes.map((e) => `
     <form class="registos__escalao" data-registos-form="${texto(e.teamId)}">
       <strong>${texto(e.nome)}</strong>
-      ${r.catalogo.map((reg) => `
-        <label>
-          <input type="checkbox" name="registo" value="${texto(reg.id)}" ${e.registos.includes(reg.id) ? 'checked' : ''} />
-          ${texto(reg.nome)}
-        </label>`).join('')}
+      ${caixasAddons(e, r.catalogoCompleto)}
       <span class="small muted">${e.atualizadoEm ? `mudado a ${texto(dataHora(e.atualizadoEm))}` : 'sem config'}</span>
     </form>`).join('');
   return `
     <tr class="gestao">
       <td colspan="4">
         <div class="gestao__bloco">
-          <h3>Registos extra no jogo ao vivo</h3>
+          <h3>Add-ons</h3>
           ${linhas || '<span class="muted small">Este clube não tem escalões activos.</span>'}
         </div>
       </td>
@@ -566,11 +594,12 @@ $('#clubes').addEventListener('submit', async (e) => {
   e.preventDefault();
   const caixas = [...form.querySelectorAll('input')];
   const registos = new FormData(form).getAll('registo');
+  const addons = new FormData(form).getAll('addon');
   caixas.forEach((c) => { c.disabled = true; });
   try {
     const r = await pedir('/api/registos', {
       method: 'POST',
-      body: JSON.stringify({ teamId: form.dataset.registosForm, registos }),
+      body: JSON.stringify({ teamId: form.dataset.registosForm, registos, addons }),
     });
     recado(r.mensagem, 'ok');
     // A tabela de contas também mostra os add-ons: refresca-se as duas.
@@ -589,7 +618,7 @@ $('#clubes').addEventListener('submit', async (e) => {
 for (const zona of [$('#tabela'), $('#clubes')]) {
   zona.addEventListener('change', (e) => {
     const form = e.target.closest('[data-registos-form]');
-    if (form && e.target.name === 'registo') form.requestSubmit();
+    if (form && (e.target.name === 'registo' || e.target.name === 'addon')) form.requestSubmit();
   });
 }
 

@@ -369,6 +369,8 @@ export const teamStatConfigMapper = {
     id: r.team_id,
     teamId: r.team_id,
     registos: Array.isArray(r.registos) ? r.registos : [],
+    // Os add-ons (domain/addons.js). Num servidor sem a coluna vem vazio.
+    addons: Array.isArray(r.addons) ? r.addons : [],
     opcoes: r.opcoes && typeof r.opcoes === 'object' ? r.opcoes : {},
     updatedAt: ms(r.updated_at),
   }),
