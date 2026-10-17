@@ -25,6 +25,7 @@ import {
 import { hostAceite, chaveDoPedido, chaveCorrecta } from '../tools/painel/guardas.mjs';
 import {
   catalogoDoPainel,
+  catalogoCompleto,
   definirRegistos,
   registosDoClube,
   registosDoEscalao,
@@ -488,6 +489,73 @@ test('não se ligam registos num escalão arquivado ou que não existe', async (
     /Não há escalão activo/
   );
   assert.deepEqual(dados.team_stat_config, []);
+});
+
+/* --------------------------------------------------------------- add-ons */
+
+const ADDONS_FALSOS = {
+  'vista-nova': { grupo: 'dashboard', nome: 'Vista nova' },
+  'mapa-baliza': { grupo: 'resumo', nome: 'Zona da baliza', depende: ['remate'] },
+};
+
+test('definir grava os add-ons junto com os registos', async () => {
+  const dados = { ...cenario(), team_stat_config: [] };
+  const r = await definirRegistos(supabaseFalso(dados), {
+    teamId: 't-1',
+    registos: ['remate'],
+    addons: ['mapa-baliza', 'vista-nova'],
+    catalogoAddons: ADDONS_FALSOS,
+  });
+  assert.deepEqual(dados.team_stat_config, [
+    { team_id: 't-1', registos: ['remate'], addons: ['vista-nova', 'mapa-baliza'] },
+  ]);
+  assert.match(r.mensagem, /Remates, Vista nova, Zona da baliza/);
+});
+
+test('um add-on fora do catálogo é recusado sem tocar no Supabase', async () => {
+  const dados = { ...cenario(), team_stat_config: [] };
+  await assert.rejects(
+    () => definirRegistos(supabaseFalso(dados), {
+      teamId: 't-1', registos: [], addons: ['inventado'], catalogoAddons: ADDONS_FALSOS,
+    }),
+    /inventado/
+  );
+  assert.deepEqual(dados.team_stat_config, []);
+});
+
+test('sem add-ons e sem a coluna no servidor, grava só os registos', async () => {
+  // Servidor ainda sem a migração: a linha não tem `addons`, e mandar a
+  // coluna partia a gravação dos registos.
+  const dados = { ...cenario(), team_stat_config: [{ team_id: 't-1', registos: ['remate'] }] };
+  await definirRegistos(supabaseFalso(dados), { teamId: 't-1', registos: [], addons: [] });
+  assert.deepEqual(dados.team_stat_config, [{ team_id: 't-1', registos: [] }]);
+});
+
+test('desligar os add-ons grava a lista vazia quando a coluna já existe', async () => {
+  const dados = {
+    ...cenario(),
+    team_stat_config: [{ team_id: 't-1', registos: ['remate'], addons: ['vista-nova'] }],
+  };
+  await definirRegistos(supabaseFalso(dados), {
+    teamId: 't-1', registos: ['remate'], addons: [], catalogoAddons: ADDONS_FALSOS,
+  });
+  assert.deepEqual(dados.team_stat_config, [{ team_id: 't-1', registos: ['remate'], addons: [] }]);
+});
+
+test('o estado traz os add-ons de cada escalão, também para quem os herda', async () => {
+  const dados = cenario();
+  dados.team_stat_config = [{ team_id: 't-1', registos: ['remate'], addons: ['vista-nova'] }];
+  const e = await estado(supabaseFalso(dados));
+  const gerente = e.contas.find((c) => c.email === 'gerente@clube.pt');
+  const ana = e.contas.find((c) => c.email === 'ana@clube.pt');
+  assert.deepEqual(gerente.escaloesComRegistos[0].addons, ['vista-nova']);
+  assert.deepEqual(ana.partilhados[0].addons, ['vista-nova']);
+});
+
+test('o catálogo completo do painel tem os grupos e os registos', () => {
+  const c = catalogoCompleto(ADDONS_FALSOS);
+  assert.equal(c.grupos[0].id, 'registos');
+  assert.deepEqual(c.itens.filter((i) => i.campo === 'addons').map((i) => i.id), ['vista-nova', 'mapa-baliza']);
 });
 
 test('os registos do clube vêm por escalão activo', async () => {

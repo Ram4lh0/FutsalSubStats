@@ -54,7 +54,7 @@ import {
   associarClube,
   desassociarClube,
 } from './api.mjs';
-import { registosDoClube, definirRegistos, catalogoDoPainel } from './registos.mjs';
+import { registosDoClube, definirRegistos, catalogoCompleto } from './registos.mjs';
 import { hostAceite, chaveDoPedido, chaveCorrecta } from './guardas.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -105,7 +105,7 @@ const servidor = createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && caminho === '/api/estado') {
-      return responder(res, 200, { ...(await estado(sb)), catalogoRegistos: catalogoDoPainel() });
+      return responder(res, 200, { ...(await estado(sb)), catalogoAddons: catalogoCompleto() });
     }
 
     if (req.method === 'POST' && caminho === '/api/convidar') {
@@ -133,15 +133,15 @@ const servidor = createServer(async (req, res) => {
       return responder(res, 200, await desassociarClube(sb, { userId, clubeId }));
     }
 
-    // Os registos extra (remates, recuperações, …) dos escalões de um clube.
+    // Os add-ons (registos extra e o resto) dos escalões de um clube.
     if (req.method === 'GET' && caminho === '/api/registos') {
       const clubeId = new URL(req.url, 'http://x').searchParams.get('clube');
       return responder(res, 200, await registosDoClube(sb, clubeId));
     }
 
     if (req.method === 'POST' && caminho === '/api/registos') {
-      const { teamId, registos } = await corpoJson(req);
-      return responder(res, 200, await definirRegistos(sb, { teamId, registos }));
+      const { teamId, registos, addons } = await corpoJson(req);
+      return responder(res, 200, await definirRegistos(sb, { teamId, registos, addons }));
     }
 
     return responder(res, 404, { erro: 'Não há nada aqui.' });
