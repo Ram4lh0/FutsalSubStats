@@ -54,7 +54,7 @@ import {
   associarClube,
   desassociarClube,
 } from './api.mjs';
-import { registosDoClube, definirRegistos } from './registos.mjs';
+import { registosDoClube, definirRegistos, catalogoDoPainel } from './registos.mjs';
 import { hostAceite, chaveDoPedido, chaveCorrecta } from './guardas.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -105,7 +105,7 @@ const servidor = createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && caminho === '/api/estado') {
-      return responder(res, 200, await estado(sb));
+      return responder(res, 200, { ...(await estado(sb)), catalogoRegistos: catalogoDoPainel() });
     }
 
     if (req.method === 'POST' && caminho === '/api/convidar') {

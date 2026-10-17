@@ -263,6 +263,34 @@ test('o dono do clube não aparece como associado a si próprio', async () => {
   assert.equal(gerente.clube.nome, 'Clube A');
 });
 
+test('os add-ons são do escalão: quem tem acesso a ele herda os mesmos', async () => {
+  const dados = cenario();
+  dados.team_stat_config = [{ team_id: 't-1', registos: ['remate', 'recuperacao'] }];
+  const e = await estado(supabaseFalso(dados));
+  const gerente = e.contas.find((c) => c.email === 'gerente@clube.pt');
+  const ana = e.contas.find((c) => c.email === 'ana@clube.pt');
+
+  assert.deepEqual(
+    gerente.escaloesComRegistos.map((x) => `${x.nome}:${x.registos.join('+')}`),
+    ['A1:remate+recuperacao', 'A2:']
+  );
+  assert.deepEqual(ana.escaloesComRegistos, [], 'a ana não é dona de escalões');
+  assert.deepEqual(ana.partilhados[0].registos, ['remate', 'recuperacao']);
+});
+
+test('sem a tabela dos add-ons o painel abre na mesma', async () => {
+  const sb = supabaseFalso(cenario());
+  const from = sb.from;
+  sb.from = (nome) => {
+    if (nome !== 'team_stat_config') return from(nome);
+    const falha = { select: () => falha, then: (ok) => ok({ data: null, error: new Error('não existe') }) };
+    return falha;
+  };
+  const e = await estado(sb);
+  assert.equal(e.resumo.contas, 2);
+  assert.deepEqual(e.contas.find((c) => c.email === 'gerente@clube.pt').escaloesComRegistos[0].registos, []);
+});
+
 /* ---------------------------------------------------------------- escrita */
 
 test('convidar cria a conta já com a licença escolhida', async () => {

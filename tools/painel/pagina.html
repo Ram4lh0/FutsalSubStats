@@ -224,10 +224,68 @@ function painelGestao(c) {
                 : '<span class="muted small">Ainda não está associado a clubes de terceiros.</span>'}
             </div>
           </div>
+
+          ${blocoAddons(c)}
         </div>
       </td>
     </tr>
   `;
+}
+
+/* ------------------------------------------------ add-ons de cada conta */
+
+// Os add-ons são os registos extra do jogo ao vivo (remates, recuperações, …).
+// Ficam no escalão, não na conta: liga-os o dono do clube, e quem tem acesso a
+// um desses escalões fica automaticamente com os mesmos.
+const nomeRegisto = (id) => (ESTADO.catalogoRegistos || []).find((r) => r.id === id)?.nome || id;
+const listaRegistos = (ids) => ids.length ? ids.map(nomeRegisto).join(', ') : 'sem add-ons';
+
+/** Quem, além do dono, vê este escalão (e por isso fica com os mesmos add-ons). */
+function quemHerda(teamId) {
+  return ESTADO.contas
+    .filter((c) => c.partilhados.some((p) => p.teamId === teamId))
+    .map((c) => c.email);
+}
+
+function blocoAddons(c) {
+  const catalogo = ESTADO.catalogoRegistos || [];
+  const proprios = c.escaloesComRegistos || [];
+  const herdados = c.partilhados || [];
+
+  const formularios = proprios.map((e) => {
+    const herdam = quemHerda(e.teamId);
+    return `
+      <form class="registos__escalao" data-registos-form="${texto(e.teamId)}">
+        <strong>${texto(e.nome)}</strong>
+        ${catalogo.map((reg) => `
+          <label>
+            <input type="checkbox" name="registo" value="${texto(reg.id)}" ${e.registos.includes(reg.id) ? 'checked' : ''} />
+            ${texto(reg.nome)}
+          </label>`).join('')}
+        ${herdam.length ? `<span class="small muted">também para ${texto(herdam.join(', '))}</span>` : ''}
+      </form>`;
+  }).join('');
+
+  const herdadosHtml = herdados.length
+    ? `<p class="small muted" style="margin:10px 0 4px">Herdados dos escalões partilhados com esta conta:</p>
+       ${herdados.map((p) => `
+         <div class="small">${texto(p.nome)} <span class="muted">(${texto(p.clube)})</span>: ${texto(listaRegistos(p.registos))}</div>`).join('')}
+       <p class="small muted" style="margin:4px 0 0">Mudam-se na conta do dono desse clube.</p>`
+    : '';
+
+  if (!proprios.length && !herdados.length) {
+    return `
+      <div class="gestao__bloco">
+        <h3>Add-ons</h3>
+        <span class="muted small">Sem escalões: ainda não há onde ligar add-ons.</span>
+      </div>`;
+  }
+  return `
+    <div class="gestao__bloco" style="grid-column: 1 / -1">
+      <h3>Add-ons (registos extra no jogo ao vivo)</h3>
+      ${formularios}
+      ${herdadosHtml}
+    </div>`;
 }
 
 function desenhar(estado) {
@@ -258,7 +316,11 @@ function desenhar(estado) {
           : c.associadoA.length
             ? `<span class="muted small">associado a ${texto(c.associadoA.map((x) => x.nome).join(', '))}</span>`
             : '<span class="muted small">—</span>'}</td>
-      <td class="small">${c.escaloes.length ? texto(c.escaloes.join(', ')) : '<span class="muted">—</span>'}</td>
+      <td class="small">${(c.escaloesComRegistos || []).length
+          ? c.escaloesComRegistos.map((e) => `${texto(e.nome)}${e.registos.length
+              ? ` <span class="muted">+ ${texto(e.registos.map(nomeRegisto).join(', '))}</span>`
+              : ''}`).join('<br>')
+          : '<span class="muted">—</span>'}</td>
       <td class="small">${c.partilhados.length
           ? c.partilhados.map((p) => `${texto(p.nome)} ${ETIQUETA(p.nivel, p.nivel)}`).join('<br>')
           : '<span class="muted">—</span>'}</td>
@@ -378,6 +440,31 @@ $('#tabela').addEventListener('click', async (e) => {
 });
 
 $('#tabela').addEventListener('submit', async (e) => {
+  const formRegistos = e.target.closest('[data-registos-form]');
+  if (formRegistos) {
+    e.preventDefault();
+    const caixas = [...formRegistos.querySelectorAll('input')];
+    const registos = new FormData(formRegistos).getAll('registo');
+    caixas.forEach((c) => { c.disabled = true; });
+    try {
+      const r = await pedir('/api/registos', {
+        method: 'POST',
+        body: JSON.stringify({
+          teamId: formRegistos.dataset.registosForm,
+          registos,
+        }),
+      });
+      recado(r.mensagem, 'ok');
+      await carregar();
+    } catch (err) {
+      recado(err.message, 'erro');
+      await carregar(); // volta a mostrar o que está mesmo gravado
+    } finally {
+      caixas.forEach((c) => { c.disabled = false; });
+    }
+    return;
+  }
+
   const formLicenca = e.target.closest('[data-licenca-form]');
   const formClube = e.target.closest('[data-clube-form]');
   if (!formLicenca && !formClube) return;
@@ -440,7 +527,6 @@ function painelRegistos() {
           <input type="checkbox" name="registo" value="${texto(reg.id)}" ${e.registos.includes(reg.id) ? 'checked' : ''} />
           ${texto(reg.nome)}
         </label>`).join('')}
-      <button type="submit" class="discreto">Guardar</button>
       <span class="small muted">${e.atualizadoEm ? `mudado a ${texto(dataHora(e.atualizadoEm))}` : 'sem config'}</span>
     </form>`).join('');
   return `
@@ -478,22 +564,34 @@ $('#clubes').addEventListener('submit', async (e) => {
   const form = e.target.closest('[data-registos-form]');
   if (!form) return;
   e.preventDefault();
-  const botao = form.querySelector('button[type="submit"]');
-  botao.disabled = true;
+  const caixas = [...form.querySelectorAll('input')];
+  const registos = new FormData(form).getAll('registo');
+  caixas.forEach((c) => { c.disabled = true; });
   try {
-    const registos = new FormData(form).getAll('registo');
     const r = await pedir('/api/registos', {
       method: 'POST',
       body: JSON.stringify({ teamId: form.dataset.registosForm, registos }),
     });
     recado(r.mensagem, 'ok');
+    // A tabela de contas também mostra os add-ons: refresca-se as duas.
+    await carregar();
     await abrirRegistos(CLUBE_ABERTO);
   } catch (err) {
     recado(err.message, 'erro');
+    await abrirRegistos(CLUBE_ABERTO); // volta a mostrar o que está mesmo gravado
   } finally {
-    botao.disabled = false;
+    caixas.forEach((c) => { c.disabled = false; });
   }
 });
+
+// Os add-ons gravam-se logo ao marcar ou desmarcar: com um "Guardar" por linha
+// era fácil desmarcar, não gravar, e ficar a achar que estava desligado.
+for (const zona of [$('#tabela'), $('#clubes')]) {
+  zona.addEventListener('change', (e) => {
+    const form = e.target.closest('[data-registos-form]');
+    if (form && e.target.name === 'registo') form.requestSubmit();
+  });
+}
 
 carregar();
 </script>
