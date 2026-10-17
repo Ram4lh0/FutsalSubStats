@@ -65,6 +65,12 @@ revoke insert, update, delete, truncate on team_stat_config from authenticated, 
 revoke all on team_stat_config from anon;
 grant select on team_stat_config to authenticated;
 
+-- O painel escreve com a chave de serviço. Hoje o `service_role` herdava os
+-- grants automáticos que o Supabase dava a cada tabela nova, mas o CLI 2.115
+-- já não os dá e a opção que os liga desaparece a 30/10/2026. Dar o grant
+-- explicitamente tira essa dependência: a migração funciona com ou sem eles.
+grant select, insert, update, delete on team_stat_config to service_role;
+
 /* --------------------------------------------- marcas da sincronização */
 
 -- A configuração entra na pergunta leve: sem isto, ligar um registo no painel
