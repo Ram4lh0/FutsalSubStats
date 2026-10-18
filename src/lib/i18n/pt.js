@@ -1809,4 +1809,9 @@ export default {
   "visao.col.dg": "DG",
   "visao.aDecorrer": "{n} a decorrer",
   "visao.agendados": "{n} por jogar",
+  "visao.evolucaoTitulo": "Evolução na época",
+  "visao.evolucao.resultados": "Vitórias, empates e derrotas",
+  "visao.evolucao.golos": "Golos",
+  "visao.porSemana": "Por semana",
+  "visao.acumulado": "Acumulado",
 };

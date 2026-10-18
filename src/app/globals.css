@@ -3881,3 +3881,22 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .visao__estado:empty { display: none; }
   .visao__balanco { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 }
+
+/* linhas no tempo (graficos.jsx → LinhasNoTempo) */
+.linhas { display: flex; flex-direction: column; gap: 6px; }
+.linhas .graf { height: 160px; }
+.linhas__area { position: relative; }
+.linhas__max { position: absolute; top: -2px; left: 0; font-size: 0.7rem; color: var(--muted); }
+.linhas__legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8rem; color: var(--muted); }
+.linhas__chave { display: inline-flex; align-items: center; gap: 6px; }
+.linhas__chave::before { content: ''; width: 14px; height: 3px; border-radius: 2px; background: currentColor; }
+.linhas__traco { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.linhas__ponto { fill: none; stroke-width: 7; stroke-linecap: round; }
+.linhas__serie--vitoria, .linhas__chave--vitoria::before { stroke: var(--primary); color: var(--primary); }
+.linhas__serie--empate, .linhas__chave--empate::before { stroke: var(--warn); color: var(--warn); }
+.linhas__serie--derrota, .linhas__chave--derrota::before { stroke: var(--danger); color: var(--danger); }
+.linhas__serie--marcados, .linhas__chave--marcados::before { stroke: var(--primary); color: var(--primary); }
+.linhas__serie--sofridos, .linhas__chave--sofridos::before { stroke: var(--danger); color: var(--danger); }
+.linhas__chave::before { background: currentColor; }
+.linhas__chave { color: var(--muted); }
+.graf__eixo--leve { stroke-dasharray: 3 4; opacity: 0.6; }

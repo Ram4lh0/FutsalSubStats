@@ -352,3 +352,64 @@ export function Pizza({ fatias, titulo }) {
     </div>
   );
 }
+
+/* --------------------------------------------------------- linhas no tempo */
+
+/**
+ * Várias séries ao longo do tempo, uma linha cada (vitórias, empates e
+ * derrotas por semana, por exemplo).
+ *
+ * Os pontos não são círculos: com o desenho esticado à largura, um círculo
+ * saía oval. São traços de comprimento zero com ponta redonda e espessura que
+ * não estica (`vector-effect`), o que dá um ponto redondo em qualquer ecrã.
+ * O texto — legenda, máximo e datas — é HTML, pela mesma razão das barras.
+ *
+ * @param {{rotulo: string, valores: Record<string, number>}[]} pontos
+ * @param {{chave: string, nome: string, classe: string}[]} series
+ */
+export function LinhasNoTempo({ pontos, series }) {
+  const LARGURA = 480;
+  const ALTURA = 150;
+  const MARGEM = 8;
+  const n = pontos.length;
+  const maximo = Math.max(1, ...pontos.flatMap((p) => series.map((s) => p.valores[s.chave] || 0)));
+  const x = (i) => ((i + 0.5) * LARGURA) / Math.max(1, n);
+  const y = (v) => ALTURA - MARGEM - (v / maximo) * (ALTURA - 2 * MARGEM);
+  // Com muitas semanas, só algumas datas: as outras ficam em branco para não
+  // se encavalitarem.
+  const cada = Math.max(1, Math.ceil(n / 8));
+
+  return (
+    <div className="linhas">
+      <ul className="linhas__legenda">
+        {series.map((s) => (
+          <li key={s.chave} className={`linhas__chave linhas__chave--${s.classe}`}>
+            {s.nome}
+          </li>
+        ))}
+      </ul>
+      <div className="linhas__area">
+        <span className="linhas__max mono">{maximo}</span>
+        <svg className="graf" viewBox={`0 0 ${LARGURA} ${ALTURA}`} role="img" preserveAspectRatio="none">
+          <line x1={0} x2={LARGURA} y1={y(0)} y2={y(0)} className="graf__eixo" />
+          <line x1={0} x2={LARGURA} y1={y(maximo)} y2={y(maximo)} className="graf__eixo graf__eixo--leve" />
+          {series.map((s) => {
+            const caminho = pontos.map((p, i) => `${i ? 'L' : 'M'}${x(i)} ${y(p.valores[s.chave] || 0)}`).join(' ');
+            const pontinhos = pontos.map((p, i) => `M${x(i)} ${y(p.valores[s.chave] || 0)} l0 0`).join(' ');
+            return (
+              <g key={s.chave} className={`linhas__serie linhas__serie--${s.classe}`}>
+                {n > 1 ? <path d={caminho} className="linhas__traco" vectorEffect="non-scaling-stroke" /> : null}
+                <path d={pontinhos} className="linhas__ponto" vectorEffect="non-scaling-stroke" />
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <ol className="colunas__eixo" style={{ '--n': String(n) }} aria-hidden="true">
+        {pontos.map((p, i) => (
+          <li key={i}>{i % cada === 0 || i === n - 1 ? p.rotulo : ''}</li>
+        ))}
+      </ol>
+    </div>
+  );
+}

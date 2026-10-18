@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   andarSemanas,
   compararEscaloes,
+  evolucaoSemanal,
   inicioDaSemana,
   resumoDoClube,
   semanaDe,
@@ -88,4 +89,15 @@ test('a visão geral é um add-on desligado por omissão', () => {
   assert.ok(!ADDONS['visao-geral-clube'].paraTodos);
   assert.ok(!addonsAtivos(null).has('visao-geral-clube'));
   assert.ok(addonsAtivos({ addons: ['visao-geral-clube'] }).has('visao-geral-clube'));
+});
+
+test('a evolução tem uma linha por semana com jogos terminados, e o acumulado', () => {
+  const ev = evolucaoSemanal(escaloes);
+  assert.equal(ev.length, 2);
+  assert.equal(ev[0].inicio, semanaDe(SAB_ANTERIOR).inicio);
+  assert.deepEqual([ev[0].semana.vitorias, ev[0].semana.derrotas], [0, 1]);
+  // Na semana de 17–18: a vitória dos Seniores e o empate dos Sub-17 (o jogo
+  // a decorrer e o por jogar ficam de fora).
+  assert.deepEqual([ev[1].semana.vitorias, ev[1].semana.empates, ev[1].semana.marcados], [1, 1, 5]);
+  assert.deepEqual([ev[1].acumulado.vitorias, ev[1].acumulado.derrotas, ev[1].acumulado.sofridos], [1, 1, 6]);
 });
