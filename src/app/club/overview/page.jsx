@@ -17,7 +17,7 @@ import PageHead from '@/components/PageHead.jsx';
 import Emblema from '@/components/Emblema.jsx';
 import DataTable from '@/components/DataTable.jsx';
 import { Empty, StatCard, StatusBadge } from '@/components/bits.jsx';
-import { BarrasH } from '@/components/stats/graficos.jsx';
+import { BarrasH, LinhasNoTempo } from '@/components/stats/graficos.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import { clubs, teams, statConfig, loadTeamMatchStates } from '@/lib/data/repository.js';
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
@@ -27,6 +27,7 @@ import { MATCH_STATUS } from '@/domain/constants.js';
 import {
   andarSemanas,
   compararEscaloes,
+  evolucaoSemanal,
   resumoDoClube,
   semanaDe,
   semanaPorOmissao,
@@ -180,6 +181,7 @@ function VisaoGeral() {
         <StatCard label={t('visao.sofridos')} value={resumo.totais.sofridos} />
       </div>
 
+      <Evolucao escaloes={visiveis} />
       <Comparacao resumo={resumo} metrica={metrica} aoTrocar={setMetrica} />
       <TabelaPorEscalao resumo={resumo} />
     </>
@@ -295,6 +297,75 @@ function Quadro({ club, resumo, etiqueta, naEpoca, clubId }) {
           {t('visao.semJogo', { escaloes: semJogos.map((e) => e.team.name).join(', ') })}
         </p>
       ) : null}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------- evolução na época */
+
+const SERIES = {
+  resultados: [
+    { chave: 'vitorias', nome: 'visao.vitorias', classe: 'vitoria' },
+    { chave: 'empates', nome: 'visao.empates', classe: 'empate' },
+    { chave: 'derrotas', nome: 'visao.derrotas', classe: 'derrota' },
+  ],
+  golos: [
+    { chave: 'marcados', nome: 'visao.marcados', classe: 'marcados' },
+    { chave: 'sofridos', nome: 'visao.sofridos', classe: 'sofridos' },
+  ],
+};
+
+/**
+ * Como o clube tem andado, semana a semana: vitórias, empates e derrotas, ou
+ * golos marcados e sofridos. Ignora o período escolhido em cima — uma
+ * evolução de uma semana só é um ponto — mas respeita os escalões filtrados.
+ */
+function Evolucao({ escaloes }) {
+  const t = useT();
+  const [o, setO] = useState('resultados');
+  const [acumulado, setAcumulado] = useState(false);
+  const semanas = useMemo(() => evolucaoSemanal(escaloes), [escaloes]);
+  if (semanas.length < 2) return null;
+
+  const opcoes = { day: 'numeric', month: 'short' };
+  const pontos = semanas.map((s) => ({
+    rotulo: new Date(s.inicio).toLocaleDateString(localeAtual(), opcoes),
+    valores: acumulado ? s.acumulado : s.semana,
+  }));
+
+  return (
+    <section className="card">
+      <div className="painelv__bloco-head">
+        <h2 className="section section--tight">{t('visao.evolucaoTitulo')}</h2>
+      </div>
+      <div className="chiprow visao__metricas">
+        {Object.keys(SERIES).map((chave) => (
+          <button
+            key={chave}
+            type="button"
+            className={`chip chip--small ${o === chave ? 'is-on' : ''}`}
+            onClick={() => setO(chave)}
+          >
+            {t(`visao.evolucao.${chave}`)}
+          </button>
+        ))}
+        <span className="toolbar__spacer" />
+        <button
+          type="button"
+          className={`chip chip--small ${acumulado ? '' : 'is-on'}`}
+          onClick={() => setAcumulado(false)}
+        >
+          {t('visao.porSemana')}
+        </button>
+        <button
+          type="button"
+          className={`chip chip--small ${acumulado ? 'is-on' : ''}`}
+          onClick={() => setAcumulado(true)}
+        >
+          {t('visao.acumulado')}
+        </button>
+      </div>
+      <LinhasNoTempo pontos={pontos} series={SERIES[o].map((s) => ({ ...s, nome: t(s.nome) }))} />
     </section>
   );
 }

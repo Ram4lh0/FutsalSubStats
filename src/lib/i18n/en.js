@@ -1803,4 +1803,9 @@ export default {
   "visao.col.dg": "GD",
   "visao.aDecorrer": "{n} in progress",
   "visao.agendados": "{n} to play",
+  "visao.evolucaoTitulo": "Season trend",
+  "visao.evolucao.resultados": "Wins, draws and losses",
+  "visao.evolucao.golos": "Goals",
+  "visao.porSemana": "Per week",
+  "visao.acumulado": "Cumulative",
 };

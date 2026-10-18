@@ -138,3 +138,31 @@ export function compararEscaloes(resumo, metrica) {
     .map((e) => ({ team: e.team, totais: e.totais, valor: valor(e.totais) }))
     .sort((a, b) => b.valor - a.valor);
 }
+
+/**
+ * A evolução semana a semana: o que o clube fez em cada semana com jogos
+ * terminados, e o acumulado até aí.
+ *
+ * Só entram as semanas com jogos. Uma paragem de três semanas desenhada como
+ * três zeros lia-se como três fins de semana maus.
+ *
+ * @returns {{inicio: number, semana: object, acumulado: object}[]} por data.
+ */
+export function evolucaoSemanal(escaloes) {
+  const semanas = new Map();
+  for (const { entries } of escaloes) {
+    for (const x of entries) {
+      if (x.state.status !== MATCH_STATUS.FINISHED) continue;
+      const inicio = inicioDaSemana(quando(x));
+      if (!semanas.has(inicio)) semanas.set(inicio, vazio());
+      somar(semanas.get(inicio), x);
+    }
+  }
+  const acumulado = vazio();
+  return [...semanas.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([inicio, semana]) => {
+      for (const chave of Object.keys(acumulado)) acumulado[chave] += semana[chave];
+      return { inicio, semana, acumulado: { ...acumulado } };
+    });
+}
