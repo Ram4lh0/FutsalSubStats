@@ -3858,7 +3858,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .visao__lista { list-style: none; margin: 0; padding: 0; }
 .visao__linha {
   display: grid;
-  grid-template-columns: minmax(70px, 0.9fr) minmax(0, 2fr) auto minmax(0, auto);
+  grid-template-columns: 130px minmax(0, 1fr) auto minmax(0, auto);
   align-items: center;
   gap: 10px;
   padding: 9px 4px;
@@ -3876,7 +3876,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .visao__metricas { margin: 10px 0 14px; }
 @media (max-width: 560px) {
   .visao__quadro { padding: 14px 12px; }
-  .visao__linha { grid-template-columns: minmax(58px, 0.8fr) minmax(0, 2fr) auto; gap: 8px; }
+  .visao__linha { grid-template-columns: minmax(88px, 0.8fr) minmax(0, 2fr) auto; gap: 8px; }
+  .visao__jogo { white-space: normal; line-height: 1.25; }
+  .visao__jogo .mono { font-size: 0.85em; }
   .visao__estado { grid-column: 2 / -1; justify-self: start; }
   .visao__estado:empty { display: none; }
   .visao__balanco { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
