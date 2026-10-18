@@ -181,7 +181,7 @@ function VisaoGeral() {
         <StatCard label={t('visao.sofridos')} value={resumo.totais.sofridos} />
       </div>
 
-      <Evolucao escaloes={visiveis} />
+      <Evolucao escaloes={dados.escaloes} />
       <Comparacao resumo={resumo} metrica={metrica} aoTrocar={setMetrica} />
       <TabelaPorEscalao resumo={resumo} />
     </>
@@ -318,14 +318,36 @@ const SERIES = {
 /**
  * Como o clube tem andado, semana a semana: vitórias, empates e derrotas, ou
  * golos marcados e sofridos. Ignora o período escolhido em cima — uma
- * evolução de uma semana só é um ponto — mas respeita os escalões filtrados.
+ * evolução de uma semana só é um ponto.
+ *
+ * Tem a sua própria escolha de escalões, à parte da de cima: quem quer ver
+ * como têm andado os Juniores não quer, por isso, tirar os outros do quadro
+ * dos resultados que vai mandar ao presidente.
  */
 function Evolucao({ escaloes }) {
   const t = useT();
   const [o, setO] = useState('resultados');
   const [acumulado, setAcumulado] = useState(false);
-  const semanas = useMemo(() => evolucaoSemanal(escaloes), [escaloes]);
-  if (semanas.length < 2) return null;
+  const [fora, setFora] = useState(() => new Set());
+  // Só se oferecem os escalões que já terminaram algum jogo: os outros não
+  // mudavam nada no gráfico.
+  const comJogos = useMemo(
+    () => escaloes.filter((e) => e.entries.some((x) => x.state.status === MATCH_STATUS.FINISHED)),
+    [escaloes]
+  );
+  const escolhidos = useMemo(() => comJogos.filter((e) => !fora.has(e.team.id)), [comJogos, fora]);
+  const semanas = useMemo(() => evolucaoSemanal(escolhidos), [escolhidos]);
+  const todasAsSemanas = useMemo(() => evolucaoSemanal(comJogos), [comJogos]);
+  if (todasAsSemanas.length < 2) return null;
+
+  function trocar(id) {
+    setFora((atuais) => {
+      const novos = new Set(atuais);
+      if (novos.has(id)) novos.delete(id);
+      else novos.add(id);
+      return novos;
+    });
+  }
 
   const opcoes = { day: 'numeric', month: 'short' };
   const pontos = semanas.map((s) => ({
@@ -365,7 +387,39 @@ function Evolucao({ escaloes }) {
           {t('visao.acumulado')}
         </button>
       </div>
-      <LinhasNoTempo pontos={pontos} series={SERIES[o].map((s) => ({ ...s, nome: t(s.nome) }))} />
+      {comJogos.length > 1 ? (
+        <div className="chiprow visao__metricas">
+          <button
+            type="button"
+            className={`chip chip--small ${fora.size === 0 ? 'is-on' : ''}`}
+            onClick={() => setFora(new Set())}
+          >
+            {t('visao.todos')}
+          </button>
+          {comJogos.map(({ team }) => (
+            <button
+              key={team.id}
+              type="button"
+              className={`chip chip--small ${fora.size && !fora.has(team.id) ? 'is-on' : ''}`}
+              // Com todos ligados, tocar num escalão mostra só esse — é o
+              // que se quer quase sempre. Daí para a frente, cada toque põe
+              // ou tira um.
+              onClick={() =>
+                fora.size === 0
+                  ? setFora(new Set(comJogos.map((e) => e.team.id).filter((id) => id !== team.id)))
+                  : trocar(team.id)
+              }
+            >
+              {team.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {semanas.length >= 2 ? (
+        <LinhasNoTempo pontos={pontos} series={SERIES[o].map((s) => ({ ...s, nome: t(s.nome) }))} />
+      ) : (
+        <p className="muted">{t(escolhidos.length ? 'visao.poucasSemanas' : 'visao.escolheEscalao')}</p>
+      )}
     </section>
   );
 }

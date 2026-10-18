@@ -1814,4 +1814,7 @@ export default {
   "visao.evolucao.golos": "Golos",
   "visao.porSemana": "Por semana",
   "visao.acumulado": "Acumulado",
+  "visao.todos": "Todos",
+  "visao.poucasSemanas": "Com estes escalões ainda só há uma semana com jogos.",
+  "visao.escolheEscalao": "Escolhe pelo menos um escalão.",
 };
