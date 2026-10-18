@@ -1808,4 +1808,7 @@ export default {
   "visao.evolucao.golos": "Goals",
   "visao.porSemana": "Per week",
   "visao.acumulado": "Cumulative",
+  "visao.todos": "All",
+  "visao.poucasSemanas": "These teams have only played in one week so far.",
+  "visao.escolheEscalao": "Pick at least one team.",
 };

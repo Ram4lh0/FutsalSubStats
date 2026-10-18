@@ -1809,4 +1809,7 @@ export default {
   "visao.evolucao.golos": "Goles",
   "visao.porSemana": "Por semana",
   "visao.acumulado": "Acumulado",
+  "visao.todos": "Todas",
+  "visao.poucasSemanas": "Estas categorías solo han jugado en una semana por ahora.",
+  "visao.escolheEscalao": "Elige al menos una categoría.",
 };
