@@ -64,6 +64,9 @@ export const rotas = {
     return `${base}${base.includes('?') ? '&' : '?'}view=teams`;
   },
   clubeEditar: (club) => comIds('/club/edit', { club }),
+  // Os resultados e números de todos os escalões do clube, por semana. É um
+  // add-on ('visao-geral-clube') e entra pelo seletor de escalões.
+  visaoGeralClube: (club) => comIds('/club/overview', { club }),
 
   /* ----------------------------------------------------------- escalões */
   escalaoNovo: (club) => comIds('/team/new', { club }),

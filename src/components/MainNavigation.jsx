@@ -1,16 +1,26 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth.jsx';
-import { clubs, teams, loadMatch, findLiveMatch, profile } from '@/lib/data/repository.js';
+import { clubs, teams, loadMatch, findLiveMatch, profile, statConfig } from '@/lib/data/repository.js';
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
 import { localClubLicenseActive } from '@/lib/license.js';
+import { addonsAtivos } from '@/domain/addons.js';
 import { PARAM, noJogoAoVivo, rotas } from '@/lib/routes.js';
 import { guidedTutorialSteps, readGuidedTutorialState, setGuidedTutorialStepById } from '@/lib/tutorial.js';
 import { useT } from '@/lib/i18n/index.js';
 
 const SELECTED_TEAM_KEY = 'futsal-selected-team-context';
+
+// A "Visão geral do clube" (add-on) entra no seletor como se fosse mais um
+// escalão. O valor da opção leva este prefixo e o id do clube, para nunca se
+// confundir com o id de um escalão.
+const VISAO = 'visao:';
+
+function naVisaoGeral(pathname) {
+  return /^\/club\/overview\/?$/.test(pathname || '');
+}
 
 function routeIdsFrom(searchParams) {
   const q = searchParams || new URLSearchParams();
@@ -41,6 +51,9 @@ function storeTeam(item) {
 function areaFromPath(pathname) {
   if (/^\/staff\/?$/.test(pathname || '')) return 'staff';
   if (/^\/account\/?$|^\/password\/?$|^\/privacy\/?$|^\/delete-account\/?$/.test(pathname || '')) return 'profile';
+  // A visão geral fica debaixo de Jogo: é lá que se escolhe o escalão e é lá
+  // que se vêem os resultados.
+  if (naVisaoGeral(pathname)) return 'game';
   if (/^\/jogo\/?$/.test(pathname || '') || /^\/match\//.test(pathname || '') || /^\/team\/matches/.test(pathname || '')) return 'game';
   if (/^\/team\/(training|tactics)(\/|$)/.test(pathname || '')) return 'training';
   if (/^\/club/.test(pathname || '') || /^\/team\/(roster|competitions|competition|edit|new|access|players)/.test(pathname || '')) return 'teams';
@@ -141,6 +154,7 @@ export default function MainNavigation() {
   const [selectedId, setSelectedId] = useState(null);
   const [live, setLive] = useState(null);
   const [licencaClube, setLicencaClube] = useState(false);
+  const [clubesComVisao, setClubesComVisao] = useState(() => new Set());
   const [sideCollapsed, setSideCollapsed] = useState(false);
 
   const area = areaFromPath(pathname);
@@ -152,8 +166,17 @@ export default function MainNavigation() {
 
   const load = useCallback(async () => {
     const list = [];
+    const comVisao = new Set();
     for (const club of await clubs.list()) {
-      for (const team of await teams.listByClub(club.id)) list.push({ club, team });
+      for (const team of await teams.listByClub(club.id)) {
+        list.push({ club, team });
+        // A visão geral é do clube, mas os add-ons são do escalão: basta um
+        // escalão com ela ligada para o clube a ter.
+        if (!comVisao.has(club.id)) {
+          const config = await statConfig.get(team.id).catch(() => null);
+          if (addonsAtivos(config).has('visao-geral-clube')) comVisao.add(club.id);
+        }
+      }
     }
 
     let nextId = routeIds.teamId;
@@ -164,6 +187,11 @@ export default function MainNavigation() {
     const stored = readStoredTeam();
     if (!nextId && stored?.teamId) nextId = stored.teamId;
     if (!list.some((item) => item.team.id === nextId)) nextId = list[0]?.team.id || null;
+    // Na visão geral de um clube, o escalão de contexto tem de ser desse clube.
+    if (routeIds.clubId && !routeIds.teamId) {
+      const doClube = list.filter((item) => item.club.id === routeIds.clubId);
+      if (doClube.length && !doClube.some((item) => item.team.id === nextId)) nextId = doClube[0].team.id;
+    }
 
     const nextSelected = list.find((item) => item.team.id === nextId);
     if (nextSelected) storeTeam(nextSelected);
@@ -171,8 +199,9 @@ export default function MainNavigation() {
     setItems(list);
     setSelectedId(nextId);
     setLicencaClube(localClubLicenseActive(perfil));
+    setClubesComVisao(comVisao);
     setLive(await findLiveMatch());
-  }, [routeIds.matchId, routeIds.teamId]);
+  }, [routeIds.clubId, routeIds.matchId, routeIds.teamId]);
 
   useEffect(() => {
     if (!ready || (remote && !session)) return;
@@ -216,6 +245,10 @@ export default function MainNavigation() {
   }
 
   function trocarEscalao(teamId) {
+    if (teamId.startsWith(VISAO)) {
+      router.push(rotas.visaoGeralClube(teamId.slice(VISAO.length)));
+      return;
+    }
     const next = items.find((item) => item.team.id === teamId);
     if (!next) return;
     setSelectedId(teamId);
@@ -268,14 +301,22 @@ export default function MainNavigation() {
             </button>
             <label className="context-picker__escalao">
               <select
-                value={selected.team.id}
+                value={
+                  naVisaoGeral(pathname) && clubesComVisao.has(selected.club.id)
+                    ? `${VISAO}${selected.club.id}`
+                    : selected.team.id
+                }
                 onChange={(e) => trocarEscalao(e.target.value)}
                 aria-label={t('nav.trocarEscalao')}
               >
-                {items.map((item) => (
-                  <option key={item.team.id} value={item.team.id}>
-                    {item.team.name}
-                  </option>
+                {items.map((item, i) => (
+                  <Fragment key={item.team.id}>
+                    {/* Antes do primeiro escalão de cada clube que a tenha. */}
+                    {clubesComVisao.has(item.club.id) && items[i - 1]?.club.id !== item.club.id ? (
+                      <option value={`${VISAO}${item.club.id}`}>{t('visao.opcao')}</option>
+                    ) : null}
+                    <option value={item.team.id}>{item.team.name}</option>
+                  </Fragment>
                 ))}
               </select>
             </label>
