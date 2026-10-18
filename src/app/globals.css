@@ -3844,3 +3844,40 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 /* Corrigir registos no intervalo: a lista fica fechada por omissão. */
 .registos__corrigir { margin-top: 10px; }
 .registos__corrigir > summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+
+/* ---------------------------------------------- visão geral do clube (add-on) */
+.visao__filtros { margin-bottom: 14px; }
+.visao__filtros .btn--tiny { min-width: 32px; }
+.visao__quadro { padding: 16px 18px; }
+.visao__cabeca { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.visao__titulo { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.visao__titulo strong { font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.visao__titulo .muted { font-size: 0.85rem; }
+.visao__balanco { display: flex; align-items: baseline; gap: 8px; font-size: 0.95rem; white-space: nowrap; }
+.visao__golos { color: var(--muted); }
+.visao__lista { list-style: none; margin: 0; padding: 0; }
+.visao__linha {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.9fr) minmax(0, 2fr) auto minmax(0, auto);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.visao__linha:last-child { border-bottom: 0; }
+.visao__linha.is-clickable { cursor: pointer; }
+.visao__linha.is-clickable:hover { background: var(--card-2); }
+.visao__escalao { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.visao__jogo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.visao__placar { font-size: 1.05rem; text-align: right; min-width: 52px; }
+.visao__estado { justify-self: end; }
+.visao__vazio, .visao__folga { margin: 10px 4px 0; font-size: 0.85rem; }
+.visao__numeros { margin-bottom: 16px; }
+.visao__metricas { margin: 10px 0 14px; }
+@media (max-width: 560px) {
+  .visao__quadro { padding: 14px 12px; }
+  .visao__linha { grid-template-columns: minmax(58px, 0.8fr) minmax(0, 2fr) auto; gap: 8px; }
+  .visao__estado { grid-column: 2 / -1; justify-self: start; }
+  .visao__estado:empty { display: none; }
+  .visao__balanco { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+}

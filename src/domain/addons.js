@@ -29,6 +29,7 @@ export const GRUPOS = [
   { id: 'resumo', nome: 'Intervalo e resumo do jogo' },
   { id: 'dashboard', nome: 'Painel da época' },
   { id: 'treino', nome: 'Treino' },
+  { id: 'clube', nome: 'Clube' },
 ];
 
 /** O nome de cada registo extra, no painel. A app tem os seus nos dicionários. */
@@ -55,7 +56,16 @@ export const NOME_REGISTO = {
  * As dependências não se ligam sozinhas: o add-on só fica activo se elas
  * também estiverem ligadas. O painel avisa quando faltam.
  */
-export const ADDONS = {};
+export const ADDONS = {
+  // Uma entrada "Visão geral do clube" no seletor de escalões: os resultados
+  // de todos os escalões no fim de semana, numa só janela, e a comparação
+  // entre eles. Aparece no clube quando está ligada em pelo menos um dos seus
+  // escalões, e mostra os escalões a que a pessoa tem acesso.
+  'visao-geral-clube': {
+    grupo: 'clube',
+    nome: 'Visão geral do clube',
+  },
+};
 
 /* ----------------------------------------------------------------- leitura */
 
