@@ -470,9 +470,14 @@ function intervaloLabel(semana) {
   return `${inicio} – ${fim}`;
 }
 
+// "sáb 17/10": o dia da semana em três letras. Por extenso ("sábado, 17/10")
+// comia no telemóvel o espaço do nome do adversário.
 function diaLabel(ts) {
   if (!ts) return '';
-  return new Date(ts).toLocaleDateString(localeAtual(), { weekday: 'short', day: '2-digit', month: '2-digit' });
+  const d = new Date(ts);
+  const semana = d.toLocaleDateString(localeAtual(), { weekday: 'short' }).replace(/[.,]/g, '').slice(0, 3);
+  const dia = d.toLocaleDateString(localeAtual(), { day: '2-digit', month: '2-digit' });
+  return `${semana} ${dia}`;
 }
 
 function horaLabel(ts) {
