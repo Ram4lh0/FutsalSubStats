@@ -138,39 +138,6 @@ function Definicoes() {
     toast(t('sinc.aReenviar'), 'ok');
   }
 
-  /**
-   * Deitar fora a cópia deste aparelho e voltar a descarregar tudo.
-   *
-   * É a cura para um aparelho baralhado (sobras de versões antigas, uma fila
-   * encravada): a conta fica igual, o que está no servidor volta, e a sessão e
-   * o idioma ficam onde estavam. O que ainda não subiu é que se perde — por
-   * isso tenta-se enviar primeiro, e só se pergunta com o número na mão.
-   */
-  const [aLimpar, setALimpar] = useState(false);
-  async function limparAparelho() {
-    if (aLimpar || !userId) return;
-    const r = await sync.saveNow(userId, user?.email);
-    // Sem rede, limpar deixava o aparelho vazio até ela voltar.
-    if (r.status === sync.SYNC.OFFLINE) {
-      toast(t('definicoes.limparSemRede'), 'error', 5000);
-      return;
-    }
-    const ok = await confirmar(
-      r.pendentes > 0 ? t('definicoes.limparComFila', { n: r.pendentes }) : t('definicoes.limparConfirma'),
-      { okLabel: t('definicoes.limparBotao'), title: t('definicoes.limparAparelho') }
-    );
-    if (!ok) return;
-    setALimpar(true);
-    try {
-      await sync.resetLocal(userId);
-      toast(t('definicoes.limpo'), 'ok', 4000);
-    } catch (e) {
-      toast(t('definicoes.limparFalhou', { erro: e?.message || e }), 'error', 6000);
-    } finally {
-      setALimpar(false);
-    }
-  }
-
   async function comprarLicenca(plano) {
     if (aComprar) return;
     if (!userId) {
@@ -480,18 +447,6 @@ function Definicoes() {
             {t('sinc.agora')}
           </button>
         </div>
-        {/* Sem conta, a cópia deste aparelho é a única que existe: não há
-            servidor de onde a trazer de volta. */}
-        {userId ? (
-          <>
-            <p className="muted small">{t('definicoes.limparAparelhoTexto')}</p>
-            <div className="form__actions form__actions--left">
-              <button className="btn btn--ghost btn--danger" onClick={limparAparelho} disabled={aLimpar}>
-                {aLimpar ? t('definicoes.aLimpar') : t('definicoes.limparAparelho')}
-              </button>
-            </div>
-          </>
-        ) : null}
       </div>
 
       {/* Fica antes das cópias e depois da sincronização de propósito: é a única
