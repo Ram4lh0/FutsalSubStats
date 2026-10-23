@@ -134,6 +134,10 @@ function Assistir() {
         </div>
       ) : !emCurso ? (
         <p className="card muted">{t('aoVivo.porComecar')}</p>
+      ) : !match.liveEnabled ? (
+        <div className="aovivo-ligacao is-caiu" role="alert">
+          <strong>{t('aoVivo.desligadoPorQuemRegista')}</strong>
+        </div>
       ) : null}
 
       <header className="live__head aovivo__marcador">

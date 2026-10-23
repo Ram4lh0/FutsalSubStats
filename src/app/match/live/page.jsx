@@ -752,6 +752,21 @@ function Live() {
     ));
   }
 
+  /**
+   * "Assistir ao vivo" a meio do jogo (add-on 'ao-vivo'): para quem se esqueceu
+   * na preparação, ou para o desligar. Ligado, o `useEnviarAoVivo` passa a
+   * enviar a partir daqui (e leva logo o que já se registou). Desligado,
+   * manda-se a linha do jogo uma vez para o jogo sair da lista de quem
+   * acompanha; o resto volta a ficar no aparelho até ao fim.
+   */
+  async function alternarAoVivo() {
+    const ligar = !match.liveEnabled;
+    await matches.gravarCampos(matchId, { liveEnabled: ligar }, { sync: 'defer' });
+    await recarregar();
+    if (!ligar && userId) sync.saveNow(userId, user?.email);
+    toast(ligar ? t('aoVivo.ligadoAviso') : t('aoVivo.desligadoAviso'), 'ok');
+  }
+
   function moreMenu() {
     ui.open((close) => (
       <Dialog title={t('acao.maisAcoes')} onClose={() => close(null)}>
@@ -788,6 +803,17 @@ function Live() {
               {t('acao.terminarJogo')}
             </button>
           )}
+          {addons.has(ADDON_AO_VIVO) ? (
+            <button
+              className="menu__item"
+              onClick={() => {
+                close(null);
+                alternarAoVivo();
+              }}
+            >
+              {match.liveEnabled ? t('aoVivo.desligar') : t('aoVivo.ligar')}
+            </button>
+          ) : null}
           <button
             className="menu__item menu__item--danger"
             onClick={() => {
