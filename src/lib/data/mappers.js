@@ -4,7 +4,21 @@
 // vista nem o domínio sabem que existe um servidor do outro lado.
 
 const iso = (ms) => (ms == null ? null : new Date(ms).toISOString());
-const ms = (txt) => (txt == null ? null : new Date(txt).getTime());
+const ms = (txt) => {
+  if (txt == null) return null;
+  const t = new Date(txt).getTime();
+  if (!Number.isNaN(t)) return t;
+  // O formato de texto do Postgres ("2026-10-23 13:33:16.123456+00"), que pode
+  // chegar pelo Realtime. O Chrome percebe-o; o Safari do iPhone não, e um
+  // `undone_at` lido como NaN passava por evento que nunca foi desfeito.
+  const t2 = new Date(
+    String(txt)
+      .replace(' ', 'T')
+      .replace(/(\.\d{3})\d+/, '$1')
+      .replace(/([+-]\d{2})$/, '$1:00')
+  ).getTime();
+  return Number.isNaN(t2) ? null : t2;
+};
 
 /* ---------------------------------------------------------------- clubes */
 
@@ -160,6 +174,10 @@ export const matchMapper = {
     halftime_opponent_score: m.halftimeOpponentScore ?? null,
     current_period: m.currentPeriod ?? 0,
     timer_status: m.timerStatus || 'STOPPED',
+    // "Assistir ao vivo" (add-on 'ao-vivo'). Vai sempre, verdadeiro ou falso:
+    // num envio de várias linhas, uma que não o trouxesse ia como nulo, e a
+    // coluna não aceita nulos.
+    live_enabled: Boolean(m.liveEnabled),
   }),
   fromRow: (r) => ({
     id: r.id,
@@ -188,6 +206,7 @@ export const matchMapper = {
     halftimeOpponentScore: r.halftime_opponent_score,
     currentPeriod: r.current_period,
     timerStatus: r.timer_status,
+    liveEnabled: Boolean(r.live_enabled),
     dirty: false,
   }),
 };
@@ -262,6 +281,10 @@ export const eventMapper = {
     opponentScoreSnapshot: r.opponent_score_snapshot,
     metadata: r.metadata || {},
     clientEventId: r.client_event_id,
+    // A conta que o gravou. Os eventos feitos neste aparelho não o têm até
+    // voltarem do servidor. Serve o "Assistir ao vivo": quem não começou o
+    // jogo acompanha-o em vez de o registar (domain/aoVivo.js).
+    createdBy: r.created_by || null,
     createdAt: ms(r.created_at),
     undoneAt: ms(r.undone_at),
     syncedAt: ms(r.created_at),

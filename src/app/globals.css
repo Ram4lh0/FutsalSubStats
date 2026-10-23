@@ -3902,3 +3902,145 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .linhas__chave::before { background: currentColor; }
 .linhas__chave { color: var(--muted); }
 .graf__eixo--leve { stroke-dasharray: 3 4; opacity: 0.6; }
+
+/* ------------------------------------------- assistir ao vivo (add-on) */
+
+/* O interruptor da preparação do jogo. */
+.aovivo-interruptor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+}
+.aovivo-interruptor__texto { display: flex; flex-direction: column; gap: 4px; }
+.aovivo-interruptor__texto .muted { font-size: 0.85rem; }
+.interruptor {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  position: relative;
+  width: 52px;
+  height: 30px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.interruptor::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.interruptor:checked { background: var(--primary); border-color: var(--primary); }
+.interruptor:checked::after { transform: translateX(22px); background: var(--primary-ink); }
+.interruptor:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+/* O ponto vermelho de "em direto". */
+.aovivo-ponto {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--danger);
+  vertical-align: middle;
+  animation: aovivo-pulsar 1.6s ease-in-out infinite;
+}
+@keyframes aovivo-pulsar { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .aovivo-ponto { animation: none; } }
+
+/* A lista "Jogos ao vivo" na aba Jogos. */
+.aovivo-lista { margin-top: 24px; }
+.aovivo-lista__itens { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.aovivo-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  min-height: var(--touch);
+}
+.aovivo-item__quem { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.aovivo-item__quem strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aovivo-item__estado { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.04em; }
+.aovivo-item__ir { color: var(--primary); font-weight: 700; }
+@media (max-width: 420px) {
+  .aovivo-item { grid-template-columns: 1fr auto; }
+  .aovivo-item__estado { display: none; }
+}
+
+/* O ecrã de acompanhamento. */
+.aovivo-selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.aovivo-selo.is-on { color: var(--text); border-color: var(--danger); }
+.aovivo-ligacao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.aovivo-ligacao.is-caiu {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--warn);
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--text);
+}
+.aovivo-fim { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* Marcador em cima e relógio por baixo, em qualquer largura: aqui não há
+   botões à volta do relógio, e a grelha do ecrã de registo deixava-os colados. */
+.live__head.aovivo__marcador {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+}
+.aovivo__marcador .scoreboard { display: grid; width: 100%; max-width: 420px; }
+.aovivo__marcador .scoreboard__dash { display: block; }
+.aovivo__marcador .scoreboard__name { max-width: 30vw; }
+.aovivo__equipa { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .aovivo__equipa { grid-template-columns: 1fr; } }
+.aovivo-jogadores { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.aovivo-jogadores li {
+  display: grid;
+  grid-template-columns: 8.5em 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+}
+.aovivo-jogadores__pos {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.aovivo-jogadores__nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aovivo-jogadores li:not(:has(.aovivo-jogadores__pos)) { grid-template-columns: 1fr auto; }
+.aovivo-jogadores li.is-vazio .aovivo-jogadores__nome,
+.aovivo-jogadores li.is-expulso { color: var(--muted); }
+.aovivo-jogadores__tempo { color: var(--muted); font-size: 0.85rem; }
