@@ -1838,4 +1838,9 @@ export default {
   "aoVivo.ligadoAviso": "Ver en directo activado: quien tiene acceso a la categoría ya puede seguir el partido.",
   "aoVivo.desligadoAviso": "Ver en directo desactivado.",
   "aoVivo.desligadoPorQuemRegista": "Quien registra ha desactivado \"Ver en directo\": el partido ya no se actualiza aquí.",
+  "aoVivo.substituicoes": "Cambios",
+  "aoVivo.entrou": "Entra",
+  "aoVivo.saiu": "Sale",
+  "aoVivo.repoeExpulsao": "Entra tras una expulsión",
+  "aoVivo.semSubstituicoes": "Todavía no ha habido cambios.",
 };

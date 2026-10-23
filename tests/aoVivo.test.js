@@ -310,6 +310,10 @@ test('dois aparelhos: quem acompanha chega ao mesmo estado de quem regista', asy
   assert.equal(foulsTotal(s, 'US'), foulsTotal(r, 'US'));
   assert.equal(foulsTotal(s, 'THEM'), foulsTotal(r, 'THEM'));
   assert.deepEqual(s.court, r.court, 'quem está em campo (com a substituição)');
+  assert.equal(s.substitutions.length, 1, 'a substituição aparece na lista');
+  assert.equal(s.substitutions[0].playerInId, suplente.id);
+  assert.equal(s.substitutions[0].playerOutId, fixo.id);
+  assert.equal(s.substitutions[0].period, 1);
   assert.equal(s.goals.length, r.goals.length);
   assert.equal((s.cards || []).length, (r.cards || []).length, 'o amarelo');
   assert.equal(seguido.match.status, MATCH_STATUS.HALFTIME);
@@ -351,4 +355,23 @@ test('um escalão sem o add-on não abre o ecrã de acompanhar nem lista nada', 
   });
   assert.equal(await deveAssistir(await loadMatch(jogo.id), QUEM_ACOMPANHA), false);
   assert.deepEqual(await jogosAoVivo(), []);
+});
+
+test('uma substituição desfeita sai da lista de substituições', async () => {
+  await limpar();
+  setRemote(null);
+  const { jogo, plantel } = await prepararJogo();
+  const [, fixo, , , , suplente] = plantel;
+  const inicial = await loadMatch(jogo.id);
+  await events.append(A.startFirstHalf(inicial.state, Date.now() - 60_000));
+  const comInicio = await loadMatch(jogo.id);
+  const troca = A.substitute(comInicio.state, { playerOutId: fixo.id, playerInId: suplente.id, position: 'FIXO' });
+  await events.append(troca);
+  const comTroca = await loadMatch(jogo.id);
+  assert.equal(comTroca.state.substitutions.length, 1);
+  await events.markUndone(troca.id);
+  await events.append(A.undoEvent(comTroca.state, troca));
+  const desfeito = await loadMatch(jogo.id);
+  assert.deepEqual(desfeito.state.substitutions, []);
+  assert.equal(desfeito.state.court.FIXO, fixo.id, 'o fixo voltou a campo');
 });
