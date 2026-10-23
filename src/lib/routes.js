@@ -114,6 +114,10 @@ export const rotas = {
   jogoAoVivo: (match) => comIds('/match/live', { match }),
   jogoResumo: (match) => comIds('/match/summary', { match }),
   jogoHistorico: (match) => comIds('/match/events', { match }),
+  // Acompanhar um jogo que outro treinador está a registar (add-on 'ao-vivo').
+  // Só de leitura, e fora de `/match/live` de propósito: não trava a
+  // sincronização nem encolhe o cabeçalho como o ecrã de registo.
+  jogoAssistir: (match) => comIds('/match/watch', { match }),
 };
 
 /**

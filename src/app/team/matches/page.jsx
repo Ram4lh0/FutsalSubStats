@@ -13,6 +13,7 @@ import useRouteParams from '@/lib/useRouteParams.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import MatchList from '@/components/MatchList.jsx';
 import ImportarCalendario from '@/components/ImportarCalendario.jsx';
+import JogosAoVivo from '@/components/JogosAoVivo.jsx';
 import { Empty } from '@/components/bits.jsx';
 import { rotas } from '@/lib/routes.js';
 import { useAuth } from '@/lib/auth.jsx';
@@ -70,6 +71,8 @@ function Conteudo() {
               {t('escalao.semJogos')}
             </Empty>
           )}
+          {/* Add-on 'ao-vivo': só aparece se houver algum jogo para acompanhar. */}
+          <JogosAoVivo />
         </>
       )}
     </TeamShell>

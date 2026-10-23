@@ -26,6 +26,8 @@ import { useT } from '@/lib/i18n/index.js';
 import { claimMatchStart } from '@/lib/entitlements.js';
 import LicenseLimitDialog from '@/components/LicenseLimitDialog.jsx';
 import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
+import useAddons from '@/lib/useAddons.js';
+import { ADDON_AO_VIVO } from '@/domain/aoVivo.js';
 
 export default function SetupPage() {
   return (
@@ -48,6 +50,9 @@ function Preparacao() {
   const [lineup, setLineup] = useState({});
   const [form, setForm] = useState(null);
   const [aGuardar, setAGuardar] = useState(false);
+  // "Assistir ao vivo" (add-on 'ao-vivo'): desligado por omissão.
+  const [aoVivo, setAoVivo] = useState(false);
+  const addons = useAddons(dados?.match?.teamId);
 
   useEffect(() => {
     (async () => {
@@ -75,6 +80,7 @@ function Preparacao() {
 
       setEscolhidos(Object.keys(state.players));
       setLineup(inicial);
+      setAoVivo(Boolean(match.liveEnabled));
       setForm({
         opponentName: match.opponentName,
         opponentShortName: match.opponentShortName || '',
@@ -149,6 +155,22 @@ function Preparacao() {
       toast(t('prep.naoGuardou', { erro: err.message }), 'error');
     } finally {
       setAGuardar(false);
+    }
+  }
+
+  /**
+   * O interruptor "Assistir ao vivo". Grava-se logo, como qualquer campo do
+   * jogo, e não acrescenta nada ao "Começar": o arranque fica igual, e é o
+   * ecrã do jogo que passa a enviar durante o jogo (lib/useEnviarAoVivo.js).
+   */
+  async function alternarAoVivo(ligar) {
+    setAoVivo(ligar);
+    try {
+      await matches.gravarCampos(matchId, { liveEnabled: ligar });
+      sync.saveNow(userId, user?.email);
+    } catch (err) {
+      setAoVivo(!ligar);
+      toast(t('prep.naoGuardou', { erro: err.message }), 'error');
     }
   }
 
@@ -319,6 +341,24 @@ function Preparacao() {
         <h2 className="section section--tight">{t('prep.cincoInicial')}</h2>
         <CourtPicker candidates={candidatos} lineup={lineup} onChange={setLineup} />
       </section>
+
+      {addons.has(ADDON_AO_VIVO) ? (
+        <section className="card">
+          <label className="aovivo-interruptor">
+            <span className="aovivo-interruptor__texto">
+              <strong>{t('aoVivo.interruptor')}</strong>
+              <span className="muted">{t('aoVivo.interruptorAjuda')}</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              className="interruptor"
+              checked={aoVivo}
+              onChange={(e) => alternarAoVivo(e.target.checked)}
+            />
+          </label>
+        </section>
+      ) : null}
 
       {/* Espaço para o último cartão não ficar debaixo da barra fixa. */}
       <div className="setup__spacer" />

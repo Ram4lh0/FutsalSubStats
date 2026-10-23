@@ -19,6 +19,7 @@ import { notifyLocalChange } from './sync.js';
 import { uid } from '../../domain/actions.js';
 import { compararEscaloes } from '../../domain/escaloes.js';
 import { buildMatchState } from '../../domain/reducer.js';
+import { registadoPorOutro } from '../../domain/aoVivo.js';
 import {
   LOCATION,
   EVENT,
@@ -563,6 +564,20 @@ export const matches = {
     return row;
   },
   /**
+   * Grava campos na linha do jogo tal como vêm, sem o `update` voltar a
+   * calcular o tipo de tempo pela competição. Serve o "Assistir ao vivo": o
+   * interruptor da preparação e a fotografia do estado durante o jogo, onde
+   * mexer na duração da parte a meio era mexer no relógio.
+   */
+  async gravarCampos(id, patch, { sync: syncMode = 'immediate' } = {}) {
+    const cur = await db.get(db.STORES.matches, id);
+    if (!cur) return null;
+    const row = stamp({ ...cur, ...patch });
+    await db.put(db.STORES.matches, row);
+    if (syncMode !== 'defer') notifyLocalChange();
+    return row;
+  },
+  /**
    * Apagar um jogo é arquivá-lo.
    *
    * A convocatória e os eventos ficam onde estão, e é de propósito. Apagá-los
@@ -714,6 +729,10 @@ export async function findLiveMatch() {
     if (!evs.length) continue;
     const started = evs.some((e) => e.eventType === EVENT.FIRST_HALF_STARTED && !e.undoneAt);
     const finished = evs.some((e) => e.eventType === EVENT.MATCH_FINISHED && !e.undoneAt);
+    // "Assistir ao vivo": os eventos de um jogo que outro treinador está a
+    // registar chegam a este aparelho a meio do jogo. Esse jogo não é "o meu
+    // jogo em curso" — acompanha-se, não se retoma.
+    if (started && !finished && m.liveEnabled && registadoPorOutro(evs, donoAtual())) continue;
     if (started && !finished) return m;
   }
   return null;

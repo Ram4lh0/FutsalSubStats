@@ -60,6 +60,10 @@ import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 import useRegistos from '@/lib/useRegistos.js';
 import useAcoesRegistos from '@/components/registos/useAcoesRegistos.js';
 import BarraRegistos from '@/components/registos/BarraRegistos.jsx';
+import useAddons from '@/lib/useAddons.js';
+import useEnviarAoVivo from '@/lib/useEnviarAoVivo.js';
+import { deveAssistir } from '@/lib/aoVivo.js';
+import { ADDON_AO_VIVO } from '@/domain/aoVivo.js';
 
 const OWN_GOAL = '__OWN_GOAL__';
 
@@ -105,6 +109,17 @@ function Live() {
     marcarGolo: (p, opcoes) => scoreFor(p, opcoes),
     nomes: () => ({ nos: ourName, eles: rivalName }),
   });
+
+  // "Assistir ao vivo" (add-on 'ao-vivo'): com o interruptor ligado na
+  // preparação, o jogo vai subindo durante o jogo para quem o acompanha. Sem
+  // ele, tudo fica no aparelho até ao apito final, como sempre.
+  const addons = useAddons(match?.teamId);
+  useEnviarAoVivo({
+    ativo: Boolean(match?.liveEnabled) && addons.has(ADDON_AO_VIVO),
+    carregado,
+    userId,
+    email: user?.email,
+  });
   const aCorrer = state?.timerStatus === 'RUNNING';
   // O batimento não pode parar com o cronómetro: o "Saiu há" dos jogadores no
   // banco conta em tempo real. Parado, basta um por segundo — é o que esse
@@ -126,10 +141,18 @@ function Live() {
 
   useEffect(() => {
     (async () => {
-      const novo = await recarregar();
+      const novo = await loadMatch(matchId);
+      // Um jogo "ao vivo" que outra conta está a registar abre no ecrã de
+      // acompanhar (o atalho "Jogo em curso", a lista de jogos, o resumo
+      // trazem cá). Registar o mesmo jogo em dois telemóveis baralhava-o.
+      if (novo && (await deveAssistir(novo, userId))) {
+        router.replace(rotas.jogoAssistir(matchId));
+        return;
+      }
+      setCarregado(novo || { vazio: true });
       if (novo) setClub(await clubs.get(novo.match.clubId));
     })();
-  }, [recarregar]);
+  }, [matchId, userId, router]);
 
   // Sanções já terminadas quando o ecrã abre não devem disparar aviso.
   useEffect(() => {

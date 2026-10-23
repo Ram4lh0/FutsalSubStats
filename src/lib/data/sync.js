@@ -1014,6 +1014,57 @@ async function marcarNiveis(sb, userId, clubes, escaloes) {
   }
 }
 
+/* ------------------------------------------------------ assistir ao vivo */
+
+/**
+ * Traz do servidor um jogo só — a linha, a convocatória e os eventos — e
+ * guarda-o neste aparelho pelas mesmas regras da descarga (`merge`).
+ *
+ * É o que o ecrã "Assistir ao vivo" faz ao abrir e sempre que a ligação volta:
+ * o ponto de partida é o que a app já usa (a base local e `loadMatch`), e o
+ * Realtime só acrescenta o que muda a seguir. Três pedidos pequenos, por
+ * `match_id`, em vez da descarga inteira da época.
+ */
+export async function trazerJogo(matchId) {
+  const sb = supabase();
+  if (!sb || !matchId) return { trazidos: 0, existe: null };
+
+  const { data: jogo, error } = await sb.from('matches').select('*').eq('id', matchId).maybeSingle();
+  if (error) throw error;
+  // Sem acesso, ou apagado: a segurança por linha devolve nada, não um erro.
+  if (!jogo) return { trazidos: 0, existe: false };
+  let total = await merge(db.STORES.matches, [matchMapper.fromRow(jogo)]);
+
+  const convocados = await todas((de, ate) =>
+    sb.from('match_squad').select('*').eq('match_id', matchId).range(de, ate)
+  );
+  total += await merge(db.STORES.matchSquad, convocados.map(squadMapper.fromRow));
+
+  const eventos = await todas((de, ate) =>
+    sb
+      .from('match_events')
+      .select('*')
+      .eq('match_id', matchId)
+      .order('seq', { ascending: true })
+      .range(de, ate)
+  );
+  total += await merge(db.STORES.matchEvents, eventos.map(eventMapper.fromRow));
+  return { trazidos: total, existe: true };
+}
+
+/**
+ * Guarda uma linha que chegou pelo Realtime (`payload.new`, em snake_case),
+ * pelas mesmas regras da descarga: nunca pisa o que está por enviar daqui.
+ * Um evento desfeito chega como UPDATE da linha original (com `undone_at`),
+ * e o EVENT_UNDONE que o acompanha como INSERT — os dois passam por aqui.
+ */
+export async function guardarDoRealtime(tabela, linha) {
+  if (!linha) return 0;
+  if (tabela === 'matches') return merge(db.STORES.matches, [matchMapper.fromRow(linha)]);
+  if (tabela === 'match_events') return merge(db.STORES.matchEvents, [eventMapper.fromRow(linha)]);
+  return 0;
+}
+
 async function merge(store, rows) {
   if (!rows.length) return 0;
   const locais = new Map((await db.all(store)).map((r) => [r.id, r]));

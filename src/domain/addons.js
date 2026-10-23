@@ -65,6 +65,13 @@ export const ADDONS = {
     grupo: 'clube',
     nome: 'Visão geral do clube',
   },
+  // "Assistir ao vivo": um interruptor na preparação do jogo deixa quem tem
+  // acesso ao escalão acompanhar o jogo em direto noutro telemóvel (lista
+  // "Jogos ao vivo" na aba Jogos e ecrã só de leitura). Ver domain/aoVivo.js.
+  'ao-vivo': {
+    grupo: 'jogo',
+    nome: 'Assistir ao vivo',
+  },
 };
 
 /* ----------------------------------------------------------------- leitura */
