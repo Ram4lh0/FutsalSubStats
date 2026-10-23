@@ -1832,4 +1832,9 @@ export default {
   "aoVivo.ultimaAtualizacaoMin": "Last update {m} min ago",
   "aoVivo.semLigacao": "No connection. Showing the last state received; it will update again when the connection is back.",
   "aoVivo.semServidor": "This version is not connected to the server: live follow is not available.",
+  "aoVivo.ligar": "Turn on \"Watch live\"",
+  "aoVivo.desligar": "Turn off \"Watch live\"",
+  "aoVivo.ligadoAviso": "Watch live is on: anyone with access to this team can now follow the match.",
+  "aoVivo.desligadoAviso": "Watch live is off.",
+  "aoVivo.desligadoPorQuemRegista": "The person recording turned off \"Watch live\": the match no longer updates here.",
 };

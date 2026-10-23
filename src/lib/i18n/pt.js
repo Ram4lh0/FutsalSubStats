@@ -1838,4 +1838,9 @@ export default {
   "aoVivo.ultimaAtualizacaoMin": "Última atualização há {m} min",
   "aoVivo.semLigacao": "Sem ligação. A mostrar o último estado recebido; volta a atualizar quando a rede voltar.",
   "aoVivo.semServidor": "Esta versão não está ligada ao servidor: não dá para acompanhar em direto.",
+  "aoVivo.ligar": "Ligar \"Assistir ao vivo\"",
+  "aoVivo.desligar": "Desligar \"Assistir ao vivo\"",
+  "aoVivo.ligadoAviso": "Assistir ao vivo ligado: quem tem acesso ao escalão já pode acompanhar o jogo.",
+  "aoVivo.desligadoAviso": "Assistir ao vivo desligado.",
+  "aoVivo.desligadoPorQuemRegista": "Quem regista desligou o \"Assistir ao vivo\": o jogo deixou de atualizar aqui.",
 };

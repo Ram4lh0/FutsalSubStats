@@ -1833,4 +1833,9 @@ export default {
   "aoVivo.ultimaAtualizacaoMin": "Última actualización hace {m} min",
   "aoVivo.semLigacao": "Sin conexión. Se muestra el último estado recibido; se actualizará cuando vuelva la conexión.",
   "aoVivo.semServidor": "Esta versión no está conectada al servidor: no se puede seguir en directo.",
+  "aoVivo.ligar": "Activar \"Ver en directo\"",
+  "aoVivo.desligar": "Desactivar \"Ver en directo\"",
+  "aoVivo.ligadoAviso": "Ver en directo activado: quien tiene acceso a la categoría ya puede seguir el partido.",
+  "aoVivo.desligadoAviso": "Ver en directo desactivado.",
+  "aoVivo.desligadoPorQuemRegista": "Quien registra ha desactivado \"Ver en directo\": el partido ya no se actualiza aquí.",
 };
