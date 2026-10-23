@@ -7,17 +7,15 @@
 // jogo é para registar ou para acompanhar.
 
 import { supabase } from './supabase/client.js';
-import { clubs, events, statConfig, raw } from './data/repository.js';
+import { clubs, statConfig, raw } from './data/repository.js';
 import { matchMapper } from './data/mappers.js';
 import { guardarDoRealtime } from './data/sync.js';
 import { addonsAtivos } from '../domain/addons.js';
-import { EVENT } from '../domain/constants.js';
 import {
   ADDON_AO_VIVO,
   AO_VIVO_VALIDADE_MS,
   ESTADOS_AO_VIVO,
   estaAoVivo,
-  quemComecou,
   registadoPorOutro,
 } from '../domain/aoVivo.js';
 
@@ -52,12 +50,14 @@ export async function deveAssistir(carregado, userId) {
  * índice `matches_ao_vivo`), e quem filtra o acesso é a segurança por linha.
  * Sem rede, responde com o que este aparelho já sabe.
  *
- * Ficam de fora os jogos que esta conta está a registar: esses têm o atalho
- * "Jogo em curso" e voltam ao ecrã de registo.
+ * Entram todos, também os que esta conta começou: os treinadores de um clube
+ * partilham muitas vezes a mesma conta, e o banco tem de ver o jogo que a
+ * bancada está a registar. Tocar abre sempre o ecrã de acompanhar (só de
+ * leitura); quem regista volta ao seu pelo atalho "Jogo em curso".
  *
  * @returns {Promise<Array<{match: object, team: object, club: object|null}>>}
  */
-export async function jogosAoVivo(userId, agora = Date.now()) {
+export async function jogosAoVivo(agora = Date.now()) {
   const escaloes = (await raw.all(raw.STORES.teams)).filter((t) => !t.archivedAt);
   const comAddon = [];
   for (const team of escaloes) if (await temAoVivo(team.id)) comAddon.push(team);
@@ -92,11 +92,6 @@ export async function jogosAoVivo(userId, agora = Date.now()) {
   const lista = [];
   for (const match of jogos) {
     if (!porId.has(match.teamId) || !estaAoVivo(match, agora)) continue;
-    const evs = await events.listByMatch(match.id);
-    // Começado aqui (ainda sem dono do servidor) ou por esta conta: é meu.
-    const comecadoAqui = evs.some((e) => e.eventType === EVENT.FIRST_HALF_STARTED && !e.undoneAt);
-    const quem = quemComecou(evs);
-    if (comecadoAqui && (!quem || quem === userId)) continue;
     lista.push({ match, team: porId.get(match.teamId), club: await clubs.get(match.clubId) });
   }
   return lista.sort((a, b) => (b.match.updatedAt || 0) - (a.match.updatedAt || 0));

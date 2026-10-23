@@ -262,6 +262,8 @@ test('dois aparelhos: quem acompanha chega ao mesmo estado de quem regista', asy
   assert.equal(noIntervalo.state.teamScore, 1, 'o golo desfeito não conta');
   const desfeitoNoServidor = servidor.tabelas.match_events.find((e) => e.client_event_id === engano.clientEventId);
   assert.ok(desfeitoNoServidor.undone_at, 'a marca de desfeito chegou ao servidor');
+  // A mesma conta noutro telemóvel (contas partilhadas no clube) também o vê.
+  assert.deepEqual((await jogosAoVivo()).map((j) => j.match.id), [jogo.id], 'a própria conta vê o jogo na lista');
 
   // ---- o outro aparelho: outra conta, base vazia.
   await limpar();
@@ -285,7 +287,7 @@ test('dois aparelhos: quem acompanha chega ao mesmo estado de quem regista', asy
   // os escalões a que se tem acesso, aqui com `ver`).
   await db.put(db.STORES.clubs, { id: aoAbrir.match.clubId, name: 'AMSAC', ownerId: QUEM_REGISTA });
   await db.put(db.STORES.teams, { id: aoAbrir.match.teamId, clubId: aoAbrir.match.clubId, name: 'Seniores', nivel: 'ver' });
-  const lista = await jogosAoVivo(QUEM_ACOMPANHA);
+  const lista = await jogosAoVivo();
   assert.deepEqual(lista.map((j) => j.match.id), [jogo.id], 'aparece em "Jogos ao vivo"');
 
   // Depois: linha a linha, como o Realtime as entrega (INSERT dos eventos
@@ -316,7 +318,7 @@ test('dois aparelhos: quem acompanha chega ao mesmo estado de quem regista', asy
   // Fim do jogo: deixa de estar ao vivo sozinho.
   await guardarDoRealtime('matches', { ...servidor.tabelas.matches[0], status: MATCH_STATUS.FINISHED });
   assert.equal(estaAoVivo((await loadMatch(jogo.id)).match), false);
-  assert.deepEqual(await jogosAoVivo(QUEM_ACOMPANHA), [], 'sai da lista');
+  assert.deepEqual(await jogosAoVivo(), [], 'sai da lista');
 });
 
 test('sem o interruptor, o jogo de outra conta continua a ser "o jogo em curso"', async () => {
@@ -348,5 +350,5 @@ test('um escalão sem o add-on não abre o ecrã de acompanhar nem lista nada', 
     status: MATCH_STATUS.FIRST_HALF_RUNNING,
   });
   assert.equal(await deveAssistir(await loadMatch(jogo.id), QUEM_ACOMPANHA), false);
-  assert.deepEqual(await jogosAoVivo(QUEM_ACOMPANHA), []);
+  assert.deepEqual(await jogosAoVivo(), []);
 });

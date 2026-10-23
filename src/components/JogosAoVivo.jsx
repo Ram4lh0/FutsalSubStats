@@ -33,7 +33,7 @@ export default function JogosAoVivo() {
       if (aCorrer) return;
       aCorrer = true;
       try {
-        const lista = await jogosAoVivo(userId);
+        const lista = await jogosAoVivo();
         if (vivo) setJogos(lista);
       } catch {
         /* fica a lista que já estava */
