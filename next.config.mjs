@@ -20,6 +20,10 @@ const nextConfig = {
   output: 'export',
   trailingSlash: true,
   images: { unoptimized: true },
+  // Só em `next dev`: abrir a app também por 127.0.0.1 dá um segundo
+  // "aparelho" no mesmo computador (outra origem, outra base local), que é
+  // como se testa o "Assistir ao vivo" com quem regista e quem acompanha.
+  allowedDevOrigins: ['127.0.0.1'],
 };
 
 export default nextConfig;
