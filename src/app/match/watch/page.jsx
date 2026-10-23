@@ -215,6 +215,44 @@ function Assistir() {
         </div>
       ) : null}
 
+      {state.startedAt ? (
+        <section className="card aovivo-trocas">
+          <h2 className="section section--tight">{t('aoVivo.substituicoes')}</h2>
+          {(state.substitutions || []).length ? (
+            <ol className="aovivo-trocas__lista">
+              {/* A mais recente em cima: é a que interessa a quem está no banco. */}
+              {[...state.substitutions].reverse().map((s) => {
+                const entra = state.players[s.playerInId];
+                const sai = s.playerOutId ? state.players[s.playerOutId] : null;
+                return (
+                  <li key={s.eventId}>
+                    <span className="aovivo-trocas__quando">
+                      <span className="mono">{fmt(s.matchElapsedMs)}</span>
+                      <span className="muted">{t('golos.parteCurta', { n: s.period })}</span>
+                    </span>
+                    <span className="aovivo-trocas__quem">
+                      <span className="aovivo-trocas__entra">
+                        <span aria-hidden="true">▲</span> {t('aoVivo.entrou')}: #{entra?.number} {entra?.name}
+                      </span>
+                      {sai ? (
+                        <span className="aovivo-trocas__sai">
+                          <span aria-hidden="true">▼</span> {t('aoVivo.saiu')}: #{sai.number} {sai.name}
+                        </span>
+                      ) : (
+                        <span className="muted">{t('aoVivo.repoeExpulsao')}</span>
+                      )}
+                    </span>
+                    <span className="aovivo-trocas__pos">{positionLabel(s.position)}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          ) : (
+            <p className="muted">{t('aoVivo.semSubstituicoes')}</p>
+          )}
+        </section>
+      ) : null}
+
       <h2 className="section">{t('resumo.golos')}</h2>
       <div className="card">
         <GoalsByHalf

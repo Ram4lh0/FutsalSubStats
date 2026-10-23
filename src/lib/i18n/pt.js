@@ -1843,4 +1843,9 @@ export default {
   "aoVivo.ligadoAviso": "Assistir ao vivo ligado: quem tem acesso ao escalão já pode acompanhar o jogo.",
   "aoVivo.desligadoAviso": "Assistir ao vivo desligado.",
   "aoVivo.desligadoPorQuemRegista": "Quem regista desligou o \"Assistir ao vivo\": o jogo deixou de atualizar aqui.",
+  "aoVivo.substituicoes": "Substituições",
+  "aoVivo.entrou": "Entrou",
+  "aoVivo.saiu": "Saiu",
+  "aoVivo.repoeExpulsao": "Entrou para repor uma expulsão",
+  "aoVivo.semSubstituicoes": "Ainda não houve substituições.",
 };

@@ -1837,4 +1837,9 @@ export default {
   "aoVivo.ligadoAviso": "Watch live is on: anyone with access to this team can now follow the match.",
   "aoVivo.desligadoAviso": "Watch live is off.",
   "aoVivo.desligadoPorQuemRegista": "The person recording turned off \"Watch live\": the match no longer updates here.",
+  "aoVivo.substituicoes": "Substitutions",
+  "aoVivo.entrou": "In",
+  "aoVivo.saiu": "Out",
+  "aoVivo.repoeExpulsao": "Came on after a sending-off",
+  "aoVivo.semSubstituicoes": "No substitutions yet.",
 };

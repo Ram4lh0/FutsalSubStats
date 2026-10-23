@@ -4044,3 +4044,22 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .aovivo-jogadores li.is-vazio .aovivo-jogadores__nome,
 .aovivo-jogadores li.is-expulso { color: var(--muted); }
 .aovivo-jogadores__tempo { color: var(--muted); font-size: 0.85rem; }
+
+/* As substituições, a mais recente em cima. */
+.aovivo-trocas { margin-top: 12px; }
+.aovivo-trocas__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.aovivo-trocas__lista li {
+  display: grid;
+  grid-template-columns: 4.5em 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--card-2);
+}
+.aovivo-trocas__quando { display: flex; flex-direction: column; font-size: 0.85rem; }
+.aovivo-trocas__quem { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.aovivo-trocas__quem > span { overflow-wrap: anywhere; }
+.aovivo-trocas__entra [aria-hidden] { color: var(--primary); }
+.aovivo-trocas__sai [aria-hidden] { color: var(--danger); }
+.aovivo-trocas__pos { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }

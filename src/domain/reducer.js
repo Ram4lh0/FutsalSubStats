@@ -313,6 +313,9 @@ export function buildMatchState(match, squad, events) {
     goals: [],
     cards: [],
     fouls: [],
+    // As entradas e saídas, por ordem: quem entrou, quem saiu (nulo quando
+    // entra alguém para repor uma expulsão), em que posição e quando.
+    substitutions: [],
     warnings: [],
     // 5v4: períodos de guarda-redes avançado e o interruptor manual (null =
     // segue o automatismo; true/false = o treinador decidiu).
@@ -585,6 +588,14 @@ function applyEvent(state, ev) {
       inn.status = PLAYER_MATCH_STATUS.ON_COURT;
       inn.position = pos;
       openStint(state, ev.playerInId, ev, pos);
+      state.substitutions.push({
+        eventId: ev.id,
+        period: ev.period ?? state.currentPeriod,
+        matchElapsedMs: ev.matchElapsedMs,
+        playerInId: ev.playerInId,
+        playerOutId: ev.playerOutId,
+        position: pos,
+      });
       break;
     }
 
@@ -656,6 +667,14 @@ function applyEvent(state, ev) {
       inn.status = PLAYER_MATCH_STATUS.ON_COURT;
       inn.position = pos;
       openStint(state, ev.playerInId, ev, pos);
+      state.substitutions.push({
+        eventId: ev.id,
+        period: ev.period ?? state.currentPeriod,
+        matchElapsedMs: ev.matchElapsedMs,
+        playerInId: ev.playerInId,
+        playerOutId: null,
+        position: pos,
+      });
       break;
     }
 
