@@ -1848,4 +1848,13 @@ export default {
   "aoVivo.saiu": "Saiu",
   "aoVivo.repoeExpulsao": "Entrou para repor uma expulsão",
   "aoVivo.semSubstituicoes": "Ainda não houve substituições.",
+  "definicoes.limparAparelho": "Limpar dados deste aparelho",
+  "definicoes.limparAparelhoTexto": "Se alguma coisa parecer errada, isto apaga a cópia guardada neste aparelho e volta a descarregar tudo do servidor. Não apaga nada da conta nem te faz sair.",
+  "definicoes.limparConfirma": "Apagar a cópia deste aparelho e voltar a descarregar tudo do servidor? Nada da conta é apagado.",
+  "definicoes.limparComFila": "Há {n} alterações que ainda não chegaram ao servidor e que se perdem se limpares agora. Limpar mesmo assim?",
+  "definicoes.limparBotao": "Limpar e descarregar",
+  "definicoes.aLimpar": "A limpar…",
+  "definicoes.limpo": "Aparelho limpo: os dados voltaram do servidor.",
+  "definicoes.limparFalhou": "Não foi possível limpar: {erro}",
+  "definicoes.limparSemRede": "Para limpar é preciso rede: os dados voltam do servidor logo a seguir.",
 };
