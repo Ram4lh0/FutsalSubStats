@@ -250,6 +250,26 @@ function Preparacao() {
         actions={<StatusBadge status={state.status} />}
       />
 
+      {/* Em cima, e não no fim: quem vem do assistente do jogo novo já traz a
+          convocatória feita e carrega logo em "Começar", sem descer. */}
+      {addons.has(ADDON_AO_VIVO) ? (
+        <section className="card">
+          <label className="aovivo-interruptor">
+            <span className="aovivo-interruptor__texto">
+              <strong>{t('aoVivo.interruptor')}</strong>
+              <span className="muted">{t('aoVivo.interruptorAjuda')}</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              className="interruptor"
+              checked={aoVivo}
+              onChange={(e) => alternarAoVivo(e.target.checked)}
+            />
+          </label>
+        </section>
+      ) : null}
+
       <details className="card collapse">
         <summary>{t('prep.dadosDoJogo')}</summary>
         <div className="form">
@@ -341,24 +361,6 @@ function Preparacao() {
         <h2 className="section section--tight">{t('prep.cincoInicial')}</h2>
         <CourtPicker candidates={candidatos} lineup={lineup} onChange={setLineup} />
       </section>
-
-      {addons.has(ADDON_AO_VIVO) ? (
-        <section className="card">
-          <label className="aovivo-interruptor">
-            <span className="aovivo-interruptor__texto">
-              <strong>{t('aoVivo.interruptor')}</strong>
-              <span className="muted">{t('aoVivo.interruptorAjuda')}</span>
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              className="interruptor"
-              checked={aoVivo}
-              onChange={(e) => alternarAoVivo(e.target.checked)}
-            />
-          </label>
-        </section>
-      ) : null}
 
       {/* Espaço para o último cartão não ficar debaixo da barra fixa. */}
       <div className="setup__spacer" />
