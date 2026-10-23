@@ -1842,4 +1842,13 @@ export default {
   "aoVivo.saiu": "Out",
   "aoVivo.repoeExpulsao": "Came on after a sending-off",
   "aoVivo.semSubstituicoes": "No substitutions yet.",
+  "definicoes.limparAparelho": "Clear data on this device",
+  "definicoes.limparAparelhoTexto": "If something looks wrong, this deletes the copy stored on this device and downloads everything again from the server. Nothing in your account is deleted and you stay signed in.",
+  "definicoes.limparConfirma": "Delete the copy on this device and download everything again from the server? Nothing in your account is deleted.",
+  "definicoes.limparComFila": "There are {n} changes that have not reached the server yet and will be lost if you clear now. Clear anyway?",
+  "definicoes.limparBotao": "Clear and download",
+  "definicoes.aLimpar": "Clearing…",
+  "definicoes.limpo": "Device cleared: your data came back from the server.",
+  "definicoes.limparFalhou": "Could not clear: {erro}",
+  "definicoes.limparSemRede": "You need a connection to clear: the data comes back from the server right after.",
 };

@@ -1843,4 +1843,13 @@ export default {
   "aoVivo.saiu": "Sale",
   "aoVivo.repoeExpulsao": "Entra tras una expulsión",
   "aoVivo.semSubstituicoes": "Todavía no ha habido cambios.",
+  "definicoes.limparAparelho": "Borrar los datos de este dispositivo",
+  "definicoes.limparAparelhoTexto": "Si algo parece mal, esto borra la copia guardada en este dispositivo y vuelve a descargarlo todo del servidor. No borra nada de la cuenta ni cierra la sesión.",
+  "definicoes.limparConfirma": "¿Borrar la copia de este dispositivo y volver a descargarlo todo del servidor? No se borra nada de la cuenta.",
+  "definicoes.limparComFila": "Hay {n} cambios que aún no han llegado al servidor y se perderán si borras ahora. ¿Borrar de todos modos?",
+  "definicoes.limparBotao": "Borrar y descargar",
+  "definicoes.aLimpar": "Borrando…",
+  "definicoes.limpo": "Dispositivo limpio: los datos han vuelto del servidor.",
+  "definicoes.limparFalhou": "No se ha podido borrar: {erro}",
+  "definicoes.limparSemRede": "Hace falta conexión para borrar: los datos vuelven del servidor justo después.",
 };

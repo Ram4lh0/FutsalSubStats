@@ -48,10 +48,20 @@ export default function useEnviarAoVivo({ ativo, carregado, userId, email }) {
     })();
   }, [ativo, carregado, userId, email]);
 
+  // A rede voltou, ou a app voltou ao primeiro plano (o ecrã apagou-se, ou
+  // foi-se ao WhatsApp): o que ficou por enviar segue logo, sem esperar pelo
+  // próximo toque no jogo.
   useEffect(() => {
     if (!ativo || !userId) return;
     const enviar = () => sync.saveNow(userId, email);
+    const aoVoltar = () => {
+      if (document.visibilityState === 'visible') enviar();
+    };
     window.addEventListener('online', enviar);
-    return () => window.removeEventListener('online', enviar);
+    document.addEventListener('visibilitychange', aoVoltar);
+    return () => {
+      window.removeEventListener('online', enviar);
+      document.removeEventListener('visibilitychange', aoVoltar);
+    };
   }, [ativo, userId, email]);
 }
