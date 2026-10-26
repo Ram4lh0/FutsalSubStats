@@ -2,7 +2,7 @@
 
 // Estatísticas do escalão — a aba de entrada, porque é o que se vem cá ver.
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import TeamShell from '@/components/TeamShell.jsx';
 import Pagina from '@/components/Pagina.jsx';
@@ -14,6 +14,8 @@ import { clubAggregate, powerPlayAggregate } from '@/domain/stats.js';
 import Destaques from '@/components/stats/Destaques.jsx';
 import { fmt } from '@/domain/clock.js';
 import { rotas } from '@/lib/routes.js';
+import { useUI } from '@/lib/ui.jsx';
+import { entregarFicheiro } from '@/lib/ficheiros.js';
 import { useT } from '@/lib/i18n/index.js';
 
 export default function TeamStatsPage() {
@@ -33,9 +35,11 @@ function Conteudo() {
   );
 }
 
-function Stats({ entries, roster, clubId, teamId }) {
+function Stats({ club, team, entries, roster, clubId, teamId }) {
   const router = useRouter();
   const t = useT();
+  const ui = useUI();
+  const [aGerarPdf, setAGerarPdf] = useState(false);
   const agg = useMemo(() => clubAggregate(entries, roster), [entries, roster]);
   const linhas = useMemo(
     () => Object.values(agg.perPlayer).sort((a, b) => b.courtMs - a.courtMs || a.number - b.number),
@@ -43,8 +47,38 @@ function Stats({ entries, roster, clubId, teamId }) {
   );
   const pp = useMemo(() => powerPlayAggregate(entries), [entries]);
 
+  /**
+   * O PDF desta aba: o resumo, os destaques, o 5v4 e a tabela inteira. O jsPDF
+   * só é carregado aqui, ao carregar no botão.
+   */
+  async function exportarPdf() {
+    if (aGerarPdf) return;
+    setAGerarPdf(true);
+    try {
+      const { gerarPdfEstatisticas, nomePdfEstatisticas } = await import('@/lib/pdf/relatorioEstatisticas.js');
+      const blob = await gerarPdfEstatisticas({ club, team, entries, roster });
+      const nome = nomePdfEstatisticas(team);
+      await entregarFicheiro(blob, nome, 'application/pdf', { titulo: nome });
+    } catch (e) {
+      ui.toast(t('pdf.falhou', { erro: e?.message || String(e) }), 'error');
+    } finally {
+      setAGerarPdf(false);
+    }
+  }
+
   return (
     <div className="tour-page-scope" data-tour="team-stats">
+      <div className="stats__acoes no-print">
+        <button
+          type="button"
+          className="btn btn--ghost btn--tiny"
+          onClick={exportarPdf}
+          disabled={aGerarPdf}
+          aria-busy={aGerarPdf}
+        >
+          {aGerarPdf ? t('pdf.aGerar') : t('painelv.exportarPdf')}
+        </button>
+      </div>
       <div className="grid grid--stats stats__resumo">
         <div className="stats__resumo-topo">
           <StatCard
