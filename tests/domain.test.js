@@ -27,7 +27,7 @@ import {
   canReplaceExpelled,
   PENALTY_STATUS,
 } from '../src/domain/penalties.js';
-import { validarEntradas, excessoEmCampo, metadataDosTempos, entradasDe } from '../src/domain/tempos.js';
+import { validarEntradas, excessoEmCampo, metadataDosTempos, entradasDe, ajustarAoTotal } from '../src/domain/tempos.js';
 import { buildMatchState as buildMatchState182 } from './fixtures/reducer-1.8.2/reducer.js';
 import {
   EVENT,
@@ -1643,4 +1643,38 @@ test('tempos: com décimas nos tempos registados, os minutos escritos ao segundo
   st = corrigir(ctx, 'p1', entradas);
   assert.equal(playerMatchStats(st.players.p1, st.elapsedMatchMs).courtMs, total, 'sem perder décimas');
   assert.equal(st.players.p1.stints[1].startPeriod, 2);
+});
+
+test('tempos, só o total: menos tempo encolhe as entradas na mesma proporção', () => {
+  const { ctx, st } = playFullMatch();
+  // p6: entrou aos 2' (2'–10') e jogou a 2.ª parte toda (10'–20') = 18'.
+  const antes = playerMatchStats(st.players.p6, st.elapsedMatchMs).courtMs;
+  assert.equal(antes, 18 * MIN);
+  const entradas = ajustarAoTotal(st, 'p6', 9 * MIN);
+  assert.equal(validarEntradas(st, entradas), null);
+  assert.deepEqual(entradas, [
+    { inicioMs: 2 * MIN, fimMs: 6 * MIN },
+    { inicioMs: 10 * MIN, fimMs: 15 * MIN },
+  ]);
+  const depois = corrigir(ctx, 'p6', entradas);
+  assert.equal(playerMatchStats(depois.players.p6, depois.elapsedMatchMs).courtMs, 9 * MIN);
+});
+
+test('tempos, só o total: mais tempo ocupa o espaço livre sem atravessar o intervalo', () => {
+  const { st } = playFullMatch();
+  // p3 (Carlos): 0'–2' na 1.ª parte e não jogou a 2.ª.
+  const entradas = ajustarAoTotal(st, 'p3', 14 * MIN);
+  assert.equal(validarEntradas(st, entradas), null);
+  assert.equal(entradas.reduce((t, e) => t + e.fimMs - e.inicioMs, 0), 14 * MIN);
+  assert.deepEqual(entradas[0], { inicioMs: 0, fimMs: 10 * MIN }, 'enche a 1.ª parte');
+  assert.deepEqual(entradas[1], { inicioMs: 10 * MIN, fimMs: 14 * MIN }, 'e abre uma entrada na 2.ª');
+});
+
+test('tempos, só o total: quem não jogou começa no início do jogo; zero tira tudo', () => {
+  const { st } = playFullMatch();
+  assert.deepEqual(ajustarAoTotal(st, 'p8', 3 * MIN), [{ inicioMs: 0, fimMs: 3 * MIN }]);
+  assert.deepEqual(ajustarAoTotal(st, 'p6', 0), []);
+  // Mais do que o jogo inteiro fica no jogo inteiro.
+  const tudo = ajustarAoTotal(st, 'p8', 99 * MIN);
+  assert.equal(tudo.reduce((t, e) => t + e.fimMs - e.inicioMs, 0), 20 * MIN);
 });
