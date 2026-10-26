@@ -27,6 +27,8 @@ import {
   canReplaceExpelled,
   PENALTY_STATUS,
 } from '../src/domain/penalties.js';
+import { validarEntradas, excessoEmCampo, metadataDosTempos, entradasDe } from '../src/domain/tempos.js';
+import { buildMatchState as buildMatchState182 } from './fixtures/reducer-1.8.2/reducer.js';
 import {
   EVENT,
   MATCH_STATUS,
@@ -1540,4 +1542,105 @@ test('GR expulso: um de campo passa para a baliza, sem 5v4', () => {
   assert.equal(st.court.FIXO, null);
   assert.equal(st.powerPlays.length, 0);
   assert.equal(powerPlayAtivo(st), false);
+});
+
+/* ------------------------------------------- tempos corrigidos a frio */
+
+
+function corrigir(ctx, playerId, entradas) {
+  return step(ctx, (s) => A.corrigirTempos(s, metadataDosTempos(playerId, entradas), T0 + 60 * MIN), T0 + 60 * MIN);
+}
+
+test('tempos: corrigir as entradas de um jogador muda os minutos dele, e só dele', () => {
+  const { ctx, st: antes } = playFullMatch();
+  assert.equal(antes.firstHalfMs, 10 * MIN);
+  const outros = playerMatchStats(antes.players.p2, antes.elapsedMatchMs).courtMs;
+
+  const st = corrigir(ctx, 'p6', [
+    { inicioMs: 3 * MIN, fimMs: 10 * MIN },
+    { inicioMs: 12 * MIN, fimMs: 18 * MIN },
+  ]);
+  const p6 = playerMatchStats(st.players.p6, st.elapsedMatchMs);
+  assert.equal(p6.courtMs, 13 * MIN);
+  assert.equal(p6.entries, 2);
+  assert.equal(st.players.p6.stints[1].startPeriod, 2, 'a 2.ª entrada é da 2.ª parte');
+  assert.equal(st.players.p6.stints[1].startPeriodMs, 2 * MIN);
+  assert.equal(st.players.p6.temposCorrigidos, true);
+  assert.equal(playerMatchStats(st.players.p2, st.elapsedMatchMs).courtMs, outros);
+  assert.equal(st.substitutions.length, antes.substitutions.length, 'as substituições não se mexem');
+});
+
+test('tempos: a última correção vale, e repor volta ao registado ao vivo', () => {
+  const { ctx, st: antes } = playFullMatch();
+  const original = playerMatchStats(antes.players.p6, antes.elapsedMatchMs).courtMs;
+  corrigir(ctx, 'p6', [{ inicioMs: 0, fimMs: 5 * MIN }]);
+  let st = corrigir(ctx, 'p6', [{ inicioMs: 0, fimMs: 7 * MIN }]);
+  assert.equal(playerMatchStats(st.players.p6, st.elapsedMatchMs).courtMs, 7 * MIN);
+  st = corrigir(ctx, 'p6', null);
+  assert.equal(playerMatchStats(st.players.p6, st.elapsedMatchMs).courtMs, original);
+  assert.ok(!st.players.p6.temposCorrigidos);
+});
+
+test('tempos: um jogador que não jogou pode ganhar uma entrada, e um que jogou pode ficar sem nenhuma', () => {
+  const { ctx } = playFullMatch();
+  corrigir(ctx, 'p8', [{ inicioMs: 15 * MIN, fimMs: 20 * MIN }]);
+  const st = corrigir(ctx, 'p5', []);
+  assert.equal(playerMatchStats(st.players.p8, st.elapsedMatchMs).courtMs, 5 * MIN);
+  assert.equal(playerMatchStats(st.players.p5, st.elapsedMatchMs).entries, 0);
+});
+
+test('tempos: validação — intervalo, sobreposição, fora do jogo, saída antes da entrada', () => {
+  const { st } = playFullMatch();
+  const v = (entradas) => validarEntradas(st, entradas)?.chave || null;
+  assert.equal(v([{ inicioMs: 0, fimMs: 10 * MIN }, { inicioMs: 10 * MIN, fimMs: 20 * MIN }]), null);
+  assert.equal(v([{ inicioMs: 8 * MIN, fimMs: 12 * MIN }]), 'tempos.erro.intervalo');
+  assert.equal(v([{ inicioMs: 0, fimMs: 5 * MIN }, { inicioMs: 4 * MIN, fimMs: 6 * MIN }]), 'tempos.erro.sobrepostas');
+  assert.equal(v([{ inicioMs: 15 * MIN, fimMs: 21 * MIN }]), 'tempos.erro.foraDoJogo');
+  assert.equal(v([{ inicioMs: 5 * MIN, fimMs: 5 * MIN }]), 'tempos.erro.fimAntes');
+  assert.equal(v([{ inicioMs: NaN, fimMs: 5 * MIN }]), 'tempos.erro.minuto');
+});
+
+test('tempos: avisa quando ficariam seis em campo, mas uma troca no mesmo instante não conta', () => {
+  const { st } = playFullMatch();
+  // O p8 nunca jogou: pô-lo em campo no início do jogo dá seis.
+  assert.equal(excessoEmCampo(st, 'p8', [{ inicioMs: 0, fimMs: 1 * MIN }]), 0);
+  // As entradas registadas do p6 (uma troca no próprio minuto) não dão aviso.
+  assert.equal(excessoEmCampo(st, 'p6', entradasDe(st, 'p6')), null);
+});
+
+test('tempos: só depois do apito, e as versões antigas ignoram a correção', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  const aDecorrer = step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  assert.equal(validarEntradas(aDecorrer, [{ inicioMs: 0, fimMs: 1000 }])?.chave, 'tempos.erro.porTerminar');
+
+  const { ctx: c2, st: antes } = playFullMatch();
+  corrigir(c2, 'p6', [{ inicioMs: 0, fimMs: 1 * MIN }]);
+  const antigo = buildMatchState182(match, c2.squad, c2.events);
+  assert.equal(
+    playerMatchStats(antigo.players.p6, antigo.elapsedMatchMs).courtMs,
+    playerMatchStats(antes.players.p6, antes.elapsedMatchMs).courtMs
+  );
+});
+
+test('tempos: com décimas nos tempos registados, os minutos escritos ao segundo encaixam', () => {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.finishFirstHalf(s, T0 + 10 * MIN + 400), T0 + 10 * MIN + 400);
+  const T1 = T0 + 15 * MIN;
+  step(ctx, (s) => A.setSecondHalfLineup(s, START, T1), T1);
+  step(ctx, (s) => A.startSecondHalf(s, T1), T1);
+  let st = step(ctx, (s) => A.finishMatch(s, T1 + 10 * MIN + 300), T1 + 10 * MIN + 300);
+  const total = st.elapsedMatchMs;
+  assert.equal(st.firstHalfMs, 10 * MIN + 400);
+
+  // Como o editor os mostra: 10:00 e 20:00, sem as décimas.
+  const entradas = [
+    { inicioMs: 0, fimMs: 10 * MIN },
+    { inicioMs: 10 * MIN, fimMs: 20 * MIN },
+  ];
+  assert.equal(validarEntradas(st, entradas), null, 'não atravessa o intervalo');
+  assert.equal(excessoEmCampo(st, 'p1', entradas), null);
+  st = corrigir(ctx, 'p1', entradas);
+  assert.equal(playerMatchStats(st.players.p1, st.elapsedMatchMs).courtMs, total, 'sem perder décimas');
+  assert.equal(st.players.p1.stints[1].startPeriod, 2);
 });

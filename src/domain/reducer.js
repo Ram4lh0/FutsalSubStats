@@ -294,6 +294,66 @@ function aplicarAjusteFim(state) {
 }
 
 /**
+ * Tempos corrigidos a frio (MATCH_CORRECTED com `tempos`, ver domain/tempos.js).
+ * Troca as entradas desse jogador pelas corrigidas, depois do ajuste do fim e
+ * cortadas por ele. A posição de cada entrada nova vem da entrada registada
+ * com que mais se sobrepõe, quando há.
+ */
+function aplicarAjusteTempos(state) {
+  if (state.status !== MATCH_STATUS.FINISHED) return;
+  const total = state.elapsedMatchMs || 0;
+  const primeira = state.firstHalfMs != null ? Math.min(state.firstHalfMs, total) : total;
+  // O editor escreve ao segundo (mm:ss); os limites reais têm milésimas. Uma
+  // entrada escrita no segundo do intervalo ou do fim encosta ao valor exato,
+  // para não se perderem nem ganharem décimas.
+  const seg = (ms) => Math.floor(ms / 1000) * 1000;
+  for (const [pid, entradas] of Object.entries(state.ajusteTempos)) {
+    const p = state.players[pid];
+    if (!p) continue;
+    const antigas = p.stints;
+    const sobreposicao = (st, ini, fim) =>
+      Math.max(0, Math.min(fim, st.endMatchMs ?? total) - Math.max(ini, st.startMatchMs));
+    p.stints = entradas
+      .map((e) => {
+        let ini = Math.max(0, Number(e.inicioMs));
+        let fim = Number(e.fimMs);
+        const segunda = primeira < total && ini >= seg(primeira);
+        if (segunda && ini < primeira) ini = primeira;
+        if (!segunda && primeira < total && fim >= seg(primeira) && fim <= primeira + 999) fim = primeira;
+        if (fim >= seg(total)) fim = total;
+        return { ini, fim: Math.min(total, fim), segunda };
+      })
+      .filter((e) => Number.isFinite(e.ini) && Number.isFinite(e.fim) && e.fim > e.ini)
+      .sort((a, b) => a.ini - b.ini)
+      .map((e, i) => {
+        const { segunda } = e;
+        const base = segunda ? primeira : 0;
+        const parecida = antigas
+          .map((st) => [st, sobreposicao(st, e.ini, e.fim)])
+          .filter(([, ms]) => ms > 0)
+          .sort((a, b) => b[1] - a[1])[0]?.[0];
+        return {
+          stintNumber: i + 1,
+          startEventId: null,
+          endEventId: null,
+          startPeriod: segunda ? 2 : 1,
+          endPeriod: segunda ? 2 : 1,
+          startMatchMs: e.ini,
+          endMatchMs: e.fim,
+          startPeriodMs: e.ini - base,
+          endPeriodMs: e.fim - base,
+          startWallMs: relogioDeParede(state, e.ini),
+          endWallMs: relogioDeParede(state, e.fim),
+          startingPosition: parecida?.startingPosition || null,
+          endingReason: STINT_END_REASON.CORRECTED,
+          corrigida: true,
+        };
+      });
+    p.temposCorrigidos = true;
+  }
+}
+
+/**
  * @param {object} match  linha da tabela matches (configuração estática)
  * @param {array}  squad  linhas de match_squad
  * @param {array}  events linhas de match_events (qualquer ordem; anulados incluídos)
@@ -343,6 +403,8 @@ export function buildMatchState(match, squad, events) {
     segmentos: [],
     ajusteFim: null,
     fimOriginalMs: null,
+    // Tempos corrigidos a frio, por jogador (ver domain/tempos.js).
+    ajusteTempos: {},
   };
 
   for (const row of squad) {
@@ -403,6 +465,7 @@ export function buildMatchState(match, squad, events) {
   }
 
   aplicarAjusteFim(state);
+  aplicarAjusteTempos(state);
 
   // O resultado ao intervalo é DERIVADO dos golos da 1.ª parte, não fotografado
   // no apito. Corrigir um golo a frio — acrescentar um que faltava, mudar o
@@ -904,6 +967,15 @@ function applyEvent(state, ev) {
           endMatchMs: Number(md.endMatchMs),
           endPeriodMs: md.endPeriodMs != null ? Number(md.endPeriodMs) : null,
         };
+      }
+      // Tempos de um jogador corrigidos depois do apito: guarda-se a lista, que
+      // se aplica no fim (`aplicarAjusteTempos`). A última correção vale.
+      if (md.tempos?.playerId && state.players[md.tempos.playerId]) {
+        if (Array.isArray(md.tempos.entradas)) {
+          state.ajusteTempos[md.tempos.playerId] = md.tempos.entradas;
+        } else {
+          delete state.ajusteTempos[md.tempos.playerId];
+        }
       }
       break;
     }
