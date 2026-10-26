@@ -236,6 +236,10 @@ export const matchCreated = (s, now) => makeEvent(s, EVENT.MATCH_CREATED, {}, no
 export const correction = (s, patch, now) =>
   makeEvent(s, EVENT.MATCH_CORRECTED, { metadata: patch }, now);
 
+/** Os tempos de um jogador corrigidos a frio (ver domain/tempos.js). */
+export const corrigirTempos = (s, metadataDosTempos, now) =>
+  makeEvent(s, EVENT.MATCH_CORRECTED, { metadata: metadataDosTempos }, now);
+
 export function undoEvent(s, target, now) {
   return makeEvent(
     s,

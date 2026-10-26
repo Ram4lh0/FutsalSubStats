@@ -20,6 +20,7 @@ import * as GE from '@/lib/goalEditing.jsx';
 import * as FIM from '@/lib/fimEditing.jsx';
 import * as FE from '@/lib/foulEditing.jsx';
 import * as RE from '@/lib/registoEditing.jsx';
+import { editarTempos } from '@/lib/temposEditing.jsx';
 import { clubs, teams, competitions, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { matchSummaryCsv, download, slug } from '@/lib/data/exporter.js';
@@ -183,6 +184,11 @@ function Resumo() {
       carregar();
   }
 
+  /** Os tempos de um jogador, corrigidos depois do apito (lib/temposEditing.jsx). */
+  async function corrigirTempos(playerId) {
+    if (await editarTempos(ui, { matchId, playerId, syncUser: { userId, email: user?.email } })) carregar();
+  }
+
   async function editarNotas() {
     const valor = await ui.open((close) => (
       <NotasDialog notas={match.notes || ''} onClose={() => close(null)} onSave={(v) => close(v)} />
@@ -288,9 +294,9 @@ function Resumo() {
               <Fragment key={p.periodo}>
                 {p.entradas.map((x) => (
                   <li key={x.stintNumber}>
-                    <strong>Entrada {x.stintNumber}</strong>
-                    {` — ${x.startPeriod}.ª parte — ${fmt(x.startMatchMs)} a ${
-                      x.open ? 'em curso' : fmt(x.endMatchMs)
+                    <strong>{t('dialogo.entrada', { n: x.stintNumber })}</strong>
+                    {` — ${t('tempos.parte', { n: x.startPeriod })} — ${fmt(x.startMatchMs)} – ${
+                      x.open ? t('tempos.emCurso') : fmt(x.endMatchMs)
                     } — `}
                     <span className="mono">{fmt(x.durationMs)}</span>
                     {x.startingPosition ? (
@@ -299,7 +305,7 @@ function Resumo() {
                   </li>
                 ))}
                 <li className="stintlist__total">
-                  <strong>Total {p.periodo}.ª parte:</strong>{' '}
+                  <strong>{t('tempos.totalParte', { n: p.periodo })}</strong>{' '}
                   <span className="mono">{fmt(p.totalMs)}</span>
                 </li>
               </Fragment>
@@ -308,6 +314,26 @@ function Resumo() {
         ) : (
           <p className="muted">{t('resumo.naoEntrou')}</p>
         )}
+        {state.players[s.playerId]?.temposCorrigidos ? (
+          <p className="muted small">{t('tempos.corrigidosNota')}</p>
+        ) : null}
+        {/* Só depois do apito: com o jogo a decorrer, os tempos ainda andam. */}
+        {state.status === MATCH_STATUS.FINISHED ? (
+          <footer className="modal__actions">
+            <button className="btn btn--ghost" onClick={() => close(null)}>
+              {t('comum.fechar')}
+            </button>
+            <button
+              className="btn btn--primary"
+              onClick={() => {
+                close(null);
+                corrigirTempos(s.playerId);
+              }}
+            >
+              {t('tempos.editar')}
+            </button>
+          </footer>
+        ) : null}
       </Dialog>
     ));
   }
@@ -571,7 +597,12 @@ function Resumo() {
               <td className="num mono">{s.foulsSuffered}</td>
               <td className="num mono">{s.yellows}</td>
               <td className="num mono">{s.reds}</td>
-              <td className="num mono">{fmt(s.courtMs)}</td>
+              <td className="num mono">
+                {fmt(s.courtMs)}
+                {state.players[s.playerId]?.temposCorrigidos ? (
+                  <span className="muted" title={t('tempos.corrigidosNota')}> *</span>
+                ) : null}
+              </td>
               <td className="num">{s.entries}</td>
               <td className="num mono">{s.goalShare}</td>
               <td className="num mono">{s.concededShare}</td>
@@ -579,6 +610,16 @@ function Resumo() {
                 <button className="btn btn--tiny btn--ghost" onClick={() => verPeriodos(s)}>
                   {t('resumo.verPeriodos')}
                 </button>
+                {state.status === MATCH_STATUS.FINISHED ? (
+                  <button
+                    className="btn btn--tiny btn--ghost"
+                    onClick={() => corrigirTempos(s.playerId)}
+                    title={t('tempos.editarDe', { nome: s.name })}
+                    aria-label={t('tempos.editarDe', { nome: s.name })}
+                  >
+                    {t('tempos.editarCurto')}
+                  </button>
+                ) : null}
               </td>
             </tr>
           ))}
