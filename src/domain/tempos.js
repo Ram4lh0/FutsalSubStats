@@ -111,6 +111,72 @@ export function excessoEmCampo(state, playerId, entradas) {
   return null;
 }
 
+/**
+ * "Só o total": quando não se sabem as trocas todas, diz-se só quanto tempo o
+ * jogador esteve em campo e as entradas ajustam-se a esse total. Devolve a
+ * lista de entradas, que se grava como qualquer outra correção — assim todo o
+ * resto (minutos, participações, época) continua a ler entradas.
+ *
+ *  - menos tempo: cada entrada encolhe na mesma proporção, a partir de onde
+ *    começou;
+ *  - mais tempo: cada entrada cresce para o espaço livre a seguir e depois
+ *    para trás, sem atravessar o intervalo nem pisar outra entrada; se ainda
+ *    sobrar, abre-se uma entrada no início de uma parte em que não jogou;
+ *  - sem entradas nenhumas: a partir do início do jogo.
+ *
+ * As participações em golos ficam aproximadas — não se sabe quando esteve em
+ * campo, só quanto.
+ */
+export function ajustarAoTotal(state, playerId, alvoMs) {
+  const { primeira, total } = limitesDasPartes(state);
+  const partes = primeira < total && primeira > 0 ? [[0, primeira], [primeira, total]] : [[0, total]];
+  const parteDoInstante = (ms) => partes.find(([a, b]) => ms >= a && ms < b) || partes[partes.length - 1];
+  const alvo = Math.max(0, Math.min(total, Math.round(alvoMs)));
+  if (!alvo) return [];
+
+  const atuais = entradasDe(state, playerId)
+    .map((e) => ({ inicioMs: e.inicioMs, fimMs: Math.min(e.fimMs, total) }))
+    .filter((e) => e.fimMs > e.inicioMs)
+    .sort((a, b) => a.inicioMs - b.inicioMs);
+  const soma = atuais.reduce((t, e) => t + (e.fimMs - e.inicioMs), 0);
+
+  if (atuais.length && alvo <= soma) {
+    const f = alvo / soma;
+    return atuais.map((e) => ({
+      inicioMs: e.inicioMs,
+      fimMs: Math.round(e.inicioMs + (e.fimMs - e.inicioMs) * f),
+    }));
+  }
+
+  const out = atuais.map((e) => ({ ...e }));
+  let resto = alvo - soma;
+  // Para a frente: até à entrada seguinte ou ao fim da parte.
+  for (let i = 0; i < out.length && resto > 0; i++) {
+    const [, fimParte] = parteDoInstante(out[i].inicioMs);
+    const limite = Math.min(fimParte, out[i + 1]?.inicioMs ?? Infinity);
+    const mais = Math.max(0, Math.min(resto, limite - out[i].fimMs));
+    out[i].fimMs += mais;
+    resto -= mais;
+  }
+  // Para trás: até à entrada anterior ou ao início da parte.
+  for (let i = out.length - 1; i >= 0 && resto > 0; i--) {
+    const [iniParte] = parteDoInstante(out[i].inicioMs);
+    const limite = Math.max(iniParte, out[i - 1]?.fimMs ?? -Infinity);
+    const mais = Math.max(0, Math.min(resto, out[i].inicioMs - limite));
+    out[i].inicioMs -= mais;
+    resto -= mais;
+  }
+  // Partes em que não jogou: uma entrada a partir do início.
+  for (const [a, b] of partes) {
+    if (resto <= 0) break;
+    if (out.some((e) => e.inicioMs >= a && e.inicioMs < b)) continue;
+    const d = Math.min(resto, b - a);
+    out.push({ inicioMs: a, fimMs: a + d });
+    resto -= d;
+  }
+  return out.sort((x, y) => x.inicioMs - y.inicioMs);
+}
+
 /** O `metadata` da correção. `entradas: null` repõe o registado ao vivo. */
 export function metadataDosTempos(playerId, entradas) {
   return {

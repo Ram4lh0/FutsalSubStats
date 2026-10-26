@@ -1087,6 +1087,13 @@ export default {
   'tempos.erro.foraDoJogo': "El partido solo duró {maximo}.",
   'tempos.erro.intervalo': "Una entrada no puede cruzar el descanso ({intervalo}): divídela en dos.",
   'tempos.erro.sobrepostas': "Hay entradas superpuestas.",
+  'tempos.modoEntradas': "Entradas y salidas",
+  'tempos.modoTotal': "Solo el total",
+  'tempos.explicacaoTotal': "¿No sabes todos los cambios? Escribe solo cuánto tiempo estuvo en pista (el partido duró {fim}).",
+  'tempos.totalEmCampo': "Tiempo total en pista",
+  'tempos.registadoAoVivo': "Registrado durante el partido: {tempo}",
+  'tempos.ficaCom': "Queda:",
+  'tempos.aproximado': "Las entradas registradas se estiran o encogen hasta ese total, así que las participaciones en goles de este jugador quedan aproximadas.",
   'acao.amareloPara': 'Amarilla para {nome}.',
   'acao.confirmaSegundoAmareloAdv':
     'Segunda amarilla del rival #{numero}. Cuenta como una expulsión del rival.',

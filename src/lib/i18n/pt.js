@@ -1090,6 +1090,13 @@ export default {
   'tempos.erro.foraDoJogo': "O jogo só tem {maximo}.",
   'tempos.erro.intervalo': "Uma entrada não atravessa o intervalo ({intervalo}): parte-a em duas.",
   'tempos.erro.sobrepostas': "Há entradas sobrepostas.",
+  'tempos.modoEntradas': "Entradas e saídas",
+  'tempos.modoTotal': "Só o total",
+  'tempos.explicacaoTotal': "Não sabes as trocas todas? Escreve só quanto tempo esteve em campo (o jogo teve {fim}).",
+  'tempos.totalEmCampo': "Tempo total em campo",
+  'tempos.registadoAoVivo': "Registado durante o jogo: {tempo}",
+  'tempos.ficaCom': "Fica com:",
+  'tempos.aproximado': "As entradas registadas esticam ou encolhem até esse total, por isso as participações em golos deste jogador ficam aproximadas.",
   'acao.amareloPara': 'Amarelo para {nome}.',
   'acao.confirmaSegundoAmareloAdv':
     'Segundo amarelo do adversário #{numero}. Conta como uma expulsão do adversário.',

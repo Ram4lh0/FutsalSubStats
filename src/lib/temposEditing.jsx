@@ -7,6 +7,10 @@
 // tira-se uma que não existiu, acerta-se um minuto. Grava a lista inteira num
 // `MATCH_CORRECTED` (ver domain/tempos.js); as substituições registadas ao
 // vivo ficam como estão.
+//
+// Quem não sabe as trocas todas escolhe "Só o total": escreve quanto tempo o
+// jogador esteve em campo e as entradas ajustam-se a esse total
+// (`ajustarAoTotal`).
 
 import { useState } from 'react';
 import { Dialog } from './ui.jsx';
@@ -15,6 +19,7 @@ import * as sync from './data/sync.js';
 import * as A from '@/domain/actions.js';
 import { fmt } from '@/domain/clock.js';
 import {
+  ajustarAoTotal,
   entradasDe,
   excessoEmCampo,
   limitesDasPartes,
@@ -44,15 +49,32 @@ function entradaNova(state, linhas) {
   return { inicio: fmt(inicio), fim: fmt(Math.min(total, inicio + 60000)) };
 }
 
+const soma = (lista) => lista.reduce((a, e) => a + (e.fimMs - e.inicioMs), 0);
+
 function TemposDialog({ state, jogador, onClose, onSave, onRepor }) {
+  const registadas = entradasDe(state, jogador.playerId);
+  const [modo, setModo] = useState('entradas');
   const [linhas, setLinhas] = useState(() =>
-    entradasDe(state, jogador.playerId).map((e) => ({ inicio: fmt(e.inicioMs), fim: fmt(e.fimMs) }))
+    registadas.map((e) => ({ inicio: fmt(e.inicioMs), fim: fmt(e.fimMs) }))
   );
-  const entradas = linhas.map((l) => ({ inicioMs: parseClock(l.inicio, NaN), fimMs: parseClock(l.fim, NaN) }));
-  const erro = validarEntradas(state, entradas);
-  const excesso = erro ? null : excessoEmCampo(state, jogador.playerId, entradas);
-  const totalMs = erro ? null : entradas.reduce((a, e) => a + (e.fimMs - e.inicioMs), 0);
+  const [totalTexto, setTotalTexto] = useState(() => fmt(soma(registadas)));
   const { primeira, total } = limitesDasPartes(state);
+
+  // Modo entradas: a lista escrita à mão.
+  const escritas = linhas.map((l) => ({ inicioMs: parseClock(l.inicio, NaN), fimMs: parseClock(l.fim, NaN) }));
+  // Modo total: as entradas registadas, esticadas ou encolhidas até ao total.
+  const alvo = parseClock(totalTexto, NaN);
+  const erroTotal = !Number.isFinite(alvo)
+    ? { chave: 'tempos.erro.minuto' }
+    : alvo > total
+      ? { chave: 'tempos.erro.foraDoJogo', valores: { maximo: total } }
+      : null;
+  const ajustadas = modo === 'total' && !erroTotal ? ajustarAoTotal(state, jogador.playerId, alvo) : [];
+
+  const entradas = modo === 'total' ? ajustadas : escritas;
+  const erro = modo === 'total' ? erroTotal : validarEntradas(state, escritas);
+  const excesso = erro ? null : excessoEmCampo(state, jogador.playerId, entradas);
+  const totalMs = erro ? null : soma(entradas);
 
   const mudar = (i, campo, valor) =>
     setLinhas((atuais) => atuais.map((l, j) => (j === i ? { ...l, [campo]: valor } : l)));
@@ -60,6 +82,51 @@ function TemposDialog({ state, jogador, onClose, onSave, onRepor }) {
   return (
     <Dialog title={t('tempos.titulo', { numero: jogador.number, nome: jogador.name })} onClose={onClose} wide>
       <div className="form">
+        <div className="tempos__modos" role="tablist">
+          {[
+            ['entradas', t('tempos.modoEntradas')],
+            ['total', t('tempos.modoTotal')],
+          ].map(([id, rotulo]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={modo === id}
+              className={`chip ${modo === id ? 'is-on' : ''}`.trim()}
+              onClick={() => setModo(id)}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+
+        {modo === 'total' ? (
+          <>
+            <p className="muted small">{t('tempos.explicacaoTotal', { fim: fmt(total) })}</p>
+            <label className="field">
+              <span className="field__label">{t('tempos.totalEmCampo')}</span>
+              <input
+                className="input input--time tempos__totalInput"
+                value={totalTexto}
+                inputMode="numeric"
+                placeholder="mm:ss"
+                autoFocus
+                onChange={(e) => setTotalTexto(e.target.value)}
+              />
+              <span className="field__hint">{t('tempos.registadoAoVivo', { tempo: fmt(soma(registadas)) })}</span>
+            </label>
+            {ajustadas.length ? (
+              <p className="field__hint">
+                {t('tempos.ficaCom')}{' '}
+                {ajustadas
+                  .map((e) => `${fmt(e.inicioMs)}–${fmt(e.fimMs)} (${t('tempos.parte', { n: parteDe(state, e.inicioMs) })})`)
+                  .join(' · ')}
+              </p>
+            ) : null}
+            <p className="muted small">{t('tempos.aproximado')}</p>
+          </>
+        ) : (
+          <>
         <p className="muted small">
           {t('tempos.explicacao', { intervalo: fmt(primeira), fim: fmt(total) })}
         </p>
@@ -126,6 +193,8 @@ function TemposDialog({ state, jogador, onClose, onSave, onRepor }) {
         >
           + {t('tempos.acrescentar')}
         </button>
+          </>
+        )}
 
         <p className="tempos__total">
           {t('ficha.emCampo')}: <strong className="mono">{totalMs == null ? '—' : fmt(totalMs)}</strong>

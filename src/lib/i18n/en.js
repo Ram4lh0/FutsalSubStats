@@ -1087,6 +1087,13 @@ export default {
   'tempos.erro.foraDoJogo': "The game only lasted {maximo}.",
   'tempos.erro.intervalo': "A stint cannot cross half-time ({intervalo}): split it in two.",
   'tempos.erro.sobrepostas': "Some stints overlap.",
+  'tempos.modoEntradas': "On and off",
+  'tempos.modoTotal': "Total only",
+  'tempos.explicacaoTotal': "Don't know every substitution? Just write how long they were on court (the game lasted {fim}).",
+  'tempos.totalEmCampo': "Total time on court",
+  'tempos.registadoAoVivo': "Recorded during the game: {tempo}",
+  'tempos.ficaCom': "Becomes:",
+  'tempos.aproximado': "The recorded stints stretch or shrink to that total, so this player's goal involvements become approximate.",
   'acao.amareloPara': 'Yellow for {nome}.',
   'acao.confirmaSegundoAmareloAdv':
     'Second yellow for opponent #{numero}. Counts as an opponent sending-off.',

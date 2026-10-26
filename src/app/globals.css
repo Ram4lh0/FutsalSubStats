@@ -2489,6 +2489,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .tempos__dur { align-self: center; text-align: right; font-size: 0.9rem; }
 .tempos__tirar { min-height: 40px; min-width: 40px; align-self: center; }
 .tempos__total { margin: 4px 0 0; text-align: right; }
+.tempos__modos { display: flex; gap: 8px; flex-wrap: wrap; }
+.tempos__totalInput { max-width: 140px; font-size: 1.2rem; }
 @media (max-width: 560px) {
   .tempos__linha { grid-template-columns: 1fr 1fr 40px; }
   .tempos__rot { grid-column: 1 / -1; }
