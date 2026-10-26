@@ -85,7 +85,7 @@ test('o catálogo do painel põe os registos primeiro, no seu grupo', () => {
   const itens = catalogoDeAddons(CATALOGO);
   assert.deepEqual(
     itens.filter((i) => i.campo === 'registos').map((i) => i.id),
-    ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao']
+    ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv']
   );
   assert.ok(itens.filter((i) => i.campo === 'registos').every((i) => i.grupo === 'registos'));
   assert.deepEqual(

@@ -276,6 +276,53 @@ export function estatisticasPresencas({ treinos, presencas, de = null, ate }) {
   };
 }
 
+/**
+ * Os treinos que contam num período, do mais antigo para o mais recente — as
+ * colunas da grelha de presenças que se exporta (Excel, PDF). São os mesmos
+ * que `estatisticasPresencas` conta, para a grelha e os totais baterem certo.
+ *
+ * @returns {Array<{treino: object, presencas: Map<string, string>}>}
+ *          `presencas`: playerId → estado
+ */
+export function treinosContados({ treinos, presencas, de = null, ate }) {
+  const porTreino = new Map();
+  for (const p of presencas) {
+    if (!porTreino.has(p.sessionId)) porTreino.set(p.sessionId, []);
+    porTreino.get(p.sessionId).push(p);
+  }
+  return treinos
+    .filter((t) => (!de || t.date >= de) && contaParaEstatistica(t, porTreino.get(t.id) || [], ate))
+    .sort((a, b) => a.date.localeCompare(b.date) || String(a.startTime || '').localeCompare(String(b.startTime || '')))
+    .map((t) => ({
+      treino: t,
+      presencas: new Map((porTreino.get(t.id) || []).map((p) => [p.playerId, p.status])),
+    }));
+}
+
+/**
+ * As linhas da tabela de assiduidade, por jogador e pela ordem escolhida no
+ * ecrã. Fica aqui, e não no componente, para a exportação sair pela mesma
+ * ordem que a tabela que se está a ver.
+ *
+ * Entra quem tem registos no período e quem está ativo no plantel (com zero).
+ *
+ * @param {Array} jogadores o plantel
+ * @param {Map<string, object>} porJogador de `estatisticasPresencas`
+ * @param {'assiduidade'|'faltas'|'numero'} ordem
+ * @returns {Array<{jogador: object, s: object|undefined}>}
+ */
+export function linhasDePresenca(jogadores, porJogador, ordem = 'assiduidade') {
+  const lista = jogadores
+    .map((j) => ({ jogador: j, s: porJogador.get(j.id) }))
+    .filter((l) => l.s || l.jogador.isActive !== false);
+  const valor = (l) => {
+    if (ordem === 'numero') return Number(l.jogador.shirtNumber) || 999;
+    if (ordem === 'faltas') return -(l.s?.[PRESENCA.FALTA_INJUSTIFICADA] || 0);
+    return l.s?.assiduidade ?? 101;
+  };
+  return lista.sort((a, b) => valor(a) - valor(b) || (a.jogador.name || '').localeCompare(b.jogador.name || ''));
+}
+
 /** Os períodos da aba: época, últimos 30, 14 e 7 dias. */
 export function periodosDePresenca(hoje) {
   return {

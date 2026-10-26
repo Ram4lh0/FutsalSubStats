@@ -38,12 +38,14 @@ function Conteudo() {
   const { clubId, teamId } = useRouteParams();
   return (
     <TeamShell clubId={clubId} teamId={teamId}>
-      {(dados) => <Calendarios clubId={clubId} teamId={teamId} roster={dados.roster} />}
+      {(dados) => (
+        <Calendarios clubId={clubId} teamId={teamId} roster={dados.roster} club={dados.club} team={dados.team} />
+      )}
     </TeamShell>
   );
 }
 
-function Calendarios({ clubId, teamId, roster }) {
+function Calendarios({ clubId, teamId, roster, club, team }) {
   const t = useT();
   const locale = useLocale();
   const router = useRouter();
@@ -179,7 +181,14 @@ function Calendarios({ clubId, teamId, roster }) {
         </div>
       </div>
 
-      <EstatisticasPresencas treinos={dados.treinos} presencas={dados.presencas} jogadores={roster} hoje={hoje} />
+      <EstatisticasPresencas
+        treinos={dados.treinos}
+        presencas={dados.presencas}
+        jogadores={roster}
+        hoje={hoje}
+        club={club}
+        team={team}
+      />
     </>
   );
 }

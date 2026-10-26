@@ -67,6 +67,16 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
     ...(reg?.tipos.has(REGISTO.CANTO)
       ? [[t('registos.csv.cantos'), `${reg.cantos.US}-${reg.cantos.THEM}`]]
       : []),
+    ...(reg?.tipos.has(REGISTO.REMATE_ADV)
+      ? [
+          [t('registos.total.remate_adv'), reg.rematesAdv],
+          [t('registos.csv.rematesAdvBaliza'), reg.rematesAdvBaliza],
+          ...Object.entries(reg.porResultadoAdv).map(([o, n]) => [
+            `${t('registos.total.remate_adv')} · ${t(`registos.resultadoAdv.${o}`)}`,
+            n,
+          ]),
+        ]
+      : []),
     ...pp.periodos.map((x) => [
       t('csv.periodo5v4', { n: x.numero }),
       t('csv.detalhe5v4', {

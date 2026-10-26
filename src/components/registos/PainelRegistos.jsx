@@ -14,6 +14,7 @@ import { CampoSvg } from './CampoToque.jsx';
 import {
   COR_REGISTO,
   COR_RESULTADO,
+  COR_RESULTADO_ADV,
   REGISTO,
   RESULTADO_REMATE,
   marcadores,
@@ -23,7 +24,7 @@ import { fmt } from '@/domain/clock.js';
 import { t } from '@/lib/i18n/index.js';
 
 /** Os registos com ponto no campo, pela ordem dos filtros do mapa. */
-const NO_MAPA = [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA];
+const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA];
 
 export default function PainelRegistos({ state, ourName, opponentName, now }) {
   const r = resumoRegistos(state, now);
@@ -50,6 +51,13 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
             rotulo={t('registos.total.remate')}
             valor={r.remates}
             extra={t('registos.aBalizaDe', { n: r.rematesBaliza, total: r.remates })}
+          />
+        ) : null}
+        {tem(REGISTO.REMATE_ADV) ? (
+          <Total
+            rotulo={t('registos.total.remate_adv')}
+            valor={r.rematesAdv}
+            extra={t('registos.aBalizaDe', { n: r.rematesAdvBaliza, total: r.rematesAdv })}
           />
         ) : null}
         {tem(REGISTO.RECUPERACAO) ? (
@@ -107,7 +115,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
           <div className="regpainel__mapa">
             <CampoSvg markers={marcas} />
           </div>
-          <Legenda filtro={filtro} />
+          <Legenda filtro={filtro} r={r} />
         </>
       ) : null}
 
@@ -191,9 +199,22 @@ function Total({ rotulo, valor, extra = null }) {
   );
 }
 
-function Legenda({ filtro }) {
+function Legenda({ filtro, r }) {
   // Nos remates as cores já estão nos contadores de cima.
   if (!filtro || filtro === REGISTO.REMATE) return null;
+  // Nos do adversário, o mesmo código de cores, com as contagens deles.
+  if (filtro === REGISTO.REMATE_ADV) {
+    return (
+      <div className="regpainel__legenda">
+        {Object.values(RESULTADO_REMATE).map((o) => (
+          <span key={o} className="regpainel__item regpainel__item--anel" style={{ '--cor': COR_RESULTADO_ADV[o] }}>
+            <span className="regzona__bola" /> {t(`registos.resultadoAdv.${o}`)}{' '}
+            <strong>{r?.porResultadoAdv?.[o] ?? 0}</strong>
+          </span>
+        ))}
+      </div>
+    );
+  }
   const itens =
     filtro === REGISTO.FORA
       ? [

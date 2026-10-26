@@ -99,8 +99,9 @@ export function registoLabel(r, jogadores = null) {
   ];
   const jogador = r.playerId ? jogadores?.[r.playerId] : null;
   if (jogador) partes.push(`#${jogador.number}`);
-  else if (CATALOGO[r.registo].por === 'equipa') partes.push(t(`registos.aFavor.${r.equipa === 'THEM' ? 'THEM' : 'US'}`));
-  if (r.resultado && r.registo !== 'acao') partes.push(t(`registos.resultado.${r.resultado}`));
+  else if (CATALOGO[r.registo].por === 'equipa' && !CATALOGO[r.registo].soAdversario) partes.push(t(`registos.aFavor.${r.equipa === 'THEM' ? 'THEM' : 'US'}`));
+  if (r.resultado && r.registo === 'remate_adv') partes.push(t(`registos.resultadoAdv.${r.resultado}`));
+  else if (r.resultado && r.registo !== 'acao') partes.push(t(`registos.resultado.${r.resultado}`));
   return partes.join(' · ');
 }
 

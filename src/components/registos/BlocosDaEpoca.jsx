@@ -20,10 +20,12 @@ import {
   recuperacoesPorJogador,
   registosDaEpoca,
   rematesPorJogo,
+  rematesAdvPorJogo,
+  rematesAdvDaEpoca,
 } from '@/domain/dashboard.js';
 import { useT } from '@/lib/i18n/index.js';
 
-const NO_MAPA = [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA];
+const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA];
 
 export default function BlocosDaEpoca({ entries, Bloco }) {
   const t = useT();
@@ -31,6 +33,8 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
   const remates = useMemo(() => rematesPorJogo(entries), [entries]);
   const efi = useMemo(() => eficacia(entries), [entries]);
   const recup = useMemo(() => recuperacoesPorJogador(entries), [entries]);
+  const rematesAdv = useMemo(() => rematesAdvPorJogo(entries), [entries]);
+  const adv = useMemo(() => rematesAdvDaEpoca(entries), [entries]);
   const filtros = NO_MAPA.filter((id) => tipos.has(id));
   const [escolhido, setFiltro] = useState(null);
   const filtro = filtros.includes(escolhido) ? escolhido : filtros[0] || null;
@@ -61,6 +65,35 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
           </div>
           <BarrasH
             linhas={remates.map((j) => ({
+              rotulo: j.adversario,
+              valor: j.remates,
+              texto: t('registos.epoca.rematesDoJogo', { n: j.remates, baliza: j.aBaliza }),
+            }))}
+          />
+        </Bloco>
+      ) : null}
+
+      {tipos.has(REGISTO.REMATE_ADV) ? (
+        <Bloco titulo={t('registos.epoca.rematesAdv')}>
+          <div className="grid grid--stats">
+            <StatCard
+              label={t('registos.epoca.rematesAdvPorJogo')}
+              value={adv.rematesPorJogo.toFixed(1)}
+              hint={t('painelv.emJogos', { n: adv.jogos })}
+            />
+            <StatCard
+              label={t('registos.col.aBaliza')}
+              value={adv.aBaliza}
+              hint={t('registos.aBalizaDe', { n: adv.aBaliza, total: adv.remates })}
+            />
+            <StatCard
+              label={t('registos.epoca.defesaGR')}
+              value={adv.percentagemDefesa == null ? '—' : `${adv.percentagemDefesa}%`}
+              hint={t('registos.epoca.defesaGRDetalhe', { defendidos: adv.defendidos, aBaliza: adv.aBaliza })}
+            />
+          </div>
+          <BarrasH
+            linhas={rematesAdv.map((j) => ({
               rotulo: j.adversario,
               valor: j.remates,
               texto: t('registos.epoca.rematesDoJogo', { n: j.remates, baliza: j.aBaliza }),

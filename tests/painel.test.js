@@ -431,10 +431,10 @@ test('uma conta que não existe dá uma mensagem clara', async () => {
 
 /* ------------------------------------------- registos extra por escalão */
 
-test('o catálogo do painel tem os seis registos da fase 1', () => {
+test('o catálogo do painel tem os registos todos (fase 1 e remates do adversário)', () => {
   assert.deepEqual(
     catalogoDoPainel().map((r) => r.id),
-    ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao']
+    ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv']
   );
 });
 
@@ -565,5 +565,5 @@ test('os registos do clube vêm por escalão activo', async () => {
     r.escaloes.map((e) => [e.teamId, e.registos]),
     [['t-1', []], ['t-2', ['fora', 'canto']]]
   );
-  assert.equal(r.catalogo.length, 6);
+  assert.equal(r.catalogo.length, 7);
 });

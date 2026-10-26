@@ -16,7 +16,14 @@ import { events, loadMatch } from './data/repository.js';
 import * as sync from './data/sync.js';
 import * as A from '@/domain/actions.js';
 import { fmt } from '@/domain/clock.js';
-import { CATALOGO, COR_RESULTADO, RESULTADO_REMATE, corDoRegisto, corrigirRegisto } from '@/domain/registos.js';
+import {
+  CATALOGO,
+  COR_RESULTADO,
+  COR_RESULTADO_ADV,
+  RESULTADO_REMATE,
+  corDoRegisto,
+  corrigirRegisto,
+} from '@/domain/registos.js';
 import { CampoSvg } from '@/components/registos/CampoToque.jsx';
 import { parseClock } from './goalEditing.jsx';
 import { erroDoMinuto, periodoDoMinuto } from './foulEditing.jsx';
@@ -27,7 +34,7 @@ import { t } from '@/lib/i18n/index.js';
 function resultadosPossiveis(registo) {
   const def = CATALOGO[registo.registo];
   if (!def?.resultados) return [];
-  if (registo.registo !== 'remate') return def.resultados;
+  if (registo.registo !== 'remate' && registo.registo !== 'remate_adv') return def.resultados;
   if (registo.resultado === RESULTADO_REMATE.GOLO) return [RESULTADO_REMATE.GOLO];
   return def.resultados.filter((r) => r !== RESULTADO_REMATE.GOLO);
 }
@@ -46,6 +53,7 @@ function RegistoDialog({ state, registo, ourName, opponentName, onClose, onSave,
   const erro = minuto.trim() ? erroDoMinuto(state, ms) : 'faltas.minutoInvalido';
   const valido = Number.isFinite(ms) && !erro && (def.por !== 'jogador' || jogador);
   const resultados = resultadosPossiveis(registo);
+  const cores = def.soAdversario ? COR_RESULTADO_ADV : COR_RESULTADO;
   const todos = Object.values(state.players).sort((a, b) => a.number - b.number);
   const marca = ponto
     ? [{ ...registo, id: 'atual', x: ponto.x, y: ponto.y, cor: corDoRegisto({ ...registo, equipa, resultado }) }]
@@ -65,7 +73,7 @@ function RegistoDialog({ state, registo, ourName, opponentName, onClose, onSave,
               ))}
             </select>
           </label>
-        ) : (
+        ) : def.soAdversario ? null : (
           <label className="field">
             <span className="field__label">{t('registos.aFavorDe')}</span>
             <select className="input" value={equipa} onChange={(e) => setEquipa(e.target.value)}>
@@ -84,11 +92,11 @@ function RegistoDialog({ state, registo, ourName, opponentName, onClose, onSave,
                   key={r}
                   type="button"
                   className={`regzona__opcao ${resultado === r ? 'is-on' : ''}`}
-                  style={COR_RESULTADO[r] ? { '--cor': COR_RESULTADO[r] } : undefined}
+                  style={cores[r] ? { '--cor': cores[r] } : undefined}
                   onClick={() => setResultado(r)}
                 >
-                  {COR_RESULTADO[r] ? <span className="regzona__bola" /> : null}
-                  {t(`registos.resultado.${r}`)}
+                  {cores[r] ? <span className="regzona__bola" /> : null}
+                  {t(`registos.${def.soAdversario ? 'resultadoAdv' : 'resultado'}.${r}`)}
                 </button>
               ))}
             </div>

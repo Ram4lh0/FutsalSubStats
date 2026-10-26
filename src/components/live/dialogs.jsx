@@ -7,7 +7,7 @@
 // pedaços ligados por callbacks.
 
 import { Dialog } from '@/lib/ui.jsx';
-import { POSITIONS, PLAYER_MATCH_STATUS, GOAL_TYPES } from '@/domain/constants.js';
+import { POSITIONS, PLAYER_MATCH_STATUS, GOAL_TYPES, normalizePosition } from '@/domain/constants.js';
 import { fmt } from '@/domain/clock.js';
 import { playerMatchStats } from '@/domain/stats.js';
 import { positionLabel } from '@/lib/format.js';
@@ -87,6 +87,67 @@ export function pickReplacement(ui, state, position) {
       </div>
     </Dialog>
   ));
+}
+
+/**
+ * O guarda-redes foi expulso (ou a baliza ficou vazia com uma sanção a
+ * correr): quem vai para a baliza? Pela regra a equipa fica com quatro, mas
+ * um deles tem de ser guarda-redes — o lugar que fica vazio é o de um jogador
+ * de campo, não a baliza.
+ *
+ * Duas maneiras: entra alguém do banco (normalmente o GR suplente) e sai um
+ * de campo para lhe dar o lugar, ou um dos que estão em campo passa para a
+ * baliza. Os guarda-redes de posição aparecem primeiro, marcados.
+ *
+ * @returns {Promise<{ origem: 'banco'|'campo', playerId: string } | null>}
+ */
+export function pickNovoGuardaRedes(ui, state, title) {
+  const eGR = (p) => normalizePosition(p.preferredPosition) === 'GOALKEEPER';
+  const ordem = (a, b) => Number(eGR(b)) - Number(eGR(a)) || a.number - b.number;
+  const banco = Object.values(state.players)
+    .filter((p) => p.status === PLAYER_MATCH_STATUS.ON_BENCH)
+    .sort(ordem);
+  const campo = Object.values(state.players)
+    .filter((p) => p.status === PLAYER_MATCH_STATUS.ON_COURT && p.position !== 'GOALKEEPER')
+    .sort(ordem);
+
+  const linha = (p, origem, close) => (
+    <button key={p.playerId} className="picklist__item" onClick={() => close({ origem, playerId: p.playerId })}>
+      <span className="picklist__num">#{p.number}</span>
+      <span className="picklist__name">{p.name}</span>
+      <span className="picklist__pos">
+        {eGR(p) ? positionLabel('GOALKEEPER') : p.position ? positionLabel(p.position) : ''}
+      </span>
+    </button>
+  );
+
+  return ui.open((close) => (
+    <Dialog title={title} onClose={() => close(null)}>
+      <p className="modal__text muted small">{t('gr.expulsoTexto')}</p>
+      {banco.length ? (
+        <>
+          <h3 className="picklist__grupo">{t('gr.doBanco')}</h3>
+          <div className="picklist">{banco.map((p) => linha(p, 'banco', close))}</div>
+        </>
+      ) : null}
+      {campo.length ? (
+        <>
+          <h3 className="picklist__grupo">{t('gr.deCampo')}</h3>
+          <div className="picklist">{campo.map((p) => linha(p, 'campo', close))}</div>
+        </>
+      ) : null}
+      <footer className="modal__actions">
+        <button className="btn btn--ghost" onClick={() => close(null)}>
+          {t('gr.depois')}
+        </button>
+      </footer>
+    </Dialog>
+  ));
+}
+
+/** Quem sai de campo para o novo guarda-redes entrar. */
+export function pickQuemSaiParaGR(ui, state, entra) {
+  return pickPlayer(ui, state, t('gr.quemSai', { nome: entra?.name || '' }), { exclude: entra?.playerId });
 }
 
 export function positionMenu(ui, state, p) {
@@ -265,8 +326,11 @@ export function opponentCardsListDialog(ui, state) {
  * 25/09/2026). Fechar sem escolher é uma opção válida: nem sempre há tempo ou
  * vontade de classificar cada golo, e o resto do fluxo (marcador, assistência)
  * já fica registado de qualquer forma.
+ *
+ * `sugerido` destaca uma opção sem a escolher — o 5v4, quando o golo entra
+ * com o nosso 5v4 a decorrer.
  */
-export function pickGoalType(ui, title, tipos = GOAL_TYPES) {
+export function pickGoalType(ui, title, tipos = GOAL_TYPES, sugerido = null) {
   return ui.open((close) => (
     <Dialog title={title} onClose={() => close(undefined)}>
       {/* Oito opções: em duas colunas cabem todas sem deslizar, que a meio de
@@ -276,7 +340,7 @@ export function pickGoalType(ui, title, tipos = GOAL_TYPES) {
         {tipos.map((tipo) => (
           <button
             key={tipo}
-            className="picklist__item"
+            className={`picklist__item ${tipo === sugerido ? 'is-active' : ''}`.trim()}
             onClick={() => close(tipo)}
           >
             <span className="picklist__name">{t(`golos.tipo.${tipo}`)}</span>

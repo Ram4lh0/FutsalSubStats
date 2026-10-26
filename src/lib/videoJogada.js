@@ -16,6 +16,7 @@
 
 import { K, R, area, caixa, CORES } from '../components/tatica/geometria.js';
 import { TIPO, duracaoTotal, posicoesNoInstante, resolverPosicoes } from '../domain/jogada.js';
+import { entregarFicheiro, nomeLimpo, podeEntregarFicheiros } from './ficheiros.js';
 
 const FORMATOS = [
   'video/mp4;codecs=avc1.42E01E',
@@ -32,20 +33,6 @@ export function formatoVideo() {
   return FORMATOS.find((f) => MediaRecorder.isTypeSupported(f)) || null;
 }
 
-/**
- * Os plugins nativos, pelo registo global e não por `import` (ver
- * lib/atualizacoes.js): assim o pacote web fica igual e um pacote OTA que
- * chegue a uma casca antiga, ainda sem os plugins, não parte nada.
- */
-function nativo() {
-  const cap = globalThis?.Capacitor;
-  if (!cap) return null;
-  const dentro =
-    typeof cap.isNativePlatform === 'function' ? cap.isNativePlatform() : cap.getPlatform?.() !== 'web';
-  if (!dentro) return null;
-  return { Filesystem: cap.Plugins?.Filesystem, Share: cap.Plugins?.Share };
-}
-
 export function podeGravarVideo() {
   const gravar =
     typeof document !== 'undefined' &&
@@ -56,17 +43,7 @@ export function podeGravarVideo() {
   // Dentro da app (Android/iOS) é preciso ter onde pôr o ficheiro: sem os
   // plugins Filesystem e Share — casca instalada antes desta versão — o
   // vídeo seria criado e depois não havia como o guardar.
-  const n = nativo();
-  return !n || Boolean(n.Filesystem && n.Share);
-}
-
-function emBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result).split(',')[1] || '');
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(blob);
-  });
+  return podeEntregarFicheiros();
 }
 
 /** Pausa no início e no fim, para o vídeo não arrancar nem acabar de repente. */
@@ -242,61 +219,16 @@ export async function gravarVideo(data, { velocidade = 1, titulo = '', onProgres
 
 /** Um nome de ficheiro limpo a partir do título da jogada. */
 export function nomeDoFicheiro(titulo, ext) {
-  const base = String(titulo || 'jogada')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-zA-Z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .toLowerCase();
-  return `${base || 'jogada'}.${ext}`;
+  return `${nomeLimpo(titulo, 'jogada')}.${ext}`;
 }
 
 /**
  * Entregar o vídeo: no telemóvel e no iPad, a folha de partilha do sistema
  * (guardar nas Fotos, mandar para o WhatsApp…); no computador, descarregar.
+ * O caminho é o de qualquer outro ficheiro feito no aparelho (lib/ficheiros.js).
  *
  * @returns {Promise<'partilhado'|'descarregado'|'cancelado'>}
  */
-export async function entregarVideo({ blob, ext, mime }, titulo) {
-  const nome = nomeDoFicheiro(titulo, ext);
-
-  // App nativa: grava o ficheiro na cache da app e abre a folha de partilha do
-  // sistema (Guardar vídeo, WhatsApp…). A WebView do Android não tem a
-  // partilha de ficheiros do browser, por isso é preciso o plugin.
-  const n = nativo();
-  if (n?.Filesystem && n?.Share) {
-    const escrito = await n.Filesystem.writeFile({
-      path: nome,
-      data: await emBase64(blob),
-      directory: 'CACHE',
-    });
-    try {
-      await n.Share.share({ title: titulo || nome, files: [escrito.uri] });
-      return 'partilhado';
-    } catch (e) {
-      if (/cancel/i.test(String(e?.message || e))) return 'cancelado';
-      throw e;
-    }
-  }
-
-  const ficheiro = typeof File !== 'undefined' ? new File([blob], nome, { type: mime }) : null;
-  const tatil = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-  if (tatil && ficheiro && navigator.canShare?.({ files: [ficheiro] })) {
-    try {
-      await navigator.share({ files: [ficheiro], title: titulo || nome });
-      return 'partilhado';
-    } catch (e) {
-      if (e?.name === 'AbortError') return 'cancelado';
-      // Outro erro: cai para o descarregamento.
-    }
-  }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nome;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-  return 'descarregado';
+export function entregarVideo({ blob, ext, mime }, titulo) {
+  return entregarFicheiro(blob, nomeDoFicheiro(titulo, ext), mime, { titulo });
 }

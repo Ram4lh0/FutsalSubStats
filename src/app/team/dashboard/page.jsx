@@ -42,6 +42,7 @@ import { fmt } from '@/domain/clock.js';
 import { MATCH_TIMING } from '@/domain/constants.js';
 import { dayLabel } from '@/lib/format.js';
 import { useT } from '@/lib/i18n/index.js';
+import { entregarFicheiro } from '@/lib/ficheiros.js';
 
 export default function TeamDashboardPage() {
   return (
@@ -109,6 +110,7 @@ function Filtros({
   atletaId,
   aoTrocarAtleta,
   aoExportarPdf,
+  aGerarPdf = false,
 }) {
   const t = useT();
   const jogadores = [...(roster || [])].sort(
@@ -178,8 +180,14 @@ function Filtros({
       ) : null}
 
       <div className="filtros__grupo filtros__grupo--acao no-print">
-        <button type="button" className="btn btn--ghost btn--tiny" onClick={aoExportarPdf}>
-          {t('painelv.exportarPdf')}
+        <button
+          type="button"
+          className="btn btn--ghost btn--tiny"
+          onClick={aoExportarPdf}
+          disabled={aGerarPdf}
+          aria-busy={aGerarPdf}
+        >
+          {aGerarPdf ? t('pdf.aGerar') : t('painelv.exportarPdf')}
         </button>
       </div>
     </div>
@@ -434,6 +442,7 @@ function Painel({ club, team, entries, roster, competitions }) {
   const [provasEscolhidas, setProvas] = useState([]);
   const [tipo, setTipo] = useState(null);
   const [atletaId, setAtletaId] = useState('');
+  const [aGerarPdf, setAGerarPdf] = useState(false);
   const formaMobile = useFormaMobile();
   // A faixa por cima da qual está o dedo, uma por parte.
   const [faixaAtiva, setFaixaAtiva] = useState({ parte: null, i: null });
@@ -479,8 +488,39 @@ function Painel({ club, team, entries, roster, competitions }) {
         : rotas.jogoResumo(id)
     );
 
-  function exportarPdf() {
-    window.print();
+  /**
+   * Um PDF a sério, gerado no aparelho (lib/pdf/relatorioPainel.js), com os
+   * filtros que estão escolhidos — e não o "imprimir" do sistema, que no
+   * iPhone e no Android abria uma pré-visualização sem forma de guardar o
+   * ficheiro. O jsPDF só é carregado aqui, ao carregar no botão.
+   */
+  async function exportarPdf() {
+    if (aGerarPdf) return;
+    setAGerarPdf(true);
+    try {
+      const { gerarPdfPainel, nomePdfPainel } = await import('@/lib/pdf/relatorioPainel.js');
+      const blob = await gerarPdfPainel({
+        club,
+        team,
+        entries: filtrados,
+        roster,
+        parteMs,
+        provas: provas.filter((p) => provasEscolhidas.includes(p.id)).map((p) => p.shortName || p.name),
+        tipo:
+          tipo === MATCH_TIMING.TIMED
+            ? t('painelv.cronometrado')
+            : tipo === MATCH_TIMING.UNTIMED
+              ? t('painelv.corrido')
+              : '',
+        atletaId,
+      });
+      const nome = nomePdfPainel(team, atletaId ? atleta?.jogador?.name : null);
+      await entregarFicheiro(blob, nome, 'application/pdf', { titulo: nome });
+    } catch (e) {
+      ui.toast(t('pdf.falhou', { erro: e?.message || String(e) }), 'error');
+    } finally {
+      setAGerarPdf(false);
+    }
   }
 
   /** A tabela de faltas e cartões por jogador, numa janela. */
@@ -565,6 +605,7 @@ function Painel({ club, team, entries, roster, competitions }) {
           atletaId={atletaId}
           aoTrocarAtleta={setAtletaId}
           aoExportarPdf={exportarPdf}
+          aGerarPdf={aGerarPdf}
         />
       </div>
 

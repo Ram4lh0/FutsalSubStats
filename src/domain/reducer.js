@@ -155,6 +155,18 @@ export function powerPlayAutomatico(state) {
 }
 
 /**
+ * O guarda-redes foi expulso e foi outro para a baliza (`metadata.grDeRecurso`):
+ * é a baliza a ser defendida com menos um, não um 5v4. Fica como se o botão do
+ * cartão tivesse sido desligado para este guarda-redes — volta ao automático
+ * quando trocar quem está à baliza.
+ */
+function grDeRecurso(state, md) {
+  if (!md.grDeRecurso || !state.court.GOALKEEPER) return;
+  state.powerPlayOverride = false;
+  state.powerPlayOverrideGk = state.court.GOALKEEPER;
+}
+
+/**
  * Abre ou fecha o período de 5v4 conforme a situação em campo mudou. Chamada
  * depois de cada evento: é o campo que manda, não quem carregou no botão.
  *
@@ -596,6 +608,7 @@ function applyEvent(state, ev) {
         playerOutId: ev.playerOutId,
         position: pos,
       });
+      grDeRecurso(state, md);
       break;
     }
 
@@ -615,6 +628,7 @@ function applyEvent(state, ev) {
         state.court[to] = pid;
       }
       p.position = to;
+      grDeRecurso(state, md);
       break;
     }
 

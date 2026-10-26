@@ -40,6 +40,7 @@ export const NOME_REGISTO = {
   fora: 'Foras',
   canto: 'Cantos',
   acao: 'Ações +/−',
+  remate_adv: 'Remates do adversário',
 };
 
 /**

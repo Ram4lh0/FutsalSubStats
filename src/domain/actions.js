@@ -115,14 +115,25 @@ export const adjustEnd = (s, ms, now) =>
     now
   );
 
-export const substitute = (s, { playerOutId, playerInId, position }, now) =>
-  makeEvent(s, EVENT.SUBSTITUTION, { playerOutId, playerInId, position }, now);
+// `grDeRecurso`: quem vai para a baliza é o GR de recurso de uma expulsão do
+// guarda-redes, não um guarda-redes avançado — o 5v4 automático não abre.
+export const substitute = (s, { playerOutId, playerInId, position, grDeRecurso = false }, now) =>
+  makeEvent(
+    s,
+    EVENT.SUBSTITUTION,
+    { playerOutId, playerInId, position, ...(grDeRecurso ? { metadata: { grDeRecurso: true } } : {}) },
+    now
+  );
 
-export const changePosition = (s, { playerId, fromPosition, toPosition }, now) =>
+export const changePosition = (s, { playerId, fromPosition, toPosition, grDeRecurso = false }, now) =>
   makeEvent(
     s,
     EVENT.POSITION_CHANGED,
-    { playerId, position: toPosition, metadata: { fromPosition, toPosition } },
+    {
+      playerId,
+      position: toPosition,
+      metadata: { fromPosition, toPosition, ...(grDeRecurso ? { grDeRecurso: true } : {}) },
+    },
     now
   );
 
