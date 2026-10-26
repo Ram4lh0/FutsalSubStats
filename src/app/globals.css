@@ -1832,6 +1832,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .picklist__item--clear { color: var(--muted); }
 .picklist__item--special { color: var(--warn); border-color: rgba(245, 158, 11, 0.45); }
 .picklist--grelha { display: grid; grid-template-columns: 1fr 1fr; }
+.picklist__grupo { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 14px 0 8px; }
+.picklist__grupo + .picklist { max-height: 34vh; }
 .picklist__num { font-weight: 800; min-width: 42px; }
 .picklist__name { flex: 1; font-weight: 600; }
 .picklist__pos { color: var(--muted); font-size: 0.8rem; }
@@ -3061,14 +3063,15 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .legenda__cor--sofridos { background: var(--danger); margin-left: 10px; }
 .legenda__cor--assistencias { background: var(--info); margin-left: 10px; }
 
-/* Donut dos tipos de golo — uma cor fixa por tipo. Oito tipos não cabem nas
+/* Donut dos tipos de golo — uma cor fixa por tipo. Nove tipos não cabem nas
    cinco cores do tema, por isso os quatro lances de bola parada (fora, canto,
-   livre, penálti) levam tons próprios e os outros ficam com as do tema. */
+   livre, penálti) e o 5v4 levam tons próprios e os outros ficam com as do tema. */
 :root {
   --golo-fora: #a78bfa;
   --golo-canto: #f472b6;
   --golo-livre: #facc15;
   --golo-penalti: #fb923c;
+  --golo-5v4: #2dd4bf;
 }
 .pizza { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .graf--pizza { width: 120px; height: 120px; flex: 0 0 auto; }
@@ -3082,6 +3085,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .pizza__fatia--ORGANIZACAO { stroke: var(--primary); }
 .pizza__fatia--INDIVIDUAL { stroke: var(--danger); }
 .pizza__fatia--ERRO_INDIVIDUAL { stroke: var(--danger); }
+.pizza__fatia--CINCO_V_QUATRO { stroke: var(--golo-5v4); }
 .pizza__fatia--OUTRO { stroke: var(--muted); }
 .pizza__total { font-size: 28px; font-weight: 800; fill: var(--text); }
 .pizza__legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; }
@@ -3096,6 +3100,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .pizza__dot--ORGANIZACAO { background: var(--primary); }
 .pizza__dot--INDIVIDUAL { background: var(--danger); }
 .pizza__dot--ERRO_INDIVIDUAL { background: var(--danger); }
+.pizza__dot--CINCO_V_QUATRO { background: var(--golo-5v4); }
 .pizza__dot--OUTRO { background: var(--muted); }
 
 /* A fita dos últimos jogos. Desliza ao lado quando não couber, em vez de
@@ -3510,6 +3515,10 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 /* ------------------------------------------------------------ presenças */
 .tpres__barra { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; flex-wrap: wrap; }
 .tpres__ordem { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+/* As duas escolhas do "Exportar" das presenças: lado a lado, e uma por cima
+   da outra num telemóvel estreito. */
+.tpres__exportar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 4px; }
+@media (max-width: 420px) { .tpres__exportar { grid-template-columns: 1fr; } }
 .tpres__baixo strong { color: var(--danger); }
 .tpres__fi { color: var(--danger); font-weight: 800; }
 .tpres__nota { font-size: 0.8rem; margin-top: 10px; }
@@ -3804,6 +3813,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .regcampo__metade { fill: #0f3d27; }
 .regcampo__metade--deles { fill: #12482e; }
 .regcampo__metade--deles.is-on { fill: #175a39; }
+.regcampo__metade.is-on { fill: #175a39; }
 .regcampo__linhas rect, .regcampo__linhas line, .regcampo__linhas circle, .regcampo__linhas path { fill: none; stroke: rgba(255, 255, 255, 0.75); stroke-width: 1.6; }
 .regcampo__pontos-fixos circle { fill: rgba(255, 255, 255, 0.75); }
 .regcampo__rotulo { fill: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-anchor: middle; text-transform: uppercase; }
@@ -3835,6 +3845,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .regpainel__mapa { width: 100%; max-width: 480px; margin-inline: auto; }
 .regpainel__legenda { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.85rem; }
 .regpainel__item { display: inline-flex; align-items: center; gap: 6px; }
+.regpainel__item--anel .regzona__bola { background: transparent; box-shadow: inset 0 0 0 3px var(--cor, #fff); }
 .regpainel__filtros { display: flex; flex-wrap: wrap; gap: 6px; }
 .regpainel__filtros .regzona__opcao { min-height: 36px; padding: 0 12px; }
 .regpainel__tabela { overflow-x: auto; }

@@ -35,6 +35,20 @@ function Marca({ m }) {
     return <path d={`M ${x} ${y - 6} L ${x + 6} ${y} L ${x} ${y + 6} L ${x - 6} ${y} Z`} fill={m.cor} />;
   }
   const golo = m.resultado === 'GOLO';
+  // Remate do adversário: um anel da cor do resultado, para não se confundir
+  // com os nossos no mesmo mapa. O golo sofrido vai cheio.
+  if (m.registo === 'remate_adv') {
+    return (
+      <circle
+        cx={x}
+        cy={y}
+        r={golo ? 7 : 5.5}
+        fill={golo ? m.cor : 'rgba(0, 0, 0, 0.35)'}
+        stroke={golo ? '#ffffff' : m.cor}
+        strokeWidth={golo ? 2.5 : 3}
+      />
+    );
+  }
   return (
     <circle
       cx={x}
@@ -79,7 +93,13 @@ export function CampoSvg({ markers = [], onPick = null, destaque = null, lateral
       role={onPick ? 'button' : 'img'}
       aria-label={t('registos.campoAria')}
     >
-      <rect x={0} y={0} width={W / 2} height={H} className="regcampo__metade" />
+      <rect
+        x={0}
+        y={0}
+        width={W / 2}
+        height={H}
+        className={`regcampo__metade ${destaque === 'nossa' ? 'is-on' : ''}`.trim()}
+      />
       <rect
         x={W / 2}
         y={0}

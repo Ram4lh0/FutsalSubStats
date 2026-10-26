@@ -12,12 +12,23 @@
 // Só contam treinos que já aconteceram, não cancelados, e com presenças
 // marcadas — um treino de ontem sem ninguém marcado não é "toda a gente
 // faltou".
+//
+// "Exportar" tira o período e a ordem que estão à vista para um Excel ou um
+// PDF (lib/presencasExport.js), com a grelha treino a treino e as contas.
 
 import { useMemo, useState } from 'react';
 import { StatCard, Empty } from '@/components/bits.jsx';
 import DataTable from '@/components/DataTable.jsx';
 import LegendaPresencas from './LegendaPresencas.jsx';
-import { PRESENCA, deIsoDia, detalhePresencas, estatisticasPresencas, periodosDePresenca } from '@/domain/treino.js';
+import {
+  PRESENCA,
+  deIsoDia,
+  detalhePresencas,
+  estatisticasPresencas,
+  linhasDePresenca,
+  periodosDePresenca,
+} from '@/domain/treino.js';
+import { entregarFicheiro } from '@/lib/ficheiros.js';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import { useLocale, useT } from '@/lib/i18n/index.js';
 
@@ -25,11 +36,12 @@ const LIMITE_BAIXO = 70;
 
 const pct = (v) => (v == null ? '—' : `${v}%`);
 
-export default function EstatisticasPresencas({ treinos, presencas, jogadores, hoje }) {
+export default function EstatisticasPresencas({ treinos, presencas, jogadores, hoje, club = null, team = null }) {
   const t = useT();
   const ui = useUI();
   const [periodo, setPeriodo] = useState('epoca');
   const [ordem, setOrdem] = useState('assiduidade');
+  const [aExportar, setAExportar] = useState(false);
 
   const periodos = useMemo(() => periodosDePresenca(hoje), [hoje]);
   const contas = useMemo(() => {
@@ -42,17 +54,48 @@ export default function EstatisticasPresencas({ treinos, presencas, jogadores, h
 
   const atual = contas[periodo];
 
-  const linhas = useMemo(() => {
-    const lista = jogadores
-      .map((j) => ({ jogador: j, s: atual.porJogador.get(j.id) }))
-      .filter((l) => l.s || l.jogador.isActive !== false);
-    const valor = (l) => {
-      if (ordem === 'numero') return Number(l.jogador.shirtNumber) || 999;
-      if (ordem === 'faltas') return -(l.s?.[PRESENCA.FALTA_INJUSTIFICADA] || 0);
-      return l.s?.assiduidade ?? 101;
-    };
-    return lista.sort((a, b) => valor(a) - valor(b) || (a.jogador.name || '').localeCompare(b.jogador.name || ''));
-  }, [jogadores, atual, ordem]);
+  const linhas = useMemo(() => linhasDePresenca(jogadores, atual.porJogador, ordem), [jogadores, atual, ordem]);
+
+  /**
+   * Excel ou PDF, numa janela com as duas escolhas. A biblioteca de cada um só
+   * é carregada depois da escolha — o ecrã de treinos não paga por ela.
+   */
+  async function exportar() {
+    if (aExportar) return;
+    const formato = await ui.open((close) => (
+      <Dialog title={t('presencasExport.titulo')} onClose={() => close(null)}>
+        <p className="modal__text">
+          {t('presencasExport.explica', { periodo: t(`treino.periodo.${periodo}`), n: atual.treinos })}
+        </p>
+        <div className="tpres__exportar">
+          <button className="btn btn--primary btn--big" onClick={() => close('xlsx')}>
+            {t('presencasExport.excel')}
+          </button>
+          <button className="btn btn--ghost btn--big" onClick={() => close('pdf')}>
+            {t('presencasExport.pdf')}
+          </button>
+        </div>
+        <footer className="modal__actions">
+          <button className="btn btn--ghost" onClick={() => close(null)}>
+            {t('comum.cancelar')}
+          </button>
+        </footer>
+      </Dialog>
+    ));
+    if (!formato) return;
+    setAExportar(true);
+    try {
+      const mod = await import('@/lib/presencasExport.js');
+      const dados = { club, team, treinos, presencas, jogadores, hoje, periodo, ordem };
+      const blob = formato === 'xlsx' ? await mod.gerarXlsxPresencas(dados) : await mod.gerarPdfPresencas(dados);
+      const nome = mod.nomeFicheiroPresencas(team, formato);
+      await entregarFicheiro(blob, nome, blob.type || (formato === 'pdf' ? 'application/pdf' : ''), { titulo: nome });
+    } catch (e) {
+      ui.toast(t('presencasExport.falhou', { erro: e?.message || String(e) }), 'error');
+    } finally {
+      setAExportar(false);
+    }
+  }
 
   const cartao = (chave, rotulo) => {
     const c = contas[chave];
@@ -110,6 +153,15 @@ export default function EstatisticasPresencas({ treinos, presencas, jogadores, h
               })}
             </span>
             <span className="toolbar__spacer" />
+            <button
+              type="button"
+              className="btn btn--ghost btn--tiny"
+              onClick={exportar}
+              disabled={aExportar}
+              aria-busy={aExportar}
+            >
+              {aExportar ? t('presencasExport.aGerar') : t('presencasExport.exportar')}
+            </button>
             <label className="tpres__ordem">
               <span className="muted">{t('treino.ordenar')}</span>
               <select className="input input--tiny" value={ordem} onChange={(e) => setOrdem(e.target.value)}>

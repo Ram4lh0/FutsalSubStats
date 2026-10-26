@@ -633,6 +633,46 @@ export function rematesPorJogo(entries) {
     .filter(Boolean);
 }
 
+/** Remates do adversário jogo a jogo: quantos, à baliza, defendidos e golos. */
+export function rematesAdvPorJogo(entries) {
+  return terminados(entries)
+    .map((e) => {
+      const remates = registosDoJogo(e.state).filter((r) => r.registo === REGISTO.REMATE_ADV);
+      if (!remates.length) return null;
+      return {
+        matchId: e.match.id,
+        adversario: e.match.opponentShortName || e.match.opponentName || '',
+        scheduledAt: e.match.scheduledAt || null,
+        remates: remates.length,
+        aBaliza: remates.filter((r) => A_BALIZA.has(r.resultado)).length,
+        defendidos: remates.filter((r) => r.resultado === RESULTADO_REMATE.DEFENDIDO).length,
+        golos: remates.filter((r) => r.resultado === RESULTADO_REMATE.GOLO).length,
+      };
+    })
+    .filter(Boolean);
+}
+
+/**
+ * Os remates do adversário na época. A percentagem de defesa é a do nosso
+ * guarda-redes: dos remates deles que foram à baliza, quantos defendeu.
+ */
+export function rematesAdvDaEpoca(entries) {
+  const jogos = rematesAdvPorJogo(entries);
+  const soma = (k) => jogos.reduce((t, j) => t + j[k], 0);
+  const remates = soma('remates');
+  const aBaliza = soma('aBaliza');
+  const defendidos = soma('defendidos');
+  return {
+    jogos: jogos.length,
+    remates,
+    aBaliza,
+    defendidos,
+    golos: soma('golos'),
+    rematesPorJogo: jogos.length ? remates / jogos.length : 0,
+    percentagemDefesa: aBaliza ? Math.round((defendidos / aBaliza) * 100) : null,
+  };
+}
+
 /** Golos por remate à baliza, nos jogos com remates registados. */
 export function eficacia(entries) {
   const jogos = rematesPorJogo(entries);

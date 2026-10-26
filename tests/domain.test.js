@@ -1495,3 +1495,49 @@ test('registos (STAT_*) pelo meio não mexem no resultado, tempos nem faltas', (
   }
   assert.deepEqual(depois.warnings, []);
 });
+
+test('GR expulso: entra o suplente para a baliza, sai um de campo, sem 5v4', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  let st = step(ctx, (s) => A.redCard(s, { playerId: 'p1' }, T0 + 2 * MIN), T0 + 2 * MIN);
+  assert.equal(st.court.GOALKEEPER, null, 'a baliza fica vazia');
+  assert.equal(countOnCourt(st), 4);
+
+  // Entra o p6 para a baliza; sai o p3 (ala esquerdo).
+  st = step(
+    ctx,
+    (s) =>
+      A.substitute(
+        s,
+        { playerOutId: 'p3', playerInId: 'p6', position: 'GOALKEEPER', grDeRecurso: true },
+        T0 + 2 * MIN
+      ),
+    T0 + 2 * MIN
+  );
+  assert.equal(st.court.GOALKEEPER, 'p6');
+  assert.equal(st.court.LEFT_WINGER, null, 'o lugar vazio passa para o campo');
+  assert.equal(st.players.p3.status, PLAYER_MATCH_STATUS.ON_BENCH);
+  assert.equal(countOnCourt(st), 4, 'continua com menos um');
+  assert.equal(st.powerPlays.length, 0, 'GR de recurso não é 5v4');
+  assert.ok(canReplaceExpelled(st, 3 * MIN, 2 * MIN), 'o lugar vazio continua trancado pela sanção');
+});
+
+test('GR expulso: um de campo passa para a baliza, sem 5v4', () => {
+  const ctx = { squad: squadComPosicoes(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.redCard(s, { playerId: 'p1' }, T0 + 2 * MIN), T0 + 2 * MIN);
+  const st = step(
+    ctx,
+    (s) =>
+      A.changePosition(
+        s,
+        { playerId: 'p2', fromPosition: 'FIXO', toPosition: 'GOALKEEPER', grDeRecurso: true },
+        T0 + 2 * MIN
+      ),
+    T0 + 2 * MIN
+  );
+  assert.equal(st.court.GOALKEEPER, 'p2');
+  assert.equal(st.court.FIXO, null);
+  assert.equal(st.powerPlays.length, 0);
+  assert.equal(powerPlayAtivo(st), false);
+});

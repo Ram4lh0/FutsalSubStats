@@ -64,8 +64,8 @@ function desfazer(ctx, alvo, now) {
 
 /* ------------------------------------------------------------- catálogo */
 
-test('catálogo: os seis registos da fase 1, pela ordem certa', () => {
-  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao']);
+test('catálogo: os registos pela ordem certa (fase 1 e remates do adversário)', () => {
+  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv']);
   assert.equal(CATALOGO.fora.por, 'equipa');
   assert.equal(CATALOGO.canto.ponto, false);
 });
@@ -497,4 +497,30 @@ test('contagem por jogador para os números dos botões do cartão', async () =>
   assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, positivas: 2, negativas: 1 });
   assert.equal(c.get('p1').defesa_gr, 1);
   assert.equal(c.has('p7'), false);
+});
+
+test('remate do adversário: é sempre deles, com resultado e ponto', () => {
+  const st = { matchId: 'm1', currentPeriod: 1, events: [], goals: [], players: {} };
+  const ev = registar(st, { registo: REGISTO.REMATE_ADV, equipa: 'US', resultado: 'DEFENDIDO', x: 0.12, y: 0.4 }, 1);
+  assert.equal(ev.metadata.equipa, 'THEM', 'nunca nosso');
+  assert.equal(ev.metadata.resultado, 'DEFENDIDO');
+  assert.equal(ev.metadata.x, 0.12);
+  assert.equal(ev.playerId, null);
+  assert.throws(() => registar(st, { registo: REGISTO.REMATE_ADV, resultado: 'POSITIVA' }, 1));
+});
+
+test('remate do adversário com golo: sai da lista quando o golo é desfeito', () => {
+  const ev = registar(
+    { matchId: 'm1', currentPeriod: 1, events: [], goals: [], players: {} },
+    { registo: REGISTO.REMATE_ADV, resultado: 'GOLO', x: 0.1, y: 0.5, goloEventId: 'g1' },
+    1
+  );
+  assert.equal(ev.metadata.goloEventId, 'g1');
+  const comGolo = { events: [ev], goals: [{ eventId: 'g1', team: 'THEM' }], players: {} };
+  assert.equal(registosDoJogo(comGolo).length, 1);
+  assert.equal(registosDoJogo({ ...comGolo, goals: [] }).length, 0);
+  const r = resumoRegistos({ ...comGolo, players: {} }, 0);
+  assert.equal(r.rematesAdv, 1);
+  assert.equal(r.rematesAdvBaliza, 1);
+  assert.equal(r.porResultadoAdv.GOLO, 1);
 });

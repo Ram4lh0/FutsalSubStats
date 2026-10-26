@@ -23,6 +23,7 @@ import * as RE from '@/lib/registoEditing.jsx';
 import { clubs, teams, competitions, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { matchSummaryCsv, download, slug } from '@/lib/data/exporter.js';
+import { entregarFicheiro } from '@/lib/ficheiros.js';
 import { matchStatsTable, matchResult, powerPlayTotals } from '@/domain/stats.js';
 import { foulsTotal, foulsInPeriod } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
@@ -56,6 +57,7 @@ function Resumo() {
   const { userId, user } = useAuth();
   const [dados, setDados] = useState(null);
   const [aRepetir, setARepetir] = useState(false);
+  const [aGerarPdf, setAGerarPdf] = useState(false);
 
   // De onde se veio. Só quando não há origem — ou seja, quando se chega aqui por
   // ter acabado o jogo — é que a saída passa a ser a casa dos clubes.
@@ -216,6 +218,26 @@ function Resumo() {
     router.push(back || rotas.jogos(match.clubId, match.teamId));
   }
 
+  /**
+   * O resumo em PDF, gerado no aparelho (lib/pdf/relatorioJogo.js): os mesmos
+   * números do CSV e os gráficos do jogo. O jsPDF só é carregado ao carregar
+   * no botão.
+   */
+  async function exportarPdf() {
+    if (aGerarPdf) return;
+    setAGerarPdf(true);
+    try {
+      const { gerarPdfJogo, nomePdfJogo } = await import('@/lib/pdf/relatorioJogo.js');
+      const blob = await gerarPdfJogo({ club, match, state, team, competition });
+      const nome = nomePdfJogo(match);
+      await entregarFicheiro(blob, nome, 'application/pdf', { titulo: nome });
+    } catch (e) {
+      ui.toast(t('pdf.falhou', { erro: e?.message || String(e) }), 'error');
+    } finally {
+      setAGerarPdf(false);
+    }
+  }
+
   /** Sair da experiência: os dados fictícios não ficam no aparelho. */
   async function sairDaDemo() {
     await limparDemo();
@@ -358,6 +380,9 @@ function Resumo() {
               }
             >
               {t('prep.exportarCsv')}
+            </button>
+            <button className="btn btn--ghost" onClick={exportarPdf} disabled={aGerarPdf} aria-busy={aGerarPdf}>
+              {aGerarPdf ? t('pdf.aGerar') : t('pdf.exportar')}
             </button>
             <button className="btn btn--ghost" onClick={corrigirResultado}>
               {t('resumo.corrigirResultado')}

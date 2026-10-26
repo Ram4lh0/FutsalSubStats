@@ -1,7 +1,8 @@
 'use client';
 
 // components/registos/BarraRegistos.jsx — entre o marcador e o campo: os
-// contadores de foras e cantos por equipa (os que estiverem ligados), um
+// remates do adversário e os contadores de foras e cantos por equipa (os que
+// estiverem ligados), um
 // resumo curto e o acesso às estatísticas do jogo.
 
 import { REGISTO, resumoRegistos } from '@/domain/registos.js';
@@ -37,6 +38,16 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
 
   return (
     <section className="regbar" aria-label={t('registos.titulo')}>
+      {ligados.has(REGISTO.REMATE_ADV) ? (
+        <div className="regbar__grupo">
+          <span className="regbar__rot">{t('registos.total.remate_adv')}</span>
+          <button type="button" className="regbar__btn regbar__btn--deles" onClick={on.registarRemateAdv}>
+            <span className="regbar__eq">{opponentName}</span>
+            <strong>{r.rematesAdv}</strong>
+            <span className="regbar__mais">+</span>
+          </button>
+        </div>
+      ) : null}
       {ligados.has(REGISTO.FORA) ? linha(REGISTO.FORA, r.foras, on.registarFora) : null}
       {ligados.has(REGISTO.CANTO) ? linha(REGISTO.CANTO, r.cantos, on.registarCanto) : null}
       {curto ? <span className="regbar__resumo">{curto}</span> : null}

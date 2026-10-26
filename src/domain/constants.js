@@ -148,6 +148,10 @@ export const GOAL_TYPE = {
   TRANSICAO: 'TRANSICAO',
   ORGANIZACAO: 'ORGANIZACAO',
   INDIVIDUAL: 'INDIVIDUAL',
+  // Golo em 5v4 — guarda-redes avançado (pedido a 26/10/2026). Num golo
+  // marcado é o nosso 5v4; num sofrido, o 5v4 do adversário. Não confundir com
+  // os períodos de 5v4 do reducer, que dizem quando NÓS jogámos assim.
+  CINCO_V_QUATRO: 'CINCO_V_QUATRO',
   OUTRO: 'OUTRO',
 };
 
@@ -167,6 +171,7 @@ export const CONCEDED_GOAL_TYPES = [
   GOAL_TYPE.TRANSICAO,
   GOAL_TYPE.ORGANIZACAO,
   'ERRO_INDIVIDUAL',
+  GOAL_TYPE.CINCO_V_QUATRO,
   GOAL_TYPE.OUTRO,
 ];
 

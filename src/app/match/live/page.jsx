@@ -24,6 +24,8 @@ import {
   opponentYellowCardDialog,
   opponentCardsListDialog,
   pickGoalType,
+  pickNovoGuardaRedes,
+  pickQuemSaiParaGR,
 } from '@/components/live/dialogs.jsx';
 import useNow from '@/lib/useNow.js';
 import { beep, unlockAudio } from '@/lib/beep.js';
@@ -34,7 +36,7 @@ import { clubs, events, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import * as A from '@/domain/actions.js';
 import * as V from '@/domain/validation.js';
-import { countOnCourt, foulsInPeriod, foulsTotal } from '@/domain/reducer.js';
+import { countOnCourt, foulsInPeriod, foulsTotal, powerPlayAtivo } from '@/domain/reducer.js';
 import { playerCards } from '@/domain/stats.js';
 import { fmt, readClock } from '@/domain/clock.js';
 import { openPenalties, penaltyBoard, canStartPenalty, canReplaceExpelled, PENALTY_STATUS } from '@/domain/penalties.js';
@@ -50,6 +52,7 @@ import {
   timingOf,
   timingConfig,
   goalTypesFor,
+  GOAL_TYPE,
 } from '@/domain/constants.js';
 import { clubShort, opponentShort, mensagemErro, eventLabel } from '@/lib/format.js';
 import { t } from '@/lib/i18n/index.js';
@@ -107,6 +110,7 @@ function Live() {
     ligados,
     commit: (ev) => commit(ev),
     marcarGolo: (p, opcoes) => scoreFor(p, opcoes),
+    marcarGoloAdversario: (opcoes) => addOpponentGoal(opcoes),
     nomes: () => ({ nos: ourName, eles: rivalName }),
   });
 
@@ -314,7 +318,8 @@ function Live() {
     const tipo = await pickGoalType(
       ui,
       team === 'THEM' ? t('acao.comoFoiOGoloSofrido') : t('acao.comoFoiOGolo'),
-      goalTypesFor(team)
+      goalTypesFor(team),
+      team === 'US' && powerPlayAtivo(st) ? GOAL_TYPE.CINCO_V_QUATRO : null
     );
     if (tipo === undefined) return;
     await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, howScored: tipo }), {
@@ -327,7 +332,7 @@ function Live() {
    * Golo do adversário: pela regra, encurta a sanção mais antiga a decorrer. O
    * reducer trata disso; aqui só é preciso dar a notícia ao treinador.
    */
-  async function addOpponentGoal() {
+  async function addOpponentGoal({ comRemate = null } = {}) {
     unlockAudio();
     const emCurso = (st) =>
       openPenalties(st, readClock(st, Date.now()).matchMs, penaltyMs())
@@ -335,7 +340,10 @@ function Live() {
         .map((p) => p.playerId);
 
     const antes = emCurso(state);
-    const st = await commit(A.goal(state, EVENT.OPPONENT_GOAL_ADDED));
+    let st = await commit(A.goal(state, EVENT.OPPONENT_GOAL_ADDED));
+    // Remate do adversário que deu golo (registos extra): preso a este golo.
+    const goloSofrido = [...st.goals].reverse().find((g) => g.team === 'THEM');
+    if (comRemate && goloSofrido) st = (await commit(comRemate(st, goloSofrido.eventId))) || st;
     const depois = new Set(emCurso(st));
     const libertado = antes.find((id) => !depois.has(id));
     // Primeiro a notícia urgente (quem pode voltar a entrar), depois a pergunta.
@@ -452,6 +460,9 @@ function Live() {
     if (sel?.kind === 'bench') return doReplacement(sel.playerId, pos);
     if (sel?.kind === 'court') return doMoveTo(sel.playerId, pos);
     const bloqueio = canReplaceExpelled(state, clockMs, penaltyMs());
+    // A baliza vazia com a equipa reduzida não se tranca: troca-se o lugar
+    // vazio para o campo (ver `reorganizarBaliza`).
+    if (bloqueio && pos === 'GOALKEEPER') return reorganizarBaliza(state, t('gr.quemVaiABaliza'));
     if (bloqueio) return toast(mensagemErro(bloqueio), 'error');
     const disponiveis = Object.values(state.players).filter(
       (p) => p.status === PLAYER_MATCH_STATUS.ON_BENCH
@@ -517,13 +528,30 @@ function Live() {
   async function doMoveTo(playerId, toPosition) {
     const de = state.players[playerId].position;
     if (de === toPosition) return setSel(null);
+    // Para a baliza vazia com a sanção a correr: é o GR de recurso.
+    const grDeRecurso =
+      toPosition === 'GOALKEEPER' &&
+      !state.court.GOALKEEPER &&
+      Boolean(canReplaceExpelled(state, clockMs, penaltyMs()));
     await commit(
-      A.changePosition(state, { playerId, fromPosition: de, toPosition })
+      A.changePosition(state, { playerId, fromPosition: de, toPosition, grDeRecurso })
     );
   }
 
   async function doReplacement(playerInId, position) {
     const bloqueio = canReplaceExpelled(state, clockMs, penaltyMs());
+    // Um suplente largado na baliza vazia durante a sanção: entra para GR e
+    // sai um de campo, como em `reorganizarBaliza`.
+    if (bloqueio && position === 'GOALKEEPER') {
+      const entra = state.players[playerInId];
+      const sai = await pickQuemSaiParaGR(ui, state, entra);
+      if (!sai) return;
+      const erro = V.validateSubstitution(state, { playerOutId: sai, playerInId });
+      if (erro) return toast(mensagemErro(erro), 'error');
+      return commit(
+        A.substitute(state, { playerOutId: sai, playerInId, position: 'GOALKEEPER', grDeRecurso: true })
+      );
+    }
     if (bloqueio) return toast(mensagemErro(bloqueio), 'error');
     const erro = V.validateReplacement(state, { playerInId, position });
     if (erro) return toast(mensagemErro(erro), 'error');
@@ -548,8 +576,10 @@ function Live() {
       );
       if (!ok) return;
     }
-    await commit(A.yellowCard(state, { playerId: p.playerId }));
+    const eraGR = estaNaBaliza(p.playerId);
+    const st = await commit(A.yellowCard(state, { playerId: p.playerId }));
     if (temAmarelo) toast(t('acao.expulsoPorAmarelos', { nome: p.name }), 'ok', 8000);
+    if (temAmarelo && eraGR && st) await reorganizarBaliza(st, t('gr.expulsoTitulo', { nome: p.name }));
   }
 
   async function aplicarVermelho(p) {
@@ -558,7 +588,55 @@ function Live() {
       { okLabel: t('acao.vermelho') }
     );
     if (!ok) return;
-    await commit(A.redCard(state, { playerId: p.playerId }));
+    const eraGR = estaNaBaliza(p.playerId);
+    const st = await commit(A.redCard(state, { playerId: p.playerId }));
+    if (eraGR && st) await reorganizarBaliza(st, t('gr.expulsoTitulo', { nome: p.name }));
+  }
+
+  function estaNaBaliza(playerId) {
+    return state.court.GOALKEEPER === playerId;
+  }
+
+  /**
+   * A baliza ficou vazia por uma expulsão: alguém tem de ir para lá. Pela regra
+   * a equipa joga com quatro durante a sanção, mas com guarda-redes — o lugar
+   * vazio passa a ser o de um jogador de campo.
+   *
+   * Do banco é uma substituição para a baliza (sai um de campo, entra o GR
+   * suplente, num só evento, que o DESFAZER desfaz de uma vez). De campo é uma
+   * troca de posição. Os dois levam `grDeRecurso`: se quem fica à baliza não é
+   * guarda-redes de posição, o 5v4 automático não abre — é um GR de recurso,
+   * não um guarda-redes avançado.
+   *
+   * Fechar sem escolher deixa a baliza vazia; tocar nela depois volta a abrir
+   * esta pergunta.
+   */
+  async function reorganizarBaliza(st, titulo) {
+    if (st.court.GOALKEEPER) return;
+    const escolha = await pickNovoGuardaRedes(ui, st, titulo);
+    if (!escolha) return;
+    let depois = null;
+    if (escolha.origem === 'banco') {
+      const entra = st.players[escolha.playerId];
+      const sai = await pickQuemSaiParaGR(ui, st, entra);
+      if (!sai) return;
+      const erro = V.validateSubstitution(st, { playerOutId: sai, playerInId: entra.playerId });
+      if (erro) return toast(mensagemErro(erro), 'error');
+      depois = await commit(
+        A.substitute(st, { playerOutId: sai, playerInId: entra.playerId, position: 'GOALKEEPER', grDeRecurso: true })
+      );
+      toast(t('acao.entraSai', { entra: entra.name, sai: st.players[sai].name }), 'ok');
+    } else {
+      const de = st.players[escolha.playerId].position;
+      depois = await commit(
+        A.changePosition(st, {
+          playerId: escolha.playerId,
+          fromPosition: de,
+          toPosition: 'GOALKEEPER',
+          grDeRecurso: true,
+        })
+      );
+    }
   }
 
   /**
