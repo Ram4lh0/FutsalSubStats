@@ -623,7 +623,8 @@ export async function desassociarClube(sb, { userId, clubeId }) {
  * ter duas: `registo` (contas novas, à entrada) e `dois_jogos`.
  *
  * Quem fechou o popup sem responder também tem linha (é a marca de "já viu"):
- * vem com `respondido: false` e conta à parte, para se saber quantos o viram.
+ * vem com `respondido: false`. `recebidos` são todas as linhas, para se ver a
+ * quem o popup já apareceu; `respostas` só as que trazem resposta.
  */
 export async function feedbacks(sb) {
   const [respostas, perfis] = await Promise.all([
@@ -654,6 +655,7 @@ export async function feedbacks(sb) {
   });
 
   return {
+    recebidos: linhas,
     respostas: linhas.filter((l) => l.respondido),
     fechadosSemResposta: linhas.filter((l) => !l.respondido).length,
   };
