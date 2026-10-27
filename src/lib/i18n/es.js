@@ -1447,6 +1447,16 @@ export default {
   'atualizacaoLoja.abrir': 'Actualizar en Play Store',
   'atualizacaoLoja.depois': 'Ahora no',
 
+  /* ---------------------------------------------------- feedback inicial */
+  'feedbackInicial.titulo': '¡Ayúdanos con tu opinión!',
+  'feedbackInicial.origem': '¿Dónde oíste hablar de nosotros?',
+  'feedbackInicial.origemPlaceholder': 'Instagram, otro entrenador, búsqueda…',
+  'feedbackInicial.email': 'Déjanos tu email para poder contactarte después',
+  'feedbackInicial.opiniao': '¿Qué te está pareciendo la app hasta ahora?',
+  'feedbackInicial.enviar': 'Enviar',
+  'feedbackInicial.agoraNao': 'Ahora no',
+  'feedbackInicial.obrigado': '¡Gracias por tu opinión!',
+
   /* --------------------------------------------------------------- común */
   'comum.apelido': 'Abreviatura (opcional)',
   'comum.aGuardar': 'Guardando…',

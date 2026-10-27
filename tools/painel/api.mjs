@@ -614,3 +614,47 @@ export async function desassociarClube(sb, { userId, clubeId }) {
     mensagem: `${perfil.email} deixou de estar associado ao clube ${clube.name}.`,
   };
 }
+
+/* ------------------------------------------------------------- feedback */
+
+/**
+ * As respostas aos popups de feedback (tabela `feedback_inicial`), da mais
+ * recente para a mais antiga, com o email e o nome da conta. Cada conta pode
+ * ter duas: `registo` (contas novas, à entrada) e `dois_jogos`.
+ *
+ * Quem fechou o popup sem responder também tem linha (é a marca de "já viu"):
+ * vem com `respondido: false` e conta à parte, para se saber quantos o viram.
+ */
+export async function feedbacks(sb) {
+  const [respostas, perfis] = await Promise.all([
+    sb
+      .from('feedback_inicial')
+      .select('user_id, momento, respondido, origem, email, opiniao, created_at')
+      .order('created_at', { ascending: false }),
+    sb.from('profiles').select('id, email, name'),
+  ]);
+  const erro = [respostas, perfis].find((r) => r.error);
+  if (erro) throw new Error(erro.error.message);
+
+  const perfilPorId = new Map((perfis.data || []).map((p) => [p.id, p]));
+  const linhas = (respostas.data || []).map((r) => {
+    const perfil = perfilPorId.get(r.user_id);
+    return {
+      userId: r.user_id,
+      conta: perfil?.email || r.user_id,
+      nome: perfil?.name || null,
+      interna: eInterno(perfil?.email),
+      momento: r.momento || 'dois_jogos',
+      respondido: Boolean(r.respondido),
+      origem: r.origem || null,
+      email: r.email || null,
+      opiniao: r.opiniao || null,
+      quando: r.created_at,
+    };
+  });
+
+  return {
+    respostas: linhas.filter((l) => l.respondido),
+    fechadosSemResposta: linhas.filter((l) => !l.respondido).length,
+  };
+}

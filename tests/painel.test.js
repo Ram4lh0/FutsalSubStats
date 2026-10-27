@@ -22,6 +22,7 @@ import {
   removerLicenca,
   associarClube,
   desassociarClube,
+  feedbacks,
 } from '../tools/painel/api.mjs';
 import { hostAceite, chaveDoPedido, chaveCorrecta } from '../tools/painel/guardas.mjs';
 import {
@@ -608,4 +609,27 @@ test('só traz os últimos dez jogos, mas diz quantos há ao todo', () => {
   assert.equal(r.total, 13);
   assert.equal(r.recentes.length, 10);
   assert.equal(r.recentes[0].id, 'm12');
+});
+
+/* ------------------------------------------------------------- feedback */
+
+test('o feedback mostra só as respostas, com a conta, e conta quem fechou', async () => {
+  const sb = supabaseFalso({
+    profiles: [
+      { id: 'u1', email: 'ze@clube.pt', name: 'Zé' },
+      { id: 'u2', email: 'ana@clube.pt', name: null },
+    ],
+    feedback_inicial: [
+      { user_id: 'u1', momento: 'registo', respondido: true, origem: 'Instagram', email: 'ze@mail.pt', opiniao: 'Top', created_at: '2026-10-27T10:00:00Z' },
+      { user_id: 'u2', respondido: false, origem: null, email: null, opiniao: null, created_at: '2026-10-27T11:00:00Z' },
+    ],
+  });
+  const r = await feedbacks(sb);
+  assert.equal(r.fechadosSemResposta, 1);
+  assert.equal(r.respostas.length, 1);
+  assert.equal(r.respostas[0].momento, 'registo');
+  assert.deepEqual(
+    { conta: r.respostas[0].conta, nome: r.respostas[0].nome, origem: r.respostas[0].origem, email: r.respostas[0].email, opiniao: r.respostas[0].opiniao },
+    { conta: 'ze@clube.pt', nome: 'Zé', origem: 'Instagram', email: 'ze@mail.pt', opiniao: 'Top' }
+  );
 });

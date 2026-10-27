@@ -17,6 +17,7 @@ import { SyncStatusProvider, useSyncStatus } from '@/lib/sync-status.jsx';
 import { marcarArranqueBemSucedido } from '@/lib/atualizacoes.js';
 import { prepararOffline } from '@/lib/pwa.js';
 import PlayStoreUpdateNotice from '@/components/PlayStoreUpdateNotice.jsx';
+import FeedbackInicial from '@/components/FeedbackInicial.jsx';
 
 export default function Providers({ children }) {
   // Primeira coisa a acontecer na app, e de propósito: se um pacote novo tiver
@@ -43,6 +44,7 @@ export default function Providers({ children }) {
       <UIProvider>
         <SyncStatusProvider>
           <PlayStoreUpdateNotice />
+          <FeedbackInicial />
           <SyncBridge />
           <LiveChrome />
           <Idioma>{children}</Idioma>
