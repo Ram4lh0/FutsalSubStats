@@ -283,6 +283,7 @@ function registosDoJogo(r, state, match) {
   }
   if (tem(REGISTO.DEFESA_GR)) cartoes.push({ rotulo: t('registos.total.defesa_gr'), valor: reg.defesas });
   if (tem(REGISTO.RECUPERACAO)) cartoes.push({ rotulo: t('registos.total.recuperacao'), valor: reg.recuperacoes });
+  if (tem(REGISTO.PERDA_BOLA)) cartoes.push({ rotulo: t('registos.total.perda_bola'), valor: reg.perdas });
   if (tem(REGISTO.FORA)) cartoes.push({ rotulo: t('registos.total.fora'), valor: `${reg.foras.US} – ${reg.foras.THEM}` });
   if (tem(REGISTO.CANTO)) cartoes.push({ rotulo: t('registos.total.canto'), valor: `${reg.cantos.US} – ${reg.cantos.THEM}` });
   if (!cartoes.length) return;
@@ -301,6 +302,28 @@ function registosDoJogo(r, state, match) {
       linhas: Object.values(RESULTADO_REMATE).map((o) => [
         t(`registos.resultadoAdv.${o}`),
         reg.porResultadoAdv[o],
+      ]),
+    });
+  }
+  if (tem(REGISTO.PERDA_BOLA)) {
+    const linhas = reg.jogadores
+      .filter((j) => j.perdas || j.courtMs > 0)
+      .sort((a, b) => b.perdas - a.perdas || (a.number ?? 0) - (b.number ?? 0));
+    r.garantir(45);
+    r.sub(t('registos.epoca.perdas'));
+    r.y += 2.5;
+    r.tabela({
+      colunas: [
+        { titulo: '#', largura: 10 },
+        { titulo: t('registos.col.jogador'), peso: 3 },
+        { titulo: t('registos.col.perdas'), alinhar: 'right' },
+        { titulo: t('registos.col.perdas10'), alinhar: 'right' },
+      ],
+      linhas: linhas.map((j) => [
+        j.number ?? '',
+        j.name,
+        j.perdas,
+        j.perdas10 == null ? '–' : j.perdas10.toFixed(1),
       ]),
     });
   }

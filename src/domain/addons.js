@@ -41,6 +41,7 @@ export const NOME_REGISTO = {
   canto: 'Cantos',
   acao: 'Ações +/−',
   remate_adv: 'Remates do adversário',
+  perda_bola: 'Perdas de bola',
 };
 
 /**

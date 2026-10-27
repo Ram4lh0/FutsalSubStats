@@ -40,7 +40,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
     ? marcadores(state, { registos: [filtro] }).filter((m) => !jogador || m.playerId === jogador)
     : [];
   const porJogador = r.jogadores.some(
-    (j) => j.remates || j.recuperacoes || j.defesas || j.positivas || j.negativas
+    (j) => j.remates || j.recuperacoes || j.defesas || j.perdas || j.positivas || j.negativas
   );
 
   return (
@@ -64,6 +64,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
           <Total rotulo={t('registos.total.recuperacao')} valor={r.recuperacoes} />
         ) : null}
         {tem(REGISTO.DEFESA_GR) ? <Total rotulo={t('registos.total.defesa_gr')} valor={r.defesas} /> : null}
+        {tem(REGISTO.PERDA_BOLA) ? <Total rotulo={t('registos.total.perda_bola')} valor={r.perdas} /> : null}
         {tem(REGISTO.FORA) ? (
           <Total
             rotulo={t('registos.total.fora')}
@@ -140,6 +141,12 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                   </>
                 ) : null}
                 {tem(REGISTO.DEFESA_GR) ? <th>{t('registos.col.defesas')}</th> : null}
+                {tem(REGISTO.PERDA_BOLA) ? (
+                  <>
+                    <th>{t('registos.col.perdas')}</th>
+                    <th title={t('registos.col.perdas10Titulo')}>{t('registos.col.perdas10')}</th>
+                  </>
+                ) : null}
                 {tem(REGISTO.ACAO) ? <th>{t('registos.col.acoes')}</th> : null}
               </tr>
             </thead>
@@ -166,6 +173,12 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                     </>
                   ) : null}
                   {tem(REGISTO.DEFESA_GR) ? <td>{j.defesas || '–'}</td> : null}
+                  {tem(REGISTO.PERDA_BOLA) ? (
+                    <>
+                      <td>{j.perdas || '–'}</td>
+                      <td>{j.perdas10 == null ? '–' : j.perdas10.toFixed(1)}</td>
+                    </>
+                  ) : null}
                   {tem(REGISTO.ACAO) ? (
                     <td>{j.positivas || j.negativas ? `+${j.positivas} / −${j.negativas}` : '–'}</td>
                   ) : null}

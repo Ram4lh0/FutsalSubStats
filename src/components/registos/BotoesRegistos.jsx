@@ -1,8 +1,9 @@
 'use client';
 
 // components/registos/BotoesRegistos.jsx — os botões dos registos extra no
-// cartão do jogador em campo: ação + e −, defesa (só no guarda-redes), remate
-// e recuperação, cada um só se o escalão o tiver ligado, e o G no fim.
+// cartão do jogador em campo: ação + e −, defesa (só no guarda-redes), remate,
+// recuperação e perda de bola, cada um só se o escalão o tiver ligado, e o G
+// no fim.
 //
 // São `span` como o G e o F: o cartão inteiro já é um botão, e um botão dentro
 // de outro não é HTML válido.
@@ -28,6 +29,7 @@ export function temBotoesNoCartao(ligados, pos) {
   return (
     ligados.has(REGISTO.REMATE) ||
     ligados.has(REGISTO.RECUPERACAO) ||
+    ligados.has(REGISTO.PERDA_BOLA) ||
     ligados.has(REGISTO.ACAO) ||
     (pos === 'GOALKEEPER' && ligados.has(REGISTO.DEFESA_GR))
   );
@@ -77,6 +79,11 @@ export default function BotoesRegistos({ pos, p, ligados, contagem, on, golo }) 
       {ligados.has(REGISTO.RECUPERACAO)
         ? botao('recup', t('registos.btn.recuperacao'), t('registos.nome.recuperacao'), c.recuperacao, () =>
             on.registarRecuperacao(p)
+          )
+        : null}
+      {ligados.has(REGISTO.PERDA_BOLA)
+        ? botao('perda', t('registos.btn.perda_bola'), t('registos.nome.perda_bola'), c.perda_bola, () =>
+            on.registarPerda(p)
           )
         : null}
       {golo}

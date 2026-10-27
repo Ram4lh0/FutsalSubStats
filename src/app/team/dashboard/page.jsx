@@ -248,6 +248,7 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
   const u = dados.utilizacao;
   const imp = dados.impacto;
   const disc = dados.disciplina;
+  const perdas = dados.perdas;
   const guardaRedes = dados.guardaRedes;
 
   function detalheDaFaixa(parte, lista) {
@@ -394,6 +395,7 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
                 <th className="num">{t('stats.golos')}</th>
                 <th className="num">{t('stats.assistencias')}</th>
                 <th className="num">{t('stats.faltas')}</th>
+                {perdas.comDados ? <th className="num">{t('registos.col.perdas')}</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -409,6 +411,7 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
                     <td className="num mono">{j.golos}</td>
                     <td className="num mono">{j.assistencias}</td>
                     <td className="num mono">{j.faltas}</td>
+                    {perdas.comDados ? <td className="num mono">{j.perdas ?? '–'}</td> : null}
                   </tr>
                 );
               })}
@@ -431,6 +434,25 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
           <p className="muted">{t('painelv.semFaltasAtleta')}</p>
         )}
       </Bloco>
+
+      {/* Perdas de bola (registo extra): só se o escalão as registou. */}
+      {perdas.comDados ? (
+        <Bloco titulo={t('registos.total.perda_bola')} className="painelv__bloco--perdas-atleta">
+          <div className="grid grid--stats">
+            <StatCard
+              label={t('registos.total.perda_bola')}
+              value={perdas.total}
+              hint={t('painelv.emJogos', { n: perdas.jogos })}
+            />
+            <StatCard label={t('registos.epoca.perdasPorJogo')} value={perdas.porJogo.toFixed(1)} />
+            <StatCard
+              label={t('registos.col.perdas10')}
+              value={perdas.por10 == null ? '—' : perdas.por10.toFixed(1)}
+              hint={t('registos.col.perdas10Titulo')}
+            />
+          </div>
+        </Bloco>
+      ) : null}
     </>
   );
 }

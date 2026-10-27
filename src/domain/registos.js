@@ -1,6 +1,7 @@
 // domain/registos.js — registos extra do jogo ao vivo, ligados por escalão.
 //
-// Remates, defesas do GR, recuperações, foras, cantos e ações +/−. Plano em
+// Remates, defesas do GR, recuperações, perdas de bola, foras, cantos e
+// ações +/−. Plano em
 // PLANO-REGISTOS-POR-ESCALAO.md.
 //
 // Um só tipo de evento para todos: `STAT_RECORDED`, com o registo em
@@ -42,6 +43,9 @@ export const REGISTO = {
   // aconteceu depois do remate e de onde rematou. Não tem jogador — não há
   // plantel deles.
   REMATE_ADV: 'remate_adv',
+  // Perdas de bola (pedido a 27/10/2026, clubes Personalizado): quantas vezes
+  // cada jogador perdeu a bola. Sem zona — o clube disse que não precisava.
+  PERDA_BOLA: 'perda_bola',
 };
 
 /** Resultado de um remate. `GOLO` corre primeiro o fluxo normal do golo. */
@@ -96,6 +100,7 @@ export const CATALOGO = {
     resultados: Object.values(RESULTADO_REMATE),
     disponivel: true,
   },
+  [REGISTO.PERDA_BOLA]: { por: 'jogador', ponto: false, resultados: null, disponivel: true },
 };
 
 /** Os remates que levam um golo atrás (o nosso e o do adversário). */
@@ -382,6 +387,7 @@ export function resumoRegistos(state, now = Date.now()) {
       const rem = meus.filter((r) => r.registo === REGISTO.REMATE);
       const courtMs = tempos.get(p.playerId) || 0;
       const recuperacoes = meus.filter((r) => r.registo === REGISTO.RECUPERACAO).length;
+      const perdas = meus.filter((r) => r.registo === REGISTO.PERDA_BOLA).length;
       return {
         playerId: p.playerId,
         number: p.number,
@@ -393,6 +399,8 @@ export function resumoRegistos(state, now = Date.now()) {
         recuperacoes,
         recup10: recuperacoesPor10(recuperacoes, courtMs),
         defesas: meus.filter((r) => r.registo === REGISTO.DEFESA_GR).length,
+        perdas,
+        perdas10: recuperacoesPor10(perdas, courtMs),
         positivas: meus.filter(
           (r) => r.registo === REGISTO.ACAO && r.resultado === RESULTADO_ACAO.POSITIVA
         ).length,
@@ -402,7 +410,14 @@ export function resumoRegistos(state, now = Date.now()) {
       };
     })
     .filter(
-      (j) => j.courtMs > 0 || j.remates || j.recuperacoes || j.defesas || j.positivas || j.negativas
+      (j) =>
+        j.courtMs > 0 ||
+        j.remates ||
+        j.recuperacoes ||
+        j.defesas ||
+        j.perdas ||
+        j.positivas ||
+        j.negativas
     )
     .sort((a, b) => b.courtMs - a.courtMs || (a.number ?? 0) - (b.number ?? 0));
 
@@ -418,6 +433,7 @@ export function resumoRegistos(state, now = Date.now()) {
     porResultadoAdv,
     defesas: de(REGISTO.DEFESA_GR).length,
     recuperacoes: de(REGISTO.RECUPERACAO).length,
+    perdas: de(REGISTO.PERDA_BOLA).length,
     foras: porEquipa(REGISTO.FORA),
     cantos: porEquipa(REGISTO.CANTO),
     acoes: {
@@ -430,14 +446,21 @@ export function resumoRegistos(state, now = Date.now()) {
 
 /**
  * Quantos de cada registo tem cada jogador, para os números nos botões do
- * cartão: Map playerId → { remate, recuperacao, defesa_gr, positivas, negativas }.
+ * cartão: Map playerId → { remate, recuperacao, defesa_gr, perda_bola, positivas, negativas }.
  */
 export function contagemPorJogador(state) {
   const out = new Map();
   for (const r of registosDoJogo(state)) {
     if (!r.playerId) continue;
     if (!out.has(r.playerId)) {
-      out.set(r.playerId, { remate: 0, recuperacao: 0, defesa_gr: 0, positivas: 0, negativas: 0 });
+      out.set(r.playerId, {
+        remate: 0,
+        recuperacao: 0,
+        defesa_gr: 0,
+        perda_bola: 0,
+        positivas: 0,
+        negativas: 0,
+      });
     }
     const c = out.get(r.playerId);
     if (r.registo === REGISTO.ACAO) {
@@ -450,7 +473,10 @@ export function contagemPorJogador(state) {
   return out;
 }
 
-/** Recuperações por 10 minutos em campo. Abaixo de um minuto não diz nada. */
+/**
+ * Recuperações (ou perdas) por 10 minutos em campo. Abaixo de um minuto não
+ * diz nada.
+ */
 export function recuperacoesPor10(recuperacoes, courtMs) {
   return courtMs >= 60 * 1000 ? (recuperacoes * 600000) / courtMs : null;
 }
