@@ -1458,6 +1458,14 @@ export default {
   'feedbackInicial.enviar': 'Enviar',
   'feedbackInicial.agoraNao': 'Ahora no',
   'feedbackInicial.obrigado': '¡Gracias por tu opinión!',
+  'feedbackRapido.abrir': 'Enviar opinión',
+  'feedbackRapido.titulo': 'Enviar opinión',
+  'feedbackRapido.pergunta': '¿Qué nos quieres decir?',
+  'feedbackRapido.placeholder': 'Una idea, un error, algo que echas en falta…',
+  'feedbackRapido.enviar': 'Enviar',
+  'feedbackRapido.cancelar': 'Cancelar',
+  'feedbackRapido.obrigado': '¡Gracias, hemos recibido tu opinión!',
+  'feedbackRapido.erro': 'No se ha podido enviar. Revisa la conexión e inténtalo de nuevo.',
 
   /* --------------------------------------------------------------- común */
   'comum.apelido': 'Abreviatura (opcional)',
