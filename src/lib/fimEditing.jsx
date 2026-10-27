@@ -43,6 +43,8 @@ function FimDialog({ state, periodDurationMs, onClose, onSave }) {
   const ms = parseClock(texto, NaN);
   const erro = validarFim(state, ms, agora);
   const terminado = state.status === MATCH_STATUS.FINISHED;
+  // Depois do fim que ficou marcado: o jogo durou mais.
+  const extra = terminado && !erro ? Math.max(0, ms - lim.maxMs) : 0;
 
   return (
     <Dialog title={terminado ? t('fim.titulo') : t('fim.tituloPorTerminar')} onClose={onClose}>
@@ -70,6 +72,10 @@ function FimDialog({ state, periodDurationMs, onClose, onSave }) {
               })}`
             : ''}
         </p>
+
+        {extra > 0 ? (
+          <p className="field__hint">{t('fim.extraExplicacao', { extra: fmt(extra) })}</p>
+        ) : null}
 
         {erro ? (
           <p className="field__hint" role="alert" style={{ color: 'var(--danger, #c0392b)' }}>

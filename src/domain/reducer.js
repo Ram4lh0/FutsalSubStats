@@ -255,15 +255,52 @@ function relogioDeParede(state, ms) {
 }
 
 /**
+ * O jogo durou mais do que ficou marcado (relógio parado, tempo de desconto…):
+ * o fim sobe para `X`. O tempo a mais vai para quem estava em campo no apito
+ * final — o último quarteto, que é o que se sabe — e o treinador acerta depois
+ * o de cada um nos tempos (`aplicarAjusteTempos`, que corre a seguir e já vê o
+ * jogo com o novo fim). O 5v4 aberto no apito continua até ao novo fim.
+ */
+function estenderFim(state, X, endPeriodMs, eventos) {
+  const original = state.elapsedMatchMs;
+  const extra = X - original;
+  const periodoX = endPeriodMs != null ? endPeriodMs : periodoNoFim(state, X);
+  const wallOriginal = state.finishedAt;
+
+  for (const p of Object.values(state.players)) {
+    for (const st of p.stints) {
+      if (st.endingReason !== STINT_END_REASON.MATCH_FINISHED || st.endMatchMs !== original) continue;
+      st.endMatchMs = X;
+      st.endPeriodMs = periodoX;
+      if (wallOriginal != null) st.endWallMs = wallOriginal + extra;
+    }
+  }
+
+  const apito = [...eventos].reverse().find((e) => e.eventType === EVENT.MATCH_FINISHED);
+  for (const pp of state.powerPlays) {
+    if (apito && pp.endEventId === apito.id && pp.endMatchMs === original) pp.endMatchMs = X;
+  }
+
+  state.elapsedMatchMs = X;
+  state.periodElapsedMs = periodoX;
+  if (state.currentPeriod === 2) state.secondHalfMs = periodoX;
+  if (wallOriginal != null) state.finishedAt = wallOriginal + extra;
+}
+
+/**
  * Fim ajustado de um jogo já terminado (MATCH_CORRECTED com endMatchMs).
  * Aplica-se uma vez, no fim da reconstrução, por cima do estado já completo:
  * os eventos antigos nunca são reinterpretados, só o seu efeito é cortado.
  */
-function aplicarAjusteFim(state) {
+function aplicarAjusteFim(state, eventos) {
   const aj = state.ajusteFim;
   if (!aj || state.status !== MATCH_STATUS.FINISHED) return;
   const original = state.elapsedMatchMs;
   state.fimOriginalMs = original;
+  if (aj.endMatchMs > original) {
+    estenderFim(state, aj.endMatchMs, aj.endPeriodMs, eventos);
+    return;
+  }
   const X = Math.min(aj.endMatchMs, original);
   const periodoX = aj.endPeriodMs != null ? aj.endPeriodMs : periodoNoFim(state, X);
   if (X >= original) return;
@@ -497,7 +534,7 @@ export function buildMatchState(match, squad, events) {
     registarSegmento(state);
   }
 
-  aplicarAjusteFim(state);
+  aplicarAjusteFim(state, ordered);
   aplicarAjusteTempos(state);
 
   // O resultado ao intervalo é DERIVADO dos golos da 1.ª parte, não fotografado

@@ -7,6 +7,7 @@ import { buildMatchState } from '../src/domain/reducer.js';
 import { matchStatsTable, powerPlayTotals } from '../src/domain/stats.js';
 import * as A from '../src/domain/actions.js';
 import { limitesDoFim, validarFim } from '../src/domain/fimDoJogo.js';
+import { metadataDosTempos, validarEntradas } from '../src/domain/tempos.js';
 import { EVENT, MATCH_STATUS, LOCATION } from '../src/domain/constants.js';
 
 const MIN = 60_000;
@@ -151,4 +152,95 @@ test('2.ª parte: o fim fica depois do intervalo e o tempo da parte acompanha', 
   assert.equal(st.elapsedMatchMs, 35 * MIN);
   assert.equal(st.secondHalfMs, 15 * MIN);
   assert.equal(st.finishedAt, T0 + 45 * MIN);
+});
+
+// ---------------------------------------------------------------- tempo extra
+
+// Jogo terminado a horas (40'), mas que na verdade durou mais.
+function jogoTerminadoAos40() {
+  const ctx = jogoEsquecido();
+  step(ctx, (s) => A.finishMatch(s, T0 + 40 * MIN), T0 + 40 * MIN);
+  return ctx;
+}
+
+test('+ tempo: quem estava em campo no apito fica com todo o tempo extra', () => {
+  const ctx = jogoTerminadoAos40();
+  const st = step(ctx, (s) => A.adjustEnd(s, 43 * MIN, T0 + 50 * MIN), T0 + 50 * MIN);
+  assert.equal(st.status, MATCH_STATUS.FINISHED);
+  assert.equal(st.elapsedMatchMs, 43 * MIN);
+  assert.equal(st.finishedAt, T0 + 43 * MIN);
+  assert.equal(st.fimOriginalMs, 40 * MIN);
+  assert.equal(stat(st, 'p6').courtMs, 33 * MIN); // 10' a 40' + 3'
+  assert.equal(stat(st, 'p1').courtMs, 43 * MIN);
+  assert.equal(stat(st, 'p3').courtMs, 10 * MIN); // já tinha saído
+  assert.equal(stat(st, 'p7').courtMs, 0);
+  assert.equal(stat(st, 'p7').benchMs, 43 * MIN); // o banco também cresce
+  assert.equal(stat(st, 'p6').entries, 1);
+  assert.equal(st.players.p6.stints[0].endingReason, 'MATCH_FINISHED');
+});
+
+test('+ tempo: dá para voltar atrás e esticar outra vez, sempre a partir do fim marcado', () => {
+  const ctx = jogoTerminadoAos40();
+  step(ctx, (s) => A.adjustEnd(s, 43 * MIN, T0 + 50 * MIN), T0 + 50 * MIN);
+  let st = step(ctx, (s) => A.adjustEnd(s, 35 * MIN, T0 + 51 * MIN), T0 + 51 * MIN);
+  assert.equal(st.elapsedMatchMs, 35 * MIN);
+  assert.equal(stat(st, 'p6').courtMs, 25 * MIN);
+  assert.equal(limitesDoFim(st).maxMs, 40 * MIN);
+  st = step(ctx, (s) => A.adjustEnd(s, 42 * MIN, T0 + 52 * MIN), T0 + 52 * MIN);
+  assert.equal(stat(st, 'p6').courtMs, 32 * MIN);
+});
+
+test('+ tempo: limites e validação do fim', () => {
+  const ctx = jogoTerminadoAos40();
+  const st = buildMatchState(match, ctx.squad, ctx.events);
+  assert.equal(validarFim(st, 43 * MIN), null);
+  assert.equal(validarFim(st, 70 * MIN), null);
+  assert.equal(validarFim(st, 71 * MIN).chave, 'fim.erro.extraDemais');
+  assert.equal(validarFim(st, 9 * MIN).chave, 'fim.erro.antes'); // a substituição aos 10'
+});
+
+test('+ tempo: num jogo por terminar o máximo continua a ser o relógio', () => {
+  const ctx = jogoEsquecido();
+  const st = buildMatchState(match, ctx.squad, ctx.events);
+  assert.equal(validarFim(st, 41 * MIN, T0 + 40 * MIN).chave, 'fim.erro.depois');
+});
+
+test('+ tempo: o 5v4 aberto no apito continua até ao novo fim', () => {
+  const ctx = jogoEsquecido();
+  step(ctx, (s) => A.makeEvent(s, EVENT.POWER_PLAY_STARTED, {}, T0 + 20 * MIN), T0 + 20 * MIN);
+  step(ctx, (s) => A.finishMatch(s, T0 + 40 * MIN), T0 + 40 * MIN);
+  const st = step(ctx, (s) => A.adjustEnd(s, 43 * MIN, T0 + 50 * MIN), T0 + 50 * MIN);
+  assert.equal(st.powerPlays[0].startMatchMs, 20 * MIN);
+  assert.equal(st.powerPlays[0].endMatchMs, 43 * MIN);
+});
+
+test('+ tempo na 2.ª parte: o tempo da parte acompanha', () => {
+  const ctx = novo();
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.finishFirstHalf(s, T0 + 20 * MIN), T0 + 20 * MIN);
+  step(ctx, (s) => A.setSecondHalfLineup(s, { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4', PIVOT: 'p5' }, T0 + 25 * MIN), T0 + 25 * MIN);
+  step(ctx, (s) => A.startSecondHalf(s, T0 + 30 * MIN), T0 + 30 * MIN);
+  step(ctx, (s) => A.finishMatch(s, T0 + 50 * MIN), T0 + 50 * MIN);
+  const antes = buildMatchState(match, ctx.squad, ctx.events);
+  const fim = antes.elapsedMatchMs;
+  const st = step(ctx, (s) => A.adjustEnd(s, fim + 2 * MIN, T0 + 60 * MIN), T0 + 60 * MIN);
+  assert.equal(st.elapsedMatchMs, fim + 2 * MIN);
+  assert.equal(st.secondHalfMs, antes.secondHalfMs + 2 * MIN);
+  assert.equal(stat(st, 'p1').courtMs, stat(antes, 'p1').courtMs + 2 * MIN);
+});
+
+test('+ tempo: depois de esticar, o editor de tempos aceita o novo fim e acerta cada um', () => {
+  const ctx = jogoTerminadoAos40();
+  let st = step(ctx, (s) => A.adjustEnd(s, 43 * MIN, T0 + 50 * MIN), T0 + 50 * MIN);
+  // p6 só jogou 1' do tempo extra; p7 (banco) jogou os 3'.
+  const p6 = [{ inicioMs: 10 * MIN, fimMs: 41 * MIN }];
+  const p7 = [{ inicioMs: 40 * MIN, fimMs: 43 * MIN }];
+  assert.equal(validarEntradas(st, p6), null);
+  assert.equal(validarEntradas(st, p7), null);
+  assert.equal(validarEntradas(st, [{ inicioMs: 40 * MIN, fimMs: 44 * MIN }]).chave, 'tempos.erro.foraDoJogo');
+  step(ctx, (s) => A.corrigirTempos(s, metadataDosTempos('p6', p6), T0 + 60 * MIN), T0 + 60 * MIN);
+  st = step(ctx, (s) => A.corrigirTempos(s, metadataDosTempos('p7', p7), T0 + 61 * MIN), T0 + 61 * MIN);
+  assert.equal(stat(st, 'p6').courtMs, 31 * MIN);
+  assert.equal(stat(st, 'p7').courtMs, 3 * MIN);
+  assert.equal(stat(st, 'p1').courtMs, 43 * MIN); // os outros ficam com o extra todo
 });

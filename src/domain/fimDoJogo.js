@@ -73,11 +73,19 @@ export function ultimoRegisto(state) {
   return melhor;
 }
 
+// Quanto tempo a mais se aceita depois do fim que ficou marcado (jogo
+// terminado). Chega para qualquer prolongamento; serve só de rede contra um
+// minuto escrito a mais por engano.
+export const EXTRA_MAX_MS = 30 * 60_000;
+
 /**
  * Entre que minutos se pode fixar o fim.
  * - mínimo: o último registo e, na 2.ª parte, o fim da 1.ª.
  * - máximo: o que o relógio marca agora (jogo por terminar) ou o fim que ficou
- *   registado (jogo terminado — não se inventa tempo que não houve).
+ *   registado (jogo terminado).
+ * - maxExtraMs: só num jogo terminado — o jogo pode ter continuado depois do
+ *   que ficou marcado (relógio parado, tempo de desconto), até EXTRA_MAX_MS.
+ *   O que passa de `maxMs` é tempo extra.
  */
 export function limitesDoFim(state, now = Date.now()) {
   const ultimo = ultimoRegisto(state);
@@ -87,16 +95,21 @@ export function limitesDoFim(state, now = Date.now()) {
   const maxMs = terminado
     ? state.fimOriginalMs ?? state.elapsedMatchMs
     : readClock(state, now).matchMs;
-  return { minMs, maxMs, ultimoRegisto: ultimo, terminado };
+  const maxExtraMs = terminado ? maxMs + EXTRA_MAX_MS : maxMs;
+  return { minMs, maxMs, maxExtraMs, ultimoRegisto: ultimo, terminado };
 }
 
 /** null se o minuto serve; senão { chave, valores } para o i18n. */
 export function validarFim(state, ms, now = Date.now()) {
   if (!Number.isFinite(ms) || ms <= 0) return { chave: 'fim.erro.invalido', valores: {} };
-  const { minMs, maxMs, ultimoRegisto: ult } = limitesDoFim(state, now);
+  const { minMs, maxMs, maxExtraMs, ultimoRegisto: ult, terminado } = limitesDoFim(state, now);
   if (ms < minMs) {
     return { chave: 'fim.erro.antes', valores: { tempo: ms, minimo: minMs, tipo: ult?.tipo || null } };
   }
-  if (ms > maxMs) return { chave: 'fim.erro.depois', valores: { maximo: maxMs } };
+  if (ms > maxExtraMs) {
+    return terminado
+      ? { chave: 'fim.erro.extraDemais', valores: { maximo: maxExtraMs } }
+      : { chave: 'fim.erro.depois', valores: { maximo: maxMs } };
+  }
   return null;
 }
