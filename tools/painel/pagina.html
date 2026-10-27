@@ -261,6 +261,17 @@
     </table>
   </div>
 </section>
+
+<section>
+  <h2>Quem recebeu o popup</h2>
+  <p class="muted small" style="margin:-4px 0 12px" id="recebidos-nota"></p>
+  <div class="cartao">
+    <table id="recebidos">
+      <thead><tr><th>Conta</th><th>Momento</th><th>Quando</th><th>Estado</th></tr></thead>
+      <tbody><tr><td colspan="4" class="muted">A carregar…</td></tr></tbody>
+    </table>
+  </div>
+</section>
 </div>
 
 </main>
@@ -670,20 +681,38 @@ document.querySelector('.abas').addEventListener('click', (e) => {
 /* ------------------------------------------------ feedback inicial */
 
 // As respostas aos popups que a app mostra uma vez a cada conta: no registo
-// (contas novas) e aos dois jogos. Quem fechou sem responder não entra na
-// lista, só na contagem.
+// (contas novas) e aos dois jogos. Quem fechou sem responder não entra nas
+// respostas, mas aparece em "Quem recebeu o popup", com todas as contas a quem
+// ele já apareceu.
 const MOMENTOS = { registo: 'registo', dois_jogos: '2 jogos' };
-function desenharFeedback({ respostas, fechadosSemResposta }) {
+const contaCelula = (r) => `
+  <td>
+    <div>${texto(r.nome || r.conta)}${r.interna ? ' <span class="muted small">(interna)</span>' : ''}</div>
+    ${r.nome ? `<div class="muted small">${texto(r.conta)}</div>` : ''}
+  </td>`;
+
+function desenharRecebidos(recebidos) {
+  const contas = new Set(recebidos.map((r) => r.userId)).size;
+  $('#recebidos-nota').textContent =
+    `${contas} conta(s) já receberam o popup (${recebidos.length} vez(es), contando os dois momentos).`;
+  $('#recebidos tbody').innerHTML = recebidos.map((r) => `
+    <tr>
+      ${contaCelula(r)}
+      <td class="nowrap small">${texto(MOMENTOS[r.momento] || r.momento)}</td>
+      <td class="nowrap small">${texto(dataHora(r.quando))}</td>
+      <td>${r.respondido ? ETIQUETA('respondeu', 'activo') : ETIQUETA('fechou sem responder', 'ver')}</td>
+    </tr>`).join('') || '<tr><td colspan="4" class="muted">Ainda ninguém recebeu o popup.</td></tr>';
+}
+
+function desenharFeedback({ recebidos = [], respostas, fechadosSemResposta }) {
+  desenharRecebidos(recebidos);
   const reais = respostas.filter((r) => !r.interna).length;
   $('#feedback-nota').textContent =
     `${respostas.length} resposta(s)${respostas.length !== reais ? ` (${respostas.length - reais} de contas internas)` : ''} · ` +
     `${fechadosSemResposta} fecharam sem responder.`;
   $('#feedback tbody').innerHTML = respostas.map((r) => `
     <tr>
-      <td>
-        <div>${texto(r.nome || r.conta)}${r.interna ? ' <span class="muted small">(interna)</span>' : ''}</div>
-        ${r.nome ? `<div class="muted small">${texto(r.conta)}</div>` : ''}
-      </td>
+      ${contaCelula(r)}
       <td class="nowrap small">${texto(dataHora(r.quando))}</td>
       <td class="nowrap small">${texto(MOMENTOS[r.momento] || r.momento)}</td>
       <td>${texto(r.origem || '—')}</td>
