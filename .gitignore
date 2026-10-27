@@ -29,3 +29,6 @@ android/key.properties
 
 # Os pacotes de atualização são gerados; o que interessa fica no Supabase.
 .pacotes/
+
+# mapa do código gerado pelo Graphify (regenerável)
+graphify-out/
