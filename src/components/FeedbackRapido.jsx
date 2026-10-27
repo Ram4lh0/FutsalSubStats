@@ -39,7 +39,7 @@ export default function FeedbackRapido() {
   return (
     <button
       type="button"
-      className="btn btn--ghost btn--tiny appbar__feedback"
+      className="btn btn--ghost btn--tiny mainnav-top__feedback"
       onClick={abrir}
       aria-label={t('feedbackRapido.abrir')}
       title={t('feedbackRapido.abrir')}

@@ -190,6 +190,7 @@ ul { padding: 0; list-style: none; }
   flex: 0 0 auto;
 }
 .mainnav-top__spacer { flex: 1; }
+.mainnav-top__feedback { min-width: 36px; padding: 0 8px; color: var(--text); }
 .context-picker {
   display: inline-flex;
   align-items: center;
@@ -341,8 +342,6 @@ ul { padding: 0; list-style: none; }
 .appbar__brand { display: flex; align-items: center; gap: 8px; font-weight: 800; cursor: pointer; background: none; border: 0; font-size: 1.08rem; }
 .appbar__spacer { flex: 1; }
 .appbar__right { display: flex; align-items: center; gap: 10px; }
-.appbar__feedback { min-width: 36px; padding: 0 8px; color: var(--muted); }
-.appbar__feedback:hover, .appbar__feedback:focus-visible { color: inherit; }
 .appbar__build { font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .sync { font-size: 0.72rem; letter-spacing: 0.04em; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); }
 /* Em experiência: fica claro na barra que nada disto está a ser guardado. */
