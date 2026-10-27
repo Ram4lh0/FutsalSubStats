@@ -191,7 +191,7 @@ ul { padding: 0; list-style: none; }
 }
 .mainnav-top__spacer { flex: 1; }
 /* Com .btn à frente: o .btn vem mais abaixo e, sem isto, repunha a cor do texto. */
-.btn.mainnav-top__feedback { min-width: 36px; padding: 0 8px; color: var(--green); border-color: rgba(34, 197, 94, 0.45); }
+.btn.mainnav-top__feedback { min-width: 36px; padding: 0 8px; color: var(--text); border-color: var(--green); }
 .btn.mainnav-top__feedback:hover, .btn.mainnav-top__feedback:focus-visible { background: rgba(34, 197, 94, 0.12); }
 .context-picker {
   display: inline-flex;
