@@ -16,6 +16,7 @@ import {
   normalizar,
   podeMudarLicenca,
   estado,
+  jogosPorConta,
   convidar,
   mudarLicenca,
   removerLicenca,
@@ -566,4 +567,44 @@ test('os registos do clube vêm por escalão activo', async () => {
     [['t-1', []], ['t-2', ['fora', 'canto']]]
   );
   assert.equal(r.catalogo.length, 7);
+});
+
+test('cada conta traz os últimos jogos que vê, do mais recente para o mais antigo', async () => {
+  const dados = cenario();
+  dados.matches = [
+    { id: 'm1', team_id: 't-1', club_id: 'c-a', scheduled_at: '2026-10-01T10:00:00Z', status: 'FINISHED', opponent_name: 'Benfica', home_or_away: 'HOME', team_score: 3, opponent_score: 1 },
+    { id: 'm2', team_id: 't-1', club_id: 'c-a', scheduled_at: '2026-10-20T10:00:00Z', status: 'FINISHED', opponent_name: 'Sporting', home_or_away: 'AWAY', team_score: 0, opponent_score: 2 },
+    { id: 'm3', team_id: 't-2', club_id: 'c-a', scheduled_at: '2026-10-25T10:00:00Z', status: 'DRAFT', opponent_name: 'Porto' },
+    { id: 'm4', team_id: 't-1', club_id: 'c-a', scheduled_at: '2026-10-26T10:00:00Z', status: 'FINISHED', archived_at: '2026-10-27' },
+  ];
+  const e = await estado(supabaseFalso(dados));
+  const gerente = e.contas.find((c) => c.email === 'gerente@clube.pt');
+  const ana = e.contas.find((c) => c.email === 'ana@clube.pt');
+
+  assert.deepEqual(gerente.ultimosJogos.map((j) => j.id), ['m3', 'm2', 'm1'], 'o arquivado não aparece');
+  assert.equal(gerente.ultimosJogos[1].fora, true);
+  assert.equal(gerente.ultimosJogos[1].adversario, 'Sporting');
+  assert.equal(gerente.ultimoJogo, '2026-10-25T10:00:00Z');
+  assert.deepEqual(
+    ana.ultimosJogos.map((j) => [j.id, j.via]),
+    [['m2', 'partilhado'], ['m1', 'partilhado']],
+    'a ana só vê o escalão A1, que partilham com ela'
+  );
+  assert.equal(ana.jogosVisiveis, 2);
+});
+
+test('só traz os últimos dez jogos, mas diz quantos há ao todo', () => {
+  const jogos = Array.from({ length: 13 }, (_, i) => ({
+    id: `m${i}`, team_id: 't-1', club_id: 'c-a',
+    scheduled_at: `2026-10-${String(i + 1).padStart(2, '0')}T10:00:00Z`,
+  }));
+  const r = jogosPorConta({
+    jogos,
+    clubes: [{ id: 'c-a', name: 'Clube A', owner_id: 'u-1' }],
+    escaloes: [{ id: 't-1', name: 'A1' }],
+    acessos: [],
+  }).get('u-1');
+  assert.equal(r.total, 13);
+  assert.equal(r.recentes.length, 10);
+  assert.equal(r.recentes[0].id, 'm12');
 });

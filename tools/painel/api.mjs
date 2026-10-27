@@ -51,6 +51,84 @@ export function emailValido(email) {
 export const normalizar = (email) => (email || '').trim().toLowerCase();
 
 /**
+ * Contas nossas, da equipa e de testes. Continuam na lista, mas não entram nas
+ * contagens do resumo: o que interessa aí é o uso por clientes de verdade.
+ */
+export const EMAILS_INTERNOS = new Set(
+  [
+    'axbmr17@gmail.com',
+    'review.futsalsubstats@gmail.com',
+    'brunomrcosta21@gmail.com',
+    'barbaracosta2000@gmail.com',
+    'rdcdc91@hotmail.com',
+    'pedro.quinta77@gmail.com',
+    'pedrobenvindo006@gmail.com',
+    'bea.romao@gmail.com',
+    'andre.dedecas@gmail.com',
+    'nunomerodrigues@gmail.com',
+    'axramalho@outlook.pt',
+    'diogo.emailbox@gmail.com',
+    'nuno.ramalho76@gmail.com',
+    'gepack@junitec.pt',
+    'stef@junitec.pt',
+    'antonio.ramalho@junitec.pt',
+    'xpto.devices@gmail.com',
+    'goncalo.silvaaa012@gmail.com',
+    'sofia.basto@boyden.pt',
+    't2z4m4drgc@privaterelay.appleid.com',
+    'luisncmachado17@gmail.com',
+    'zzp2ktkfdz@privaterelay.appleid.com',
+    'apoioaomeio@gmail.com',
+    '2006monteiroap@gmail.com',
+    'fabiojbc2008@gmail.com',
+  ].map((e) => e.toLowerCase())
+);
+
+export const eInterno = (email) => EMAILS_INTERNOS.has(normalizar(email));
+
+/** Última entrada por utilizador (auth.users.last_sign_in_at), em Map id -> ISO. */
+async function ultimasEntradas(sb) {
+  const mapa = new Map();
+  if (typeof sb.auth?.admin?.listUsers !== 'function') return mapa;
+  try {
+    for (let pagina = 1; pagina <= 50; pagina++) {
+      const { data, error } = await sb.auth.admin.listUsers({ page: pagina, perPage: 1000 });
+      if (error || !data?.users?.length) break;
+      for (const u of data.users) mapa.set(u.id, u.last_sign_in_at || null);
+      if (data.users.length < 1000) break;
+    }
+  } catch {
+    // sem a data não se perde o resto do painel
+  }
+  return mapa;
+}
+
+/**
+ * Último acesso à app por utilizador, em Map id -> ISO.
+ *
+ * Vem da renovação da sessão (função `painel_ultimos_acessos`, migração
+ * 20261027120000), que muda sempre que a app é aberta, ao contrário do login.
+ * Sem a função ainda aplicada, o mapa fica vazio e o painel cai para a última
+ * entrada.
+ */
+async function ultimosAcessos(sb) {
+  const mapa = new Map();
+  if (typeof sb.rpc !== 'function') return mapa;
+  try {
+    const { data, error } = await sb.rpc('painel_ultimos_acessos');
+    if (error) return mapa;
+    for (const linha of data || []) mapa.set(linha.user_id, linha.ultimo_acesso || null);
+  } catch {
+    // sem a data não se perde o resto do painel
+  }
+  return mapa;
+}
+
+/** A mais recente das datas dadas; ignora as que faltam. */
+const maisRecente = (...datas) =>
+  datas.filter(Boolean).sort((a, b) => Date.parse(b) - Date.parse(a))[0] || null;
+
+/**
  * Pode esta conta passar a ter esta licença?
  *
  * A subida — treinador para clube — nunca tem problema: dá direito a mais.
@@ -112,22 +190,85 @@ async function configDosRegistos(sb) {
   return mapa;
 }
 
+/** Quantos jogos recentes a lista de cada conta traz. */
+export const JOGOS_POR_CONTA = 10;
+
+/**
+ * Os jogos que cada conta vê, do mais recente para o mais antigo: os dos clubes
+ * de que é dona e os dos escalões que partilham com ela. Um jogo que se vê pelas
+ * duas vias conta uma vez, como "dono".
+ *
+ * Isto é diferente da contagem `jogos`, que só conta o que a conta produziu. Aqui
+ * interessa o que a pessoa tem à frente quando abre a app — é o que se quer
+ * conferir quando ela diz que "faltam jogos".
+ */
+export function jogosPorConta({ jogos, clubes, escaloes, acessos }) {
+  const donoDoClube = new Map(clubes.map((c) => [c.id, c.owner_id]));
+  const clubePorId = new Map(clubes.map((c) => [c.id, c]));
+  const escalaoPorId = new Map(escaloes.map((t) => [t.id, t]));
+  const quemVeOEscalao = new Map();
+  for (const a of acessos) {
+    if (!quemVeOEscalao.has(a.team_id)) quemVeOEscalao.set(a.team_id, []);
+    quemVeOEscalao.get(a.team_id).push(a.user_id);
+  }
+
+  const porConta = new Map();
+  const juntar = (userId, jogo, via) => {
+    if (!userId) return;
+    if (!porConta.has(userId)) porConta.set(userId, new Map());
+    const visto = porConta.get(userId);
+    if (!visto.has(jogo.id)) visto.set(jogo.id, { jogo, via });
+  };
+
+  for (const j of jogos) {
+    if (j.archived_at) continue;
+    juntar(donoDoClube.get(j.club_id), j, 'dono');
+    for (const userId of quemVeOEscalao.get(j.team_id) || []) juntar(userId, j, 'partilhado');
+  }
+
+  const resultado = new Map();
+  for (const [userId, visto] of porConta) {
+    const lista = [...visto.values()]
+      .map(({ jogo: j, via }) => ({
+        id: j.id,
+        quando: j.scheduled_at || j.started_at || j.created_at || null,
+        clube: clubePorId.get(j.club_id)?.name || null,
+        escalao: escalaoPorId.get(j.team_id)?.name || null,
+        adversario: j.opponent_name || null,
+        fora: j.home_or_away === 'AWAY',
+        golos: j.team_score ?? null,
+        golosAdversario: j.opponent_score ?? null,
+        estado: j.status || null,
+        via,
+      }))
+      .sort((a, b) => Date.parse(b.quando || 0) - Date.parse(a.quando || 0) || String(a.id).localeCompare(String(b.id)));
+    resultado.set(userId, { total: lista.length, ultimoJogo: lista[0]?.quando || null, recentes: lista.slice(0, JOGOS_POR_CONTA) });
+  }
+  return resultado;
+}
+
 export async function estado(sb) {
   const [perfis, clubes, escaloes, membros, acessos, jogos] = await Promise.all([
     sb
       .from('profiles')
-      .select('id, email, licenca, license_expires_at, created_at')
+      .select('id, email, name, licenca, license_expires_at, created_at')
       .order('created_at', { ascending: false }),
     sb.from('clubs').select('id, name, owner_id, archived_at'),
     sb.from('teams').select('id, name, club_id, archived_at'),
     sb.from('club_members').select('club_id, user_id'),
     sb.from('team_access').select('team_id, user_id, nivel'),
-    sb.from('matches').select('id, team_id, club_id, scheduled_at, status'),
+    sb
+      .from('matches')
+      .select(
+        'id, team_id, club_id, scheduled_at, started_at, created_at, archived_at, status, opponent_name, home_or_away, team_score, opponent_score'
+      ),
   ]);
 
   const erro = [perfis, clubes, escaloes, membros, acessos, jogos].find((r) => r.error);
   if (erro) throw new Error(erro.error.message);
 
+  const entradas = await ultimasEntradas(sb);
+  const acessosApp = await ultimosAcessos(sb);
   const registosPorEscalao = await configDosRegistos(sb);
   const registosDe = (teamId) => registosPorEscalao.get(teamId)?.registos || [];
   const addonsDe = (teamId) => registosPorEscalao.get(teamId)?.addons || [];
@@ -145,6 +286,13 @@ export async function estado(sb) {
   for (const j of jogos.data || []) {
     jogosPorEscalao.set(j.team_id, (jogosPorEscalao.get(j.team_id) || 0) + 1);
   }
+
+  const jogosDeCadaConta = jogosPorConta({
+    jogos: jogos.data || [],
+    clubes: clubes.data || [],
+    escaloes: escaloes.data || [],
+    acessos: acessos.data || [],
+  });
 
   const contas = (perfis.data || []).map((p) => {
     const meuClube = clubesActivos.find((c) => c.owner_id === p.id) || null;
@@ -181,10 +329,14 @@ export async function estado(sb) {
     return {
       id: p.id,
       email: p.email || '(sem email)',
+      nome: p.name || null,
       licenca: p.licenca || 'treinador',
       validade: p.license_expires_at || null,
       activo: licencaActiva(p.license_expires_at),
       criadaEm: p.created_at || null,
+      ultimaEntrada: entradas.get(p.id) || null,
+      ultimoAcesso: maisRecente(acessosApp.get(p.id), entradas.get(p.id)),
+      interna: eInterno(p.email),
       clube: meuClube ? { id: meuClube.id, nome: meuClube.name } : null,
       escaloes: meusEscaloes.map((t) => t.name),
       // Os add-ons (registos extra) de cada escalão do seu clube. Quem tem
@@ -196,8 +348,24 @@ export async function estado(sb) {
       associadoA: associadoA.map((c) => ({ id: c.id, nome: c.name })),
       partilhados,
       jogos: totalJogos,
+      jogosVisiveis: jogosDeCadaConta.get(p.id)?.total || 0,
+      ultimoJogo: jogosDeCadaConta.get(p.id)?.ultimoJogo || null,
+      ultimosJogos: jogosDeCadaConta.get(p.id)?.recentes || [],
     };
   });
+
+  // Contagens só com contas de clientes; escalões e jogos seguem o dono.
+  const reais = contas.filter((c) => !c.interna);
+  const clubesReais = clubesActivos.filter(
+    (c) => !eInterno((perfis.data || []).find((p) => p.id === c.owner_id)?.email)
+  );
+  const idsClubesReais = new Set(clubesReais.map((c) => c.id));
+  const escaloesReais = escaloesActivos.filter((t) => idsClubesReais.has(t.club_id));
+  const jogosReais = escaloes.data
+    ? (escaloes.data || [])
+        .filter((t) => idsClubesReais.has(t.club_id))
+        .reduce((soma, t) => soma + (jogosPorEscalao.get(t.id) || 0), 0)
+    : 0;
 
   return {
     contas,
@@ -210,15 +378,16 @@ export async function estado(sb) {
       }))
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt')),
     resumo: {
-      contas: contas.length,
-      comLicencaClube: contas.filter((c) => c.licenca === 'clube').length,
-      comLicencaTreinador: contas.filter((c) => c.licenca === 'treinador').length,
-      licencasActivas: contas.filter((c) => c.activo).length,
-      licencasExpiradas: contas.filter((c) => !c.activo).length,
-      semClube: contas.filter((c) => !c.clube && !c.associadoA.length).length,
-      clubes: clubesActivos.length,
-      escaloes: escaloesActivos.length,
-      jogos: (jogos.data || []).length,
+      contas: reais.length,
+      comLicencaClube: reais.filter((c) => c.licenca === 'clube').length,
+      comLicencaTreinador: reais.filter((c) => c.licenca === 'treinador').length,
+      licencasActivas: reais.filter((c) => c.activo).length,
+      licencasExpiradas: reais.filter((c) => !c.activo).length,
+      semClube: reais.filter((c) => !c.clube && !c.associadoA.length).length,
+      clubes: clubesReais.length,
+      escaloes: escaloesReais.length,
+      jogos: jogosReais,
+      internasExcluidas: contas.length - reais.length,
     },
   };
 }

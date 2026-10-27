@@ -4,33 +4,118 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="referrer" content="no-referrer" />
+<meta name="color-scheme" content="dark" />
 <title>Painel · Futsal SubStats</title>
 <style>
   /* A paleta é a mesma do `globals.css`. Não é vaidade: quando o painel se
      parece com a app, um número estranho salta à vista por ser estranho, e não
      por estar num sítio que parece outro programa. */
   :root {
-    --bg: #0b1220; --card: #16233b; --line: #2a3d5f; --text: #eaf1ff;
-    --muted: #91a4c4; --primary: #22c55e; --primary-ink: #05240f;
+    --bg: #0b1220; --card: #121d31; --card-2: #16233b; --line: #22334f; --text: #eaf1ff;
+    --primary: #22c55e; --primary-ink: #05240f;
     --warn: #f59e0b; --danger: #ef4444; --info: #38bdf8; --radius: 14px;
   }
+  :root { --muted: #8fa2c2; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 24px; background: var(--bg); color: var(--text);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; padding: 28px 24px 80px; background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
   }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  h2 { font-size: 15px; margin: 28px 0 10px; color: var(--muted); font-weight: 600; }
-  .aviso { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
-  .cartao { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
-  .resumo { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-  .resumo div { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+  main { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+  h2 { font-size: 13px; margin: 0 0 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  .nowrap { white-space: nowrap; }
+
+  /* ---- controlos */
+  input, select, button {
+    font: inherit; padding: 9px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: #0e1829; color: var(--text);
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: 2px;
+  }
+  button { cursor: pointer; border-color: transparent; background: var(--primary); color: var(--primary-ink); font-weight: 700; }
+  button.discreto { background: transparent; border-color: var(--line); color: var(--text); font-weight: 500; padding: 6px 12px; font-size: 13px; }
+  button.perigo { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.35); color: #fecaca; }
+  button:disabled { opacity: .5; cursor: progress; }
+  form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  input[type="checkbox"] { min-width: 0; width: 16px; height: 16px; padding: 0; accent-color: var(--primary); }
+
+  /* ---- topo e resumo */
+  .topo { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .topo p { margin: 4px 0 0; color: var(--muted); font-size: 13px; max-width: 70ch; }
+  .topo__acoes { display: flex; align-items: center; gap: 12px; }
+  .resumo { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); margin: 0; }
+  .resumo div { background: var(--card); border-radius: var(--radius); padding: 12px 14px; }
   .resumo dt { color: var(--muted); font-size: 12px; }
-  .resumo dd { margin: 2px 0 0; font-size: 22px; font-weight: 700; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-  tr:last-child td { border-bottom: 0; }
+  .resumo dd { margin: 2px 0 0; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .nota-interna { margin: -10px 0 0; }
+
+  /* ---- criar conta */
+  details.criar { background: var(--card); border-radius: var(--radius); }
+  details.criar > summary { padding: 14px 16px; cursor: pointer; font-weight: 600; list-style: none; }
+  details.criar > summary::-webkit-details-marker { display: none; }
+  details.criar > summary::before { content: "+"; display: inline-block; width: 18px; color: var(--primary); font-weight: 700; }
+  details.criar[open] > summary::before { content: "–"; }
+  .criar__corpo { padding: 0 16px 16px; }
+  .criar__corpo input[type="email"] { min-width: 260px; }
+
+  /* ---- barra de filtros */
+  .barra { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .barra input[type="search"] { flex: 1 1 240px; min-width: 200px; }
+  .barra label { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13px; }
+  .ordem { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 10px 0 14px; }
+  .ordem button { padding: 5px 12px; font-size: 13px; font-weight: 500; border-radius: 999px; background: transparent; border: 1px solid var(--line); color: var(--muted); }
+  .ordem button[aria-pressed="true"] { background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.5); color: var(--text); }
+  .ordem .contagem { margin-left: auto; }
+
+  /* ---- cartões de conta */
+  .contas { display: flex; flex-direction: column; gap: 8px; }
+  details.conta { background: var(--card); border: 1px solid transparent; border-radius: var(--radius); }
+  details.conta[open] { border-color: var(--line); background: var(--card-2); }
+  details.conta > summary {
+    list-style: none; cursor: pointer; padding: 12px 16px; display: grid; gap: 6px 16px; align-items: center;
+    grid-template-columns: minmax(220px, 2.2fr) 150px minmax(150px, 1.5fr) 140px 130px;
+  }
+  details.conta > summary::-webkit-details-marker { display: none; }
+  details.conta > summary:hover { background: rgba(255,255,255,.02); border-radius: var(--radius); }
+  .conta__quem { min-width: 0; }
+  .conta__nome { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .conta__email { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .conta__lic { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+  .conta__clube { font-size: 13px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .facto strong { display: block; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .facto span { font-size: 12px; color: var(--muted); }
+  .ponto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #3a4a66; vertical-align: 1px; }
+  .ponto--hoje { background: var(--primary); }
+  .ponto--semana { background: var(--warn); }
+  @media (max-width: 860px) {
+    details.conta > summary { grid-template-columns: 1fr 1fr; }
+    .conta__quem { grid-column: 1 / -1; }
+  }
+
+  .conta__corpo { padding: 4px 16px 16px; display: grid; gap: 16px; grid-template-columns: minmax(280px, 1fr) minmax(300px, 1.2fr); align-items: start; }
+  @media (max-width: 860px) { .conta__corpo { grid-template-columns: 1fr; } }
+  .conta__meta { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; }
+  .bloco { background: rgba(11,18,32,.5); border-radius: 12px; padding: 14px; }
+  .bloco--largo { grid-column: 1 / -1; }
+  .bloco h3 { margin: 0 0 10px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .bloco form { align-items: flex-end; }
+  .bloco label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+  .bloco label > span { color: var(--muted); }
+
+  /* ---- jogos */
+  .jogo { display: grid; grid-template-columns: 54px 1fr auto; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+  .jogo:first-of-type { border-top: 0; padding-top: 0; }
+  .jogo__dia { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .jogo__quem { min-width: 0; }
+  .jogo__quem div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .jogo__res { text-align: right; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .jogo__res small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+
+  /* ---- etiquetas */
   .etiqueta { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
   .etiqueta--clube { background: rgba(34,197,94,.15); color: var(--primary); }
   .etiqueta--treinador { background: rgba(56,189,248,.15); color: var(--info); }
@@ -38,89 +123,119 @@
   .etiqueta--expirado { background: rgba(239,68,68,.14); color: var(--danger); }
   .etiqueta--ver { background: rgba(145,164,196,.15); color: var(--muted); }
   .etiqueta--editar { background: rgba(245,158,11,.15); color: var(--warn); }
-  .muted { color: var(--muted); }
-  .small { font-size: 12px; }
-  .nowrap { white-space: nowrap; }
-  form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  input, select, button {
-    font: inherit; padding: 9px 12px; border-radius: 10px;
-    border: 1px solid var(--line); background: #0f1a2e; color: var(--text);
-  }
-  input { min-width: 240px; }
-  button { cursor: pointer; border-color: transparent; background: var(--primary); color: var(--primary-ink); font-weight: 700; }
-  button.discreto { background: transparent; border-color: var(--line); color: var(--text); font-weight: 500; padding: 5px 10px; font-size: 13px; }
-  button.perigo { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.35); color: #fecaca; }
-  button:disabled { opacity: .5; cursor: progress; }
-  .gestao td { background: rgba(15,26,46,.78); border-top: 1px solid var(--line); }
-  .gestao__grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-  .gestao__bloco { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: rgba(11,18,32,.45); }
-  .gestao__bloco h3 { margin: 0 0 10px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-  .gestao__bloco form { align-items: flex-end; }
-  .gestao__bloco label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
-  .gestao__bloco label span { color: var(--muted); }
-  .gestao__bloco input[type="checkbox"] { min-width: 0; width: 16px; height: 16px; }
-  .associacoes { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
-  .associacao { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 10px; }
+
+  /* ---- clubes (tabela) */
+  .cartao { background: var(--card); border-radius: var(--radius); padding: 8px 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  tr:last-child td { border-bottom: 0; }
+  .gestao td { background: rgba(11,18,32,.5); }
+  .gestao__bloco { border-radius: 12px; padding: 4px 0; }
+  .gestao__bloco h3 { margin: 0 0 10px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+
+  /* ---- clubes associados, add-ons */
+  .associacoes { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+  .associacao { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 10px; font-size: 13px; }
   .associacao button { padding: 2px 7px; border-radius: 999px; background: rgba(239,68,68,.14); color: #fecaca; }
-  #recado { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; display: none; }
-  #recado.ok { display: block; background: rgba(34,197,94,.12); color: var(--primary); }
-  #recado.erro { display: block; background: rgba(239,68,68,.12); color: var(--danger); }
   form.registos__escalao { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .registos__escalao:last-of-type { border-bottom: 0; }
+  .registos__escalao strong { min-width: 120px; }
+  .registos__escalao label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--text); }
   .addons__grupo { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
   .addons__nome-grupo { min-width: 170px; }
   .addons__falta { font-size: 12px; color: var(--danger); }
-  .registos__escalao:last-child { border-bottom: 0; }
-  .registos__escalao strong { min-width: 120px; }
-  .registos__escalao label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--text); }
-  .registos__escalao input[type="checkbox"] { min-width: 0; width: 16px; height: 16px; }
+
+  /* ---- aviso flutuante */
+  #recado { position: fixed; right: 20px; bottom: 20px; max-width: min(460px, calc(100vw - 40px)); margin: 0; padding: 12px 14px; border-radius: 12px; display: none; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,.45); z-index: 10; }
+  #recado.ok { display: block; background: #12361f; color: #b9f3cb; border: 1px solid rgba(34,197,94,.4); }
+  #recado.erro { display: block; background: #3b1618; color: #fecaca; border: 1px solid rgba(239,68,68,.45); }
+  .vazio { background: var(--card); border-radius: var(--radius); padding: 24px; color: var(--muted); text-align: center; }
 </style>
 </head>
 <body>
+<main>
 
-<h1>Painel do Futsal SubStats</h1>
-<p class="aviso">
-  Só nesta máquina, e só enquanto o comando estiver a correr. Tudo o que se vê
-  aqui são dados de clientes — cuidado com o que se mostra a quem esteja ao lado.
-</p>
+<header class="topo">
+  <div>
+    <h1>Painel do Futsal SubStats</h1>
+    <p>
+      Só nesta máquina, e só enquanto o comando estiver a correr. Tudo o que se vê
+      aqui são dados de clientes — cuidado com o que se mostra a quem esteja ao lado.
+    </p>
+  </div>
+  <div class="topo__acoes">
+    <span class="muted small" id="carimbo"></span>
+    <button type="button" id="atualizar">Atualizar</button>
+  </div>
+</header>
 
 <dl class="resumo" id="resumo"></dl>
+<p class="muted small nota-interna" id="nota-interna"></p>
 
-<h2>Criar conta</h2>
-<div class="cartao">
-  <form id="convite">
-    <input id="email" type="email" placeholder="email@clube.pt" required autocomplete="off" />
-    <select id="licenca">
-      <option value="treinador">Licença de treinador</option>
-      <option value="clube">Licença de clube</option>
-    </select>
-    <input id="validade" type="date" title="Validade da licença" />
-    <select id="clube"><option value="">Sem clube</option></select>
-    <button type="submit">Convidar</button>
-  </form>
-  <p class="muted small" style="margin: 10px 0 0" id="explicacao"></p>
-  <p id="recado"></p>
-</div>
+<details class="criar">
+  <summary>Criar conta</summary>
+  <div class="criar__corpo">
+    <form id="convite">
+      <input id="email" type="email" placeholder="email@clube.pt" required autocomplete="off" />
+      <select id="licenca">
+        <option value="treinador">Licença de treinador</option>
+        <option value="clube">Licença de clube</option>
+      </select>
+      <input id="validade" type="date" title="Validade da licença" />
+      <select id="clube"><option value="">Sem clube</option></select>
+      <button type="submit">Convidar</button>
+    </form>
+    <p class="muted small" style="margin: 10px 0 0" id="explicacao"></p>
+  </div>
+</details>
 
-<h2>Contas</h2>
-<div class="cartao">
-  <table id="tabela">
-    <thead>
-      <tr>
-        <th>Email</th><th>Licença</th><th>Estado</th><th>Clube</th><th>Escalões</th>
-        <th>Partilhados</th><th>Jogos</th><th>Criada em</th><th></th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
+<section>
+  <h2>Contas</h2>
+  <div class="barra">
+    <input type="search" id="procurar" placeholder="Procurar por nome, email ou clube" autocomplete="off" />
+    <label>Último acesso
+      <select id="filtro-acesso">
+        <option value="">Qualquer altura</option>
+        <option value="1">Nas últimas 24 horas</option>
+        <option value="7">Nos últimos 7 dias</option>
+        <option value="30">Nos últimos 30 dias</option>
+        <option value="mais30">Há mais de 30 dias</option>
+        <option value="nunca">Nunca acedeu</option>
+      </select>
+    </label>
+    <label>Licença
+      <select id="filtro-licenca">
+        <option value="">Todas</option>
+        <option value="clube">Clube</option>
+        <option value="treinador">Treinador</option>
+        <option value="expirada">Expirada</option>
+        <option value="semclube">Sem clube</option>
+      </select>
+    </label>
+  </div>
+  <div class="ordem" id="ordem" role="group" aria-label="Ordenar">
+    <button type="button" data-ordem="acesso" aria-pressed="true">Último acesso</button>
+    <button type="button" data-ordem="criada" aria-pressed="false">Mais recentes</button>
+    <button type="button" data-ordem="jogos" aria-pressed="false">Mais jogos</button>
+    <button type="button" data-ordem="ultjogo" aria-pressed="false">Último jogo</button>
+    <span class="muted small contagem" id="contagem"></span>
+  </div>
+  <div class="contas" id="contas"></div>
+</section>
 
-<h2>Clubes</h2>
-<div class="cartao">
-  <table id="clubes">
-    <thead><tr><th>Clube</th><th>Dono</th><th>Escalões</th><th></th></tr></thead>
-    <tbody></tbody>
-  </table>
-</div>
+<section>
+  <h2>Clubes</h2>
+  <div class="cartao">
+    <table id="clubes">
+      <thead><tr><th>Clube</th><th>Dono</th><th>Escalões</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+<p id="recado" title="Clica para fechar"></p>
 
 <script>
 // A chave da sessão vem na barra de endereço, na primeira visita. Guarda-se aqui
@@ -131,7 +246,10 @@ if (CHAVE) history.replaceState(null, '', location.pathname);
 const $ = (s) => document.querySelector(s);
 const texto = (s) => String(s ?? '').replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 let ESTADO = { contas: [], clubes: [], resumo: {} };
-let CONTA_ABERTA = null;
+let ORDEM = 'acesso';
+// As contas abertas guardam-se por id: cada gravação volta a desenhar a lista,
+// e sem isto o cartão onde se estava a mexer fechava-se.
+const ABERTAS = new Set();
 
 async function pedir(caminho, opcoes = {}) {
   const r = await fetch(caminho, {
@@ -143,11 +261,15 @@ async function pedir(caminho, opcoes = {}) {
   return dados;
 }
 
+let temporizadorRecado = null;
 function recado(mensagem, tipo) {
   const el = $('#recado');
   el.textContent = mensagem;
   el.className = tipo;
+  clearTimeout(temporizadorRecado);
+  if (tipo === 'ok') temporizadorRecado = setTimeout(() => { el.className = ''; }, 6000);
 }
+$('#recado').addEventListener('click', () => { $('#recado').className = ''; });
 
 // O `tipo` também passa pelo `texto`. Hoje só pode ser uma de quatro palavras
 // que vêm do servidor, mas uma classe montada com texto de fora é o género de
@@ -176,6 +298,24 @@ function dataHora(iso) {
   return `${data} ${hora}`;
 }
 
+const DIA = 24 * 60 * 60 * 1000;
+const instante = (iso) => (iso ? new Date(iso).getTime() : null);
+
+function diaCurto(iso) {
+  return iso ? new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '—';
+}
+
+/** "há 3 h", "há 12 d", "nunca". */
+function ha(iso) {
+  const t = instante(iso);
+  if (t === null) return 'nunca';
+  const horas = (Date.now() - t) / 36e5;
+  if (horas < 1) return 'agora mesmo';
+  if (horas < 24) return `há ${Math.floor(horas)} h`;
+  const dias = Math.floor(horas / 24);
+  return dias < 60 ? `há ${dias} d` : `há ${Math.floor(dias / 30)} meses`;
+}
+
 function opcoesClubes(seleccionado = '') {
   return '<option value="">Escolher clube</option>' +
     ESTADO.clubes.map((c) => (
@@ -183,56 +323,93 @@ function opcoesClubes(seleccionado = '') {
     )).join('');
 }
 
-function painelGestao(c) {
+/* ------------------------------------------------ gestão de uma conta */
+
+function blocoLicenca(c) {
+  return `
+    <div class="bloco">
+      <h3>Licença</h3>
+      <form data-licenca-form="${texto(c.id)}">
+        <label><span>Tipo</span>
+          <select name="licenca">
+            <option value="treinador" ${c.licenca === 'treinador' ? 'selected' : ''}>Treinador</option>
+            <option value="clube" ${c.licenca === 'clube' ? 'selected' : ''}>Clube</option>
+          </select>
+        </label>
+        <label><span>Validade</span>
+          <input name="validade" type="date" value="${texto(soData(c.validade) || fimDaEpoca())}" />
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <input name="forcar" type="checkbox" />
+          <span>forçar mesmo com escalões a mais</span>
+        </label>
+        <button type="submit">Guardar licença</button>
+        <button type="button" class="perigo" data-remover-licenca="${texto(c.id)}">Remover licença</button>
+      </form>
+    </div>`;
+}
+
+function blocoClubes(c) {
   const associados = c.associadoA || [];
   return `
-    <tr class="gestao" data-gestao="${texto(c.id)}">
-      <td colspan="9">
-        <div class="gestao__grid">
-          <div class="gestao__bloco">
-            <h3>Licença</h3>
-            <form data-licenca-form="${texto(c.id)}">
-              <label><span>Tipo</span>
-                <select name="licenca">
-                  <option value="treinador" ${c.licenca === 'treinador' ? 'selected' : ''}>Treinador</option>
-                  <option value="clube" ${c.licenca === 'clube' ? 'selected' : ''}>Clube</option>
-                </select>
-              </label>
-              <label><span>Validade</span>
-                <input name="validade" type="date" value="${texto(soData(c.validade) || fimDaEpoca())}" />
-              </label>
-              <label style="display:flex;align-items:center;margin-bottom:10px">
-                <input name="forcar" type="checkbox" />
-                <span>forçar mesmo com escalões a mais</span>
-              </label>
-              <button type="submit">Guardar licença</button>
-              <button type="button" class="perigo" data-remover-licenca="${texto(c.id)}">Remover licença</button>
-            </form>
-          </div>
+    <div class="bloco">
+      <h3>Clubes associados</h3>
+      <form data-clube-form="${texto(c.id)}">
+        <select name="clubeId">${opcoesClubes()}</select>
+        <button type="submit">Associar clube</button>
+      </form>
+      <div class="associacoes">
+        ${associados.length
+          ? associados.map((a) => `
+              <span class="associacao">
+                ${texto(a.nome)}
+                <button type="button" title="Remover associação" data-desassociar="${texto(c.id)}" data-clube="${texto(a.id)}">×</button>
+              </span>
+            `).join('')
+          : '<span class="muted small">Ainda não está associado a clubes de terceiros.</span>'}
+      </div>
+    </div>`;
+}
 
-          <div class="gestao__bloco">
-            <h3>Clubes associados</h3>
-            <form data-clube-form="${texto(c.id)}">
-              <select name="clubeId">${opcoesClubes()}</select>
-              <button type="submit">Associar clube</button>
-            </form>
-            <div class="associacoes">
-              ${associados.length
-                ? associados.map((a) => `
-                    <span class="associacao">
-                      ${texto(a.nome)}
-                      <button type="button" title="Remover associação" data-desassociar="${texto(c.id)}" data-clube="${texto(a.id)}">×</button>
-                    </span>
-                  `).join('')
-                : '<span class="muted small">Ainda não está associado a clubes de terceiros.</span>'}
-            </div>
-          </div>
+const ESTADOS_JOGO = { DRAFT: 'rascunho', READY: 'pronto', HALFTIME: 'intervalo', FINISHED: 'final' };
 
-          ${blocoAddons(c)}
+function blocoJogos(c) {
+  const jogos = c.ultimosJogos || [];
+  const linhas = jogos.map((j) => {
+    const resultado = j.golos == null || j.golosAdversario == null ? '–' : `${j.golos}–${j.golosAdversario}`;
+    const onde = [j.clube, j.escalao].filter(Boolean).join(' · ');
+    return `
+      <div class="jogo">
+        <div class="jogo__dia">${texto(diaCurto(j.quando))}</div>
+        <div class="jogo__quem">
+          <div>${j.fora ? '@' : 'vs'} ${texto(j.adversario || '?')}</div>
+          <div class="muted small">${texto(onde)}${j.via === 'partilhado' ? ' · partilhado' : ''}</div>
         </div>
-      </td>
-    </tr>
-  `;
+        <div class="jogo__res">${texto(resultado)}<small>${texto(ESTADOS_JOGO[j.estado] || 'a decorrer')}</small></div>
+      </div>`;
+  }).join('');
+  const maisAntigos = c.jogosVisiveis - jogos.length;
+  return `
+    <div class="bloco">
+      <h3>Últimos jogos</h3>
+      ${linhas || '<span class="muted small">Ainda não tem nenhum jogo.</span>'}
+      ${maisAntigos > 0 ? `<p class="muted small" style="margin:10px 0 0">+ ${maisAntigos} jogos mais antigos</p>` : ''}
+    </div>`;
+}
+
+function corpoDaConta(c) {
+  return `
+    <div class="conta__corpo">
+      <p class="conta__meta">
+        Conta criada a ${texto(dataHora(c.criadaEm))} · último login ${texto(dataHora(c.ultimaEntrada))}
+      </p>
+      ${blocoJogos(c)}
+      <div style="display:grid;gap:16px">
+        ${blocoLicenca(c)}
+        ${blocoClubes(c)}
+      </div>
+      ${blocoAddons(c)}
+    </div>`;
 }
 
 /* ------------------------------------------------ add-ons de cada conta */
@@ -299,68 +476,131 @@ function blocoAddons(c) {
   const herdadosHtml = herdados.length
     ? `<p class="small muted" style="margin:10px 0 4px">Herdados dos escalões partilhados com esta conta:</p>
        ${herdados.map((p) => `
-         <div class="small">${texto(p.nome)} <span class="muted">(${texto(p.clube)})</span>: ${texto(listaAddons(p))}</div>`).join('')}
+         <div class="small">${texto(p.nome)} <span class="muted">(${texto(p.clube)})</span> ${ETIQUETA(p.nivel, p.nivel)}: ${texto(listaAddons(p))}</div>`).join('')}
        <p class="small muted" style="margin:4px 0 0">Mudam-se na conta do dono desse clube.</p>`
     : '';
 
   if (!proprios.length && !herdados.length) {
     return `
-      <div class="gestao__bloco">
+      <div class="bloco bloco--largo">
         <h3>Add-ons</h3>
         <span class="muted small">Sem escalões: ainda não há onde ligar add-ons.</span>
       </div>`;
   }
   return `
-    <div class="gestao__bloco" style="grid-column: 1 / -1">
+    <div class="bloco bloco--largo">
       <h3>Add-ons</h3>
       ${formularios}
       ${herdadosHtml}
     </div>`;
 }
 
+/* ------------------------------------------------ lista de contas */
+
+/** As contas que passam nos filtros, na ordem escolhida. */
+function contasVisiveis(contas) {
+  const q = $('#procurar').value.trim().toLowerCase();
+  const acesso = $('#filtro-acesso').value;
+  const licenca = $('#filtro-licenca').value;
+  const agora = Date.now();
+
+  const lista = contas.filter((c) => {
+    if (q) {
+      const palheiro = [c.email, c.nome, c.clube?.nome, ...c.associadoA.map((a) => a.nome)]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!palheiro.includes(q)) return false;
+    }
+
+    const t = instante(c.ultimoAcesso);
+    if (acesso === 'nunca' && t !== null) return false;
+    if (acesso === 'mais30' && !(t !== null && agora - t > 30 * DIA)) return false;
+    if (acesso && acesso !== 'nunca' && acesso !== 'mais30' && !(t !== null && agora - t <= Number(acesso) * DIA)) return false;
+
+    if (licenca === 'clube' || licenca === 'treinador') return c.licenca === licenca;
+    if (licenca === 'expirada') return !c.activo;
+    if (licenca === 'semclube') return !c.clube && !c.associadoA.length;
+    return true;
+  });
+
+  const chave = {
+    acesso: (c) => instante(c.ultimoAcesso),
+    criada: (c) => instante(c.criadaEm),
+    jogos: (c) => c.jogos,
+    ultjogo: (c) => instante(c.ultimoJogo),
+  }[ORDEM];
+
+  // Quem não tem a data (nunca acedeu, nunca jogou) fica sempre no fim.
+  return [...lista].sort((a, b) => {
+    const ka = chave(a), kb = chave(b);
+    if (ka === null || kb === null) return (ka === null) - (kb === null);
+    return kb - ka || (ORDEM === 'jogos' ? (instante(b.ultimoAcesso) || 0) - (instante(a.ultimoAcesso) || 0) : 0);
+  });
+}
+
+function cartaoDaConta(c) {
+  const t = instante(c.ultimoAcesso);
+  const idade = t === null ? null : Date.now() - t;
+  const ponto = idade !== null && idade < DIA ? ' ponto--hoje' : idade !== null && idade < 7 * DIA ? ' ponto--semana' : '';
+  const clube = c.clube
+    ? texto(c.clube.nome)
+    : c.associadoA.length
+      ? `associado a ${texto(c.associadoA.map((x) => x.nome).join(', '))}`
+      : '—';
+
+  return `
+    <details class="conta" data-conta="${texto(c.id)}" ${ABERTAS.has(c.id) ? 'open' : ''}>
+      <summary>
+        <div class="conta__quem">
+          <div class="conta__nome">${texto(c.nome || c.email)}${c.interna ? ' <span class="muted small">(interna)</span>' : ''}</div>
+          ${c.nome ? `<div class="conta__email">${texto(c.email)}</div>` : ''}
+        </div>
+        <div class="conta__lic">
+          <span>${ETIQUETA(c.licenca, c.licenca)} ${ETIQUETA(c.activo ? 'activa' : 'expirada', c.activo ? 'activo' : 'expirado')}</span>
+          <span class="muted small">${texto(validadeTexto(c.validade))}</span>
+        </div>
+        <div class="conta__clube">
+          ${clube}
+          ${(c.escaloesComRegistos || []).length ? `<div class="small">${c.escaloesComRegistos.length} escalão(ões)</div>` : ''}
+        </div>
+        <div class="facto"><strong><span class="ponto${ponto}"></span>${texto(ha(c.ultimoAcesso))}</strong><span>último acesso</span></div>
+        <div class="facto"><strong>${c.jogosVisiveis}</strong><span>${c.ultimoJogo ? `jogos · último ${texto(diaCurto(c.ultimoJogo))}` : 'jogos'}</span></div>
+      </summary>
+      ${ABERTAS.has(c.id) ? corpoDaConta(c) : ''}
+    </details>`;
+}
+
+function desenharContas() {
+  const visiveis = contasVisiveis(ESTADO.contas);
+  $('#contagem').textContent = visiveis.length === ESTADO.contas.length
+    ? `${visiveis.length} contas`
+    : `${visiveis.length} de ${ESTADO.contas.length} contas`;
+  $('#contas').innerHTML = visiveis.map(cartaoDaConta).join('') ||
+    '<div class="vazio">Nenhuma conta com estes filtros.</div>';
+}
+
 function desenhar(estado) {
   ESTADO = estado;
   const r = estado.resumo;
+  const reais = estado.contas.filter((c) => !c.interna);
+  const semana = Date.now() - 7 * DIA;
   $('#resumo').innerHTML = [
     ['Contas', r.contas],
+    ['Activas (7 dias)', reais.filter((c) => (instante(c.ultimoAcesso) || 0) > semana).length],
+    ['Novas (7 dias)', reais.filter((c) => (instante(c.criadaEm) || 0) > semana).length],
+    ['Com jogos', reais.filter((c) => c.jogos > 0).length],
     ['Licença de clube', r.comLicencaClube],
     ['Licença de treinador', r.comLicencaTreinador],
-    ['Activas', r.licencasActivas],
     ['Expiradas', r.licencasExpiradas],
     ['Ainda sem clube', r.semClube],
     ['Clubes', r.clubes],
     ['Escalões', r.escaloes],
     ['Jogos registados', r.jogos],
   ].map(([nome, valor]) => `<div><dt>${nome}</dt><dd>${valor}</dd></div>`).join('');
+  $('#nota-interna').textContent = r.internasExcluidas
+    ? `${r.internasExcluidas === 1 ? '1 conta interna (da equipa ou de testes) aparece' : `${r.internasExcluidas} contas internas (da equipa e de testes) aparecem`} na lista mas ${r.internasExcluidas === 1 ? 'fica' : 'ficam'} fora destas contagens.`
+    : '';
 
-  $('#tabela tbody').innerHTML = estado.contas.map((c) => `
-    <tr>
-      <td>${texto(c.email)}</td>
-      <td>${ETIQUETA(c.licenca, c.licenca)}</td>
-      <td>
-        ${ETIQUETA(c.activo ? 'activa' : 'expirada', c.activo ? 'activo' : 'expirado')}
-        <div class="small muted nowrap">${texto(validadeTexto(c.validade))}</div>
-      </td>
-      <td>${c.clube
-          ? texto(c.clube.nome)
-          : c.associadoA.length
-            ? `<span class="muted small">associado a ${texto(c.associadoA.map((x) => x.nome).join(', '))}</span>`
-            : '<span class="muted small">—</span>'}</td>
-      <td class="small">${(c.escaloesComRegistos || []).length
-          ? c.escaloesComRegistos.map((e) => `${texto(e.nome)}${ligadosDe(e).length
-              ? ` <span class="muted">+ ${texto(ligadosDe(e).map(nomeAddon).join(', '))}</span>`
-              : ''}`).join('<br>')
-          : '<span class="muted">—</span>'}</td>
-      <td class="small">${c.partilhados.length
-          ? c.partilhados.map((p) => `${texto(p.nome)} ${ETIQUETA(p.nivel, p.nivel)}`).join('<br>')
-          : '<span class="muted">—</span>'}</td>
-      <td>${c.jogos}</td>
-      <td class="small muted nowrap">${texto(dataHora(c.criadaEm))}</td>
-      <td>
-        <button class="discreto" data-gerir="${texto(c.id)}">gerir</button>
-      </td>
-    </tr>
-    ${CONTA_ABERTA === c.id ? painelGestao(c) : ''}`).join('');
+  desenharContas();
 
   $('#clubes tbody').innerHTML = estado.clubes.map((c) => `
     <tr>
@@ -380,10 +620,15 @@ function desenhar(estado) {
 }
 
 async function carregar() {
+  const botao = $('#atualizar');
+  botao.disabled = true;
   try {
     desenhar(await pedir('/api/estado'));
+    $('#carimbo').textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
   } catch (e) {
     recado(e.message, 'erro');
+  } finally {
+    botao.disabled = false;
   }
 }
 
@@ -392,7 +637,37 @@ function ajustarFormulario() {
     'A conta nasce sem palavra-passe: sai o email de convite e é a pessoa que escolhe a dela. Pode ficar sem clube ou já associada a um clube existente.';
 }
 
+$('#atualizar').addEventListener('click', carregar);
 $('#licenca').addEventListener('change', ajustarFormulario);
+$('#procurar').addEventListener('input', desenharContas);
+$('#filtro-acesso').addEventListener('change', desenharContas);
+$('#filtro-licenca').addEventListener('change', desenharContas);
+$('#ordem').addEventListener('click', (e) => {
+  const botao = e.target.closest('[data-ordem]');
+  if (!botao) return;
+  ORDEM = botao.dataset.ordem;
+  for (const b of document.querySelectorAll('#ordem [data-ordem]')) {
+    b.setAttribute('aria-pressed', String(b === botao));
+  }
+  desenharContas();
+});
+
+// O corpo de uma conta só se desenha quando ela se abre: com 120 contas, 120
+// formulários de licença e add-ons seriam peso à toa.
+$('#contas').addEventListener('toggle', (e) => {
+  const cartao = e.target.closest('details.conta');
+  if (!cartao || e.target !== cartao) return;
+  const id = cartao.dataset.conta;
+  if (cartao.open) {
+    ABERTAS.add(id);
+    const conta = ESTADO.contas.find((c) => c.id === id);
+    if (conta && !cartao.querySelector('.conta__corpo')) cartao.insertAdjacentHTML('beforeend', corpoDaConta(conta));
+  } else {
+    ABERTAS.delete(id);
+    cartao.querySelector('.conta__corpo')?.remove();
+  }
+}, true);
+
 $('#validade').value = fimDaEpoca();
 ajustarFormulario();
 
@@ -420,14 +695,7 @@ $('#convite').addEventListener('submit', async (e) => {
   }
 });
 
-$('#tabela').addEventListener('click', async (e) => {
-  const gerir = e.target.closest('[data-gerir]');
-  if (gerir) {
-    CONTA_ABERTA = CONTA_ABERTA === gerir.dataset.gerir ? null : gerir.dataset.gerir;
-    desenhar(ESTADO);
-    return;
-  }
-
+$('#contas').addEventListener('click', async (e) => {
   const remover = e.target.closest('[data-remover-licenca]');
   if (remover) {
     const conta = ESTADO.contas.find((c) => c.id === remover.dataset.removerLicenca);
@@ -469,7 +737,7 @@ $('#tabela').addEventListener('click', async (e) => {
   }
 });
 
-$('#tabela').addEventListener('submit', async (e) => {
+$('#contas').addEventListener('submit', async (e) => {
   const formRegistos = e.target.closest('[data-registos-form]');
   if (formRegistos) {
     e.preventDefault();
@@ -602,7 +870,7 @@ $('#clubes').addEventListener('submit', async (e) => {
       body: JSON.stringify({ teamId: form.dataset.registosForm, registos, addons }),
     });
     recado(r.mensagem, 'ok');
-    // A tabela de contas também mostra os add-ons: refresca-se as duas.
+    // A lista de contas também mostra os add-ons: refresca-se as duas.
     await carregar();
     await abrirRegistos(CLUBE_ABERTO);
   } catch (err) {
@@ -615,7 +883,7 @@ $('#clubes').addEventListener('submit', async (e) => {
 
 // Os add-ons gravam-se logo ao marcar ou desmarcar: com um "Guardar" por linha
 // era fácil desmarcar, não gravar, e ficar a achar que estava desligado.
-for (const zona of [$('#tabela'), $('#clubes')]) {
+for (const zona of [$('#contas'), $('#clubes')]) {
   zona.addEventListener('change', (e) => {
     const form = e.target.closest('[data-registos-form]');
     if (form && (e.target.name === 'registo' || e.target.name === 'addon')) form.requestSubmit();
