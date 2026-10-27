@@ -190,7 +190,8 @@ ul { padding: 0; list-style: none; }
   flex: 0 0 auto;
 }
 .mainnav-top__spacer { flex: 1; }
-.mainnav-top__feedback { min-width: 36px; padding: 0 8px; color: var(--text); }
+.mainnav-top__feedback { min-width: 36px; padding: 0 8px; color: var(--green); border-color: rgba(34, 197, 94, 0.45); }
+.mainnav-top__feedback:hover, .mainnav-top__feedback:focus-visible { background: rgba(34, 197, 94, 0.12); }
 .context-picker {
   display: inline-flex;
   align-items: center;
