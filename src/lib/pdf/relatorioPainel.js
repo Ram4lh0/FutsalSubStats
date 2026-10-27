@@ -58,16 +58,18 @@ export function nomePdfPainel(team, atleta) {
  * @param {number} p.parteMs      duração da parte (`parteDosJogos`)
  * @param {string[]} [p.provas]   nomes das competições escolhidas (vazio = todas)
  * @param {string} [p.tipo]       texto do tipo de jogo escolhido, se houver
+ * @param {string} [p.jogo]       texto do jogo escolhido, se houver
  * @param {string} [p.atletaId]
  * @returns {Promise<Blob>}
  */
-export async function gerarPdfPainel({ club, team, entries, roster = [], parteMs, provas = [], tipo = '', atletaId = '' }) {
+export async function gerarPdfPainel({ club, team, entries, roster = [], parteMs, provas = [], tipo = '', jogo = '', atletaId = '' }) {
   const atleta = atletaId ? painelDoAtleta(entries, roster, atletaId, { parteMs, quantos: 1000 }) : null;
   const jogos = formaRecente(entries, { quantos: Infinity });
 
   const filtros = linhaDeFiltros([
     [t('painelv.competicao'), provas.length ? provas.join(', ') : t('painelv.todas')],
     [t('painelv.tipoDeJogo'), tipo],
+    [t('painelv.jogo'), jogo],
     [t('pdf.jogos'), t('pdf.jogosTerminados', { n: jogos.length })],
   ]);
   const r = await novoRelatorio({

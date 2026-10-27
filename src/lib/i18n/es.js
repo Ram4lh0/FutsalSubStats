@@ -277,6 +277,8 @@ export default {
   'painelv.minimizar': 'Minimizar',
   'painelv.maximizar': 'Mostrar',
   'painelv.equipaToda': 'Todo el equipo',
+  'painelv.jogo': 'Partido',
+  'painelv.todosOsJogos': 'Todos los partidos',
   'painelv.atletaMinutos': 'Minutos de {nome}',
   'painelv.mediaAtleta': 'Tiempo por partido',
   'painelv.mediaEquipa': 'Media del equipo',

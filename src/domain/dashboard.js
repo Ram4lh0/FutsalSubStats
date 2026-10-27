@@ -61,12 +61,33 @@ export function provasComJogos(entries, competitions = []) {
  * `provas` vazio quer dizer todas — e não nenhuma. É a leitura que evita o
  * ecrã em branco de quem desmarcou tudo sem perceber que tinha desmarcado.
  */
-export function filtrar(entries, { provas = [], tipo = null } = {}) {
+export function filtrar(entries, { provas = [], tipo = null, jogo = null } = {}) {
   return entries.filter((e) => {
     if (tipo && timingOf(e.match) !== tipo) return false;
     if (provas.length && !provas.includes(e.match.competitionId)) return false;
+    if (jogo && e.match.id !== jogo) return false;
     return true;
   });
+}
+
+/**
+ * Os jogos que se podem escolher no filtro do jogo, do mais recente para o
+ * mais antigo.
+ *
+ * Recebe as entradas já filtradas pela competição e pelo tipo: com o
+ * campeonato escolhido, só aparecem jogos do campeonato. Só os terminados —
+ * são os únicos que o painel conta.
+ */
+export function jogosParaEscolher(entries) {
+  return terminados(entries)
+    .reverse()
+    .map(({ match, state }) => ({
+      id: match.id,
+      quando: match.scheduledAt || null,
+      adversario: match.opponentShortName || match.opponentName || '—',
+      nossos: state.teamScore,
+      deles: state.opponentScore,
+    }));
 }
 
 /** A duração da parte destes jogos, para as faixas do gráfico. */

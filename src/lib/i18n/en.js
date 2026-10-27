@@ -278,6 +278,8 @@ export default {
   'painelv.minimizar': 'Minimize',
   'painelv.maximizar': 'Show',
   'painelv.equipaToda': 'Whole team',
+  'painelv.jogo': 'Match',
+  'painelv.todosOsJogos': 'All matches',
   'painelv.atletaMinutos': '{nome} minutes',
   'painelv.mediaAtleta': 'Time per match',
   'painelv.mediaEquipa': 'Team average',

@@ -18,6 +18,7 @@ import {
   curvaDeForma,
   tiposDeJogo,
   filtrar,
+  jogosParaEscolher,
   parteDosJogos,
   disciplina,
   painelDoAtleta,
@@ -535,6 +536,30 @@ test('sem provas escolhidas ficam todas, e não nenhuma', () => {
   assert.deepEqual(
     filtrar([a, b], { provas: ['c2'] }).map((e) => e.match.id),
     ['b']
+  );
+});
+
+test('o filtro do jogo deixa só esse jogo', () => {
+  const a = jogo({ id: 'a' });
+  const b = jogo({ id: 'b', quando: 2 });
+  assert.deepEqual(filtrar([a, b], { jogo: 'b' }).map((e) => e.match.id), ['b']);
+  assert.equal(filtrar([a, b], { jogo: '' }).length, 2);
+});
+
+test('os jogos para escolher seguem a competição, do mais recente para trás, e só os terminados', () => {
+  const a = jogo({ id: 'a', quando: 1 });
+  a.match.competitionId = 'c1';
+  const b = jogo({ id: 'b', quando: 3 });
+  b.match.competitionId = 'c1';
+  const c = jogo({ id: 'c', quando: 2 });
+  c.match.competitionId = 'c2';
+  const d = jogo({ id: 'd', quando: 4, status: 'LIVE' });
+  d.match.competitionId = 'c1';
+  const todos = [a, b, c, d];
+  assert.deepEqual(jogosParaEscolher(todos).map((j) => j.id), ['b', 'c', 'a']);
+  assert.deepEqual(
+    jogosParaEscolher(filtrar(todos, { provas: ['c1'] })).map((j) => j.id),
+    ['b', 'a']
   );
 });
 

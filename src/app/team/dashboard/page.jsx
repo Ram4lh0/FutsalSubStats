@@ -35,6 +35,7 @@ import {
   tiposDeJogo,
   provasComJogos,
   filtrar,
+  jogosParaEscolher,
   parteDosJogos,
   painelDoAtleta,
 } from '@/domain/dashboard.js';
@@ -106,6 +107,9 @@ function Filtros({
   tipos,
   tipo,
   aoTrocarTipo,
+  jogos,
+  jogoId,
+  aoTrocarJogo,
   roster,
   atletaId,
   aoTrocarAtleta,
@@ -180,6 +184,23 @@ function Filtros({
       ) : null}
 
       <div className="filtros__grupo filtros__grupo--acao no-print">
+        {jogos.length ? (
+          <>
+            <span className="filtros__rotulo">{t('painelv.jogo')}</span>
+            <select
+              className="input filtros__select"
+              value={jogoId || ''}
+              onChange={(e) => aoTrocarJogo(e.target.value)}
+            >
+              <option value="">{t('painelv.todosOsJogos')}</option>
+              {jogos.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {rotuloDoJogo(j)}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : null}
         <button
           type="button"
           className="btn btn--ghost btn--tiny"
@@ -192,6 +213,11 @@ function Filtros({
       </div>
     </div>
   );
+}
+
+/** "18/10 · ADV 3–2": o que chega para reconhecer um jogo numa lista. */
+function rotuloDoJogo(j) {
+  return `${dayLabel(j.quando)} · ${j.adversario} ${j.nossos ?? 0}–${j.deles ?? 0}`;
 }
 
 /**
@@ -464,6 +490,7 @@ function Painel({ club, team, entries, roster, competitions }) {
   const [provasEscolhidas, setProvas] = useState([]);
   const [tipo, setTipo] = useState(null);
   const [atletaId, setAtletaId] = useState('');
+  const [jogoEscolhido, setJogo] = useState('');
   const [aGerarPdf, setAGerarPdf] = useState(false);
   const formaMobile = useFormaMobile();
   // A faixa por cima da qual está o dedo, uma por parte.
@@ -472,9 +499,18 @@ function Painel({ club, team, entries, roster, competitions }) {
   const provas = useMemo(() => provasComJogos(entries, competitions), [entries, competitions]);
   const tipos = useMemo(() => tiposDeJogo(entries), [entries]);
 
-  const filtrados = useMemo(
+  const porProvaETipo = useMemo(
     () => filtrar(entries, { provas: provasEscolhidas, tipo }),
     [entries, provasEscolhidas, tipo]
+  );
+  // A lista de jogos segue a competição e o tipo. Se o jogo escolhido deixar de
+  // lá estar (trocou-se de competição), volta-se a todos em vez de mostrar um
+  // painel vazio.
+  const jogos = useMemo(() => jogosParaEscolher(porProvaETipo), [porProvaETipo]);
+  const jogoId = jogos.some((j) => j.id === jogoEscolhido) ? jogoEscolhido : '';
+  const filtrados = useMemo(
+    () => filtrar(porProvaETipo, { jogo: jogoId }),
+    [porProvaETipo, jogoId]
   );
 
   const min = useMemo(() => minutosPorJogador(filtrados, roster), [filtrados, roster]);
@@ -534,6 +570,7 @@ function Painel({ club, team, entries, roster, competitions }) {
             : tipo === MATCH_TIMING.UNTIMED
               ? t('painelv.corrido')
               : '',
+        jogo: jogoId ? rotuloDoJogo(jogos.find((j) => j.id === jogoId)) : '',
         atletaId,
       });
       const nome = nomePdfPainel(team, atletaId ? atleta?.jogador?.name : null);
@@ -623,6 +660,9 @@ function Painel({ club, team, entries, roster, competitions }) {
           tipos={tipos}
           tipo={tipo}
           aoTrocarTipo={setTipo}
+          jogos={jogos}
+          jogoId={jogoId}
+          aoTrocarJogo={setJogo}
           roster={roster}
           atletaId={atletaId}
           aoTrocarAtleta={setAtletaId}
