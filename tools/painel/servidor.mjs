@@ -53,6 +53,7 @@ import {
   removerLicenca,
   associarClube,
   desassociarClube,
+  feedbacks,
 } from './api.mjs';
 import { registosDoClube, definirRegistos, catalogoCompleto } from './registos.mjs';
 import { hostAceite, chaveDoPedido, chaveCorrecta } from './guardas.mjs';
@@ -131,6 +132,11 @@ const servidor = createServer(async (req, res) => {
     if (req.method === 'POST' && caminho === '/api/desassociar-clube') {
       const { userId, clubeId } = await corpoJson(req);
       return responder(res, 200, await desassociarClube(sb, { userId, clubeId }));
+    }
+
+    // As respostas ao popup de feedback inicial da app.
+    if (req.method === 'GET' && caminho === '/api/feedback') {
+      return responder(res, 200, await feedbacks(sb));
     }
 
     // Os add-ons (registos extra e o resto) dos escalões de um clube.

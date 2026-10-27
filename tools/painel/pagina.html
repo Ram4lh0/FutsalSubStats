@@ -150,6 +150,15 @@
   #recado { position: fixed; right: 20px; bottom: 20px; max-width: min(460px, calc(100vw - 40px)); margin: 0; padding: 12px 14px; border-radius: 12px; display: none; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,.45); z-index: 10; }
   #recado.ok { display: block; background: #12361f; color: #b9f3cb; border: 1px solid rgba(34,197,94,.4); }
   #recado.erro { display: block; background: #3b1618; color: #fecaca; border: 1px solid rgba(239,68,68,.45); }
+  /* ---- abas */
+  .abas { display: flex; gap: 6px; border-bottom: 1px solid var(--line); }
+  .abas button { background: transparent; color: var(--muted); font-weight: 600; border-radius: 10px 10px 0 0; border: 1px solid transparent; border-bottom: 0; padding: 8px 16px; }
+  .abas button[aria-selected="true"] { color: var(--text); background: var(--card); border-color: var(--line); }
+  .aba { display: flex; flex-direction: column; gap: 22px; }
+  .aba[hidden] { display: none; }
+
+  /* ---- feedback */
+  .feedback td.opiniao { white-space: pre-wrap; max-width: 46ch; }
   .vazio { background: var(--card); border-radius: var(--radius); padding: 24px; color: var(--muted); text-align: center; }
 </style>
 </head>
@@ -170,6 +179,12 @@
   </div>
 </header>
 
+<nav class="abas" role="tablist">
+  <button type="button" role="tab" data-aba="contas" aria-selected="true">Contas</button>
+  <button type="button" role="tab" data-aba="feedback" aria-selected="false">Feedback</button>
+</nav>
+
+<div class="aba" id="aba-contas">
 <dl class="resumo" id="resumo"></dl>
 <p class="muted small nota-interna" id="nota-interna"></p>
 
@@ -233,6 +248,20 @@
     </table>
   </div>
 </section>
+</div>
+
+<div class="aba" id="aba-feedback" hidden>
+<section>
+  <h2>Feedback inicial</h2>
+  <p class="muted small" style="margin:-4px 0 12px" id="feedback-nota"></p>
+  <div class="cartao feedback">
+    <table id="feedback">
+      <thead><tr><th>Conta</th><th>Data</th><th>Momento</th><th>Onde ouviu falar</th><th>Email</th><th>Opinião</th></tr></thead>
+      <tbody><tr><td colspan="6" class="muted">A carregar…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+</div>
 
 </main>
 <p id="recado" title="Clica para fechar"></p>
@@ -619,11 +648,56 @@ function desenhar(estado) {
   ajustarFormulario();
 }
 
+/* ------------------------------------------------ abas */
+
+let ABA = 'contas';
+
+function mudarAba(aba) {
+  ABA = aba;
+  for (const b of document.querySelectorAll('[data-aba]')) {
+    b.setAttribute('aria-selected', String(b.dataset.aba === aba));
+  }
+  $('#aba-contas').hidden = aba !== 'contas';
+  $('#aba-feedback').hidden = aba !== 'feedback';
+  if (aba === 'feedback') carregar();
+}
+
+document.querySelector('.abas').addEventListener('click', (e) => {
+  const botao = e.target.closest('[data-aba]');
+  if (botao && botao.dataset.aba !== ABA) mudarAba(botao.dataset.aba);
+});
+
+/* ------------------------------------------------ feedback inicial */
+
+// As respostas aos popups que a app mostra uma vez a cada conta: no registo
+// (contas novas) e aos dois jogos. Quem fechou sem responder não entra na
+// lista, só na contagem.
+const MOMENTOS = { registo: 'registo', dois_jogos: '2 jogos' };
+function desenharFeedback({ respostas, fechadosSemResposta }) {
+  const reais = respostas.filter((r) => !r.interna).length;
+  $('#feedback-nota').textContent =
+    `${respostas.length} resposta(s)${respostas.length !== reais ? ` (${respostas.length - reais} de contas internas)` : ''} · ` +
+    `${fechadosSemResposta} fecharam sem responder.`;
+  $('#feedback tbody').innerHTML = respostas.map((r) => `
+    <tr>
+      <td>
+        <div>${texto(r.nome || r.conta)}${r.interna ? ' <span class="muted small">(interna)</span>' : ''}</div>
+        ${r.nome ? `<div class="muted small">${texto(r.conta)}</div>` : ''}
+      </td>
+      <td class="nowrap small">${texto(dataHora(r.quando))}</td>
+      <td class="nowrap small">${texto(MOMENTOS[r.momento] || r.momento)}</td>
+      <td>${texto(r.origem || '—')}</td>
+      <td class="small">${r.email ? `<a href="mailto:${texto(r.email)}" style="color:var(--info)">${texto(r.email)}</a>` : '—'}</td>
+      <td class="opiniao">${texto(r.opiniao || '—')}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="muted">Ainda não há respostas.</td></tr>';
+}
+
 async function carregar() {
   const botao = $('#atualizar');
   botao.disabled = true;
   try {
-    desenhar(await pedir('/api/estado'));
+    if (ABA === 'feedback') desenharFeedback(await pedir('/api/feedback'));
+    else desenhar(await pedir('/api/estado'));
     $('#carimbo').textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
   } catch (e) {
     recado(e.message, 'erro');
