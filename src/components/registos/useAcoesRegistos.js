@@ -1,8 +1,8 @@
 'use client';
 
 // components/registos/useAcoesRegistos.js — os toques dos registos extra no
-// jogo ao vivo: remate, recuperação, defesa, ação +/−, fora, canto e remate
-// do adversário.
+// jogo ao vivo: remate, recuperação, defesa, perda de bola, ação +/−, fora,
+// canto e remate do adversário.
 //
 // Vive fora do `Live()` de propósito: o ecrã do jogo já é grande, e isto é um
 // bloco que só existe para os escalões com registos ligados. A página passa o
@@ -114,6 +114,11 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     await commit(registar(state, { registo: REGISTO.DEFESA_GR, playerId: p.playerId, x: r.x, y: r.y }));
   }
 
+  // Sem zona, como as ações: um toque e fica. Engano desfaz-se no DESFAZER.
+  async function registarPerda(p) {
+    await commit(registar(state, { registo: REGISTO.PERDA_BOLA, playerId: p.playerId }));
+  }
+
   async function registarAcao(p, resultado) {
     await commit(registar(state, { registo: REGISTO.ACAO, playerId: p.playerId, resultado }));
   }
@@ -165,6 +170,7 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
       registarRemate,
       registarRecuperacao,
       registarDefesa,
+      registarPerda,
       registarAcao,
       registarFora,
       registarCanto,

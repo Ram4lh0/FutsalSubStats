@@ -29,8 +29,9 @@ export function toCsv(rows) {
 
 /** As colunas dos registos extra de um jogador, pela ordem do cabeçalho. */
 function colunasDeRegistos(j) {
-  if (!j) return [0, 0, 0, 0, 0, 0];
-  return [j.remates, j.rematesBaliza, j.recuperacoes, j.defesas, j.positivas, j.negativas];
+  if (!j) return [0, 0, 0, 0, 0, 0, 0];
+  // As perdas de bola vieram depois: ficam no fim, para não mexer nas colunas de antes.
+  return [j.remates, j.rematesBaliza, j.recuperacoes, j.defesas, j.positivas, j.negativas, j.perdas];
 }
 
 export function matchSummaryCsv({ club, match, state, team, competition }) {
@@ -110,6 +111,7 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
             t('registos.col.defesas'),
             t('registos.csv.acoesPositivas'),
             t('registos.csv.acoesNegativas'),
+            t('registos.total.perda_bola'),
           ]
         : []),
     ],

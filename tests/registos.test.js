@@ -65,7 +65,7 @@ function desfazer(ctx, alvo, now) {
 /* ------------------------------------------------------------- catálogo */
 
 test('catálogo: os registos pela ordem certa (fase 1 e remates do adversário)', () => {
-  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv']);
+  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola']);
   assert.equal(CATALOGO.fora.por, 'equipa');
   assert.equal(CATALOGO.canto.ponto, false);
 });
@@ -328,6 +328,35 @@ test('marcadores: só os que têm ponto, com filtro por registo', () => {
   assert.deepEqual(foras.map((m) => m.y).sort(), [0, 1]);
 });
 
+test('perda de bola: do jogador, sem zona, conta no resumo e desfaz-se', async () => {
+  const { contagemPorJogador } = await import('../src/domain/registos.js');
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const perda = (pid, t) => gravar(ctx, (s) => registar(s, { registo: 'perda_bola', playerId: pid, x: 0.4, y: 0.4 }, t), t);
+  const e1 = perda('p2', T0 + 2 * MIN);
+  perda('p2', T0 + 3 * MIN);
+  perda('p4', T0 + 4 * MIN);
+  assert.equal(e1.playerId, 'p2');
+  assert.equal('x' in e1.metadata, false, 'a zona não se guarda');
+  assert.throws(() => registar(estado(ctx), { registo: 'perda_bola' }), 'precisa de jogador');
+
+  let st = estado(ctx);
+  let r = resumoRegistos(st, T0 + 10 * MIN);
+  assert.equal(r.perdas, 3);
+  assert.ok(r.tipos.has('perda_bola'));
+  const p2 = r.jogadores.find((j) => j.playerId === 'p2');
+  assert.equal(p2.perdas, 2);
+  assert.equal(p2.perdas10, 2);
+  assert.equal(contagemPorJogador(st).get('p2').perda_bola, 2);
+  assert.deepEqual(marcadores(st), [], 'não vai para o mapa');
+
+  desfazer(ctx, e1, T0 + 5 * MIN);
+  st = estado(ctx);
+  r = resumoRegistos(st, T0 + 10 * MIN);
+  assert.equal(r.perdas, 2);
+  assert.equal(r.jogadores.find((j) => j.playerId === 'p2').perdas, 1);
+});
+
 test('sem registos: resumo vazio e nada para desenhar', () => {
   const ctx = novoJogo();
   gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
@@ -493,8 +522,8 @@ test('cada registo tem nome e resultados nas três línguas', async () => {
 test('contagem por jogador para os números dos botões do cartão', async () => {
   const { contagemPorJogador } = await import('../src/domain/registos.js');
   const c = contagemPorJogador(estado(jogoComRegistos()));
-  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, positivas: 0, negativas: 0 });
-  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, positivas: 2, negativas: 1 });
+  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, perda_bola: 0, positivas: 0, negativas: 0 });
+  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, perda_bola: 0, positivas: 2, negativas: 1 });
   assert.equal(c.get('p1').defesa_gr, 1);
   assert.equal(c.has('p7'), false);
 });

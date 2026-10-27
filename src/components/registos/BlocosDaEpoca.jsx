@@ -1,7 +1,8 @@
 'use client';
 
 // components/registos/BlocosDaEpoca.jsx — os registos extra no painel da
-// época: remates e eficácia, recuperações por jogador e o mapa da época.
+// época: remates e eficácia, recuperações e perdas de bola por jogador e o
+// mapa da época.
 //
 // Cada bloco só aparece se houver pelo menos um jogo terminado com esse
 // registo. Um escalão sem registos não vê nada de novo no painel.
@@ -17,6 +18,8 @@ import { REGISTO } from '@/domain/registos.js';
 import {
   eficacia,
   mapaDaEpoca,
+  perdasDaEpoca,
+  perdasPorJogador,
   recuperacoesPorJogador,
   registosDaEpoca,
   rematesPorJogo,
@@ -33,6 +36,8 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
   const remates = useMemo(() => rematesPorJogo(entries), [entries]);
   const efi = useMemo(() => eficacia(entries), [entries]);
   const recup = useMemo(() => recuperacoesPorJogador(entries), [entries]);
+  const perdas = useMemo(() => perdasPorJogador(entries), [entries]);
+  const perdasEquipa = useMemo(() => perdasDaEpoca(entries), [entries]);
   const rematesAdv = useMemo(() => rematesAdvPorJogo(entries), [entries]);
   const adv = useMemo(() => rematesAdvDaEpoca(entries), [entries]);
   const filtros = NO_MAPA.filter((id) => tipos.has(id));
@@ -115,6 +120,27 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
             }))}
           />
           <p className="muted small">{t('registos.epoca.recupNota')}</p>
+        </Bloco>
+      ) : null}
+
+      {tipos.has(REGISTO.PERDA_BOLA) ? (
+        <Bloco titulo={t('registos.epoca.perdas')}>
+          <div className="grid grid--stats">
+            <StatCard
+              label={t('registos.epoca.perdasPorJogo')}
+              value={perdasEquipa.perdasPorJogo.toFixed(1)}
+              hint={t('painelv.emJogos', { n: perdasEquipa.jogos })}
+            />
+            <StatCard label={t('registos.total.perda_bola')} value={perdasEquipa.perdas} />
+          </div>
+          <BarrasH
+            linhas={perdas.map((j) => ({
+              rotulo: `${j.number} ${j.name}`,
+              valor: j.perdas,
+              texto: t('registos.epoca.perdasDetalhe', { n: j.perdas, porJogo: j.porJogo.toFixed(1) }),
+            }))}
+          />
+          <p className="muted small">{t('registos.epoca.perdasNota')}</p>
         </Bloco>
       ) : null}
 

@@ -31,6 +31,7 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
     [REGISTO.REMATE, r.remates],
     [REGISTO.RECUPERACAO, r.recuperacoes],
     [REGISTO.DEFESA_GR, r.defesas],
+    [REGISTO.PERDA_BOLA, r.perdas],
   ]
     .filter(([id]) => ligados.has(id))
     .map(([id, n]) => t(`registos.curto.${id}`, { n }))

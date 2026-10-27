@@ -25,6 +25,8 @@ import {
   rematesPorJogo,
   eficacia,
   recuperacoesPorJogador,
+  perdasPorJogador,
+  perdasDaEpoca,
   mapaDaEpoca,
 } from '../src/domain/dashboard.js';
 
@@ -639,6 +641,42 @@ test('recuperações por jogador contam o tempo só dos jogos com recuperações
     r.map((j) => [j.playerId, j.recuperacoes, j.courtMs, j.por10]),
     [['p1', 2, 20 * MIN, 1], ['p2', 1, 10 * MIN, 1]]
   );
+});
+
+test('perdas de bola: por jogador, da equipa e no painel do atleta', () => {
+  const jogadores = {
+    p1: emCampo('p1', 'Ana', 1, 20 * MIN),
+    p2: emCampo('p2', 'Rui', 2, 10 * MIN),
+  };
+  const j1 = comRegistos(jogo({ id: 'a', jogadores }), [
+    reg('r1', 'perda_bola', { playerId: 'p1' }),
+    reg('r2', 'perda_bola', { playerId: 'p1' }),
+    reg('r3', 'perda_bola', { playerId: 'p2' }),
+  ]);
+  const j2 = comRegistos(jogo({ id: 'b', quando: 2, jogadores }), [
+    reg('r4', 'perda_bola', { playerId: 'p1' }),
+  ]);
+  // Sem perdas registadas: não entra como zero.
+  const j3 = jogo({ id: 'c', quando: 3, jogadores });
+
+  assert.deepEqual(perdasPorJogador([]), []);
+  const r = perdasPorJogador([j1, j2, j3]);
+  assert.deepEqual(
+    r.map((j) => [j.playerId, j.perdas, j.jogos, j.porJogo, j.por10]),
+    [['p1', 3, 2, 1.5, 0.75], ['p2', 1, 2, 0.5, 0.5]]
+  );
+  assert.deepEqual(perdasDaEpoca([j1, j2, j3]), { jogos: 2, perdas: 4, perdasPorJogo: 2 });
+  assert.ok(registosDaEpoca([j1]).has('perda_bola'));
+
+  const atleta = painelDoAtleta([j1, j2, j3], [], 'p1');
+  assert.equal(atleta.perdas.comDados, true);
+  assert.equal(atleta.perdas.total, 3);
+  assert.equal(atleta.perdas.jogos, 2);
+  assert.equal(atleta.perdas.porJogo, 1.5);
+  const porJogo = Object.fromEntries(atleta.ultimos.map((u) => [u.matchId, u.perdas]));
+  assert.deepEqual(porJogo, { a: 2, b: 1, c: null });
+
+  assert.equal(painelDoAtleta([j3], [], 'p1').perdas.comDados, false);
 });
 
 test('o mapa da época junta os pontos de todos os jogos terminados', () => {

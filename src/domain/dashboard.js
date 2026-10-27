@@ -231,6 +231,8 @@ export function painelDoAtleta(
     faltasPorJogo: 0,
     sofridasPorJogo: 0,
   };
+  // Perdas de bola: só dos jogos em que se registaram perdas (de alguém).
+  const perdas = { jogos: 0, total: 0, courtMs: 0, porJogo: 0, por10: null, comDados: false };
   const ultimos = [];
 
   let tempoEntradaTotal = 0;
@@ -265,6 +267,17 @@ export function painelDoAtleta(
       disc.vermelhos += s.reds;
     }
 
+    const perdasDoJogo = registosDoJogo(state).filter((r) => r.registo === REGISTO.PERDA_BOLA);
+    if (perdasDoJogo.length && s) {
+      const minhas = perdasDoJogo.filter((r) => r.playerId === playerId).length;
+      if (s.courtMs > 0 || minhas) {
+        perdas.jogos += 1;
+        perdas.total += minhas;
+        perdas.courtMs += s.courtMs;
+        perdas.comDados = true;
+      }
+    }
+
     const primeira = state.firstHalfMs || 0;
     for (const g of state.goals || []) {
       const marcou = g.scorerId === playerId;
@@ -294,6 +307,8 @@ export function painelDoAtleta(
       golos: s?.goals || 0,
       assistencias: s?.assists || 0,
       faltas: s?.fouls || 0,
+      // null: neste jogo não se registaram perdas (não é o mesmo que zero).
+      perdas: perdasDoJogo.length ? perdasDoJogo.filter((r) => r.playerId === playerId).length : null,
     });
   }
 
@@ -306,6 +321,8 @@ export function painelDoAtleta(
   impacto.saldo = impacto.golosEquipa - impacto.sofridosEquipa;
   disc.faltasPorJogo = disc.jogos ? disc.faltas / disc.jogos : 0;
   disc.sofridasPorJogo = disc.jogos ? disc.sofridas / disc.jogos : 0;
+  perdas.porJogo = perdas.jogos ? perdas.total / perdas.jogos : 0;
+  perdas.por10 = recuperacoesPor10(perdas.total, perdas.courtMs);
 
   const comMedia = (f) => ({
     ...f,
@@ -337,6 +354,7 @@ export function painelDoAtleta(
     },
     ultimos: ultimos.slice(-quantos).reverse(),
     disciplina: disc,
+    perdas,
   };
 }
 
@@ -691,36 +709,65 @@ export function eficacia(entries) {
 }
 
 /**
- * Recuperações por jogador: total e por 10 minutos em campo. O tempo em campo
- * conta só dos jogos com recuperações registadas, senão a média descia com
- * jogos em que ninguém as apontou.
+ * Quantos registos de um tipo tem cada jogador, com o tempo em campo e os
+ * jogos. O tempo e os jogos contam só dos jogos com esse registo, senão a
+ * média descia com jogos em que ninguém o apontou.
  */
-export function recuperacoesPorJogador(entries) {
+function contagemDaEpoca(entries, registo) {
   const porJogador = new Map();
   for (const e of terminados(entries)) {
-    const recs = registosDoJogo(e.state).filter((r) => r.registo === REGISTO.RECUPERACAO);
-    if (!recs.length) continue;
+    const regs = registosDoJogo(e.state).filter((r) => r.registo === registo);
+    if (!regs.length) continue;
     for (const p of Object.values(e.state.players || {})) {
       const s = playerMatchStats(p, e.state.elapsedMatchMs);
-      const n = recs.filter((r) => r.playerId === p.playerId).length;
+      const n = regs.filter((r) => r.playerId === p.playerId).length;
       if (!s.courtMs && !n) continue;
       const atual = porJogador.get(p.playerId) || {
         playerId: p.playerId,
         name: p.name,
         number: p.number,
-        recuperacoes: 0,
+        n: 0,
         courtMs: 0,
         jogos: 0,
       };
-      atual.recuperacoes += n;
+      atual.n += n;
       atual.courtMs += s.courtMs;
       atual.jogos += 1;
       porJogador.set(p.playerId, atual);
     }
   }
-  return [...porJogador.values()]
-    .map((j) => ({ ...j, por10: recuperacoesPor10(j.recuperacoes, j.courtMs) }))
+  return [...porJogador.values()];
+}
+
+/** Recuperações por jogador: total e por 10 minutos em campo. */
+export function recuperacoesPorJogador(entries) {
+  return contagemDaEpoca(entries, REGISTO.RECUPERACAO)
+    .map(({ n, ...j }) => ({ ...j, recuperacoes: n, por10: recuperacoesPor10(n, j.courtMs) }))
     .sort((a, b) => b.recuperacoes - a.recuperacoes || (a.number ?? 0) - (b.number ?? 0));
+}
+
+/**
+ * Perdas de bola por jogador: total, por jogo e por 10 minutos em campo. Os
+ * jogos são os jogos em que entrou e havia perdas registadas.
+ */
+export function perdasPorJogador(entries) {
+  return contagemDaEpoca(entries, REGISTO.PERDA_BOLA)
+    .map(({ n, ...j }) => ({
+      ...j,
+      perdas: n,
+      porJogo: j.jogos ? n / j.jogos : 0,
+      por10: recuperacoesPor10(n, j.courtMs),
+    }))
+    .sort((a, b) => b.perdas - a.perdas || (a.number ?? 0) - (b.number ?? 0));
+}
+
+/** As perdas de bola da equipa na época: total e média por jogo. */
+export function perdasDaEpoca(entries) {
+  const jogos = terminados(entries)
+    .map((e) => registosDoJogo(e.state).filter((r) => r.registo === REGISTO.PERDA_BOLA).length)
+    .filter((n) => n > 0);
+  const perdas = jogos.reduce((t, n) => t + n, 0);
+  return { jogos: jogos.length, perdas, perdasPorJogo: jogos.length ? perdas / jogos.length : 0 };
 }
 
 /** Todos os pontos de um registo na época, para um mapa só. */

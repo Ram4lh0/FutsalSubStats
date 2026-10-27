@@ -25,6 +25,8 @@ import {
   rematesAdvDaEpoca,
   rematesAdvPorJogo,
   recuperacoesPorJogador,
+  perdasDaEpoca,
+  perdasPorJogador,
 } from '../../domain/dashboard.js';
 import { REGISTO } from '../../domain/registos.js';
 import { dayLabel } from '../format.js';
@@ -281,6 +283,23 @@ function registosExtra(r, entries) {
     );
     r.paragrafo(t('registos.epoca.recupNota'));
   }
+  if (tipos.has(REGISTO.PERDA_BOLA)) {
+    const equipa = perdasDaEpoca(entries);
+    r.secao(t('registos.epoca.perdas'), 30);
+    r.cartoes([
+      { rotulo: t('registos.epoca.perdasPorJogo'), valor: equipa.perdasPorJogo.toFixed(1), detalhe: t('painelv.emJogos', { n: equipa.jogos }) },
+      { rotulo: t('registos.total.perda_bola'), valor: equipa.perdas },
+    ]);
+    r.barrasH(
+      perdasPorJogador(entries).map((j) => ({
+        rotulo: `${j.number ?? ''} ${j.name}`.trim(),
+        valor: j.perdas,
+        texto: t('registos.epoca.perdasDetalhe', { n: j.perdas, porJogo: j.porJogo.toFixed(1) }),
+      })),
+      { cor: COR.vermelho }
+    );
+    r.paragrafo(t('registos.epoca.perdasNota'));
+  }
 }
 
 /* ------------------------------------------------------------- atleta */
@@ -362,6 +381,16 @@ function relatorioDoAtleta(r, dados) {
     ]);
   } else {
     r.paragrafo(t('painelv.semFaltasAtleta'));
+  }
+
+  const perdas = dados.perdas;
+  if (perdas?.comDados) {
+    r.secao(t('registos.total.perda_bola'), 20);
+    r.cartoes([
+      { rotulo: t('registos.total.perda_bola'), valor: perdas.total, detalhe: t('painelv.emJogos', { n: perdas.jogos }) },
+      { rotulo: t('registos.epoca.perdasPorJogo'), valor: perdas.porJogo.toFixed(1) },
+      { rotulo: t('registos.col.perdas10'), valor: perdas.por10 == null ? '—' : perdas.por10.toFixed(1) },
+    ]);
   }
 
   r.secao(t('pdf.jogos'), 20);
