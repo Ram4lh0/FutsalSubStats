@@ -5,11 +5,10 @@ import { translations, type Language } from "./translations";
 import { supabase } from "./supabase";
 
 const CONTACT_EMAIL = "review.FutsalSubStats@gmail.com";
-// A app já está na App Store — a Play Store ainda não. Quando o Android for
-// publicado, troca-se o `null` pelo link real e o mesmo mecanismo passa a
-// valer também para Android.
+// A app está nas duas lojas (Play Store em produção desde 23/10/2026): o botão
+// de instalar leva directamente à loja do aparelho.
 const APP_STORE_URL: string | null = "https://apps.apple.com/pt/app/futsal-substats/id6804845572";
-const PLAY_STORE_URL: string | null = null;
+const PLAY_STORE_URL: string | null = "https://play.google.com/store/apps/details?id=com.futsalsubstats.app";
 // Onde a app vive. O botão de instalar leva aqui antes de explicar os passos:
 // "Adicionar ao ecrã principal" guarda a página **em que a pessoa está**, por
 // isso feito a partir deste site o que ficava no telemóvel era o site, não a app.
@@ -364,19 +363,17 @@ function InstallDialog({ t, onClose }: { t: (typeof translations)[Language]; onC
           <button type="button" onClick={() => setSistema("ios")}><Icon name="apple"/>{c.iphone}</button>
           <button type="button" onClick={() => setSistema("android")}><Icon name="android"/>{c.android}</button>
         </div>
-      </> : sistema === "ios" ? <>
-        {/* iOS já tem loja: nada para explicar, só o link — sem a barra do
+      </> : (sistema === "ios" ? APP_STORE_URL : PLAY_STORE_URL) ? <>
+        {/* Com loja não há nada para explicar, só o link — sem a barra do
             ícone nem a frase de intro, que só faziam sentido para os passos
             de "adicionar ao ecrã principal" que já não existem aqui. */}
-        <a className="button" href={APP_STORE_URL || APP_URL} target="_blank" rel="noreferrer">{c.downloadHere}<Icon name="arrow"/></a>
+        <a className="button" href={(sistema === "ios" ? APP_STORE_URL : PLAY_STORE_URL) || APP_URL} target="_blank" rel="noreferrer">{c.downloadHere}<Icon name="arrow"/></a>
         <p className="install-note">{c.offlineNote}</p>
         <button type="button" className="install-back" onClick={() => setSistema(null)}>
           {detectado ? c.wrongDevice : c.chooseTitle}
         </button>
       </> : <>
-        {/* Android ainda não tem loja própria: em vez dos passos de "adicionar
-            ao ecrã principal", pede-se acesso por email — troca-se por um link
-            para a Play Store quando a app lá estiver publicada. */}
+        {/* Sem link de loja para este sistema, pede-se acesso por email. */}
         <p>{c.androidEmailIntro}</p>
         <a className="button" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}<Icon name="mail"/></a>
         <button type="button" className="install-back" onClick={() => setSistema(null)}>
