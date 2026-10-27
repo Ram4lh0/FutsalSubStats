@@ -20,9 +20,6 @@
 // O sair da conta também saiu daqui, pela mesma família de razões: é uma acção
 // rara e destrutiva, encostada ao canto onde o polegar bate sem querer, num
 // ecrã que se usa com o jogo a decorrer.
-//
-// O ícone de feedback pode cá estar porque é pequeno, não acende nem avisa de
-// nada, e no jogo ao vivo desaparece (ver `FeedbackRapido`).
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -31,7 +28,6 @@ import { rotas } from '@/lib/routes.js';
 import { emDemo, limparDemo } from '@/lib/demo.js';
 import { useT } from '@/lib/i18n/index.js';
 import { registoAberto, ligacaoPedirConta } from '@/lib/registo.js';
-import FeedbackRapido from '@/components/FeedbackRapido.jsx';
 
 export default function AppBar() {
   const router = useRouter();
@@ -76,7 +72,6 @@ export default function AppBar() {
             )}
           </>
         ) : null}
-        <FeedbackRapido />
         {/* Um botão só. Lá dentro está o idioma, o estado da sincronização, a
             cópia dos dados, o sair da conta e a eliminação. */}
         {user || !remote ? (

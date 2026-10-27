@@ -10,6 +10,7 @@ import { addonsAtivos } from '@/domain/addons.js';
 import { PARAM, noJogoAoVivo, rotas } from '@/lib/routes.js';
 import { guidedTutorialSteps, readGuidedTutorialState, setGuidedTutorialStepById } from '@/lib/tutorial.js';
 import { useT } from '@/lib/i18n/index.js';
+import FeedbackRapido from '@/components/FeedbackRapido.jsx';
 
 const SELECTED_TEAM_KEY = 'futsal-selected-team-context';
 
@@ -339,6 +340,9 @@ export default function MainNavigation() {
             {t('nav.verEscaloes')}
           </button>
         ) : null}
+        {/* O feedback fica sempre no canto, em todas as abas. No jogo ao vivo
+            esta barra nem aparece. */}
+        <FeedbackRapido />
       </header>
 
       <nav className="mainnav mainnav--bottom" aria-label={t('nav.principal')}>
