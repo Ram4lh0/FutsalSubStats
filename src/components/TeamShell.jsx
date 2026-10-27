@@ -19,6 +19,7 @@ import {
 import { DATA_UPDATED_EVENT } from '@/lib/data/sync.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import { useImportarCalendario } from './ImportarCalendario.jsx';
 import { useT } from '@/lib/i18n/index.js';
 
 // Quem exige a conta iniciada é agora o `Pagina`, que envolve todas as páginas.
@@ -36,6 +37,7 @@ function Shell({ clubId, teamId, children }) {
   const t = useT();
   const [dados, setDados] = useState(null);
   const soLeitura = useSoLeitura(teamId);
+  const { importar, aImportar } = useImportarCalendario({ clubId, teamId });
 
   const carregar = useCallback(async () => {
     const team = await teams.get(teamId);
@@ -71,6 +73,9 @@ function Shell({ clubId, teamId, children }) {
   const emJogo = /^\/team\/matches\/?$/.test(pathname || '');
   // A aba Treino: calendário (com as presenças por baixo) e quadro tático.
   const emTreino = /^\/team\/(training|tactics)(\/|$)/.test(pathname || '');
+  // A página de uma competição tem o seu próprio "Importar calendário", que
+  // mete os jogos todos nela; aqui seria um segundo botão com outro sentido.
+  const naCompeticao = /^\/team\/competition\/?$/.test(pathname || '');
   const abasEquipas = [
     { label: t('escalao.plantel'), to: rotas.plantel(clubId, teamId) },
     { label: t('escalao.competicoes'), to: rotas.competicoes(clubId, teamId) },
@@ -109,6 +114,11 @@ function Shell({ clubId, teamId, children }) {
             {t('escalao.editar')}
           </button>
           <span className="toolbar__spacer" />
+          {naCompeticao ? null : (
+            <button className="btn btn--ghost btn--tiny" onClick={() => importar()} disabled={aImportar}>
+              {t('calendarioCsv.botao')}
+            </button>
+          )}
           <button
             className="btn btn--primary btn--tiny"
             data-tour="create-match"

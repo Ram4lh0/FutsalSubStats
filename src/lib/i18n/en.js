@@ -611,6 +611,7 @@ export default {
     'Delete the competition “{nome}”? The matches are not lost — they are simply left without a competition.',
   'competicao.apagarBotao': 'Delete competition',
   'competicao.guardada': 'Competition saved.',
+  'competicao.criarEImportar': 'Create and import fixtures',
   'competicao.apagada': 'Competition deleted.',
   'novo.tipoJogoDaCompeticao': 'Set by the selected competition.',
 
@@ -1715,6 +1716,8 @@ export default {
   "calendarioCsv.botao": "Import schedule",
   "calendarioCsv.titulo": "Import the schedule",
   "calendarioCsv.formato": "Five columns, in this order: date, time, opponent, home/away and competition.",
+  "calendarioCsv.formatoFixo": "Four columns, in this order: date, time, opponent and home/away. If the file has a competition column, it is ignored.",
+  "calendarioCsv.todosNaCompeticao": "Every match in the file goes into the competition {nome}.",
   "calendarioCsv.opcionais": "Time may be left blank (12:00) and so may home/away (Home). Dates like 14/09/2026 work.",
   "calendarioCsv.avisoTitulo": "The competition must be written exactly as in the Competitions tab",
   "calendarioCsv.avisoTexto": "Capitals, spaces and accents count. In this team, the names are:",
