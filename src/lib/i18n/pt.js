@@ -612,6 +612,7 @@ export default {
     'Apagar a competição "{nome}"? Os jogos não se perdem — ficam sem competição associada.',
   'competicao.apagarBotao': 'Apagar competição',
   'competicao.guardada': 'Competição guardada.',
+  'competicao.criarEImportar': 'Criar e importar calendário',
   'competicao.apagada': 'Competição apagada.',
   'novo.tipoJogoDaCompeticao': 'Definido pela competição escolhida.',
 
@@ -1721,6 +1722,8 @@ export default {
   "calendarioCsv.botao": "Importar calendário",
   "calendarioCsv.titulo": "Importar o calendário",
   "calendarioCsv.formato": "Cinco colunas, por esta ordem: data, hora, adversário, casa/fora e competição.",
+  "calendarioCsv.formatoFixo": "Quatro colunas, por esta ordem: data, hora, adversário e casa/fora. Se o ficheiro tiver uma coluna de competição, é ignorada.",
+  "calendarioCsv.todosNaCompeticao": "Todos os jogos do ficheiro vão para a competição {nome}.",
   "calendarioCsv.opcionais": "A hora pode ficar em branco (fica 12:00) e casa/fora também (fica Casa). A data aceita 14/09/2026.",
   "calendarioCsv.avisoTitulo": "A competição tem de estar escrita exatamente igual à aba Competições",
   "calendarioCsv.avisoTexto": "Maiúsculas, espaços e acentos contam. Neste escalão, os nomes são:",

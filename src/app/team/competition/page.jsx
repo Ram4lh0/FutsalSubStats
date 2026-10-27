@@ -15,6 +15,8 @@ import { clubAggregate, powerPlayAggregate } from '@/domain/stats.js';
 import Destaques from '@/components/stats/Destaques.jsx';
 import { fmt } from '@/domain/clock.js';
 import { rotas } from '@/lib/routes.js';
+import useSoLeitura from '@/lib/useSoLeitura.js';
+import { useImportarCalendario } from '@/components/ImportarCalendario.jsx';
 import { useT } from '@/lib/i18n/index.js';
 
 export default function CompetitionPage() {
@@ -39,6 +41,8 @@ function Conteudo() {
 function Detalhe({ entries, roster, competitions, clubId, teamId, competitionId }) {
   const router = useRouter();
   const t = useT();
+  const soLeitura = useSoLeitura(teamId);
+  const { importar, aImportar } = useImportarCalendario({ clubId, teamId });
   const competicao = competitions.find((c) => c.id === competitionId);
   const meus = useMemo(
     () => entries.filter((e) => e.match.competitionId === competitionId),
@@ -67,6 +71,17 @@ function Detalhe({ entries, roster, competitions, clubId, teamId, competitionId 
         </button>
         <h2 className="section section--tight">{competicao.name}</h2>
         <span className="toolbar__spacer" />
+        {/* Os jogos do ficheiro entram todos nesta prova: não é preciso a
+            coluna da competição. */}
+        {soLeitura ? null : (
+          <button
+            className="btn btn--ghost"
+            onClick={() => importar({ competicaoFixa: competicao })}
+            disabled={aImportar}
+          >
+            {t('calendarioCsv.botao')}
+          </button>
+        )}
         <button
           className="btn btn--ghost"
           data-tour="edit-competition"

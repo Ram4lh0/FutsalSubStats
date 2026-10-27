@@ -78,3 +78,18 @@ test('importar duas vezes não duplica jogos', () => {
   assert.equal(jogos.length, 1);
   assert.equal(repetidos, 2);
 });
+
+test('com a competição fixa, chegam quatro colunas e a quinta é ignorada', () => {
+  const csv = [
+    'Data;Hora;Adversário;Casa/Fora',
+    '14/09/2026;21:00;GD Exemplo;Casa',
+    '21/09/2026;;CD Modelo;Fora;Outra Prova Qualquer',
+  ].join('\n');
+  const { jogos, problemas } = lerCalendarioCsv(csv, {
+    competicoes: provas,
+    competicaoFixa: provas[1],
+  });
+  assert.equal(problemas.length, 0);
+  assert.equal(jogos.length, 2);
+  assert.ok(jogos.every((j) => j.competitionId === 'k2'));
+});

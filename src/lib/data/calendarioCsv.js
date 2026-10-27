@@ -14,6 +14,10 @@
 // propósito: adivinhar ("Camp." ou "Campeonato Distrital"?) metia jogos na
 // competição errada sem ninguém dar por isso, e as estatísticas por competição
 // ficavam baralhadas. Melhor recusar a linha e dizer porquê.
+//
+// Quando se importa a partir de uma competição (acabada de criar, ou da página
+// dela), a competição já se sabe: chegam as quatro primeiras colunas e a quinta,
+// se vier, é ignorada — todos os jogos entram nessa prova.
 
 import { t } from '../i18n/index.js';
 import pt from '../i18n/pt.js';
@@ -49,7 +53,7 @@ function simples(v) {
  * O ficheiro de exemplo, com as competições do próprio escalão — assim os
  * nomes já vêm escritos como a app os espera, que é o erro mais provável.
  */
-export function calendarioExemploCsv(competicoes = []) {
+export function calendarioExemploCsv(competicoes = [], { fixa = false } = {}) {
   const nomes = competicoes.map((c) => c.name).filter(Boolean);
   const a = nomes[0] || 'Campeonato';
   const b = nomes[1] || a;
@@ -62,7 +66,8 @@ export function calendarioExemploCsv(competicoes = []) {
     ['28/09/2026', '20:00', 'Académico FC', casa, b],
     ['05/10/2026', '', 'União Recreativa', fora, a],
   ];
-  return toCsv(rows);
+  // Com a competição já escolhida, a coluna dela sobra.
+  return toCsv(fixa ? rows.map((r) => r.slice(0, 4)) : rows);
 }
 
 /* --------------------------------------------------------------- a ler */
@@ -147,9 +152,10 @@ function indiceCasaFora() {
  * @param {object} p
  * @param {Array<{id, name}>} p.competicoes as competições do escalão
  * @param {Array<{opponentName, scheduledAt}>} [p.existentes] jogos que já existem
+ * @param {{id, name}} [p.competicaoFixa] todos os jogos vão para esta prova
  * @returns {{ jogos: Array, repetidos: number, problemas: Array<{linha, chave, valores?}> }}
  */
-export function lerCalendarioCsv(texto, { competicoes = [], existentes = [] } = {}) {
+export function lerCalendarioCsv(texto, { competicoes = [], existentes = [], competicaoFixa = null } = {}) {
   const limpo = String(texto || '').replace(/^﻿/, '');
   const linhas = limpo.split(/\r?\n/).filter((l) => l.replace(/[;,\s]/g, ''));
   if (!linhas.length) return { jogos: [], repetidos: 0, problemas: [{ linha: 0, chave: 'calendarioCsv.vazio' }] };
@@ -198,11 +204,11 @@ export function lerCalendarioCsv(texto, { competicoes = [], existentes = [] } = 
       return;
     }
     const nomeProva = String(competicaoBruta || '').trim();
-    if (!nomeProva) {
+    if (!nomeProva && !competicaoFixa) {
       problemas.push({ linha: nLinha, chave: 'calendarioCsv.semCompeticao' });
       return;
     }
-    const prova = porNome.get(nomeProva);
+    const prova = competicaoFixa || porNome.get(nomeProva);
     if (!prova) {
       // Quase igual? Diz-se qual era, para a pessoa ver a diferença.
       const parecida = competicoes.find((c) => simples(c.name) === simples(nomeProva));

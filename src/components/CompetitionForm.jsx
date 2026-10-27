@@ -13,6 +13,7 @@ import useSoLeitura from '@/lib/useSoLeitura.js';
 import { useT } from '@/lib/i18n/index.js';
 import { MATCH_TIMING, maxSquadOf, timingOf } from '@/domain/constants.js';
 import { timingLabel } from '@/lib/format.js';
+import { useImportarCalendario } from './ImportarCalendario.jsx';
 
 const VAZIO = { name: '', shortName: '', timing: MATCH_TIMING.UNTIMED, maxSquad: '14' };
 
@@ -25,6 +26,7 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
   const [form, setForm] = useState(VAZIO);
   const [pronto, setPronto] = useState(!competitionId);
   const base = rotas.escalao(clubId, teamId);
+  const { importar, aImportar } = useImportarCalendario({ clubId, teamId });
 
   useEffect(() => {
     (async () => {
@@ -45,7 +47,13 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
     onChange: (e) => setForm((f) => ({ ...f, [k]: e.target.value })),
   });
 
-  async function guardar(e) {
+  /**
+   * `comCalendario`: ao criar, "Criar e importar calendário" guarda a
+   * competição e abre logo a importação com os jogos todos a irem para ela —
+   * quem cria o campeonato tem quase sempre o calendário dele à mão. Se a
+   * importação for cancelada, a competição fica criada na mesma.
+   */
+  async function guardar(e, { comCalendario = false } = {}) {
     e.preventDefault();
     if (!(form.name || '').trim()) return toast(t('competicao.precisaNome'), 'error');
     const payload = {
@@ -55,7 +63,15 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
       maxSquad: form.maxSquad === '' ? null : Number(form.maxSquad),
     };
     if (competitionId) await competitions.update(competitionId, payload);
-    else await competitions.create(teamId, payload);
+    else {
+      const criada = await competitions.create(teamId, payload);
+      if (comCalendario) {
+        toast(t('competicao.guardada'), 'ok');
+        await importar({ competicaoFixa: criada });
+        router.push(rotas.competicao(clubId, teamId, criada.id));
+        return;
+      }
+    }
     toast(t('competicao.guardada'), 'ok');
     router.push(rotas.competicoes(clubId, teamId));
   }
@@ -130,6 +146,16 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
           <button className="btn btn--ghost" type="button" onClick={() => router.back()}>
             {t('comum.cancelar')}
           </button>
+          {competitionId ? null : (
+            <button
+              className="btn btn--ghost"
+              type="button"
+              disabled={aImportar}
+              onClick={(e) => guardar(e, { comCalendario: true })}
+            >
+              {t('competicao.criarEImportar')}
+            </button>
+          )}
           <button className="btn btn--primary" type="submit">
             {t('comum.guardar')}
           </button>

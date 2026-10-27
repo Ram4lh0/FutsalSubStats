@@ -240,6 +240,13 @@ ul { padding: 0; list-style: none; }
   font: inherit;
   font-size: 1.05rem;
   cursor: pointer;
+  /* A lista que abre é desenhada pelo sistema (PC, Android): sem isto vinha
+     branca, com o texto claro do select por cima, e não se lia nada. */
+  color-scheme: dark;
+}
+.context-picker select option {
+  background-color: var(--bg-2);
+  color: var(--text);
 }
 .mainnav {
   pointer-events: auto;
