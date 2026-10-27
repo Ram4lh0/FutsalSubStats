@@ -626,10 +626,11 @@ test('o feedback mostra só as respostas, com a conta, e conta quem fechou', asy
   });
   const r = await feedbacks(sb);
   assert.equal(r.fechadosSemResposta, 1);
-  // Quem recebeu inclui também quem fechou sem responder.
+  // Quem recebeu inclui também quem fechou sem responder, do mais recente
+  // para o mais antigo.
   assert.deepEqual(r.recebidos.map((l) => [l.conta, l.respondido]), [
-    ['ze@clube.pt', true],
     ['ana@clube.pt', false],
+    ['ze@clube.pt', true],
   ]);
   assert.equal(r.respostas.length, 1);
   assert.equal(r.respostas[0].momento, 'registo');

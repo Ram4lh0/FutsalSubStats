@@ -624,7 +624,8 @@ export async function desassociarClube(sb, { userId, clubeId }) {
  *
  * Quem fechou o popup sem responder também tem linha (é a marca de "já viu"):
  * vem com `respondido: false`. `recebidos` são todas as linhas, para se ver a
- * quem o popup já apareceu; `respostas` só as que trazem resposta.
+ * quem o popup já apareceu; `respostas` só as que trazem resposta. Vêm do
+ * mais recente para o mais antigo.
  */
 export async function feedbacks(sb) {
   const [respostas, perfis] = await Promise.all([
@@ -653,6 +654,7 @@ export async function feedbacks(sb) {
       quando: r.created_at,
     };
   });
+  linhas.sort((a, b) => String(b.quando || '').localeCompare(String(a.quando || '')));
 
   return {
     recebidos: linhas,
