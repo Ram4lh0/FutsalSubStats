@@ -36,6 +36,7 @@ export default function Halftime({
   onAddFoul,
   onEditFoul,
   onEditRegisto,
+  onEditTempos,
   onStart,
 }) {
   const t = useT();
@@ -188,6 +189,7 @@ export default function Halftime({
               </th>
               <th className="num">{t('ficha.emCampo')}</th>
               <th className="num">{t('intervalo.entradas')}</th>
+              {onEditTempos ? <th /> : null}
             </tr>
           </thead>
           <tbody>
@@ -203,8 +205,27 @@ export default function Halftime({
                 <td className="num mono">{s.foulsSuffered}</td>
                 <td className="num mono">{s.yellows}</td>
                 <td className="num mono">{s.reds}</td>
-                <td className="num mono">{fmt(s.courtMs)}</td>
+                <td className="num mono">
+                  {fmt(s.courtMs)}
+                  {state.players[s.playerId]?.temposCorrigidos ? (
+                    <span className="muted" title={t('tempos.corrigidosNota')}> *</span>
+                  ) : null}
+                </td>
                 <td className="num">{s.entries}</td>
+                {/* Corrigir os tempos da 1.ª parte já no intervalo, com as
+                    trocas ainda frescas na cabeça (lib/temposEditing.jsx). */}
+                {onEditTempos ? (
+                  <td className="right">
+                    <button
+                      className="btn btn--tiny btn--ghost"
+                      onClick={() => onEditTempos(s.playerId)}
+                      title={t('tempos.editarDe', { nome: s.name })}
+                      aria-label={t('tempos.editarDe', { nome: s.name })}
+                    >
+                      {t('tempos.editarCurto')}
+                    </button>
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>

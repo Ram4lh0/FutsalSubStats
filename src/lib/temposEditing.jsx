@@ -11,6 +11,9 @@
 // Quem não sabe as trocas todas escolhe "Só o total": escreve quanto tempo o
 // jogador esteve em campo e as entradas ajustam-se a esse total
 // (`ajustarAoTotal`).
+//
+// No intervalo abre-se com `parte: 1`: só se veem e corrigem as entradas da
+// 1.ª parte, e a 2.ª, que ainda está por jogar, não é tocada.
 
 import { useState } from 'react';
 import { Dialog } from './ui.jsx';
@@ -40,8 +43,8 @@ function mensagem(erro) {
 }
 
 /** Uma entrada nova: a seguir à última, ou no início do jogo. */
-function entradaNova(state, linhas) {
-  const { total } = limitesDasPartes(state);
+function entradaNova(state, linhas, parte) {
+  const { total } = limitesDasPartes(state, { parte });
   const fins = linhas.map((l) => parseClock(l.fim, NaN)).filter(Number.isFinite);
   // Sem espaço depois da última (acaba no fim do jogo), começa no início.
   const depois = fins.length ? Math.max(...fins) : 0;
@@ -51,14 +54,15 @@ function entradaNova(state, linhas) {
 
 const soma = (lista) => lista.reduce((a, e) => a + (e.fimMs - e.inicioMs), 0);
 
-function TemposDialog({ state, jogador, onClose, onSave, onRepor }) {
-  const registadas = entradasDe(state, jogador.playerId);
+function TemposDialog({ state, jogador, parte, onClose, onSave, onRepor }) {
+  const so = { parte };
+  const registadas = entradasDe(state, jogador.playerId, so);
   const [modo, setModo] = useState('entradas');
   const [linhas, setLinhas] = useState(() =>
     registadas.map((e) => ({ inicio: fmt(e.inicioMs), fim: fmt(e.fimMs) }))
   );
   const [totalTexto, setTotalTexto] = useState(() => fmt(soma(registadas)));
-  const { primeira, total } = limitesDasPartes(state);
+  const { primeira, total } = limitesDasPartes(state, so);
 
   // Modo entradas: a lista escrita à mão.
   const escritas = linhas.map((l) => ({ inicioMs: parseClock(l.inicio, NaN), fimMs: parseClock(l.fim, NaN) }));
@@ -69,18 +73,22 @@ function TemposDialog({ state, jogador, onClose, onSave, onRepor }) {
     : alvo > total
       ? { chave: 'tempos.erro.foraDoJogo', valores: { maximo: total } }
       : null;
-  const ajustadas = modo === 'total' && !erroTotal ? ajustarAoTotal(state, jogador.playerId, alvo) : [];
+  const ajustadas = modo === 'total' && !erroTotal ? ajustarAoTotal(state, jogador.playerId, alvo, so) : [];
 
   const entradas = modo === 'total' ? ajustadas : escritas;
-  const erro = modo === 'total' ? erroTotal : validarEntradas(state, escritas);
-  const excesso = erro ? null : excessoEmCampo(state, jogador.playerId, entradas);
+  const erro = modo === 'total' ? erroTotal : validarEntradas(state, escritas, so);
+  const excesso = erro ? null : excessoEmCampo(state, jogador.playerId, entradas, so);
   const totalMs = erro ? null : soma(entradas);
 
   const mudar = (i, campo, valor) =>
     setLinhas((atuais) => atuais.map((l, j) => (j === i ? { ...l, [campo]: valor } : l)));
 
   return (
-    <Dialog title={t('tempos.titulo', { numero: jogador.number, nome: jogador.name })} onClose={onClose} wide>
+    <Dialog
+      title={t(parte === 1 ? 'tempos.tituloParte1' : 'tempos.titulo', { numero: jogador.number, nome: jogador.name })}
+      onClose={onClose}
+      wide
+    >
       <div className="form">
         <div className="tempos__modos" role="tablist">
           {[
@@ -102,7 +110,11 @@ function TemposDialog({ state, jogador, onClose, onSave, onRepor }) {
 
         {modo === 'total' ? (
           <>
-            <p className="muted small">{t('tempos.explicacaoTotal', { fim: fmt(total) })}</p>
+            <p className="muted small">
+              {parte === 1
+                ? t('tempos.explicacaoTotalParte1', { fim: fmt(total) })
+                : t('tempos.explicacaoTotal', { fim: fmt(total) })}
+            </p>
             <label className="field">
               <span className="field__label">{t('tempos.totalEmCampo')}</span>
               <input
@@ -128,7 +140,9 @@ function TemposDialog({ state, jogador, onClose, onSave, onRepor }) {
         ) : (
           <>
         <p className="muted small">
-          {t('tempos.explicacao', { intervalo: fmt(primeira), fim: fmt(total) })}
+          {parte === 1
+            ? t('tempos.explicacaoParte1', { fim: fmt(total) })
+            : t('tempos.explicacao', { intervalo: fmt(primeira), fim: fmt(total) })}
         </p>
 
         {linhas.length ? (
@@ -189,7 +203,7 @@ function TemposDialog({ state, jogador, onClose, onSave, onRepor }) {
         <button
           type="button"
           className="btn btn--ghost"
-          onClick={() => setLinhas((atuais) => [...atuais, entradaNova(state, atuais)])}
+          onClick={() => setLinhas((atuais) => [...atuais, entradaNova(state, atuais, parte)])}
         >
           + {t('tempos.acrescentar')}
         </button>
@@ -230,7 +244,7 @@ function TemposDialog({ state, jogador, onClose, onSave, onRepor }) {
 }
 
 /** Abre a ficha dos tempos de um jogador e grava. Devolve true se mudou. */
-export async function editarTempos(ui, { matchId, playerId, syncUser = null }) {
+export async function editarTempos(ui, { matchId, playerId, parte = null, syncUser = null }) {
   const antes = await loadMatch(matchId);
   const jogador = antes?.state.players[playerId];
   if (!jogador) return false;
@@ -239,6 +253,7 @@ export async function editarTempos(ui, { matchId, playerId, syncUser = null }) {
     <TemposDialog
       state={antes.state}
       jogador={jogador}
+      parte={parte}
       onClose={() => close(null)}
       onSave={(entradas) => close({ entradas })}
       onRepor={() => close({ entradas: null })}
@@ -250,7 +265,7 @@ export async function editarTempos(ui, { matchId, playerId, syncUser = null }) {
   // de outro aparelho entretanto.
   const snap = await loadMatch(matchId);
   if (r.entradas) {
-    const erro = validarEntradas(snap.state, r.entradas);
+    const erro = validarEntradas(snap.state, r.entradas, { parte });
     if (erro) {
       ui.toast(mensagem(erro), 'error');
       return false;
@@ -262,7 +277,7 @@ export async function editarTempos(ui, { matchId, playerId, syncUser = null }) {
     if (!ok) return false;
   }
 
-  await events.append(A.corrigirTempos(snap.state, metadataDosTempos(playerId, r.entradas)));
+  await events.append(A.corrigirTempos(snap.state, metadataDosTempos(playerId, r.entradas, { parte })));
   if (syncUser) sync.saveNow(syncUser.userId, syncUser.email);
   ui.toast(r.entradas ? t('tempos.guardados') : t('tempos.repostos'), 'ok');
   return true;

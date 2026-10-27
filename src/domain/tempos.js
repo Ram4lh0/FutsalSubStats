@@ -15,6 +15,10 @@
 // Versões antigas da app leem o `MATCH_CORRECTED` e ignoram o campo `tempos`:
 // mostram os tempos registados ao vivo, sem partir nada.
 //
+// No intervalo corrige-se só a 1.ª parte (`parte: 1` no metadata): troca as
+// entradas da 1.ª parte e deixa as da 2.ª, para não apagar o que se regista a
+// seguir. As funções abaixo aceitam `{ parte: 1 }` para trabalhar só nela.
+//
 // Os minutos são de jogo, contínuos: a 2.ª parte começa onde a 1.ª acabou
 // (`state.firstHalfMs`). Uma entrada não atravessa o intervalo — o intervalo
 // fecha todas as entradas, ao vivo também.
@@ -32,10 +36,23 @@ export const aoSegundo = (ms) => Math.floor(ms / 1000) * 1000;
  * escrita "19:59" uma entrada que atravessa o intervalo. O reducer volta a
  * encostar as entradas ao valor exato (ver `aplicarAjusteTempos`).
  */
-export function limitesDasPartes(state) {
+export function limitesDasPartes(state, { parte = null } = {}) {
+  if (parte === 1 && state.firstHalfMs != null) {
+    const fim = aoSegundo(state.firstHalfMs);
+    return { primeira: fim, total: fim };
+  }
   const total = aoSegundo(state.elapsedMatchMs || 0);
   const primeira = state.firstHalfMs != null ? Math.min(aoSegundo(state.firstHalfMs), total) : total;
   return { primeira, total };
+}
+
+/**
+ * Pode corrigir-se agora? O jogo inteiro só depois do apito final; a 1.ª
+ * parte a partir do intervalo.
+ */
+export function podeCorrigir(state, { parte = null } = {}) {
+  if (parte === 1) return state.firstHalfMs != null && state.currentPeriod >= 1;
+  return state.status === MATCH_STATUS.FINISHED;
 }
 
 /** Em que parte começa uma entrada. */
@@ -45,10 +62,15 @@ export function parteDe(state, inicioMs) {
 }
 
 /** As entradas registadas de um jogador, na forma que o editor usa. */
-export function entradasDe(state, playerId) {
+export function entradasDe(state, playerId, { parte = null } = {}) {
   const p = state.players?.[playerId];
   if (!p) return [];
-  return p.stints.map((st) => ({
+  // Pelo minuto, e não pelo `startPeriod`: quem entra no cinco da 2.ª parte
+  // abre a entrada ainda no intervalo, com a parte a dizer 1.
+  const fimDa1 = state.firstHalfMs ?? Infinity;
+  const daParte = (st) =>
+    parte == null || (parte === 1 ? st.startMatchMs < fimDa1 : st.startMatchMs >= fimDa1);
+  return p.stints.filter(daParte).map((st) => ({
     inicioMs: st.startMatchMs,
     fimMs: st.endMatchMs ?? state.elapsedMatchMs ?? st.startMatchMs,
   }));
@@ -58,9 +80,11 @@ export function entradasDe(state, playerId) {
  * Valida a lista de entradas de um jogador. Devolve `null` se estiver bem, ou
  * `{ chave, indice, valores }` com o primeiro problema (a chave é de i18n).
  */
-export function validarEntradas(state, entradas) {
-  if (state.status !== MATCH_STATUS.FINISHED) return { chave: 'tempos.erro.porTerminar' };
-  const { primeira, total } = limitesDasPartes(state);
+export function validarEntradas(state, entradas, { parte = null } = {}) {
+  if (!podeCorrigir(state, { parte })) {
+    return { chave: parte === 1 ? 'tempos.erro.antesDoIntervalo' : 'tempos.erro.porTerminar' };
+  }
+  const { primeira, total } = limitesDasPartes(state, { parte });
   const ordenadas = entradas
     .map((e, indice) => ({ ...e, indice }))
     .sort((a, b) => a.inicioMs - b.inicioMs);
@@ -89,10 +113,16 @@ export function validarEntradas(state, entradas) {
  * estas entradas? Não impede gravar — pode ser o próximo a corrigir que está
  * mal —, mas avisa. Devolve o primeiro minuto em que isso acontece, ou null.
  */
-export function excessoEmCampo(state, playerId, entradas) {
+export function excessoEmCampo(state, playerId, entradas, { parte = null } = {}) {
   const marcos = [];
   for (const p of Object.values(state.players || {})) {
-    const lista = p.playerId === playerId ? entradas : entradasDe(state, p.playerId);
+    // Só a 1.ª parte: as entradas da 2.ª deste jogador ficam como estão.
+    const lista =
+      p.playerId !== playerId
+        ? entradasDe(state, p.playerId)
+        : parte === 1
+          ? [...entradas, ...entradasDe(state, playerId, { parte: 2 })]
+          : entradas;
     for (const e of lista) {
       if (!(e.fimMs > e.inicioMs)) continue;
       // Ao segundo: uma troca registada aos 12:30,6 e corrigida para 12:30
@@ -127,14 +157,14 @@ export function excessoEmCampo(state, playerId, entradas) {
  * As participações em golos ficam aproximadas — não se sabe quando esteve em
  * campo, só quanto.
  */
-export function ajustarAoTotal(state, playerId, alvoMs) {
-  const { primeira, total } = limitesDasPartes(state);
+export function ajustarAoTotal(state, playerId, alvoMs, { parte = null } = {}) {
+  const { primeira, total } = limitesDasPartes(state, { parte });
   const partes = primeira < total && primeira > 0 ? [[0, primeira], [primeira, total]] : [[0, total]];
   const parteDoInstante = (ms) => partes.find(([a, b]) => ms >= a && ms < b) || partes[partes.length - 1];
   const alvo = Math.max(0, Math.min(total, Math.round(alvoMs)));
   if (!alvo) return [];
 
-  const atuais = entradasDe(state, playerId)
+  const atuais = entradasDe(state, playerId, { parte })
     .map((e) => ({ inicioMs: e.inicioMs, fimMs: Math.min(e.fimMs, total) }))
     .filter((e) => e.fimMs > e.inicioMs)
     .sort((a, b) => a.inicioMs - b.inicioMs);
@@ -178,10 +208,11 @@ export function ajustarAoTotal(state, playerId, alvoMs) {
 }
 
 /** O `metadata` da correção. `entradas: null` repõe o registado ao vivo. */
-export function metadataDosTempos(playerId, entradas) {
+export function metadataDosTempos(playerId, entradas, { parte = null } = {}) {
   return {
     tempos: {
       playerId,
+      ...(parte === 1 ? { parte: 1 } : {}),
       entradas: entradas
         ? [...entradas]
             .sort((a, b) => a.inicioMs - b.inicioMs)

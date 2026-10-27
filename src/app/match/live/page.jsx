@@ -32,6 +32,7 @@ import { beep, unlockAudio } from '@/lib/beep.js';
 import * as GE from '@/lib/goalEditing.jsx';
 import * as FE from '@/lib/foulEditing.jsx';
 import * as RE from '@/lib/registoEditing.jsx';
+import { editarTempos } from '@/lib/temposEditing.jsx';
 import { clubs, events, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import * as A from '@/domain/actions.js';
@@ -1024,6 +1025,12 @@ function Live() {
       await recarregar();
   }
 
+  /** No intervalo: os tempos da 1.ª parte de um jogador (lib/temposEditing.jsx). */
+  async function editarTemposDaPrimeira(playerId) {
+    if (await editarTempos(ui, { matchId, playerId, parte: 1 })) await recarregar();
+  }
+
+
   /* ------------------------------------------------------------- desenho */
 
   const on = {
@@ -1091,6 +1098,7 @@ function Live() {
           onAddFoul={acrescentarFalta}
           onEditFoul={editarFalta}
           onEditRegisto={editarRegisto}
+          onEditTempos={editarTemposDaPrimeira}
           onStart={startSecondHalf}
         />
       </div>

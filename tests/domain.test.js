@@ -1627,7 +1627,7 @@ test('tempos: com décimas nos tempos registados, os minutos escritos ao segundo
   step(ctx, (s) => A.startFirstHalf(s, T0), T0);
   step(ctx, (s) => A.finishFirstHalf(s, T0 + 10 * MIN + 400), T0 + 10 * MIN + 400);
   const T1 = T0 + 15 * MIN;
-  step(ctx, (s) => A.setSecondHalfLineup(s, START, T1), T1);
+  step(ctx, (s) => A.setSecondHalfLineup(s, { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4', PIVOT: 'p5' }, T1), T1);
   step(ctx, (s) => A.startSecondHalf(s, T1), T1);
   let st = step(ctx, (s) => A.finishMatch(s, T1 + 10 * MIN + 300), T1 + 10 * MIN + 300);
   const total = st.elapsedMatchMs;
@@ -1677,4 +1677,69 @@ test('tempos, só o total: quem não jogou começa no início do jogo; zero tira
   // Mais do que o jogo inteiro fica no jogo inteiro.
   const tudo = ajustarAoTotal(st, 'p8', 99 * MIN);
   assert.equal(tudo.reduce((t, e) => t + e.fimMs - e.inicioMs, 0), 20 * MIN);
+});
+
+/** Um jogo parado no intervalo: o p6 entrou aos 2' para o lugar do p3. */
+function jogoNoIntervalo() {
+  const ctx = { squad: makeSquad(), events: [] };
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(
+    ctx,
+    (s) => A.substitute(s, { playerOutId: 'p3', playerInId: 'p6', position: 'LEFT_WINGER' }, T0 + 2 * MIN),
+    T0 + 2 * MIN
+  );
+  const st = step(ctx, (s) => A.finishFirstHalf(s, T0 + 10 * MIN), T0 + 10 * MIN);
+  return { ctx, st };
+}
+
+function corrigirPrimeira(ctx, playerId, entradas, now = T0 + 12 * MIN) {
+  return step(ctx, (s) => A.corrigirTempos(s, metadataDosTempos(playerId, entradas, { parte: 1 }), now), now);
+}
+
+test('tempos no intervalo: corrige-se a 1.ª parte, e a 2.ª conta normalmente a seguir', () => {
+  const { ctx, st } = jogoNoIntervalo();
+  assert.equal(st.status, MATCH_STATUS.HALFTIME);
+  const so1 = { parte: 1 };
+  assert.equal(validarEntradas(st, [{ inicioMs: 0, fimMs: 5 * MIN }]).chave, 'tempos.erro.porTerminar');
+  assert.equal(validarEntradas(st, [{ inicioMs: 0, fimMs: 5 * MIN }], so1), null);
+  assert.equal(validarEntradas(st, [{ inicioMs: 0, fimMs: 11 * MIN }], so1).chave, 'tempos.erro.foraDoJogo');
+
+  // Afinal o p6 entrou aos 4', não aos 2'.
+  let agora = corrigirPrimeira(ctx, 'p6', [{ inicioMs: 4 * MIN, fimMs: 10 * MIN }]);
+  assert.equal(playerMatchStats(agora.players.p6, agora.elapsedMatchMs).courtMs, 6 * MIN);
+  assert.equal(agora.players.p6.temposCorrigidos, true);
+
+  // A 2.ª parte arranca e a correção não apaga o que se regista nela.
+  const T1 = T0 + 15 * MIN;
+  const lineup = { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p6', RIGHT_WINGER: 'p4', PIVOT: 'p5' };
+  step(ctx, (s) => A.setSecondHalfLineup(s, lineup, T1), T1);
+  step(ctx, (s) => A.startSecondHalf(s, T1), T1);
+  agora = step(ctx, (s) => A.finishMatch(s, T1 + 10 * MIN), T1 + 10 * MIN);
+  const p6 = playerMatchStats(agora.players.p6, agora.elapsedMatchMs);
+  assert.equal(p6.courtMs, 16 * MIN, "6' corrigidos na 1.ª + 10' da 2.ª");
+  assert.equal(p6.entries, 2);
+});
+
+test('tempos no intervalo: só o total da 1.ª parte, sem tocar na 2.ª; e o jogo inteiro manda depois', () => {
+  const { ctx, st } = jogoNoIntervalo();
+  const so1 = { parte: 1 };
+  // O p3 jogou 0'–2'; afinal foram 5'.
+  const entradas = ajustarAoTotal(st, 'p3', 5 * MIN, so1);
+  assert.deepEqual(entradas, [{ inicioMs: 0, fimMs: 5 * MIN }]);
+  assert.equal(validarEntradas(st, entradas, so1), null);
+  corrigirPrimeira(ctx, 'p3', entradas);
+
+  const T1 = T0 + 15 * MIN;
+  const lineup = { GOALKEEPER: 'p1', FIXO: 'p2', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4', PIVOT: 'p5' };
+  step(ctx, (s) => A.setSecondHalfLineup(s, lineup, T1), T1);
+  step(ctx, (s) => A.startSecondHalf(s, T1), T1);
+  let fim = step(ctx, (s) => A.finishMatch(s, T1 + 10 * MIN), T1 + 10 * MIN);
+  assert.equal(playerMatchStats(fim.players.p3, fim.elapsedMatchMs).courtMs, 15 * MIN, "5' + a 2.ª parte toda");
+
+  // Uma correção do jogo inteiro, depois do apito, substitui tudo.
+  fim = corrigir(ctx, 'p3', [{ inicioMs: 10 * MIN, fimMs: 12 * MIN }]);
+  assert.equal(playerMatchStats(fim.players.p3, fim.elapsedMatchMs).courtMs, 2 * MIN);
+  // E repor volta ao que foi registado ao vivo (sem a correção da 1.ª parte).
+  fim = corrigir(ctx, 'p3', null);
+  assert.equal(playerMatchStats(fim.players.p3, fim.elapsedMatchMs).courtMs, 12 * MIN);
 });
