@@ -1463,6 +1463,14 @@ export default {
   'feedbackInicial.enviar': 'Enviar',
   'feedbackInicial.agoraNao': 'Agora não',
   'feedbackInicial.obrigado': 'Obrigado pelo feedback!',
+  'feedbackRapido.abrir': 'Dar feedback',
+  'feedbackRapido.titulo': 'Dar feedback',
+  'feedbackRapido.pergunta': 'O que queres dizer-nos?',
+  'feedbackRapido.placeholder': 'Uma ideia, um erro, algo que te faz falta…',
+  'feedbackRapido.enviar': 'Enviar',
+  'feedbackRapido.cancelar': 'Cancelar',
+  'feedbackRapido.obrigado': 'Obrigado, recebemos o teu feedback!',
+  'feedbackRapido.erro': 'Não foi possível enviar. Verifica a ligação e tenta outra vez.',
 
   /* -------------------------------------------------------------- comum */
   'comum.apelido': 'Apelido (opcional)',

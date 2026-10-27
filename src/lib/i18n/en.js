@@ -1457,6 +1457,14 @@ export default {
   'feedbackInicial.enviar': 'Send',
   'feedbackInicial.agoraNao': 'Not now',
   'feedbackInicial.obrigado': 'Thanks for the feedback!',
+  'feedbackRapido.abrir': 'Send feedback',
+  'feedbackRapido.titulo': 'Send feedback',
+  'feedbackRapido.pergunta': 'What would you like to tell us?',
+  'feedbackRapido.placeholder': 'An idea, a bug, something you miss…',
+  'feedbackRapido.enviar': 'Send',
+  'feedbackRapido.cancelar': 'Cancel',
+  'feedbackRapido.obrigado': 'Thanks, we got your feedback!',
+  'feedbackRapido.erro': "Couldn't send it. Check your connection and try again.",
 
   /* -------------------------------------------------------------- common */
   'comum.apelido': 'Short name (optional)',
