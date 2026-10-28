@@ -1161,9 +1161,8 @@ export default {
   'resumo.demoTitulo': 'Esto es lo que ha hecho la app',
   'resumo.demoTexto':
     'Todos estos números salen del partido que acabas de apuntar: cuánto tiempo estuvo cada jugador en pista, cuántas veces entró, quién marcó y cuándo. En una temporada entera, es este historial el que responde a quién ha jugado menos.',
-  'resumo.demoTexto2':
-    'Este partido era de prueba y desaparece al salir. Puedes repetirlo para probar lo que te faltó; con cuenta, tus partidos quedan guardados y con estadísticas.',
-  'resumo.demoCriarConta': 'Crear cuenta y guardar mis partidos',
+  'resumo.demoTexto2': 'Este partido era de prueba y desaparece al salir. Puedes repetirlo para probar lo que te faltó; con tu equipo creado, tus partidos quedan guardados y con estadísticas.',
+  'resumo.demoCriarEquipa': 'Crear mi equipo',
   'resumo.demoRepetir': 'Repetir demo',
   'resumo.demoAgoraNao': 'Ahora no',
   'resumo.ajustarFim': 'Ajustar el final del partido',
@@ -1373,7 +1372,7 @@ export default {
   'demo.historia.seguinte': 'Siguiente',
   'demo.historia.comecar': 'Vamos',
   'demo.repetir.titulo': 'Repetir la demo',
-  'demo.repetir.texto': '¿Quieres repetirla con tu equipo? Crea una cuenta y tus partidos quedan guardados, con estadísticas de toda la temporada.',
+  'demo.repetir.texto': '¿Quieres hacer esto con tu equipo? Créalo y tus partidos quedan guardados, con estadísticas de toda la temporada.',
   'demo.repetir.repetir': 'Repetir la demo',
   'feedbackDemo.titulo': '¿Qué te ha parecido?',
   'feedbackDemo.opiniao': 'Dinos qué te ha parecido la demo',

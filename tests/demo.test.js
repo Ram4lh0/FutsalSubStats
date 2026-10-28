@@ -45,3 +45,36 @@ test('os minutos em campo somam 5 × 20 e ninguém fica com tempo negativo', () 
   // Há tempos variados: pelo menos 8 jogadores passaram pelo campo.
   assert.ok(stats.filter((s) => s.courtMs > 0).length >= 8);
 });
+
+test('com a demonstração a correr, a sincronização não envia nem descarrega nada', async () => {
+  // A demo corre com sessão iniciada (depois do login): o FC Demonstração não
+  // pode subir para a conta. A marca vive no sessionStorage.
+  const guardado = new Map();
+  globalThis.window = globalThis.window || {};
+  globalThis.window.sessionStorage = {
+    getItem: (k) => guardado.get(k) ?? null,
+    setItem: (k, v) => guardado.set(k, String(v)),
+    removeItem: (k) => guardado.delete(k),
+  };
+  const sync = await import('../src/lib/data/sync.js');
+  const { marcarDemo, emDemo } = await import('../src/lib/demoEstado.js');
+  let pedidos = 0;
+  const contar = () => {
+    pedidos += 1;
+    throw new Error('não devia ter chamado o servidor');
+  };
+  sync.setRemote({ from: contar, rpc: contar, auth: { getSession: contar } });
+
+  marcarDemo(true);
+  assert.equal(emDemo(), true);
+  assert.deepEqual(await sync.push('u1', 'a@b.pt'), { pushed: 0 });
+  assert.deepEqual(await sync.pull('u1'), { pulled: 0 });
+  assert.equal(await sync.hasRemoteChanges('u1'), false);
+  await sync.flush('u1', 'a@b.pt');
+  assert.equal(sync.estadoAtual().status, sync.SYNC.LOCAL);
+  assert.equal(pedidos, 0);
+
+  marcarDemo(false);
+  assert.equal(emDemo(), false);
+  sync.setRemote(null);
+});
