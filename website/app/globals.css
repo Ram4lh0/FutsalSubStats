@@ -199,3 +199,4 @@
 @media(min-width:821px) and (max-width:1180px){.nav-web{padding:8px}.nav-web-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}}
 .card-quick{position:absolute;right:8px;bottom:8px;display:flex;gap:5px}.card-quick .card-chip{width:11px;height:15px;border-radius:3px;cursor:pointer;opacity:.8;box-shadow:0 0 0 1px rgba(0,0,0,.35);transition:transform .15s,opacity .15s}.card-quick .card-chip:hover,.card-quick .card-chip:focus-visible{opacity:1;transform:scale(1.18);outline:none}
 @media(max-width:600px){.card-quick{right:5px;bottom:5px;gap:4px}.card-quick .card-chip{width:9px;height:13px}}
+@media(max-width:600px){.card-quick{right:4px;bottom:4px;gap:3px}.card-quick .card-chip{width:6px;height:8px;border-radius:1.5px}.player-marks .card-chip{width:5px;height:7px}.player-marks .foul-count{font-size:6px}}
