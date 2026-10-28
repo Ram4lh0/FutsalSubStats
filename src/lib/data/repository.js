@@ -454,10 +454,11 @@ export const players = {
    * um jogador que já foi convocado tem jogos ligados a si, e apagá-lo
    * reescreveria a ficha desses jogos — a base de dados recusa-o, e ainda bem.
    *
-   * Por isso a substituição faz-se em três movimentos, com o número de camisola
-   * a servir de identidade:
+   * Por isso a substituição faz-se em três movimentos, com o nome a servir de
+   * identidade (o número de camisola muda de época para época e pode ser
+   * trocado entre jogadores — o que importa é a pessoa):
    *
-   *   · está no ficheiro e já cá estava  → é atualizado, e mantém o histórico
+   *   · está no ficheiro e já cá estava  → é atualizado (nome, número, …), e mantém o histórico
    *   · está no ficheiro e é novo        → é criado
    *   · não está no ficheiro             → sai do plantel: apagado se nunca foi
    *                                        convocado, desativado se já foi
@@ -471,8 +472,17 @@ export const players = {
   async replaceRoster(teamId, jogadores) {
     const atuais = await players.listByTeam(teamId);
     const convocados = new Set((await db.all(db.STORES.matchSquad)).map((s) => s.playerId));
-    const porNumero = new Map(atuais.map((p) => [Number(p.shirtNumber), p]));
-    const numerosDoFicheiro = new Set(jogadores.map((j) => Number(j.shirtNumber)));
+    // A identidade é o nome: o número é só um dado do jogador e pode mudar.
+    // Sem acentos nem maiúsculas, para "joão" e "Joao " serem a mesma pessoa.
+    const chave = (nome) =>
+      String(nome ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const porNome = new Map();
+    for (const p of atuais) {
+      const k = chave(p.name);
+      if (!porNome.has(k)) porNome.set(k, []);
+      porNome.get(k).push(p);
+    }
+    const mantidos = new Set();
 
     let criados = 0;
     let atualizados = 0;
@@ -480,10 +490,13 @@ export const players = {
     let desativados = 0;
 
     for (const j of jogadores) {
-      const existente = porNumero.get(Number(j.shirtNumber));
+      // Dois jogadores com o mesmo nome: cada linha do ficheiro fica com um.
+      const existente = (porNome.get(chave(j.name)) || []).find((p) => !mantidos.has(p.id));
       if (existente) {
+        mantidos.add(existente.id);
         await players.update(existente.id, {
           name: j.name,
+          shirtNumber: j.shirtNumber,
           preferredPosition: j.preferredPosition,
           strongFoot: j.strongFoot,
           isActive: j.isActive,
@@ -491,6 +504,7 @@ export const players = {
         atualizados += 1;
       } else {
         const novo = await players.create(teamId, j);
+        mantidos.add(novo.id);
         // `create` força `isActive: true`; o ficheiro pode trazer um inativo.
         if (!j.isActive) await players.update(novo.id, { isActive: false });
         criados += 1;
@@ -498,7 +512,7 @@ export const players = {
     }
 
     for (const p of atuais) {
-      if (numerosDoFicheiro.has(Number(p.shirtNumber))) continue;
+      if (mantidos.has(p.id)) continue;
       if (convocados.has(p.id)) {
         if (p.isActive) {
           await players.update(p.id, { isActive: false });

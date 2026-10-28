@@ -1925,3 +1925,26 @@ test('trocar números: cada jogador fica com o do outro e o histórico segue o j
   assert.equal(nova.name, 'Ana');
   assert.equal(outro.name, 'Rui');
 });
+
+test('importar o plantel reconhece o jogador pelo nome: mudar números mantém o histórico', async () => {
+  await limpar();
+  const clube = await clubs.create({ name: 'Patameiras', shortName: 'PAT' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores', timing: 'UNTIMED' });
+  const ana = await players.create(escalao.id, { name: 'Ana', shirtNumber: 7 });
+  const rui = await players.create(escalao.id, { name: 'Rui', shirtNumber: 8 });
+  const jogo = await matches.create(escalao.id, { opponentName: 'Adv' });
+  await squad.replace(jogo.id, [
+    { playerId: ana.id, playerNameSnapshot: 'Ana', shirtNumberSnapshot: 7 },
+  ]);
+
+  const r = await players.replaceRoster(escalao.id, [
+    { shirtNumber: 8, name: 'ana', preferredPosition: 'UNIVERSAL', strongFoot: 'UNKNOWN', isActive: true },
+    { shirtNumber: 9, name: 'Rui', preferredPosition: 'UNIVERSAL', strongFoot: 'UNKNOWN', isActive: true },
+  ]);
+
+  assert.equal(r.criados, 0);
+  assert.equal(r.atualizados, 2);
+  assert.equal((await players.get(ana.id)).shirtNumber, 8);
+  assert.equal((await players.get(rui.id)).shirtNumber, 9);
+  assert.equal((await players.listByTeam(escalao.id)).length, 2);
+});

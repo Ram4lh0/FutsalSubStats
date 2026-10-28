@@ -1402,7 +1402,7 @@ export default {
   'plantelCsv.exemploNome': 'exemplo-plantel.csv',
   'plantelCsv.escolher': 'Escolher ficheiro',
   'plantelCsv.aviso':
-    'Importar substitui este plantel: quem não vier no ficheiro sai da lista. Jogadores com jogos registados não são apagados — ficam inativos, e os jogos deles continuam certos.',
+    'Importar substitui este plantel. Cada jogador é reconhecido pelo nome, por isso podes mudar-lhe o número à vontade e o histórico fica com ele. Quem não vier no ficheiro sai da lista. Jogadores com jogos registados não são apagados — ficam inativos, e os jogos deles continuam certos.',
   'plantelCsv.confirmarTitulo': 'Confirmar a importação',
   'plantelCsv.lidos': 'Foram lidos {n} jogadores.',
   'plantelCsv.vaiSubstituir':

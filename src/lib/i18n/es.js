@@ -1398,7 +1398,7 @@ export default {
   'plantelCsv.exemploNome': 'ejemplo-plantilla.csv',
   'plantelCsv.escolher': 'Elegir archivo',
   'plantelCsv.aviso':
-    'Importar sustituye esta plantilla: quien no venga en el archivo sale de la lista. Los jugadores con partidos registrados no se borran — quedan inactivos, y sus partidos siguen siendo correctos.',
+    'Importar sustituye esta plantilla. Cada jugador se reconoce por el nombre, así que puedes cambiarle el dorsal y su historial se queda con él. Quien no venga en el archivo sale de la lista. Los jugadores con partidos registrados no se borran — quedan inactivos, y sus partidos siguen siendo correctos.',
   'plantelCsv.confirmarTitulo': 'Confirmar la importación',
   'plantelCsv.lidos': 'Se han leído {n} jugadores.',
   'plantelCsv.vaiSubstituir':

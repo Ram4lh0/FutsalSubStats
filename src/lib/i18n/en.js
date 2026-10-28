@@ -1398,7 +1398,7 @@ export default {
   'plantelCsv.exemploNome': 'example-roster.csv',
   'plantelCsv.escolher': 'Choose file',
   'plantelCsv.aviso':
-    'Importing replaces this roster: anyone not in the file leaves the list. Players with recorded matches are not deleted — they become inactive, and their matches stay correct.',
+    'Importing replaces this roster. Each player is recognised by name, so you can change their number freely and their history stays with them. Anyone not in the file leaves the list. Players with recorded matches are not deleted — they become inactive, and their matches stay correct.',
   'plantelCsv.confirmarTitulo': 'Confirm the import',
   'plantelCsv.lidos': '{n} players were read.',
   'plantelCsv.vaiSubstituir': 'This will replace the {n} players this age group has now. Continue?',
