@@ -727,6 +727,8 @@ export default {
   'validacao.clubeSemNome': 'The club name is required.',
   'validacao.jogadorSemNome': 'The player’s name is required.',
   'validacao.numeroInvalido': 'Invalid number (0 to 99).',
+  'jogador.confirmaTroca': 'Number {n} belongs to {nome}. Swap: {nome} takes {antigo}?',
+  'jogador.trocar': 'Swap numbers',
   'validacao.numeroOcupado': 'Number {n} already belongs to {nome}.',
   'validacao.semAdversario': 'The opponent is required.',
   'validacao.duracaoInvalida': 'Each half must be longer than zero.',

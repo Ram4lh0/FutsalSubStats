@@ -726,6 +726,8 @@ export default {
   'validacao.clubeSemNome': 'El nombre del club es obligatorio.',
   'validacao.jogadorSemNome': 'El nombre del jugador es obligatorio.',
   'validacao.numeroInvalido': 'Dorsal no válido (0 a 99).',
+  'jogador.confirmaTroca': 'El dorsal {n} es de {nome}. ¿Intercambiar: {nome} pasa a tener el {antigo}?',
+  'jogador.trocar': 'Intercambiar dorsales',
   'validacao.numeroOcupado': 'El dorsal {n} ya es de {nome}.',
   'validacao.semAdversario': 'El rival es obligatorio.',
   'validacao.duracaoInvalida': 'La duración de cada parte tiene que ser mayor que cero.',

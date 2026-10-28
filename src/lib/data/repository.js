@@ -435,6 +435,19 @@ export const players = {
   },
 
   /**
+   * Grava o jogador com o número de outro e dá a esse outro o número que ele
+   * tinha. É a única maneira de trocar números sem um estado intermédio em que
+   * dois jogadores ativos têm o mesmo (a ficha recusa-o).
+   */
+  async swapNumbers(id, outroId, patch) {
+    const cur = await db.get(db.STORES.players, id);
+    const outro = await db.get(db.STORES.players, outroId);
+    if (!cur || !outro) throw new Error('jogador não encontrado');
+    await players.update(outroId, { shirtNumber: cur.shirtNumber });
+    await players.update(id, patch);
+  },
+
+  /**
    * Põe o plantel do escalão igual ao que veio no ficheiro.
    *
    * "Substituir" é o que se pede, mas não pode ser um apagar e voltar a criar:

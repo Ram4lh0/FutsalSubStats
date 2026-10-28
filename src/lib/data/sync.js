@@ -384,7 +384,18 @@ export async function push(userId, email) {
     [db.STORES.matchSquad, squadMapper, convocadosSujos],
   ]) {
     if (!linhas.length) continue;
-    const { error } = await sb.from(mapper.table).upsert(linhas.map((r) => mapper.toRow(r)));
+    let { error } = await sb.from(mapper.table).upsert(linhas.map((r) => mapper.toRow(r)));
+    // Uma troca de números (o 7 passa a 8 e o 8 a 7) bate no índice único de
+    // "número de um jogador ativo por escalão" linha a linha, qualquer que seja
+    // a ordem. A saída é tirar primeiro os jogadores do índice (inativos) e só
+    // depois escrever o estado verdadeiro.
+    if (error && store === db.STORES.players && String(error.code) === '23505') {
+      const fora = await sb
+        .from(mapper.table)
+        .upsert(linhas.map((r) => ({ ...mapper.toRow(r), is_active: false })));
+      error = fora.error;
+      if (!error) error = (await sb.from(mapper.table).upsert(linhas.map((r) => mapper.toRow(r)))).error;
+    }
     if (error) throw etiqueta(error, `${mapper.table} (${detalharLinhas(linhas)})`);
     await clean(store, linhas);
     total += linhas.length;

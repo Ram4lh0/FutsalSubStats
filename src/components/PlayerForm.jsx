@@ -71,10 +71,24 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
     e.preventDefault();
     if (aGuardar) return;
     const erro = validatePlayer(form, roster, playerId || null);
-    if (erro) return toast(mensagemErro(erro), 'error');
+    // Número ocupado ao editar: oferece a troca em vez de só recusar.
+    const atual = playerId ? roster.find((p) => p.id === playerId) : null;
+    const dono =
+      erro?.chave === 'validacao.numeroOcupado'
+        ? roster.find((p) => p.id !== playerId && p.isActive && Number(p.shirtNumber) === Number(form.shirtNumber))
+        : null;
+    if (erro && !(dono && atual)) return toast(mensagemErro(erro), 'error');
+    if (dono) {
+      const ok = await confirmar(
+        t('jogador.confirmaTroca', { n: form.shirtNumber, nome: dono.name, antigo: atual.shirtNumber }),
+        { okLabel: t('jogador.trocar') }
+      );
+      if (!ok) return;
+    }
     setAGuardar(true);
     try {
-      if (playerId) await players.update(playerId, form);
+      if (dono) await players.swapNumbers(playerId, dono.id, form);
+      else if (playerId) await players.update(playerId, form);
       else await players.create(teamId, form);
       sync.saveNow(userId, user?.email);
       toast(t('jogador.guardado'), 'ok');

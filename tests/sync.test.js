@@ -1909,3 +1909,19 @@ test('servidor sem a tabela da config: a descarga segue sem ela', async () => {
   await pull(UTILIZADOR);
   assert.ok(await matches.get(jogo.id), 'os jogos chegaram à mesma');
 });
+
+test('trocar números: cada jogador fica com o do outro e o histórico segue o jogador', async () => {
+  await limpar();
+  const clube = await clubs.create({ name: 'Patameiras', shortName: 'PAT' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores', timing: 'UNTIMED' });
+  const a = await players.create(escalao.id, { name: 'Ana', shirtNumber: 7 });
+  const b = await players.create(escalao.id, { name: 'Rui', shirtNumber: 8 });
+
+  await players.swapNumbers(a.id, b.id, { name: 'Ana', shirtNumber: 8, isActive: true });
+
+  const [nova, outro] = [await players.get(a.id), await players.get(b.id)];
+  assert.equal(nova.shirtNumber, 8);
+  assert.equal(outro.shirtNumber, 7);
+  assert.equal(nova.name, 'Ana');
+  assert.equal(outro.name, 'Rui');
+});

@@ -728,6 +728,8 @@ export default {
   'validacao.clubeSemNome': 'O nome do clube é obrigatório.',
   'validacao.jogadorSemNome': 'O nome do jogador é obrigatório.',
   'validacao.numeroInvalido': 'Número inválido (0 a 99).',
+  'jogador.confirmaTroca': 'O número {n} é de {nome}. Trocar: {nome} passa a ter o {antigo}?',
+  'jogador.trocar': 'Trocar números',
   'validacao.numeroOcupado': 'O número {n} já está atribuído a {nome}.',
   'validacao.semAdversario': 'O adversário é obrigatório.',
   'validacao.duracaoInvalida': 'A duração de cada parte tem de ser superior a zero.',
