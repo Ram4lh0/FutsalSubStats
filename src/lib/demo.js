@@ -21,6 +21,7 @@ import { clubs, teams, competitions, players, matches, squad, events } from './d
 import { garantirDono, DONO_DEMO } from './data/owner.js';
 import { t } from './i18n/index.js';
 import { matchCreated } from '../domain/actions.js';
+import { eventosPrimeiraParte } from '../domain/demoJogo.js';
 import { LOCATION, MATCH_TIMING } from '../domain/constants.js';
 
 const FLAG = 'futsal-demo';
@@ -74,8 +75,12 @@ function marcar(ligado) {
  *
  * Se já existir uma experiência a meio, é deitada fora primeiro: começar de
  * novo tem de dar sempre um jogo por jogar, não um a meio de outra tentativa.
+ *
+ * Com `noIntervalo`, a 1.ª parte já vem jogada (`domain/demoJogo.js`) e o jogo
+ * abre no intervalo. É assim a primeira experiência, a partir do ecrã de
+ * entrada; quem repete no fim começa do zero, para experimentar tudo.
  */
-export async function iniciarDemo() {
+export async function iniciarDemo({ noIntervalo = false } = {}) {
   await limparDemo();
   // A experiência é um dono como outro qualquer: se o aparelho ainda tinha a
   // equipa de alguém que saiu da conta, ela sai daqui antes de a demonstração
@@ -128,7 +133,7 @@ export async function iniciarDemo() {
   // Convocatória com o cinco inicial já em campo: quem experimenta quer ver o
   // jogo, não preencher formulários. O resto do plantel fica no banco, que é
   // onde as substituições ganham sentido.
-  await squad.replace(
+  const convocados = await squad.replace(
     jogo.id,
     plantel.map((p, i) => ({
       playerId: p.id,
@@ -140,7 +145,7 @@ export async function iniciarDemo() {
     }))
   );
 
-  await events.append(
+  const criado = await events.append(
     matchCreated({
       matchId: jogo.id,
       currentPeriod: 0,
@@ -152,6 +157,20 @@ export async function iniciarDemo() {
       opponentScore: 0,
     })
   );
+
+  if (noIntervalo) {
+    const novos = eventosPrimeiraParte({
+      match: jogo,
+      squad: convocados,
+      events: [criado],
+      jogadores: plantel.map((p) => p.id),
+      inicio: Date.now() - 30 * 60_000,
+    });
+    // Gravados um a um, pela ordem: cada evento é uma fotografia do estado
+    // depois do anterior, e o `seq` da base de dados tem de seguir essa ordem.
+    for (const [i, ev] of novos.entries())
+      await events.append(ev, { sync: i < novos.length - 1 ? 'defer' : 'immediate' });
+  }
 
   return { matchId: jogo.id, limpou: trocou, perdidas };
 }

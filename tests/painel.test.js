@@ -626,10 +626,11 @@ test('o feedback mostra só as respostas, com a conta, e conta quem fechou', asy
   });
   const r = await feedbacks(sb);
   assert.equal(r.fechadosSemResposta, 1);
-  // Quem recebeu inclui também quem fechou sem responder.
+  // Quem recebeu inclui também quem fechou sem responder, do mais recente
+  // para o mais antigo.
   assert.deepEqual(r.recebidos.map((l) => [l.conta, l.respondido]), [
-    ['ze@clube.pt', true],
     ['ana@clube.pt', false],
+    ['ze@clube.pt', true],
   ]);
   assert.equal(r.respostas.length, 1);
   assert.equal(r.respostas[0].momento, 'registo');
@@ -637,4 +638,23 @@ test('o feedback mostra só as respostas, com a conta, e conta quem fechou', asy
     { conta: r.respostas[0].conta, nome: r.respostas[0].nome, origem: r.respostas[0].origem, email: r.respostas[0].email, opiniao: r.respostas[0].opiniao },
     { conta: 'ze@clube.pt', nome: 'Zé', origem: 'Instagram', email: 'ze@mail.pt', opiniao: 'Top' }
   );
+});
+
+test('as respostas do fim da demonstração entram no feedback com o momento demo', async () => {
+  const sb = supabaseFalso({
+    profiles: [{ id: 'u1', email: 'ze@clube.pt', name: 'Zé' }],
+    feedback_inicial: [
+      { user_id: 'u1', momento: 'registo', respondido: true, origem: 'Instagram', email: null, opiniao: 'Top', created_at: '2026-10-27T10:00:00Z' },
+    ],
+    feedback_demo: [
+      { id: 'd1', opiniao: 'Muito fácil de usar', email: 'rui@mail.pt', created_at: '2026-10-28T09:00:00Z' },
+      { id: 'd2', opiniao: 'Gostei', email: null, created_at: '2026-10-26T09:00:00Z' },
+    ],
+  });
+  const r = await feedbacks(sb);
+  assert.deepEqual(r.respostas.map((l) => [l.conta, l.momento, l.opiniao]), [
+    ['rui@mail.pt', 'demo', 'Muito fácil de usar'],
+    ['ze@clube.pt', 'registo', 'Top'],
+    ['demo (sem conta)', 'demo', 'Gostei'],
+  ]);
 });
