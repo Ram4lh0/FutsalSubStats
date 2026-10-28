@@ -3409,6 +3409,44 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .colunas__eixo li { text-align: center; font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .colunas__eixo li.is-activa { color: var(--text); font-weight: 700; }
 
+/* Colunas espelhadas (ColunasEspelhadas): barras finas, ponta arredondada só do
+   lado do valor, o número por cima em tinta de texto e uma grelha discreta a
+   a meia altura da coluna mais alta (27px de 54, mais o espaço junto ao eixo). */
+.colesp { --metade: 74px; }
+.colesp__plot {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  background:
+    linear-gradient(var(--line), var(--line)) 0 var(--metade) / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.14) 0 4px, transparent 4px 8px) 0 calc(var(--metade) - 29px) / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.14) 0 4px, transparent 4px 8px) 0 calc(var(--metade) + 29px) / 100% 1px no-repeat;
+}
+.colunas--simples .colesp__plot {
+  background:
+    linear-gradient(var(--line), var(--line)) 0 var(--metade) / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.14) 0 4px, transparent 4px 8px) 0 calc(var(--metade) - 29px) / 100% 1px no-repeat;
+}
+.colesp__faixa { display: flex; flex-direction: column; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+.colesp__faixa:hover, .colesp__faixa.is-activa { background: rgba(255, 255, 255, 0.04); }
+.colesp__metade {
+  height: var(--metade);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.colesp__metade--cima { justify-content: flex-end; padding-bottom: 1px; }
+.colesp__metade--baixo { justify-content: flex-start; padding-top: 2px; }
+.colesp__barra { display: block; width: min(56%, 40px); }
+.colesp__metade--cima .colesp__barra { border-radius: 4px 4px 0 0; }
+.colesp__metade--baixo .colesp__barra { border-radius: 0 0 4px 4px; }
+.colesp__barra--marcados { background: var(--primary); }
+.colesp__barra--sofridos { background: var(--danger); }
+.colesp__barra--assistencias { background: var(--info); }
+.colesp__valor { font-size: 0.72rem; line-height: 1; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.colesp__faixa:not(:hover):not(.is-activa) .colesp__valor { color: var(--muted); }
+
 /* -------------------------------------------------------------- impressão */
 
 @media print {

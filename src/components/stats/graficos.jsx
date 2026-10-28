@@ -101,7 +101,21 @@ export function BarrasH({ linhas, referencia = 0, rotuloReferencia = '' }) {
  * aqui: o eixo do meio é o zero e a forma da coisa responde à pergunta sem se
  * ler um número — mancha em cima é uma equipa que marca naquele período, mancha
  * em baixo é uma que sofre.
+ *
+ * Em HTML e não em SVG, como as `BarrasH`: o SVG era esticado para a largura
+ * disponível e esticava com ele os cantos arredondados, e não deixava pôr o
+ * número de golos em cima de cada coluna sem o texto sair deformado. Cada
+ * coluna é uma caixa com uma altura em píxeis; o número é texto a sério.
  */
+/** O nome de cada série na dica de cada faixa: as mesmas chaves das legendas. */
+const NOME_DA_SERIE = {
+  marcados: 'painelv.marcados',
+  sofridos: 'painelv.sofridos',
+  golos: 'stats.golos',
+  assistencias: 'stats.assistencias',
+  sofridosBaliza: 'painelv.sofridosBaliza',
+};
+
 export function ColunasEspelhadas({
   faixas,
   etiquetas,
@@ -112,81 +126,67 @@ export function ColunasEspelhadas({
   classeA = 'marcados',
   classeB = 'sofridos',
 }) {
-  const LARGURA = 480;
+  const t = useT();
   const temBaixo = Boolean(chaveB);
-  const META = 74; // altura de cada metade
-  const EIXO = META + (temBaixo ? 12 : 8);
-  const ALTURA = temBaixo ? META * 2 + 16 : META + 16;
-  const passo = LARGURA / Math.max(1, faixas.length);
-  const largura = Math.max(6, passo - 10);
+  const ALTURA_MAX = 54; // píxeis da coluna mais alta, em cada metade
   const maximo = Math.max(
     1,
     ...faixas.map((f) => Math.max(f[chaveA] || 0, temBaixo ? f[chaveB] || 0 : 0))
   );
-  const y = escala(maximo, META - 6);
+  // Dois píxeis de mínimo para um golo não desaparecer ao lado de uma faixa de dez.
+  const altura = (v) => (v > 0 ? Math.max(2, Math.round((v / maximo) * ALTURA_MAX)) : 0);
+  const nomeA = t(NOME_DA_SERIE[chaveA] || 'painelv.marcados');
+  const nomeB = temBaixo ? t(NOME_DA_SERIE[chaveB] || 'painelv.sofridos') : '';
 
   return (
-    <div className={`colunas ${temBaixo ? '' : 'colunas--simples'}`.trim()}>
-    <svg className="graf" viewBox={`0 0 ${LARGURA} ${ALTURA}`} role="img" preserveAspectRatio="none">
-      <line x1={0} x2={LARGURA} y1={EIXO} y2={EIXO} className="graf__eixo" />
-      {faixas.map((f, i) => {
-        const cx = i * passo + passo / 2;
-        const valorA = f[chaveA] || 0;
-        const valorB = temBaixo ? f[chaveB] || 0 : 0;
-        const hA = y(valorA);
-        const hC = y(valorB);
-        const activa = escolhida === i;
-        return (
-          <g
-            key={i}
-            className={`graf__faixaG ${activa ? 'is-activa' : ''}`}
-            onPointerEnter={() => aoEscolher?.(i)}
-            onPointerLeave={() => aoEscolher?.(null)}
-            onClick={() => aoEscolher?.(activa ? null : i)}
-          >
-            {/* Uma zona sensível de altura toda por cima de cada faixa. Sem
-                ela, apanhar com o dedo uma coluna de três píxeis — ou uma faixa
-                sem golo nenhum, que também tem uma média a dizer — era
-                impossível. Invisível, mas é ela que recebe o toque. */}
-            <rect
-              x={i * passo}
-              y={0}
-              width={passo}
-              height={ALTURA}
-              className="graf__toque"
-            />
-            {valorA > 0 ? (
-              <rect
-                x={cx - largura / 2}
-                y={EIXO - hA}
-                width={largura}
-                height={hA}
-                rx={3}
-                className={`graf__${classeA}`}
-              />
-            ) : null}
-            {temBaixo && valorB > 0 ? (
-              <rect
-                x={cx - largura / 2}
-                y={EIXO}
-                width={largura}
-                height={hC}
-                rx={3}
-                className={`graf__${classeB}`}
-              />
-            ) : null}
-          </g>
-        );
-      })}
-    </svg>
-      {/* As etiquetas do tempo saíram do desenho e passaram a texto a sério,
-          numa grelha com o mesmo número de colunas iguais. Dentro do SVG eram
-          esticadas com ele e num telemóvel saíam a sete píxeis. */}
-      <ol
-        className="colunas__eixo"
-        style={{ '--n': String(faixas.length) }}
-        aria-hidden="true"
-      >
+    <div
+      className={`colunas colesp ${temBaixo ? '' : 'colunas--simples'}`.trim()}
+      style={{ '--n': String(faixas.length) }}
+    >
+      <div className="colesp__plot" role="img">
+        {faixas.map((f, i) => {
+          const valorA = f[chaveA] || 0;
+          const valorB = temBaixo ? f[chaveB] || 0 : 0;
+          const activa = escolhida === i;
+          const dica = [
+            etiquetas[i] && etiquetas[i + 1] ? `${etiquetas[i]}–${etiquetas[i + 1]}` : etiquetas[i],
+            `${nomeA}: ${valorA}`,
+            temBaixo ? `${nomeB}: ${valorB}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · ');
+          return (
+            // A faixa inteira recebe o toque, não só a coluna: uma coluna de
+            // dois píxeis — ou uma faixa sem golos — também se escolhe.
+            <div
+              key={i}
+              className={`colesp__faixa ${activa ? 'is-activa' : ''}`}
+              title={dica}
+              onPointerEnter={() => aoEscolher?.(i)}
+              onPointerLeave={() => aoEscolher?.(null)}
+              onClick={() => aoEscolher?.(activa ? null : i)}
+            >
+              <div className="colesp__metade colesp__metade--cima">
+                {valorA > 0 ? <span className="colesp__valor">{valorA}</span> : null}
+                <span
+                  className={`colesp__barra colesp__barra--${classeA}`}
+                  style={{ height: altura(valorA) }}
+                />
+              </div>
+              {temBaixo ? (
+                <div className="colesp__metade colesp__metade--baixo">
+                  <span
+                    className={`colesp__barra colesp__barra--${classeB}`}
+                    style={{ height: altura(valorB) }}
+                  />
+                  {valorB > 0 ? <span className="colesp__valor">{valorB}</span> : null}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+      <ol className="colunas__eixo" aria-hidden="true">
         {etiquetas.map((e, i) => (
           <li key={i} className={escolhida === i ? 'is-activa' : ''}>
             {e}
