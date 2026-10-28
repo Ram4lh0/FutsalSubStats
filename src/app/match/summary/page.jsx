@@ -41,6 +41,7 @@ import { useT } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import { emDemo, limparDemo, iniciarDemo } from '@/lib/demo.js';
 import { registoAberto, ligacaoPedirConta } from '@/lib/registo.js';
+import FeedbackDemo from '@/components/FeedbackDemo.jsx';
 
 export default function SummaryPage() {
   return (
@@ -77,6 +78,10 @@ function Resumo() {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  // O fim do jogo de experiência, calculado antes dos `return` de baixo para o
+  // pedido de opinião (FeedbackDemo) ter sempre o mesmo lugar entre os hooks.
+  const fimDaDemo = Boolean(dados?.state && emDemo() && dados.state.status === MATCH_STATUS.FINISHED);
 
   if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
   if (dados.vazio) return <Empty>{t('jogo.naoEncontrado')}</Empty>;
@@ -262,6 +267,29 @@ function Resumo() {
    */
   async function repetirDemo() {
     if (aRepetir) return;
+    // Repetir é sempre possível, mas é a altura certa para lembrar que com conta
+    // se repete com a própria equipa, e os jogos ficam guardados.
+    const escolha = await ui.open((close) => (
+      <Dialog title={t('demo.repetir.titulo')} onClose={() => close(null)}>
+        <p>{t('demo.repetir.texto')}</p>
+        <footer className="modal__actions">
+          <button type="button" className="btn btn--ghost" onClick={() => close('repetir')}>
+            {t('demo.repetir.repetir')}
+          </button>
+          {registoAberto() ? (
+            <button type="button" className="btn btn--primary" onClick={() => close('conta')}>
+              {t('resumo.demoCriarConta')}
+            </button>
+          ) : (
+            <a className="btn btn--primary" href={ligacaoPedirConta(t('registo.assunto'))}>
+              {t('registo.pedirConta')}
+            </a>
+          )}
+        </footer>
+      </Dialog>
+    ));
+    if (escolha === 'conta') return criarConta();
+    if (escolha !== 'repetir') return;
     setARepetir(true);
     try {
       const { matchId: novo } = await iniciarDemo();
@@ -343,6 +371,7 @@ function Resumo() {
       {/* Fim do jogo de experiência: é aqui que se vê o que a app produz, e
           portanto é aqui que faz sentido convidar a criar conta. Com uma saída
           ao lado — prender alguém num ecrã é a melhor forma de o perder. */}
+      <FeedbackDemo ativo={fimDaDemo} />
       {demo ? (
         <div className="card demo-cta">
           <h2 className="page__title">{t('resumo.demoTitulo')}</h2>
