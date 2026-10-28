@@ -27,6 +27,7 @@ import { claimMatchStart } from '@/lib/entitlements.js';
 import LicenseLimitDialog from '@/components/LicenseLimitDialog.jsx';
 import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 import useAddons from '@/lib/useAddons.js';
+import useSelecaoArraste from '@/lib/selecaoArraste.js';
 import { ADDON_AO_VIVO } from '@/domain/aoVivo.js';
 
 export default function SetupPage() {
@@ -93,6 +94,19 @@ function Preparacao() {
       setDados({ match, state, club, team, roster, provas });
     })();
   }, [matchId, router]);
+
+  // Antes dos `return` de cima: um hook não pode depender de os dados já terem chegado.
+  const limiteArraste = maxSquadOf(dados?.provas?.find((c) => c.id === form?.competitionId) || null);
+  const arraste = useSelecaoArraste({
+    escolhidos,
+    limite: limiteArraste,
+    aoMudar: (lista) => {
+      setEscolhidos(lista);
+      // Quem sai da convocatória sai também do cinco inicial.
+      setLineup((l) => Object.fromEntries(Object.entries(l).filter(([, pid]) => lista.includes(pid))));
+    },
+    aoLimite: () => toast(t('validacao.muitosConvocados', { n: limiteArraste }), 'error'),
+  });
 
   if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
   if (dados.vazio) return <Empty>{t('jogo.naoEncontrado')}</Empty>;
@@ -341,13 +355,16 @@ function Preparacao() {
             {escolhidos.length}/{limiteConvocados ?? '∞'}
           </span>
         </div>
-        <div className="pickgrid">
+        <div className="pickgrid" {...arraste.grelha}>
           {elegiveis.map((p) => (
             <button
               key={p.id}
               type="button"
+              data-pick-id={p.id}
               className={`pick ${escolhidos.includes(p.id) ? 'is-on' : ''} ${p.isActive ? '' : 'is-muted'}`}
-              onClick={() => alternar(p)}
+              onClick={() => {
+                if (!arraste.acabouDeArrastar()) alternar(p);
+              }}
             >
               <span className="pick__num">{p.shirtNumber}</span>
               <span className="pick__name">{p.name}</span>

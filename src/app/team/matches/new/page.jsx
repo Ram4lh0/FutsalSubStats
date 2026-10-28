@@ -37,6 +37,7 @@ import { useT } from '@/lib/i18n/index.js';
 import { canCreateMatch } from '@/lib/entitlements.js';
 import LicenseLimitDialog from '@/components/LicenseLimitDialog.jsx';
 import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
+import useSelecaoArraste from '@/lib/selecaoArraste.js';
 
 function textoPesquisavel(valor) {
   return String(valor ?? '')
@@ -118,6 +119,16 @@ function Assistente() {
   );
   const provaEscolhida = provas.find((c) => c.id === info.competitionId) || null;
   const limiteConvocados = maxSquadOf(provaEscolhida);
+  const arraste = useSelecaoArraste({
+    escolhidos,
+    limite: limiteConvocados,
+    aoMudar: (lista) => {
+      setEscolhidos(lista);
+      // Quem sai da convocatória sai também do cinco inicial.
+      setLineup((l) => Object.fromEntries(Object.entries(l).filter(([, pid]) => lista.includes(pid))));
+    },
+    aoLimite: () => toast(t('validacao.muitosConvocados', { n: limiteConvocados }), 'error'),
+  });
 
   if (!roster) return <p className="muted">{t('comum.aCarregar')}</p>;
 
@@ -461,7 +472,7 @@ function Assistente() {
               </span>
             </div>
 
-            <div className="pickgrid">
+            <div className="pickgrid" {...arraste.grelha}>
               {roster
                 .filter(
                   (p) =>
@@ -473,8 +484,11 @@ function Assistente() {
                   <button
                     key={p.id}
                     type="button"
+                    data-pick-id={p.id}
                     className={`pick ${escolhidos.includes(p.id) ? 'is-on' : ''}`}
-                    onClick={() => alternarConvocado(p.id)}
+                    onClick={() => {
+                      if (!arraste.acabouDeArrastar()) alternarConvocado(p.id);
+                    }}
                   >
                     <span className="pick__num">{p.shirtNumber}</span>
                     <span className="pick__name">{p.name}</span>
