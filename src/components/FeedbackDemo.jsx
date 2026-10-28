@@ -4,9 +4,8 @@
 // experiência.
 //
 // Quem acabou a demo acabou de ver o que a app faz: é a melhor altura para
-// perguntar o que achou. Não tem conta, por isso a resposta vai para uma tabela
-// própria, `feedback_demo` (migração 20261028120000), onde qualquer pessoa pode
-// escrever mas ninguém pode ler pela app. O painel interno mostra-a na aba
+// perguntar o que achou. A resposta vai para uma tabela própria, `feedback_demo`
+// (migração 20261028120000), onde se pode escrever mas não ler pela app. O painel interno mostra-a na aba
 // Feedback, com o momento "demo".
 //
 // Pede sempre o email: sem ele não há a quem responder. Aparece uma vez por
@@ -38,7 +37,7 @@ function marcarPedido() {
 }
 
 /** Pede a opinião uma vez, pouco depois de `ativo` passar a verdadeiro. */
-export default function FeedbackDemo({ ativo }) {
+export default function FeedbackDemo({ ativo, emailDaConta = '' }) {
   const ui = useUI();
   const t = useT();
   const aberto = useRef(false);
@@ -48,19 +47,20 @@ export default function FeedbackDemo({ ativo }) {
     const espera = setTimeout(async () => {
       aberto.current = true;
       marcarPedido();
-      const enviado = await ui.open((close) => <FormFeedbackDemo onClose={close} />);
+      const enviado = await ui.open((close) => <FormFeedbackDemo emailDaConta={emailDaConta} onClose={close} />);
       if (enviado) ui.toast(t('feedbackDemo.obrigado'), 'ok');
     }, 1500);
     return () => clearTimeout(espera);
-  }, [ativo, ui, t]);
+  }, [ativo, emailDaConta, ui, t]);
 
   return null;
 }
 
-function FormFeedbackDemo({ onClose }) {
+function FormFeedbackDemo({ emailDaConta, onClose }) {
   const t = useT();
   const [opiniao, setOpiniao] = useState('');
-  const [email, setEmail] = useState('');
+  // Com sessão iniciada já se sabe o email da conta; fica escrito, e pode mudar-se.
+  const [email, setEmail] = useState(emailDaConta);
   const [aEnviar, setAEnviar] = useState(false);
   const [erro, setErro] = useState(false);
 

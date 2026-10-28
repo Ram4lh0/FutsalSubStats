@@ -22,9 +22,8 @@ import { garantirDono, DONO_DEMO } from './data/owner.js';
 import { t } from './i18n/index.js';
 import { matchCreated } from '../domain/actions.js';
 import { eventosPrimeiraParte } from '../domain/demoJogo.js';
+import { emDemo, marcarDemo } from './demoEstado.js';
 import { LOCATION, MATCH_TIMING } from '../domain/constants.js';
-
-const FLAG = 'futsal-demo';
 
 /** Identificadores fixos: é o que permite apagar só o que é da demonstração. */
 export const DEMO = {
@@ -49,24 +48,7 @@ const PLANTEL = [
 
 /* --------------------------------------------------------------- estado */
 
-export function emDemo() {
-  if (typeof window === 'undefined') return false;
-  try {
-    return window.sessionStorage.getItem(FLAG) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function marcar(ligado) {
-  if (typeof window === 'undefined') return;
-  try {
-    if (ligado) window.sessionStorage.setItem(FLAG, '1');
-    else window.sessionStorage.removeItem(FLAG);
-  } catch {
-    /* sem sessionStorage — a demonstração corre à mesma nesta sessão */
-  }
-}
+export { emDemo };
 
 /* --------------------------------------------------------------- montar */
 
@@ -77,16 +59,23 @@ function marcar(ligado) {
  * novo tem de dar sempre um jogo por jogar, não um a meio de outra tentativa.
  *
  * Com `noIntervalo`, a 1.ª parte já vem jogada (`domain/demoJogo.js`) e o jogo
- * abre no intervalo. É assim a primeira experiência, a partir do ecrã de
- * entrada; quem repete no fim começa do zero, para experimentar tudo.
+ * abre no intervalo. É assim a primeira experiência; quem repete no fim começa
+ * do zero, para experimentar tudo.
+ *
+ * Com `conta` (o id de quem tem sessão iniciada), a base do aparelho não muda de
+ * dono: a demo corre ao lado do que a conta já tenha (um clube ainda sem
+ * escalão, por exemplo) e sai por identificador no fim. A sincronização fica
+ * parada enquanto a demo corre (`lib/demoEstado.js`), por isso nada disto sobe.
  */
-export async function iniciarDemo({ noIntervalo = false } = {}) {
+export async function iniciarDemo({ noIntervalo = false, conta = null } = {}) {
   await limparDemo();
-  // A experiência é um dono como outro qualquer: se o aparelho ainda tinha a
-  // equipa de alguém que saiu da conta, ela sai daqui antes de a demonstração
-  // começar. Misturar as duas era o erro.
-  const { trocou, perdidas } = await garantirDono(DONO_DEMO);
-  marcar(true);
+  // Sem conta, a experiência é um dono como outro qualquer: se o aparelho ainda
+  // tinha a equipa de alguém que saiu da conta, ela sai daqui antes de a
+  // demonstração começar. Misturar as duas era o erro.
+  const { trocou, perdidas } = conta
+    ? { trocou: false, perdidas: 0 }
+    : await garantirDono(DONO_DEMO);
+  marcarDemo(true);
 
   const clube = await clubs.create({
     id: DEMO.clube,
@@ -185,6 +174,9 @@ export async function iniciarDemo({ noIntervalo = false } = {}) {
  * não pode levá-los à frente.
  */
 export async function limparDemo() {
-  marcar(false);
+  // Primeiro apagar, só depois desligar a marca: com sessão iniciada, cada
+  // apagamento avisa a sincronização, e enquanto a marca estiver ligada ela não
+  // envia nada. Pela ordem inversa, o FC Demonstração podia subir a meio.
   if (await clubs.get(DEMO.clube)) await clubs.remove(DEMO.clube);
+  marcarDemo(false);
 }

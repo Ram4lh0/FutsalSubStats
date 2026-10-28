@@ -1161,9 +1161,8 @@ export default {
   'resumo.demoTitulo': 'This is what the app produced',
   'resumo.demoTexto':
     'All of these numbers came out of the match you just tracked: how long each player was on court, how many times they came on, who scored and when. Over a whole season, this history is what answers who has played the least.',
-  'resumo.demoTexto2':
-    'This was a practice match and it disappears when you leave. You can repeat it to try what you missed; with an account, your matches are saved, with statistics.',
-  'resumo.demoCriarConta': 'Create an account and save my matches',
+  'resumo.demoTexto2': 'This was a practice match and it disappears when you leave. You can repeat it to try what you missed; once you create your team, your matches are saved, with statistics.',
+  'resumo.demoCriarEquipa': 'Create my team',
   'resumo.demoRepetir': 'Repeat demo',
   'resumo.demoAgoraNao': 'Not now',
   'resumo.ajustarFim': 'Adjust the end of the match',
@@ -1373,7 +1372,7 @@ export default {
   'demo.historia.seguinte': 'Next',
   'demo.historia.comecar': "Let's go",
   'demo.repetir.titulo': 'Play the demo again',
-  'demo.repetir.texto': 'Want to do it with your own team? Create an account and your matches are saved, with stats for the whole season.',
+  'demo.repetir.texto': 'Want to do this with your own team? Create it and your matches are saved, with stats for the whole season.',
   'demo.repetir.repetir': 'Play the demo again',
   'feedbackDemo.titulo': 'What did you think?',
   'feedbackDemo.opiniao': 'Tell us what you thought of the demo',

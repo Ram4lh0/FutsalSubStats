@@ -19,6 +19,7 @@ import { useSyncStatus } from '@/lib/sync-status.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useT } from '@/lib/i18n/index.js';
 import { souDonoDe } from '@/lib/useSouDono.js';
+import { iniciarDemo } from '@/lib/demo.js';
 
 const MIN_POST_LOGIN_MS = 2500;
 
@@ -39,9 +40,10 @@ function JogoEntrada() {
   const t = useT();
   const { remote, user } = useAuth();
   const { initialSyncReady } = useSyncStatus();
-  const { confirmar } = useUI();
+  const { confirmar, toast } = useUI();
   const [estado, setEstado] = useState(null);
   const [tempoMinimo, setTempoMinimo] = useState(false);
+  const [aMontar, setAMontar] = useState(false);
   const promptAberto = useRef(false);
 
   useEffect(() => {
@@ -106,6 +108,34 @@ function JogoEntrada() {
 
   const clubeDono = estado.clubes.find((club) => souDonoDe(club));
 
+  /**
+   * O jogo de experiência, já no intervalo, com a 1.ª parte jogada. Fica aqui,
+   * e não no ecrã de entrada, por decisão do António: quem experimenta já tem
+   * conta, e o botão está à vista até a conta ter a sua equipa (com um escalão,
+   * este ecrã deixa de aparecer). Corre com a sincronização parada e sai por
+   * identificador no fim, por isso não mexe em nada da conta.
+   */
+  async function experimentar() {
+    if (aMontar) return;
+    setAMontar(true);
+    try {
+      const { matchId } = await iniciarDemo({ noIntervalo: true, conta: user?.id || 'local' });
+      router.push(rotas.jogoAoVivo(matchId));
+    } catch (e) {
+      setAMontar(false);
+      toast(t('login.demoFalhou', { erro: e.message }), 'error');
+    }
+  }
+
+  const demo = (
+    <div className="jogo-demo">
+      <button className="btn btn--block btn--demo" type="button" onClick={experimentar} disabled={aMontar}>
+        {aMontar ? t('login.aPreparar') : t('login.experimentar')}
+      </button>
+      <span className="field__hint">{t('login.experimentarDica')}</span>
+    </div>
+  );
+
   return (
     <>
       <PageHead title={t('jogo.entradaTitulo')} />
@@ -136,6 +166,7 @@ function JogoEntrada() {
       ) : (
         <Empty>{t('jogo.semEscalaoAssociado')}</Empty>
       )}
+      {demo}
     </>
   );
 }

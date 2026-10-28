@@ -23,6 +23,7 @@ import {
   teamStatConfigMapper,
 } from './mappers.js';
 import { EVENT } from '../../domain/constants.js';
+import { emDemo } from '../demoEstado.js';
 
 // Códigos, não frases. Antes o valor era o próprio texto em português, o que
 // funcionava enquanto houve uma língua só — depois seria o estado da
@@ -161,7 +162,9 @@ async function sanearOrfaos() {
  */
 export async function push(userId, email) {
   const sb = supabase();
-  if (!sb || !userId) return { pushed: 0 };
+  // Com a demonstração a correr, nada sobe: o FC Demonstração vive só neste
+  // aparelho e sai por identificador no fim (lib/demoEstado.js).
+  if (!sb || !userId || emDemo()) return { pushed: 0 };
 
   let total = 0;
 
@@ -619,7 +622,7 @@ const TABELAS_COM_MARCA = [
  */
 export async function hasRemoteChanges(userId) {
   const sb = supabase();
-  if (!sb || !userId) return false;
+  if (!sb || !userId || emDemo()) return false;
 
   const marcas = marcasDe(userId);
   if (!Object.keys(marcas).length) return true;
@@ -690,7 +693,9 @@ function maiorData(linhas, ateAgora) {
 
 export async function pull(userId, { repararJogosIncompletos = false } = {}) {
   const sb = supabase();
-  if (!sb || !userId) return { pulled: 0 };
+  // Durante a demonstração também não se descarrega: o que viesse misturava-se
+  // com o jogo de experiência, e o fim da demo só apaga o que é dela.
+  if (!sb || !userId || emDemo()) return { pulled: 0 };
   let total = 0;
 
   const marcas = marcasDe(userId);
@@ -1111,7 +1116,7 @@ export async function flush(userId, email) {
     return repetirPromise;
   }
   if (!supabase()) return set({ status: SYNC.LOCAL });
-  if (!userId) return set({ status: SYNC.LOCAL });
+  if (!userId || emDemo()) return set({ status: SYNC.LOCAL });
   if (!online()) return set({ status: SYNC.OFFLINE, online: false });
 
   aCorrer = true;
