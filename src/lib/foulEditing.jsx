@@ -15,7 +15,7 @@ import * as sync from './data/sync.js';
 import * as A from '@/domain/actions.js';
 import { foulsTotal } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
-import { onCourtAt, parseClock } from './goalEditing.jsx';
+import { onCourtAt, parseClock, mascaraTempo } from './goalEditing.jsx';
 import { t } from '@/lib/i18n/index.js';
 
 /**
@@ -100,7 +100,7 @@ function FoulDialog({ state, foul, ourName, opponentName, onClose, onSave, onDel
             inputMode="numeric"
             placeholder="mm:ss"
             autoFocus={nova}
-            onChange={(e) => setMinuto(e.target.value)}
+            onChange={(e) => setMinuto(mascaraTempo(e.target.value, minuto))}
           />
           <span className="field__hint">
             {valido

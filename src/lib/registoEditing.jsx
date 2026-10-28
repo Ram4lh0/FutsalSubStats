@@ -25,7 +25,7 @@ import {
   corrigirRegisto,
 } from '@/domain/registos.js';
 import { CampoSvg } from '@/components/registos/CampoToque.jsx';
-import { parseClock } from './goalEditing.jsx';
+import { parseClock, mascaraTempo } from './goalEditing.jsx';
 import { erroDoMinuto, periodoDoMinuto } from './foulEditing.jsx';
 import { registoLabel } from './format.js';
 import { t } from '@/lib/i18n/index.js';
@@ -113,7 +113,7 @@ function RegistoDialog({ state, registo, ourName, opponentName, onClose, onSave,
             value={minuto}
             inputMode="numeric"
             placeholder="mm:ss"
-            onChange={(e) => setMinuto(e.target.value)}
+            onChange={(e) => setMinuto(mascaraTempo(e.target.value, minuto))}
           />
           <span className="field__hint">
             {Number.isFinite(ms) && !erro

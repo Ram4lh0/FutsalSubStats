@@ -15,7 +15,7 @@ import { foulsTotal } from '@/domain/reducer.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
 import { limitesDoFim, validarFim } from '@/domain/fimDoJogo.js';
 import { fmt } from '@/domain/clock.js';
-import { parseClock } from './goalEditing.jsx';
+import { parseClock, mascaraTempo } from './goalEditing.jsx';
 import { eventLabel } from './format.js';
 import { t } from '@/lib/i18n/index.js';
 
@@ -58,7 +58,7 @@ function FimDialog({ state, periodDurationMs, onClose, onSave }) {
             value={texto}
             inputMode="numeric"
             autoFocus
-            onChange={(e) => setTexto(e.target.value)}
+            onChange={(e) => setTexto(mascaraTempo(e.target.value, texto))}
           />
           <span className="field__hint">{t('fim.dica')}</span>
         </label>

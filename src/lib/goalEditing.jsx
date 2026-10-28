@@ -37,9 +37,32 @@ export function onCourtAt(state, ms) {
 export function parseClock(txt, fallback) {
   const m = String(txt || '')
     .trim()
-    .match(/^(\d{1,3})(?::([0-5]?\d))?$/);
+    .match(/^(\d{1,3})(?::([0-5]?\d)?)?$/);
   if (!m) return fallback;
   return (Number(m[1]) * 60 + Number(m[2] || 0)) * 1000;
+}
+
+/**
+ * Põe os ":" sozinho, porque o teclado numérico do iPhone não os tem. Não há
+ * jogos com mais de 99 min, por isso depois de dois dígitos vem sempre ":"
+ * ("1230" → "12:30"). Ao apagar não se volta a pôr, senão "12:" nunca saía.
+ * Com ":" escrito à mão (ou um valor já preenchido) aceita até 3 dígitos.
+ */
+export function mascaraTempo(novo, antigo = '') {
+  const txt = String(novo ?? '');
+  const apagou = txt.length < String(antigo ?? '').length;
+  const [antes, ...depois] = txt.split(':');
+  const comDoisPontos = depois.length > 0;
+  let min = antes.replace(/\D/g, '');
+  let seg = depois.join('').replace(/\D/g, '');
+  const maxMin = comDoisPontos ? 3 : 2;
+  if (min.length > maxMin) {
+    seg = min.slice(maxMin) + seg;
+    min = min.slice(0, maxMin);
+  }
+  seg = seg.slice(0, 2);
+  if (comDoisPontos || seg) return `${min}:${seg}`;
+  return min.length === 2 && !apagou ? `${min}:` : min;
 }
 
 /** Em que parte cai um dado instante, agora que o minuto pode ser corrigido. */
@@ -179,7 +202,7 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
             className="input input--time"
             value={minuto}
             inputMode="numeric"
-            onChange={(e) => setMinuto(e.target.value)}
+            onChange={(e) => setMinuto(mascaraTempo(e.target.value, minuto))}
           />
           <span className="field__hint">{t('golos.minutoDica')}</span>
         </label>

@@ -30,7 +30,7 @@ import {
   parteDe,
   validarEntradas,
 } from '@/domain/tempos.js';
-import { parseClock } from './goalEditing.jsx';
+import { parseClock, mascaraTempo } from './goalEditing.jsx';
 import { t } from '@/lib/i18n/index.js';
 
 function mensagem(erro) {
@@ -123,7 +123,7 @@ function TemposDialog({ state, jogador, parte, onClose, onSave, onRepor }) {
                 inputMode="numeric"
                 placeholder="mm:ss"
                 autoFocus
-                onChange={(e) => setTotalTexto(e.target.value)}
+                onChange={(e) => setTotalTexto(mascaraTempo(e.target.value, totalTexto))}
               />
               <span className="field__hint">{t('tempos.registadoAoVivo', { tempo: fmt(soma(registadas)) })}</span>
             </label>
@@ -165,7 +165,7 @@ function TemposDialog({ state, jogador, parte, onClose, onSave, onRepor }) {
                       value={l.inicio}
                       inputMode="numeric"
                       placeholder="mm:ss"
-                      onChange={(e) => mudar(i, 'inicio', e.target.value)}
+                      onChange={(e) => mudar(i, 'inicio', mascaraTempo(e.target.value, l.inicio))}
                     />
                   </label>
                   <label className="tempos__campo">
@@ -175,7 +175,7 @@ function TemposDialog({ state, jogador, parte, onClose, onSave, onRepor }) {
                       value={l.fim}
                       inputMode="numeric"
                       placeholder="mm:ss"
-                      onChange={(e) => mudar(i, 'fim', e.target.value)}
+                      onChange={(e) => mudar(i, 'fim', mascaraTempo(e.target.value, l.fim))}
                     />
                   </label>
                   <span className="tempos__dur mono">
