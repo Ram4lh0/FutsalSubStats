@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth.jsx';
 import { useUI } from '@/lib/ui.jsx';
-import { iniciarDemo, limparDemo } from '@/lib/demo.js';
+import { limparDemo } from '@/lib/demo.js';
 import { rotas } from '@/lib/routes.js';
 import { markRecentSignup } from '@/lib/tutorial.js';
 import { useT } from '@/lib/i18n/index.js';
@@ -58,7 +58,6 @@ export default function LoginPage() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [aEnviar, setAEnviar] = useState(false);
   const [aRecuperar, setARecuperar] = useState(false);
-  const [aMontar, setAMontar] = useState(false);
 
   // Já com sessão (ou sem servidor configurado), não há nada a fazer aqui.
   useEffect(() => {
@@ -77,32 +76,6 @@ export default function LoginPage() {
     toast(authError, 'error', 8000);
     clearAuthError?.();
   }, [authError, clearAuthError, toast]);
-
-  /**
-   * Monta a equipa fictícia e abre o jogo já no intervalo, com a 1.ª parte
-   * jogada. Nada disto sai do dispositivo.
-   *
-   * Este botão saiu daqui em agosto e voltou: sem ele, quem ainda não tinha
-   * conta não tinha forma nenhuma de ver o que a app faz antes de se registar.
-   */
-  async function experimentar() {
-    if (aMontar) return;
-    setAMontar(true);
-    try {
-      const { matchId, limpou, perdidas } = await iniciarDemo({ noIntervalo: true });
-      if (limpou) {
-        toast(
-          perdidas ? t('login.donoTrocouComPerdas', { n: perdidas }) : t('login.donoTrocou'),
-          'ok',
-          7000
-        );
-      }
-      router.push(rotas.jogoAoVivo(matchId));
-    } catch (e) {
-      setAMontar(false);
-      toast(t('login.demoFalhou', { erro: e.message }), 'error');
-    }
-  }
 
   /**
    * Pedir o email para escolher uma palavra-passe nova.
@@ -256,15 +229,6 @@ export default function LoginPage() {
                 ? t('login.entrar')
                 : t('login.criarConta')}
           </button>
-        </div>
-
-        {/* Experimentar antes de decidir. O jogo é o mesmo código do jogo a
-            sério — só a equipa é que é inventada. */}
-        <div className="auth__demo">
-          <button className="btn btn--block btn--demo" type="button" onClick={experimentar} disabled={aMontar}>
-            {aMontar ? t('login.aPreparar') : t('login.experimentar')}
-          </button>
-          <span className="field__hint">{t('login.experimentarDica')}</span>
         </div>
 
         {/* A política tem de estar à mão ANTES de alguém criar conta, não

@@ -40,7 +40,6 @@ import {
 import { useT } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import { emDemo, limparDemo, iniciarDemo } from '@/lib/demo.js';
-import { registoAberto, ligacaoPedirConta } from '@/lib/registo.js';
 import FeedbackDemo from '@/components/FeedbackDemo.jsx';
 
 export default function SummaryPage() {
@@ -249,13 +248,17 @@ function Resumo() {
     }
   }
 
-  /** Sair da experiência: os dados fictícios não ficam no aparelho. */
+  /**
+   * Sair da experiência: os dados fictícios não ficam no aparelho. A demo corre
+   * com sessão iniciada, por isso volta-se à entrada da app, que para uma conta
+   * sem equipa é o ecrã de criar o clube ou o escalão.
+   */
   async function sairDaDemo() {
     await limparDemo();
-    router.replace(rotas.login());
+    router.replace(rotas.jogo());
   }
 
-  const criarConta = sairDaDemo;
+  const criarEquipa = sairDaDemo;
 
   /**
    * Outra vez do princípio, com o jogo por jogar.
@@ -267,8 +270,8 @@ function Resumo() {
    */
   async function repetirDemo() {
     if (aRepetir) return;
-    // Repetir é sempre possível, mas é a altura certa para lembrar que com conta
-    // se repete com a própria equipa, e os jogos ficam guardados.
+    // Repetir é sempre possível, mas é a altura certa para lembrar que o mesmo
+    // se faz com a própria equipa, e aí os jogos ficam guardados.
     const escolha = await ui.open((close) => (
       <Dialog title={t('demo.repetir.titulo')} onClose={() => close(null)}>
         <p>{t('demo.repetir.texto')}</p>
@@ -276,23 +279,18 @@ function Resumo() {
           <button type="button" className="btn btn--ghost" onClick={() => close('repetir')}>
             {t('demo.repetir.repetir')}
           </button>
-          {registoAberto() ? (
-            <button type="button" className="btn btn--primary" onClick={() => close('conta')}>
-              {t('resumo.demoCriarConta')}
-            </button>
-          ) : (
-            <a className="btn btn--primary" href={ligacaoPedirConta(t('registo.assunto'))}>
-              {t('registo.pedirConta')}
-            </a>
-          )}
+          <button type="button" className="btn btn--primary" onClick={() => close('equipa')}>
+            {t('resumo.demoCriarEquipa')}
+          </button>
         </footer>
       </Dialog>
     ));
-    if (escolha === 'conta') return criarConta();
+    if (escolha === 'equipa') return criarEquipa();
     if (escolha !== 'repetir') return;
     setARepetir(true);
     try {
-      const { matchId: novo } = await iniciarDemo();
+      // Com `conta`, a base do aparelho continua a ser da conta (lib/demo.js).
+      const { matchId: novo } = await iniciarDemo({ conta: userId || 'local' });
       router.replace(rotas.jogoPreparar(novo));
     } catch (e) {
       setARepetir(false);
@@ -371,30 +369,18 @@ function Resumo() {
       {/* Fim do jogo de experiência: é aqui que se vê o que a app produz, e
           portanto é aqui que faz sentido convidar a criar conta. Com uma saída
           ao lado — prender alguém num ecrã é a melhor forma de o perder. */}
-      <FeedbackDemo ativo={fimDaDemo} />
+      <FeedbackDemo ativo={fimDaDemo} emailDaConta={user?.email || ''} />
       {demo ? (
         <div className="card demo-cta">
           <h2 className="page__title">{t('resumo.demoTitulo')}</h2>
           <p>{t('resumo.demoTexto')}</p>
           <p className="muted">{t('resumo.demoTexto2')}</p>
           <div className="demo-cta__actions">
-            {/* Com o registo aberto, o botão leva ao ecrã de entrada, que é
-                onde se cria a conta. Fechado, não há nada para fazer lá: abre-se
-                o email, com o assunto já escrito. Antes disto ia sempre parar ao
-                ecrã de entrada e a pessoa tinha de procurar sozinha para onde
-                escrever — e ainda perdia a demonstração pelo caminho. */}
-            {registoAberto() ? (
-              <button className="btn btn--primary btn--big" onClick={criarConta}>
-                {t('resumo.demoCriarConta')}
-              </button>
-            ) : (
-              <a
-                className="btn btn--primary btn--big"
-                href={ligacaoPedirConta(t('registo.assunto'))}
-              >
-                {t('registo.pedirConta')}
-              </a>
-            )}
+            {/* Quem experimenta já tem conta (a demo só aparece depois do login,
+                a quem ainda não tem equipa): o passo seguinte é criar a sua. */}
+            <button className="btn btn--primary btn--big" onClick={criarEquipa}>
+              {t('resumo.demoCriarEquipa')}
+            </button>
             <button className="btn btn--ghost" onClick={repetirDemo} disabled={aRepetir}>
               {t('resumo.demoRepetir')}
             </button>

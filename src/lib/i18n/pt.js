@@ -1164,9 +1164,8 @@ export default {
   'resumo.demoTitulo': 'Foi isto que a app fez',
   'resumo.demoTexto':
     'Todos estes números saíram do jogo que acabou de apontar: quanto tempo cada jogador esteve em campo, quantas vezes entrou, quem marcou e quando. Numa época inteira, é este histórico que responde a quem jogou a menos.',
-  'resumo.demoTexto2':
-    'Este jogo era de treino e desaparece quando saíres. Podes repeti-lo para experimentar o que ficou por testar; com conta, os teus jogos ficam guardados e com estatísticas.',
-  'resumo.demoCriarConta': 'Criar conta e guardar os meus jogos',
+  'resumo.demoTexto2': 'Este jogo era de treino e desaparece quando saíres. Podes repeti-lo para experimentar o que ficou por testar; com a tua equipa criada, os teus jogos ficam guardados e com estatísticas.',
+  'resumo.demoCriarEquipa': 'Criar a minha equipa',
   'resumo.demoRepetir': 'Repetir demo',
   'resumo.demoAgoraNao': 'Agora não',
   'resumo.ajustarFim': 'Ajustar o fim do jogo',
@@ -1377,7 +1376,7 @@ export default {
   'demo.historia.seguinte': 'Seguinte',
   'demo.historia.comecar': 'Vamos lá',
   'demo.repetir.titulo': 'Repetir a demo',
-  'demo.repetir.texto': 'Queres repetir com a tua equipa? Cria conta e os teus jogos ficam guardados, com estatísticas da época inteira.',
+  'demo.repetir.texto': 'Queres fazer isto com a tua equipa? Cria-a e os teus jogos ficam guardados, com estatísticas da época inteira.',
   'demo.repetir.repetir': 'Repetir a demo',
   'feedbackDemo.titulo': 'O que achaste?',
   'feedbackDemo.opiniao': 'Diz-nos o que achaste da demo',
