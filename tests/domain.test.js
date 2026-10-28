@@ -1743,3 +1743,49 @@ test('tempos no intervalo: só o total da 1.ª parte, sem tocar na 2.ª; e o jog
   fim = corrigir(ctx, 'p3', null);
   assert.equal(playerMatchStats(fim.players.p3, fim.elapsedMatchMs).courtMs, 12 * MIN);
 });
+
+test('golos e cartões a frio: entram no minuto e na parte certos, sem expulsar', () => {
+  const { ctx } = playFullMatch();
+  let st = buildMatchState(match, ctx.squad, ctx.events);
+  const T = T0 + 60 * MIN;
+  const golosAntes = st.teamScore;
+  const tempoP4 = playerMatchStats(st.players.p4, st.elapsedMatchMs).courtMs;
+
+  // Golo da 1.ª parte acrescentado no resumo, com marcador e tipo.
+  const golo = A.goal(st, EVENT.TEAM_GOAL_ADDED, T, { matchElapsedMs: 4 * MIN, period: 1 });
+  st = step(ctx, () => golo, T);
+  st = step(
+    ctx,
+    (s) =>
+      A.attributeGoal(
+        s,
+        { targetEventId: golo.id, scorerId: 'p3', howScored: 'TRANSICAO', matchElapsedMs: 4 * MIN, period: 1 },
+        T
+      ),
+    T
+  );
+  assert.equal(st.teamScore, golosAntes + 1);
+  const g = st.goals.find((x) => x.eventId === golo.id);
+  assert.equal(g.period, 1);
+  assert.equal(g.scorerId, 'p3');
+  assert.equal(g.howScored, 'TRANSICAO');
+
+  // Vermelho a frio: conta, mas não expulsa nem mexe nos tempos.
+  st = step(
+    ctx,
+    (s) => A.lateCard(s, { type: 'RED', playerId: 'p4', matchElapsedMs: 5 * MIN, period: 1 }, T),
+    T
+  );
+  const c = st.cards.find((x) => x.playerId === 'p4' && x.type === 'RED');
+  assert.equal(c.period, 1);
+  assert.notEqual(st.players.p4.status, 'EXPELLED');
+  assert.equal(playerMatchStats(st.players.p4, st.elapsedMatchMs).courtMs, tempoP4);
+
+  // Dois amarelos ao mesmo número do adversário: o 2.º marca-se, sem somar expulsão.
+  const exp = st.opponentExpulsions;
+  st = step(ctx, (s) => A.lateOpponentYellow(s, { number: 7, matchElapsedMs: 2 * MIN, period: 1 }, T), T);
+  st = step(ctx, (s) => A.lateOpponentYellow(s, { number: 7, matchElapsedMs: 30 * MIN, period: 2 }, T), T);
+  assert.equal(st.opponentCards.filter((x) => x.number === 7).length, 2);
+  assert.equal(st.opponentCards.at(-1).secondYellow, true);
+  assert.equal(st.opponentExpulsions, exp);
+});

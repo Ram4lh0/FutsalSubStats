@@ -782,11 +782,13 @@ function applyEvent(state, ev) {
         eventId: ev.id,
         playerId: pid,
         type: CARD.YELLOW,
-        period: state.currentPeriod,
+        period: md.period ?? state.currentPeriod,
         matchElapsedMs: ev.matchElapsedMs,
         secondYellow: isSecond,
       });
-      if (isSecond) expel(state, ev, pid);
+      // Cartão acrescentado a frio: o jogo já passou, a expulsão não mexe nos
+      // tempos (esses acertam-se em "Editar tempos").
+      if (isSecond && !md.aPosteriori) expel(state, ev, pid);
       break;
     }
 
@@ -797,11 +799,11 @@ function applyEvent(state, ev) {
         eventId: ev.id,
         playerId: pid,
         type: CARD.RED,
-        period: state.currentPeriod,
+        period: md.period ?? state.currentPeriod,
         matchElapsedMs: ev.matchElapsedMs,
         secondYellow: false,
       });
-      expel(state, ev, pid);
+      if (!md.aPosteriori) expel(state, ev, pid);
       break;
     }
 
@@ -1092,10 +1094,11 @@ function applyEvent(state, ev) {
       state.opponentCards.push({
         eventId: ev.id,
         number: numero,
+        period: md.period ?? state.currentPeriod,
         matchElapsedMs: ev.matchElapsedMs,
         secondYellow: jaTinha,
       });
-      if (jaTinha) state.opponentExpulsions += 1;
+      if (jaTinha && !md.aPosteriori) state.opponentExpulsions += 1;
       break;
     }
 

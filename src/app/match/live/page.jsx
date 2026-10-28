@@ -34,6 +34,7 @@ import { beep, unlockAudio } from '@/lib/beep.js';
 import * as GE from '@/lib/goalEditing.jsx';
 import * as FE from '@/lib/foulEditing.jsx';
 import * as RE from '@/lib/registoEditing.jsx';
+import * as CE from '@/lib/cardEditing.jsx';
 import { editarTempos } from '@/lib/temposEditing.jsx';
 import { clubs, events, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
@@ -1031,6 +1032,24 @@ function Live() {
       await recarregar();
   }
 
+  async function acrescentarGolo() {
+    if (await GE.addGoal(ui, { matchId, ourName, opponentName: rivalName })) await recarregar();
+  }
+
+  async function acrescentarCartao() {
+    if (await CE.addCard(ui, { matchId, ourName, opponentName: rivalName })) await recarregar();
+  }
+
+  async function editarCartao(card) {
+    if (await CE.editCard(ui, { matchId, card, ourName, opponentName: rivalName }))
+      await recarregar();
+  }
+
+  async function acrescentarRegisto() {
+    if (await RE.addRegisto(ui, { matchId, ligados, ourName, opponentName: rivalName }))
+      await recarregar();
+  }
+
   /** No intervalo: os tempos da 1.ª parte de um jogador (lib/temposEditing.jsx). */
   async function editarTemposDaPrimeira(playerId) {
     if (await editarTempos(ui, { matchId, playerId, parte: 1 })) await recarregar();
@@ -1100,10 +1119,14 @@ function Live() {
           ourName={ourName}
           opponentName={rivalName}
           onEditGoal={editarGolo}
+          onAddGoal={acrescentarGolo}
           onCorrectScore={corrigirResultado}
           onAddFoul={acrescentarFalta}
           onEditFoul={editarFalta}
+          onAddCard={acrescentarCartao}
+          onEditCard={editarCartao}
           onEditRegisto={editarRegisto}
+          onAddRegisto={ligados.size ? acrescentarRegisto : undefined}
           onEditTempos={editarTemposDaPrimeira}
           onStart={startSecondHalf}
         />

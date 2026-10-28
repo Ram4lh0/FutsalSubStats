@@ -17,6 +17,7 @@ import DataTable from '@/components/DataTable.jsx';
 import CourtPicker, { countFilled } from '@/components/CourtPicker.jsx';
 import { GoalsTimeline } from '@/components/Goals.jsx';
 import { FoulsTimeline } from '@/components/Fouls.jsx';
+import { CardsTimeline } from '@/components/Cards.jsx';
 import { playerMatchStats } from '@/domain/stats.js';
 import { foulsInPeriod } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
@@ -32,10 +33,14 @@ export default function Halftime({
   ourName,
   opponentName,
   onEditGoal,
+  onAddGoal,
   onCorrectScore,
   onAddFoul,
   onEditFoul,
   onEditRegisto,
+  onAddRegisto,
+  onAddCard,
+  onEditCard,
   onEditTempos,
   onStart,
 }) {
@@ -104,7 +109,15 @@ export default function Halftime({
       </div>
 
       <div className="halftime__bloco" data-tour="halftime-summary">
-        <h3 className="section section--tight">{t('intervalo.golos')}</h3>
+        <div className="halftime__title">
+          <h3 className="section section--tight">{t('intervalo.golos')}</h3>
+          <span className="live__spacer" />
+          {onAddGoal ? (
+            <button className="btn btn--ghost btn--tiny" onClick={onAddGoal}>
+              {t('golos.adicionar')}
+            </button>
+          ) : null}
+        </div>
         <GoalsTimeline
           state={state}
           ourName={ourName}
@@ -141,20 +154,54 @@ export default function Halftime({
         />
       </div>
 
-      {/* Registos extra (remates, recuperações, …): só se o jogo os tiver. */}
-      {temRegistos(state) ? (
+      {/* Cartões: os que não vieram de uma falta apontada também cabem aqui. */}
+      <div className="halftime__bloco">
+        <div className="halftime__title">
+          <h3 className="section section--tight">{t('cartoes.titulo')}</h3>
+          <span className="live__spacer" />
+          {onAddCard ? (
+            <button className="btn btn--ghost btn--tiny" onClick={onAddCard}>
+              {t('cartoes.adicionar')}
+            </button>
+          ) : null}
+        </div>
+        <CardsTimeline
+          state={state}
+          ourName={ourName}
+          opponentName={opponentName}
+          onEdit={onEditCard}
+        />
+      </div>
+
+      {/* Registos extra (remates, recuperações, …): se o jogo os tiver, ou se o
+          escalão os tiver ligados (para os acrescentar a frio). */}
+      {temRegistos(state) || onAddRegisto ? (
         <div className="halftime__bloco">
-          <h3 className="section section--tight">{t('registos.titulo')}</h3>
-          <PainelRegistos state={state} ourName={ourName} opponentName={opponentName} />
-          <details className="registos__corrigir">
-            <summary>{t('registos.corrigirLista')}</summary>
-            <ListaRegistos
-              state={state}
-              ourName={ourName}
-              opponentName={opponentName}
-              onEdit={onEditRegisto}
-            />
-          </details>
+          <div className="halftime__title">
+            <h3 className="section section--tight">{t('registos.titulo')}</h3>
+            <span className="live__spacer" />
+            {onAddRegisto ? (
+              <button className="btn btn--ghost btn--tiny" onClick={onAddRegisto}>
+                {t('registos.adicionar')}
+              </button>
+            ) : null}
+          </div>
+          {temRegistos(state) ? (
+            <>
+              <PainelRegistos state={state} ourName={ourName} opponentName={opponentName} />
+              <details className="registos__corrigir">
+                <summary>{t('registos.corrigirLista')}</summary>
+                <ListaRegistos
+                  state={state}
+                  ourName={ourName}
+                  opponentName={opponentName}
+                  onEdit={onEditRegisto}
+                />
+              </details>
+            </>
+          ) : (
+            <p className="muted">{t('registos.nadaApontado')}</p>
+          )}
         </div>
       ) : null}
 

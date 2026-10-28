@@ -7,8 +7,8 @@
 // ou o ponto no campo — ou para o apagar. A correção é um `STAT_CORRECTED`
 // que aponta para o registo; apagar marca-o como desfeito, como nas faltas.
 //
-// Não se acrescentam registos a frio: um remate de que ninguém se lembra ao
-// minuto e ao sítio vale menos do que nenhum.
+// Também se acrescentam a frio (`addRegisto`), para meter jogos já jogados: só
+// os registos ligados no escalão, e um remate que deu golo entra pelo golo.
 
 import { useState } from 'react';
 import { Dialog } from './ui.jsx';
@@ -23,6 +23,8 @@ import {
   RESULTADO_REMATE,
   corDoRegisto,
   corrigirRegisto,
+  registar,
+  REGISTOS,
 } from '@/domain/registos.js';
 import { CampoSvg } from '@/components/registos/CampoToque.jsx';
 import { parseClock, mascaraTempo } from './goalEditing.jsx';
@@ -31,28 +33,33 @@ import { registoLabel } from './format.js';
 import { t } from '@/lib/i18n/index.js';
 
 /** Os resultados que se podem escolher a frio: um remate não entra nem sai do golo. */
-function resultadosPossiveis(registo) {
+function resultadosPossiveis(registo, nova = false) {
   const def = CATALOGO[registo.registo];
   if (!def?.resultados) return [];
+  if (nova) return def.resultados.filter((r) => r !== RESULTADO_REMATE.GOLO);
   if (registo.registo !== 'remate' && registo.registo !== 'remate_adv') return def.resultados;
   if (registo.resultado === RESULTADO_REMATE.GOLO) return [RESULTADO_REMATE.GOLO];
   return def.resultados.filter((r) => r !== RESULTADO_REMATE.GOLO);
 }
 
-function RegistoDialog({ state, registo, ourName, opponentName, onClose, onSave, onDelete }) {
+function RegistoDialog({ state, registo, nova = false, ourName, opponentName, onClose, onSave, onDelete }) {
   const def = CATALOGO[registo.registo];
   const [jogador, setJogador] = useState(registo.playerId || '');
   const [equipa, setEquipa] = useState(registo.equipa || 'US');
   const [resultado, setResultado] = useState(registo.resultado || '');
-  const [minuto, setMinuto] = useState(fmt(registo.matchElapsedMs));
+  const [minuto, setMinuto] = useState(nova ? '' : fmt(registo.matchElapsedMs));
   const [ponto, setPonto] = useState(
     registo.x != null && registo.y != null ? { x: registo.x, y: registo.y } : null
   );
 
   const ms = parseClock(minuto, NaN);
   const erro = minuto.trim() ? erroDoMinuto(state, ms) : 'faltas.minutoInvalido';
-  const valido = Number.isFinite(ms) && !erro && (def.por !== 'jogador' || jogador);
-  const resultados = resultadosPossiveis(registo);
+  const valido =
+    Number.isFinite(ms) &&
+    !erro &&
+    (def.por !== 'jogador' || jogador) &&
+    (!def.resultados || Boolean(resultado));
+  const resultados = resultadosPossiveis(registo, nova);
   const cores = def.soAdversario ? COR_RESULTADO_ADV : COR_RESULTADO;
   const todos = Object.values(state.players).sort((a, b) => a.number - b.number);
   const marca = ponto
@@ -60,12 +67,19 @@ function RegistoDialog({ state, registo, ourName, opponentName, onClose, onSave,
     : [];
 
   return (
-    <Dialog title={t('registos.corrigir', { registo: t(`registos.nome.${registo.registo}`) })} onClose={onClose} wide>
+    <Dialog
+      title={t(nova ? 'registos.novoDe' : 'registos.corrigir', {
+        registo: t(`registos.nome.${registo.registo}`),
+      })}
+      onClose={onClose}
+      wide
+    >
       <div className="form">
         {def.por === 'jogador' ? (
           <label className="field">
             <span className="field__label">{t('registos.col.jogador')}</span>
             <select className="input" value={jogador} onChange={(e) => setJogador(e.target.value)}>
+              {nova ? <option value="">{t('cartoes.escolherJogador')}</option> : null}
               {todos.map((p) => (
                 <option key={p.playerId} value={p.playerId}>
                   #{p.number} {p.name}
@@ -105,6 +119,9 @@ function RegistoDialog({ state, registo, ourName, opponentName, onClose, onSave,
         {registo.resultado === RESULTADO_REMATE.GOLO ? (
           <p className="field__hint">{t('registos.goloNaoMuda')}</p>
         ) : null}
+        {nova && def.resultados?.includes(RESULTADO_REMATE.GOLO) ? (
+          <p className="field__hint">{t('registos.goloPeloGolo')}</p>
+        ) : null}
 
         <label className="field">
           <span className="field__label">{t('golos.minuto')}</span>
@@ -113,6 +130,7 @@ function RegistoDialog({ state, registo, ourName, opponentName, onClose, onSave,
             value={minuto}
             inputMode="numeric"
             placeholder="mm:ss"
+            autoFocus={nova}
             onChange={(e) => setMinuto(mascaraTempo(e.target.value, minuto))}
           />
           <span className="field__hint">
@@ -147,9 +165,11 @@ function RegistoDialog({ state, registo, ourName, opponentName, onClose, onSave,
       </div>
 
       <footer className="modal__actions">
-        <button className="btn btn--ghost btn--danger" onClick={onDelete}>
-          {t('registos.apagar')}
-        </button>
+        {nova ? null : (
+          <button className="btn btn--ghost btn--danger" onClick={onDelete}>
+            {t('registos.apagar')}
+          </button>
+        )}
         <button className="btn btn--ghost" onClick={onClose}>
           {t('comum.cancelar')}
         </button>
@@ -242,5 +262,67 @@ export async function editRegisto(ui, { matchId, registo, ourName, opponentName,
   await events.append(corrigirRegisto(snap.state, { targetEventId: registo.eventId, ...campos }));
   if (syncUser) sync.saveNow(syncUser.userId, syncUser.email);
   ui.toast(t('registos.atualizado'), 'ok');
+  return true;
+}
+
+/** Que registo acrescentar: só os ligados no escalão, pela ordem do catálogo. */
+function TipoDialog({ ligados, onClose, onPick }) {
+  const tipos = REGISTOS.filter((id) => ligados.has(id) && CATALOGO[id].disponivel);
+  return (
+    <Dialog title={t('registos.escolherTipo')} onClose={onClose}>
+      <div className="menu">
+        {tipos.map((id) => (
+          <button key={id} className="menu__item" onClick={() => onPick(id)}>
+            {t(`registos.nome.${id}`)}
+          </button>
+        ))}
+      </div>
+    </Dialog>
+  );
+}
+
+/**
+ * Acrescenta um registo a frio (remate, recuperação, …). `ligados` são os
+ * registos que o escalão tem acesso a registar. Devolve true se gravou.
+ */
+export async function addRegisto(ui, { matchId, ligados, ourName, opponentName, syncUser = null }) {
+  if (!ligados?.size) return false;
+  const antes = await loadMatch(matchId);
+  if (!antes) return false;
+  const tipo =
+    ligados.size === 1
+      ? [...ligados][0]
+      : await ui.open((close) => (
+          <TipoDialog ligados={ligados} onClose={() => close(null)} onPick={(id) => close(id)} />
+        ));
+  if (!tipo) return false;
+  const def = CATALOGO[tipo];
+  const vazio = {
+    registo: tipo,
+    playerId: null,
+    equipa: def.soAdversario ? 'THEM' : 'US',
+    resultado: null,
+    x: null,
+    y: null,
+    matchElapsedMs: 0,
+  };
+  const r = await ui.open((close) => (
+    <RegistoDialog
+      state={antes.state}
+      registo={vazio}
+      nova
+      ourName={ourName}
+      opponentName={opponentName}
+      onClose={() => close(null)}
+      onSave={(v) => close(v)}
+    />
+  ));
+  if (!r) return false;
+
+  const snap = await loadMatch(matchId);
+  if (erroDoMinuto(snap.state, r.matchElapsedMs)) return false;
+  await events.append(registar(snap.state, { registo: tipo, ...r }));
+  if (syncUser) sync.saveNow(syncUser.userId, syncUser.email);
+  ui.toast(t('registos.acrescentado'), 'ok');
   return true;
 }

@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { Dialog } from './ui.jsx';
-import { events, loadMatch } from './data/repository.js';
+import { events, matches, loadMatch } from './data/repository.js';
 import * as sync from './data/sync.js';
 import * as A from '@/domain/actions.js';
 import { EVENT, normalizePosition, goalTypesFor } from '@/domain/constants.js';
@@ -77,19 +77,35 @@ function periodOf(state, ms, fallback) {
  * preenchida com o que está registado. Perguntar campo a campo obrigava a
  * atravessar três popups para corrigir um pormenor.
  */
-function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
-  const nosso = goal.team === 'US';
-  const emCampo = goal.onCourtIds
-    ? Object.values(state.players).filter((p) => goal.onCourtIds.includes(p.playerId))
-    : onCourtAt(state, goal.matchElapsedMs);
+function GoalDialog({ state, goal, title, nova = false, ourName, opponentName, onClose, onSave, toast }) {
+  const [equipa, setEquipa] = useState(goal.team);
+  const nosso = equipa === 'US';
+  const [quem, setQuem] = useState(
+    goal.team === 'US' ? (goal.ownGoal ? OWN_GOAL : goal.scorerId || '') : goal.goalkeeperId || ''
+  );
+  const [assist, setAssist] = useState(goal.assistId || '');
+  const [tipo, setTipo] = useState(goal.howScored || '');
+  const [minuto, setMinuto] = useState(nova ? '' : fmt(goal.matchElapsedMs));
+
+  // Num golo novo, quem estava em campo depende do minuto que se escreve.
+  const msEscrito = parseClock(minuto, NaN);
+  const msRef = nova ? msEscrito : goal.matchElapsedMs;
+  const emCampo =
+    !nova && goal.onCourtIds
+      ? Object.values(state.players).filter((p) => goal.onCourtIds.includes(p.playerId))
+      : Number.isFinite(msRef)
+        ? onCourtAt(state, msRef)
+        : [];
   const jogadores = emCampo.length ? emCampo : Object.values(state.players);
   const guardaRedes = Object.values(state.players).filter((p) => {
-    const estavaNaBaliza = (p.stints || []).some(
-      (st) =>
-        st.startMatchMs <= goal.matchElapsedMs &&
-        (st.endMatchMs == null || st.endMatchMs > goal.matchElapsedMs) &&
-        st.startingPosition === 'GOALKEEPER'
-    );
+    const estavaNaBaliza =
+      Number.isFinite(msRef) &&
+      (p.stints || []).some(
+        (st) =>
+          st.startMatchMs <= msRef &&
+          (st.endMatchMs == null || st.endMatchMs > msRef) &&
+          st.startingPosition === 'GOALKEEPER'
+      );
     return (
       estavaNaBaliza ||
       p.playerId === goal.goalkeeperId ||
@@ -100,15 +116,12 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
     (a, b) => a.number - b.number
   );
 
-  const [quem, setQuem] = useState(
-    nosso ? (goal.ownGoal ? OWN_GOAL : goal.scorerId || '') : goal.goalkeeperId || ''
-  );
-  const [assist, setAssist] = useState(goal.assistId || '');
-  const [tipo, setTipo] = useState(goal.howScored || '');
-  const [minuto, setMinuto] = useState(fmt(goal.matchElapsedMs));
-
   function guardar() {
-    const ms = parseClock(minuto, goal.matchElapsedMs);
+    const ms = parseClock(minuto, nova ? NaN : goal.matchElapsedMs);
+    if (!Number.isFinite(ms)) {
+      toast(t('faltas.minutoInvalido'), 'error');
+      return;
+    }
     // Um golo não pode ter acontecido depois do jogo: o tempo efectivo é o tecto
     // de tudo o que se passou dentro das quatro linhas.
     const limite = state.elapsedMatchMs || 0;
@@ -117,6 +130,7 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
       return;
     }
     const patch = { matchElapsedMs: ms, period: periodOf(state, ms, goal.period) };
+    if (nova) patch.team = equipa;
     if (nosso) {
       patch.ownGoal = quem === OWN_GOAL;
       patch.scorerId = patch.ownGoal ? null : quem || null;
@@ -128,6 +142,13 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
       patch.howScored = tipo || null;
     }
     onSave(patch);
+  }
+
+  function trocarEquipa(nova) {
+    setEquipa(nova);
+    setQuem('');
+    setAssist('');
+    setTipo('');
   }
 
   const opcoes = (extra = []) => (
@@ -150,10 +171,27 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
 
   return (
     <Dialog
-      title={title || (nosso ? t('golos.goloMarcado') : t('golos.goloSofrido'))}
+      title={
+        title ||
+        (nova
+          ? t('golos.novoGolo')
+          : nosso
+            ? t('golos.goloMarcado')
+            : t('golos.goloSofrido'))
+      }
       onClose={onClose}
     >
       <div className="form">
+        {nova ? (
+          <label className="field">
+            <span className="field__label">{t('golos.qualGolo')}</span>
+            <select className="input" value={equipa} onChange={(e) => trocarEquipa(e.target.value)}>
+              <option value="US">{t('golos.golosDe', { equipa: ourName })}</option>
+              <option value="THEM">{t('golos.golosDe', { equipa: opponentName })}</option>
+            </select>
+          </label>
+        ) : null}
+
         <label className="field">
           <span className="field__label">
             {nosso ? t('golos.quemMarcou') : t('golos.quemSofreu')}
@@ -202,6 +240,8 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
             className="input input--time"
             value={minuto}
             inputMode="numeric"
+            placeholder="mm:ss"
+            autoFocus={nova}
             onChange={(e) => setMinuto(mascaraTempo(e.target.value, minuto))}
           />
           <span className="field__hint">{t('golos.minutoDica')}</span>
@@ -221,12 +261,15 @@ function GoalDialog({ state, goal, title, onClose, onSave, toast }) {
 }
 
 /** Abre a ficha de um golo e devolve o que ficou por guardar (ou null). */
-export function goalDialog(ui, state, goal, { title } = {}) {
+export function goalDialog(ui, state, goal, { title, nova = false, ourName, opponentName } = {}) {
   return ui.open((close) => (
     <GoalDialog
       state={state}
       goal={goal}
       title={title}
+      nova={nova}
+      ourName={ourName}
+      opponentName={opponentName}
       toast={ui.toast}
       onClose={() => close(null)}
       onSave={(patch) => close(patch)}
@@ -246,6 +289,38 @@ export async function editGoal(ui, { matchId, goal, syncUser = null }) {
   await events.append(A.attributeGoal(antes.state, { targetEventId: goal.eventId, ...patch }));
   if (syncUser) sync.saveNow(syncUser.userId, syncUser.email);
   ui.toast(goal.team === 'US' ? t('golos.atualizado') : t('golos.sofridoAtualizado'), 'ok');
+  return true;
+}
+
+/**
+ * Acrescenta um golo que ficou por registar: a equipa, o marcador, a assistência,
+ * como foi e o minuto, tudo numa só ficha. O golo entra pelo caminho normal (sobe
+ * o marcador) e a ficha completa-o logo a seguir, como num golo do jogo.
+ */
+export async function addGoal(ui, { matchId, ourName, opponentName, syncUser = null }) {
+  const antes = await loadMatch(matchId);
+  if (!antes) return false;
+  const vazio = { team: 'US', matchElapsedMs: 0, period: 1 };
+  const patch = await goalDialog(ui, antes.state, vazio, { nova: true, ourName, opponentName });
+  if (!patch) return false;
+
+  const { team, ...resto } = patch;
+  const snap = await loadMatch(matchId);
+  const tipo = team === 'US' ? EVENT.TEAM_GOAL_ADDED : EVENT.OPPONENT_GOAL_ADDED;
+  const evento = A.goal(snap.state, tipo, undefined, {
+    matchElapsedMs: resto.matchElapsedMs,
+    period: resto.period,
+  });
+  await events.append(evento);
+  const depois = await loadMatch(matchId);
+  await events.append(A.attributeGoal(depois.state, { targetEventId: evento.id, ...resto }));
+  const fresco = await loadMatch(matchId);
+  await matches.update(matchId, {
+    teamScore: fresco.state.teamScore,
+    opponentScore: fresco.state.opponentScore,
+  });
+  if (syncUser) sync.saveNow(syncUser.userId, syncUser.email);
+  ui.toast(t('golos.acrescentado'), 'ok');
   return true;
 }
 

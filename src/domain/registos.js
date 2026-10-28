@@ -186,7 +186,18 @@ function equipaValida(equipa) {
  */
 export function registar(
   state,
-  { registo, playerId = null, equipa = 'US', resultado = null, x = null, y = null, goloEventId = null },
+  {
+    registo,
+    playerId = null,
+    equipa = 'US',
+    resultado = null,
+    x = null,
+    y = null,
+    goloEventId = null,
+    // Só nos registos acrescentados a frio: o minuto e a parte em que foi.
+    matchElapsedMs = null,
+    period = null,
+  },
   now = Date.now()
 ) {
   const def = CATALOGO[registo];
@@ -217,7 +228,18 @@ export function registar(
   return makeEvent(
     state,
     EVENT.STAT_RECORDED,
-    { playerId: def.por === 'jogador' ? playerId : null, metadata },
+    {
+      playerId: def.por === 'jogador' ? playerId : null,
+      metadata,
+      ...(matchElapsedMs != null
+        ? {
+            matchElapsedMs,
+            period,
+            periodElapsedMs:
+              period === 2 ? matchElapsedMs - (state.firstHalfMs || 0) : matchElapsedMs,
+          }
+        : {}),
+    },
     now
   );
 }

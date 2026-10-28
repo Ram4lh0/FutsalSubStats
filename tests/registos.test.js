@@ -553,3 +553,20 @@ test('remate do adversário com golo: sai da lista quando o golo é desfeito', (
   assert.equal(r.rematesAdvBaliza, 1);
   assert.equal(r.porResultadoAdv.GOLO, 1);
 });
+
+test('registo acrescentado a frio leva o minuto e a parte escolhidos', () => {
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const st = estado(ctx);
+  const ev = registar(st, {
+    registo: REGISTO.RECUPERACAO,
+    playerId: 'p2',
+    x: 0.4,
+    y: 0.5,
+    matchElapsedMs: 3 * MIN,
+    period: 1,
+  });
+  assert.equal(ev.matchElapsedMs, 3 * MIN);
+  assert.equal(ev.period, 1);
+  assert.equal(ev.periodElapsedMs, 3 * MIN);
+});

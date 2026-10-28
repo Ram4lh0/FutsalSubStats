@@ -149,7 +149,39 @@ export const yellowCard = (s, { playerId }, now) =>
 export const redCard = (s, { playerId }, now) =>
   makeEvent(s, EVENT.RED_CARD, { playerId, metadata: { playerId } }, now);
 
-export const startPenalty = (s, { playerId, durationMs = PENALTY_DURATION_MS }, now) =>
+/**
+ * Cartão que ficou por apontar, acrescentado a frio (intervalo ou resumo). Leva
+ * o minuto e a parte; não expulsa nem mexe nos tempos.
+ */
+export const lateCard = (s, { type, playerId, matchElapsedMs, period }, now) =>
+  makeEvent(
+    s,
+    type === 'RED' ? EVENT.RED_CARD : EVENT.YELLOW_CARD,
+    {
+      period,
+      matchElapsedMs,
+      periodElapsedMs: period === 2 ? matchElapsedMs - (s.firstHalfMs || 0) : matchElapsedMs,
+      playerId,
+      metadata: { playerId, period, aPosteriori: true },
+    },
+    now
+  );
+
+/** Amarelo do adversário acrescentado a frio, só com o número. */
+export const lateOpponentYellow = (s, { number, matchElapsedMs, period }, now) =>
+  makeEvent(
+    s,
+    EVENT.OPPONENT_YELLOW_CARD,
+    {
+      period,
+      matchElapsedMs,
+      periodElapsedMs: period === 2 ? matchElapsedMs - (s.firstHalfMs || 0) : matchElapsedMs,
+      metadata: { number, period, aPosteriori: true },
+    },
+    now
+  );
+
+export const startPenalty =(s, { playerId, durationMs = PENALTY_DURATION_MS }, now) =>
   makeEvent(s, EVENT.PENALTY_STARTED, { playerId, metadata: { playerId, durationMs } }, now);
 
 /** Fim antecipado — em futsal a sanção termina se a equipa sofrer golo. */

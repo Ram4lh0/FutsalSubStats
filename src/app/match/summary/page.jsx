@@ -10,6 +10,7 @@ import PageHead from '@/components/PageHead.jsx';
 import DataTable from '@/components/DataTable.jsx';
 import { GoalsByHalf } from '@/components/Goals.jsx';
 import { FoulsByHalf } from '@/components/Fouls.jsx';
+import { CardsTimeline } from '@/components/Cards.jsx';
 import GraficosDoJogo from '@/components/stats/GraficosDoJogo.jsx';
 import PainelRegistos from '@/components/registos/PainelRegistos.jsx';
 import ListaRegistos from '@/components/registos/ListaRegistos.jsx';
@@ -20,6 +21,8 @@ import * as GE from '@/lib/goalEditing.jsx';
 import * as FIM from '@/lib/fimEditing.jsx';
 import * as FE from '@/lib/foulEditing.jsx';
 import * as RE from '@/lib/registoEditing.jsx';
+import * as CE from '@/lib/cardEditing.jsx';
+import useRegistos from '@/lib/useRegistos.js';
 import { editarTempos } from '@/lib/temposEditing.jsx';
 import { clubs, teams, competitions, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
@@ -59,6 +62,8 @@ function Resumo() {
   const [dados, setDados] = useState(null);
   const [aRepetir, setARepetir] = useState(false);
   const [aGerarPdf, setAGerarPdf] = useState(false);
+  // Os registos extra a que o escalão tem acesso: só esses se acrescentam a frio.
+  const ligados = useRegistos(dados?.match?.teamId);
 
   // De onde se veio. Só quando não há origem — ou seja, quando se chega aqui por
   // ter acabado o jogo — é que a saída passa a ser a casa dos clubes.
@@ -186,6 +191,28 @@ function Resumo() {
       })
     )
       carregar();
+  }
+
+  const nomes = () => ({
+    ourName: clubShort(club),
+    opponentName: opponentShort(match),
+    syncUser: { userId, email: user?.email },
+  });
+
+  async function acrescentarGolo() {
+    if (await GE.addGoal(ui, { matchId, ...nomes() })) carregar();
+  }
+
+  async function acrescentarCartao() {
+    if (await CE.addCard(ui, { matchId, ...nomes() })) carregar();
+  }
+
+  async function editarCartao(card) {
+    if (await CE.editCard(ui, { matchId, card, ...nomes() })) carregar();
+  }
+
+  async function acrescentarRegisto() {
+    if (await RE.addRegisto(ui, { matchId, ligados, ...nomes() })) carregar();
   }
 
   /** Os tempos de um jogador, corrigidos depois do apito (lib/temposEditing.jsx). */
@@ -512,7 +539,15 @@ function Resumo() {
           ) : null}
         </div>
 
-      <h2 className="section">{t('resumo.golos')}</h2>
+      <div className="halftime__title">
+        <h2 className="section">{t('resumo.golos')}</h2>
+        <span className="live__spacer" />
+        {state.startedAt ? (
+          <button className="btn btn--ghost btn--tiny" onClick={acrescentarGolo}>
+            {t('golos.adicionar')}
+          </button>
+        ) : null}
+      </div>
       <div className="card">
         <GoalsByHalf
           state={state}
@@ -543,27 +578,62 @@ function Resumo() {
         />
       </div>
 
+      <div className="halftime__title">
+        <h2 className="section">{t('cartoes.titulo')}</h2>
+        <span className="live__spacer" />
+        {state.startedAt ? (
+          <button className="btn btn--ghost btn--tiny" onClick={acrescentarCartao}>
+            {t('cartoes.adicionar')}
+          </button>
+        ) : null}
+      </div>
+      <div className="card">
+        <CardsTimeline
+          state={state}
+          ourName={clubShort(club)}
+          opponentName={opponentShort(match)}
+          onEdit={state.startedAt ? editarCartao : undefined}
+        />
+      </div>
+
       {/* Registos extra: aparecem sempre que o jogo os tiver, esteja o
-          registo ligado no escalão ou não. */}
-      {temRegistos(state) ? (
+          registo ligado no escalão ou não. Com registos ligados, também se
+          acrescentam a frio (jogos já jogados). */}
+      {temRegistos(state) || (ligados.size && state.startedAt) ? (
         <>
-          <h2 className="section">{t('registos.titulo')}</h2>
-          <div className="card">
-            <PainelRegistos
-              state={state}
-              ourName={clubShort(club)}
-              opponentName={opponentShort(match)}
-            />
+          <div className="halftime__title">
+            <h2 className="section">{t('registos.titulo')}</h2>
+            <span className="live__spacer" />
+            {ligados.size && state.startedAt ? (
+              <button className="btn btn--ghost btn--tiny" onClick={acrescentarRegisto}>
+                {t('registos.adicionar')}
+              </button>
+            ) : null}
           </div>
-          <h2 className="section">{t('registos.lista')}</h2>
-          <div className="card">
-            <ListaRegistos
-              state={state}
-              ourName={clubShort(club)}
-              opponentName={opponentShort(match)}
-              onEdit={editarRegisto}
-            />
-          </div>
+          {temRegistos(state) ? (
+            <>
+              <div className="card">
+                <PainelRegistos
+                  state={state}
+                  ourName={clubShort(club)}
+                  opponentName={opponentShort(match)}
+                />
+              </div>
+              <h2 className="section">{t('registos.lista')}</h2>
+              <div className="card">
+                <ListaRegistos
+                  state={state}
+                  ourName={clubShort(club)}
+                  opponentName={opponentShort(match)}
+                  onEdit={editarRegisto}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="card">
+              <p className="muted">{t('registos.nadaApontado')}</p>
+            </div>
+          )}
         </>
       ) : null}
 
