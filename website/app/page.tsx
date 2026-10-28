@@ -88,6 +88,7 @@ function Icon({ name }: { name: IconName }) {
 }
 
 type DemoZone = "field" | "bench";
+type PendingAction = "foul" | "yellow" | "red" | null;
 type DemoDrag = {
   number: DemoPlayerNumber;
   zone: DemoZone;
@@ -135,6 +136,17 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
   // que o selecionava como se tivesse sido tocado.
   const ignoreClick = useRef(false);
   useEffect(() => () => { drag.current?.ghost?.remove(); }, []);
+  // Faltas, cartões e 5v4. Uma ação fica "pendente" até se tocar no jogador em
+  // campo a quem se aplica (como na app); o 5v4 liga e desliga sem jogador.
+  // Os tempos (inferioridade, 5v4) contam em tempo de jogo, por isso derivam
+  // de `elapsed` e param quando o cronómetro pára.
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [fouls, setFouls] = useState<Record<number, number>>({ 4: 1 });
+  const [yellows, setYellows] = useState<Record<number, number>>({});
+  const [sentOff, setSentOff] = useState<Record<number, boolean>>({});
+  const [inferiorityFrom, setInferiorityFrom] = useState<number | null>(null);
+  const [flyingGkFrom, setFlyingGkFrom] = useState<number | null>(null);
+  const noticeTimer = useRef<number | undefined>(undefined);
   useEffect(() => {
     if (!running || seconds <= 0) return;
     const timer = window.setInterval(() => {
@@ -148,6 +160,22 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
     return () => window.clearInterval(timer);
   }, [running, seconds, onCourt]);
   const elapsed = initialClock - seconds;
+  const teamFouls = Object.values(fouls).reduce((sum, value) => sum + value, 0);
+  const inferiorityLeft = inferiorityFrom === null ? null : 120 - (elapsed - inferiorityFrom);
+  const flash = (message: string) => {
+    setNotice(message);
+    window.clearTimeout(noticeTimer.current);
+    noticeTimer.current = window.setTimeout(() => setNotice(""), 1800);
+  };
+  useEffect(() => {
+    if (inferiorityLeft === null || inferiorityLeft > 0) return;
+    // Os 2 minutos acabaram neste segundo do cronómetro: fecha a inferioridade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInferiorityFrom(null);
+    setNotice(t.demo.actions.canReturn);
+    window.clearTimeout(noticeTimer.current);
+    noticeTimer.current = window.setTimeout(() => setNotice(""), 1800);
+  }, [inferiorityLeft, t]);
   const time = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
   const formatDuration = (value: number) => `${String(Math.floor(Math.max(0, value) / 60)).padStart(2, "0")}:${String(Math.max(0, value) % 60).padStart(2, "0")}`;
   const swapPlayers = (outgoing: DemoPlayerNumber, incoming: DemoPlayerNumber) => {
@@ -155,18 +183,53 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
     setOnBench((current) => current.map((number) => number === incoming ? outgoing : number));
     setEnteredAt((current) => ({ ...current, [incoming]: elapsed }));
     setExitedAt((current) => ({ ...current, [outgoing]: elapsed }));
-    setNotice(`${demoPlayers[incoming].name} ${t.demo.enters} ${demoPlayers[outgoing].name}`);
     setSelectedField(null);
     setSelectedBench(null);
-    window.setTimeout(() => setNotice(""), 1600);
+    flash(`${demoPlayers[incoming].name} ${t.demo.enters} ${demoPlayers[outgoing].name}`);
+  };
+  const a = t.demo.actions;
+  const startAction = (action: Exclude<PendingAction, null>) => {
+    setSelectedField(null);
+    setSelectedBench(null);
+    window.clearTimeout(noticeTimer.current);
+    if (pendingAction === action) { setPendingAction(null); setNotice(""); return; }
+    setPendingAction(action);
+    setNotice(action === "foul" ? a.pickFoul : action === "yellow" ? a.pickYellow : a.pickRed);
+  };
+  const applyAction = (number: DemoPlayerNumber, action: PendingAction = pendingAction) => {
+    const name = demoPlayers[number].name;
+    const sendOff = () => {
+      setSentOff((current) => ({ ...current, [number]: true }));
+      setInferiorityFrom(elapsed);
+    };
+    if (action === "foul") {
+      setFouls((current) => ({ ...current, [number]: (current[number] ?? 0) + 1 }));
+      flash(`${a.foulBy} ${name}`);
+    } else if (action === "yellow") {
+      const count = (yellows[number] ?? 0) + 1;
+      setYellows((current) => ({ ...current, [number]: count }));
+      if (count >= 2) { sendOff(); flash(`${a.secondYellow} · ${name}`); }
+      else flash(`${a.yellowTo} ${name}`);
+    } else if (action === "red") {
+      sendOff();
+      flash(`${a.redTo} ${name}`);
+    }
+    setPendingAction(null);
+  };
+  const toggleFlyingGk = () => {
+    setPendingAction(null);
+    if (flyingGkFrom === null) { setFlyingGkFrom(elapsed); flash(a.gkOn); }
+    else { setFlyingGkFrom(null); flash(`${a.gkOff} · ${formatDuration(elapsed - flyingGkFrom)}`); }
   };
   const chooseField = (outgoing: DemoPlayerNumber) => {
+    if (pendingAction) { applyAction(outgoing); return; }
     if (selectedBench) { swapPlayers(outgoing, selectedBench); return; }
     setSelectedField(outgoing);
     setSelectedBench(null);
     setNotice(t.demo.pickBench);
   };
   const chooseBench = (incoming: DemoPlayerNumber) => {
+    setPendingAction(null);
     if (selectedField) { swapPlayers(selectedField, incoming); return; }
     setSelectedBench(incoming);
     setSelectedField(null);
@@ -242,12 +305,20 @@ function LiveMatch({ t }: { t: (typeof translations)[Language] }) {
   return <div className="match-window" aria-label={t.demo.label}>
     <div className="match-topbar"><span className="live-dot"><i /> {t.demo.live}</span><div className="match-score"><span className="score-team"><small>CAP</small><span className="score-stepper"><button type="button" aria-label={t.demo.decreaseHome} onClick={() => setHomeGoals((value) => Math.max(0, value - 1))}>−</button><b>{homeGoals}</b><button type="button" aria-label={t.demo.increaseHome} onClick={() => setHomeGoals((value) => value + 1)}>+</button></span></span><em>—</em><span className="score-team"><small>ADV</small><span className="score-stepper"><button type="button" aria-label={t.demo.decreaseAway} onClick={() => setAwayGoals((value) => Math.max(0, value - 1))}>−</button><b>{awayGoals}</b><button type="button" aria-label={t.demo.increaseAway} onClick={() => setAwayGoals((value) => value + 1)}>+</button></span></span></div><button className="icon-button" type="button" aria-label={t.demo.undo}>↶</button></div>
     <div className="timer-row"><div><small>{t.demo.part}</small><strong>{time}</strong></div><button type="button" className={`timer-control ${running ? "pause" : "play"}`} onClick={() => setRunning(!running)}><span>{running ? "Ⅱ" : "▶"}</span>{running ? t.demo.pause : t.demo.resume}</button></div>
+    <div className="demo-actions" role="group" aria-label={a.label}>
+      <button type="button" className={pendingAction === "foul" ? "active" : ""} onClick={() => startAction("foul")}><i className="foul-dot"/>{a.foul}<b>{teamFouls}</b></button>
+      <button type="button" className={pendingAction === "yellow" ? "active" : ""} onClick={() => startAction("yellow")}><i className="card-chip yellow"/>{a.yellow}</button>
+      <button type="button" className={pendingAction === "red" ? "active" : ""} onClick={() => startAction("red")}><i className="card-chip red"/>{a.red}</button>
+      <button type="button" className={flyingGkFrom !== null ? "active gk" : ""} onClick={toggleFlyingGk}>{a.flyingGk}{flyingGkFrom !== null && <b>{formatDuration(elapsed - flyingGkFrom)}</b>}</button>
+    </div>
     <div className="court"><span className="half-line"/><span className="center-circle"/><span className="area left"/><span className="area right"/>
-      {onCourt.map((number, index) => { const player = demoPlayers[number]; const position = fieldPositions[index]; const role = t.demo.roles[player.role]; return <button key={number} type="button" {...dragHandlers(number, "field")} className={`field-player-card ${selectedField === number || (draggingZone === "field" && draggingNumber === number) ? "selected" : ""} ${selectedBench || draggingZone === "bench" ? "ready" : ""} ${dragOverNumber === number ? "selected" : ""}`} style={{ left:`${position.x}%`, top:`${position.y}%` }} onClick={() => { if (!ignoreClick.current) chooseField(number); }} aria-label={`${player.name}, ${role}`}>
-        <span className="player-card-top"><b>{player.number}</b><small>{role}</small><i>●</i></span>
+      {inferiorityLeft !== null && <span className="inferiority-chip">{a.inferiority} · {formatDuration(inferiorityLeft)}</span>}
+      {onCourt.map((number, index) => { const player = demoPlayers[number]; const position = fieldPositions[index]; const role = t.demo.roles[player.role]; return <button key={number} type="button" {...dragHandlers(number, "field")} className={`field-player-card ${selectedField === number || (draggingZone === "field" && draggingNumber === number) ? "selected" : ""} ${selectedBench || draggingZone === "bench" || pendingAction ? "ready" : ""} ${dragOverNumber === number ? "selected" : ""} ${sentOff[number] ? "sent-off" : ""}`} style={{ left:`${position.x}%`, top:`${position.y}%` }} onClick={() => { if (!ignoreClick.current) chooseField(number); }} aria-label={`${player.name}, ${role}`}>
+        <span className="player-card-top"><b>{player.number}</b><small>{role}</small><span className="player-marks">{(fouls[number] ?? 0) > 0 && <em className="foul-count">{fouls[number]}F</em>}{(yellows[number] ?? 0) > 0 && !sentOff[number] && <i className="card-chip yellow"/>}{sentOff[number] && <i className="card-chip red"/>}{!(fouls[number] || yellows[number] || sentOff[number]) && <i>●</i>}</span></span>
         <strong>{player.name}</strong>
         <span className="player-time">{t.demo.totalTime} <b>{formatDuration(playerTimes[number])}</b></span>
-        <span className="player-status">{t.demo.playingFor} {formatDuration(elapsed - (enteredAt[number] ?? elapsed))}</span>
+        {!sentOff[number] && <span className="card-quick">{(["yellow", "red"] as const).map((kind) => <span key={kind} role="button" tabIndex={0} aria-label={`${kind === "yellow" ? a.yellow : a.red}: ${player.name}`} className={`card-chip ${kind}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); applyAction(number, kind); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); applyAction(number, kind); } }}/>)}</span>}
+        <span className="player-status">{sentOff[number] ? a.sentOff : `${t.demo.playingFor} ${formatDuration(elapsed - (enteredAt[number] ?? elapsed))}`}</span>
       </button>; })}
       <div className={`swap-notice ${notice ? "show" : ""}`}>{notice}</div>
     </div>
@@ -732,7 +803,7 @@ export default function Home() {
   return <main>
     <header className="site-header">
       <a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><img src="/logo.png" alt="" width={36} height={36}/></span><span>Futsal <b>SubStats</b></span></a>
-      <nav className={menuOpen ? "open" : ""} aria-label={t.nav.label}><a href="#try-demo" onClick={() => setMenuOpen(false)}>{t.nav.tryHere}</a><a href="#features" onClick={() => setMenuOpen(false)}>{t.nav.features}</a><a href="#licenses" onClick={() => setMenuOpen(false)}>{t.nav.licenses}</a><a href="#contact" onClick={() => setMenuOpen(false)}>{t.nav.contact}</a><a className="nav-web" href={APP_URL} target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}><Icon name="monitor"/>{t.nav.openWeb}</a></nav>
+      <nav className={menuOpen ? "open" : ""} aria-label={t.nav.label}><a href="#try-demo" onClick={() => setMenuOpen(false)}>{t.nav.tryHere}</a><a href="#features" onClick={() => setMenuOpen(false)}>{t.nav.features}</a><a href="#licenses" onClick={() => setMenuOpen(false)}>{t.nav.licenses}</a><a href="#contact" onClick={() => setMenuOpen(false)}>{t.nav.contact}</a><a className="nav-web" href={APP_URL} target="_blank" rel="noreferrer" title={t.nav.openWeb} onClick={() => setMenuOpen(false)}><Icon name="monitor"/><span className="nav-web-label">{t.nav.openWeb}</span></a></nav>
       <div className="header-actions"><label className="language-select"><span className="sr-only">{t.nav.language}</span><Icon name="globe"/><b aria-hidden="true">{lang.toUpperCase()}</b><select aria-label={t.nav.language} value={lang} onChange={(e) => setLang(e.target.value as Language)}><option value="pt">PT</option><option value="en">EN</option><option value="es">ES</option></select></label><button type="button" className="button small header-install" onClick={handleInstall}>{t.nav.install}</button><button className="menu-button" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label={t.nav.menu}><span/><span/></button></div>
     </header>
 

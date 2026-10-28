@@ -187,3 +187,15 @@
 @media(max-width:1100px){.hero-web-note{justify-content:center;text-align:left}}
 @media(max-width:820px){.site-header nav a.nav-web{justify-content:center;margin-top:6px;padding:14px}}
 .install-choice a{min-height:54px;display:flex;align-items:center;gap:12px;padding:0 18px;border:1px solid rgba(145,164,196,.22);border-radius:15px;background:rgba(145,164,196,.06);color:inherit;font-weight:700;font-size:15px}.install-choice a:hover{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.07)}
+
+/* Demo: faltas, cartões e 5v4 */
+.demo-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 10px}.demo-actions button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:30px;padding:0 6px;background:var(--card);border:1px solid var(--line);border-radius:8px;color:#d6e0f0;font-size:9px;font-weight:800;cursor:pointer;transition:border-color .2s,background .2s}.demo-actions button:hover{border-color:#536b90}.demo-actions button.active{border-color:var(--green);background:rgba(34,197,94,.12);color:#fff}.demo-actions button.gk{border-color:#60a5fa;background:rgba(96,165,250,.14)}.demo-actions b{font:800 9px monospace;color:var(--green-soft)}.demo-actions button.gk b{color:#93c5fd}
+.card-chip{display:inline-block;width:7px;height:10px;border-radius:2px;font-style:normal}.card-chip.yellow{background:#facc15}.card-chip.red{background:#ef4444}.foul-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber)}
+.player-marks{display:flex;align-items:center;gap:3px;margin-left:auto}.player-marks .foul-count{font:800 8px monospace;color:var(--amber);font-style:normal}.player-card-top .player-marks i{margin-left:0}
+.field-player-card.sent-off{opacity:.55;border-color:rgba(239,68,68,.7)}.field-player-card.sent-off .player-status{color:#f87171}
+.inferiority-chip{position:absolute;top:8px;left:50%;z-index:4;transform:translateX(-50%);padding:4px 9px;background:rgba(127,29,29,.9);border:1px solid #ef4444;border-radius:7px;color:#fecaca;font:800 8px monospace;white-space:nowrap}
+@media(max-width:600px){.demo-actions{gap:4px}.demo-actions button{font-size:8px;padding:0 3px;gap:3px}}
+.site-header nav a{white-space:nowrap}
+@media(min-width:821px) and (max-width:1180px){.nav-web{padding:8px}.nav-web-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}}
+.card-quick{position:absolute;right:8px;bottom:8px;display:flex;gap:5px}.card-quick .card-chip{width:11px;height:15px;border-radius:3px;cursor:pointer;opacity:.8;box-shadow:0 0 0 1px rgba(0,0,0,.35);transition:transform .15s,opacity .15s}.card-quick .card-chip:hover,.card-quick .card-chip:focus-visible{opacity:1;transform:scale(1.18);outline:none}
+@media(max-width:600px){.card-quick{right:5px;bottom:5px;gap:4px}.card-quick .card-chip{width:9px;height:13px}}
