@@ -1413,6 +1413,10 @@ export default {
   'plantelCsv.nadaAImportar': 'Não foi possível ler nenhum jogador deste ficheiro.',
   'plantelCsv.feito':
     'Plantel importado: {criados} criados, {atualizados} atualizados, {apagados} apagados, {desativados} desativados por terem jogos.',
+  'plantelCsv.conflitoTitulo': 'Número já atribuído',
+  'plantelCsv.conflitoTexto': 'O número {n} é de {antigo}, que não vem no ficheiro e nunca foi convocado, mas o ficheiro dá-o a {novo}. O que fazes a {antigo}?',
+  'plantelCsv.conflitoInativo': 'Deixar inativo',
+  'plantelCsv.conflitoApagar': 'Apagar',
   'plantelCsv.falhou': 'Não foi possível importar: {erro}',
 
   'plantelCsv.vazio': 'O ficheiro está vazio.',

@@ -1409,6 +1409,10 @@ export default {
   'plantelCsv.nadaAImportar': 'No se ha podido leer ningún jugador de este archivo.',
   'plantelCsv.feito':
     'Plantilla importada: {criados} creados, {atualizados} actualizados, {apagados} eliminados, {desativados} desactivados por tener partidos.',
+  'plantelCsv.conflitoTitulo': 'Dorsal ya asignado',
+  'plantelCsv.conflitoTexto': 'El dorsal {n} es de {antigo}, que no viene en el archivo y nunca ha sido convocado, pero el archivo se lo da a {novo}. ¿Qué haces con {antigo}?',
+  'plantelCsv.conflitoInativo': 'Dejar inactivo',
+  'plantelCsv.conflitoApagar': 'Eliminar',
   'plantelCsv.falhou': 'No se ha podido importar: {erro}',
 
   'plantelCsv.vazio': 'El archivo está vacío.',

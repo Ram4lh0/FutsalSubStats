@@ -1948,3 +1948,21 @@ test('importar o plantel reconhece o jogador pelo nome: mudar números mantém o
   assert.equal((await players.get(rui.id)).shirtNumber, 9);
   assert.equal((await players.listByTeam(escalao.id)).length, 2);
 });
+
+test('importar o plantel: o número de quem sai sem jogos e passa a outro é um conflito; inativo ou apagar', async () => {
+  await limpar();
+  const clube = await clubs.create({ name: 'Patameiras', shortName: 'PAT' });
+  const escalao = await teams.create(clube.id, { name: 'Séniores', timing: 'UNTIMED' });
+  const velho = await players.create(escalao.id, { name: 'Velho', shirtNumber: 5 });
+  const novo = [{ shirtNumber: 5, name: 'Novo', preferredPosition: 'UNIVERSAL', strongFoot: 'UNKNOWN', isActive: true }];
+
+  const conflitos = await players.conflitosDeImportacao(escalao.id, novo);
+  assert.equal(conflitos.length, 1);
+  assert.equal(conflitos[0].antigo.id, velho.id);
+  assert.equal(conflitos[0].numero, 5);
+
+  const r = await players.replaceRoster(escalao.id, novo, { manterInativos: [velho.id] });
+  assert.equal(r.desativados, 1);
+  assert.equal(r.apagados, 0);
+  assert.equal((await players.get(velho.id)).isActive, false);
+});

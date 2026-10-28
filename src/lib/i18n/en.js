@@ -1408,6 +1408,10 @@ export default {
   'plantelCsv.nadaAImportar': 'No player could be read from this file.',
   'plantelCsv.feito':
     'Roster imported: {criados} created, {atualizados} updated, {apagados} deleted, {desativados} deactivated because they have matches.',
+  'plantelCsv.conflitoTitulo': 'Number already taken',
+  'plantelCsv.conflitoTexto': 'Number {n} belongs to {antigo}, who is not in the file and was never called up, but the file gives it to {novo}. What should happen to {antigo}?',
+  'plantelCsv.conflitoInativo': 'Keep inactive',
+  'plantelCsv.conflitoApagar': 'Delete',
   'plantelCsv.falhou': 'Could not import: {erro}',
 
   'plantelCsv.vazio': 'The file is empty.',

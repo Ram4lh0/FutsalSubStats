@@ -376,6 +376,26 @@ export async function push(userId, email) {
       .slice(0, 5)
       .join(', ');
 
+  // Jogadores marcados para apagar (ver `players.remove`). Saem antes dos envios:
+  // o número deles pode ter passado a outro jogador na mesma ronda, e o servidor
+  // só deixa um jogador ativo por número.
+  // Um pedido de
+  // eliminação a sério, não um "upsert" — e é a mesma política de segurança,
+  // `players_escrever`, que decide se o servidor aceita: cobre TODO o acesso
+  // de escrita ao jogador, incluindo apagar, com a mesma regra de sempre
+  // (`pode_editar_escalao`). Se recusar, a linha fica `pendingDelete` e tenta
+  // outra vez na próxima ronda — tal como qualquer outra falha de envio.
+  //
+  // Um jogador nunca sincronizado (criado e apagado sem rede) não existe do
+  // lado de lá: o `delete` não encontra nada para apagar, não dá erro, e a
+  // linha sai da base local à mesma.
+  for (const p of jogadoresParaApagar) {
+    const { error } = await sb.from('players').delete().eq('id', p.id);
+    if (error) throw etiqueta(error, `players (apagar ${p.name || p.id.slice(0, 8)})`);
+    await db.del(db.STORES.players, p.id);
+    total += 1;
+  }
+
   for (const [store, mapper, linhas] of [
     [db.STORES.teams, teamMapper, escaloes],
     [db.STORES.competitions, competitionMapper, competicoes],
@@ -399,23 +419,6 @@ export async function push(userId, email) {
     if (error) throw etiqueta(error, `${mapper.table} (${detalharLinhas(linhas)})`);
     await clean(store, linhas);
     total += linhas.length;
-  }
-
-  // Jogadores marcados para apagar (ver `players.remove`). Um pedido de
-  // eliminação a sério, não um "upsert" — e é a mesma política de segurança,
-  // `players_escrever`, que decide se o servidor aceita: cobre TODO o acesso
-  // de escrita ao jogador, incluindo apagar, com a mesma regra de sempre
-  // (`pode_editar_escalao`). Se recusar, a linha fica `pendingDelete` e tenta
-  // outra vez na próxima ronda — tal como qualquer outra falha de envio.
-  //
-  // Um jogador nunca sincronizado (criado e apagado sem rede) não existe do
-  // lado de lá: o `delete` não encontra nada para apagar, não dá erro, e a
-  // linha sai da base local à mesma.
-  for (const p of jogadoresParaApagar) {
-    const { error } = await sb.from('players').delete().eq('id', p.id);
-    if (error) throw etiqueta(error, `players (apagar ${p.name || p.id.slice(0, 8)})`);
-    await db.del(db.STORES.players, p.id);
-    total += 1;
   }
 
   await claimStartedMatches(sb, jogos, eventos);

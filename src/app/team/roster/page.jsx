@@ -16,6 +16,7 @@ import * as sync from '@/lib/data/sync.js';
 import { download, pickFile, slug } from '@/lib/data/exporter.js';
 import { plantelCsv, plantelExemploCsv, lerPlantelCsv } from '@/lib/data/plantelCsv.js';
 import ImportarPlantel from '@/components/ImportarPlantel.jsx';
+import ConflitoImportacao from '@/components/ConflitoImportacao.jsx';
 import { clubAggregate } from '@/domain/stats.js';
 import { fmt } from '@/domain/clock.js';
 import { POSITIONS_ALL, normalizePosition, FOOT } from '@/domain/constants.js';
@@ -171,7 +172,22 @@ function Roster({ team, entries, roster, clubId, teamId }) {
       );
       if (!ok) return;
 
-      const r = await players.replaceRoster(teamId, jogadores);
+      // Quem sai sem nunca ter sido convocado seria apagado; se o ficheiro dá o
+      // número dele a outro, pergunta-se o que fazer, jogador a jogador.
+      const manterInativos = [];
+      for (const conflito of await players.conflitosDeImportacao(teamId, jogadores)) {
+        const escolha = await ui.open((close) => (
+          <ConflitoImportacao
+            conflito={conflito}
+            onEscolher={(e) => close(e)}
+            onClose={() => close(null)}
+          />
+        ));
+        if (!escolha) return;
+        if (escolha === 'inativo') manterInativos.push(conflito.antigo.id);
+      }
+
+      const r = await players.replaceRoster(teamId, jogadores, { manterInativos });
       sync.saveNow(userId, user?.email);
       setVersao((v) => v + 1);
       toast(t('plantelCsv.feito', r), 'ok', 8000);

@@ -369,6 +369,30 @@ export const competitions = {
 
 /* ------------------------------------------------------------- jogadores */
 
+/**
+ * Liga cada linha do ficheiro ao jogador do plantel com o mesmo nome (ou null).
+ *
+ * A identidade é o nome: o número é só um dado do jogador e pode mudar. Sem
+ * acentos nem maiúsculas, para "joão" e "Joao " serem a mesma pessoa. Com dois
+ * jogadores do mesmo nome, cada linha do ficheiro fica com um.
+ */
+function casarPorNome(atuais, jogadores) {
+  const chave = (nome) =>
+    String(nome ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const porNome = new Map();
+  for (const p of atuais) {
+    const k = chave(p.name);
+    if (!porNome.has(k)) porNome.set(k, []);
+    porNome.get(k).push(p);
+  }
+  const usados = new Set();
+  return jogadores.map((j) => {
+    const p = (porNome.get(chave(j.name)) || []).find((x) => !usados.has(x.id));
+    if (p) usados.add(p.id);
+    return p || null;
+  });
+}
+
 export const players = {
   // Um jogador marcado para apagar (`pendingDelete`) já saiu da vida do
   // escalão, mas continua na base local até o servidor confirmar a
@@ -448,6 +472,29 @@ export const players = {
   },
 
   /**
+   * Jogadores que a importação apagaria mas cujo número o ficheiro dá a outro.
+   *
+   * O servidor só deixa um jogador ativo por número e por escalão, e os apagados
+   * só saem depois dos envios: o número novo bateria no antigo. Quem importa
+   * decide o que fazer ao antigo (deixá-lo inativo ou apagá-lo) antes de começar.
+   *
+   * @returns {Array<{ antigo: object, novoNome: string, numero: number }>}
+   */
+  async conflitosDeImportacao(teamId, jogadores) {
+    const atuais = await players.listByTeam(teamId);
+    const convocados = new Set((await db.all(db.STORES.matchSquad)).map((s) => s.playerId));
+    const casados = casarPorNome(atuais, jogadores);
+    const mantidos = new Set(casados.filter(Boolean).map((p) => p.id));
+    const out = [];
+    for (const p of atuais) {
+      if (mantidos.has(p.id) || convocados.has(p.id) || !p.isActive) continue;
+      const j = jogadores.find((x, i) => !casados[i] && Number(x.shirtNumber) === Number(p.shirtNumber));
+      if (j) out.push({ antigo: p, novoNome: j.name, numero: Number(p.shirtNumber) });
+    }
+    return out;
+  },
+
+  /**
    * Põe o plantel do escalão igual ao que veio no ficheiro.
    *
    * "Substituir" é o que se pede, mas não pode ser um apagar e voltar a criar:
@@ -469,29 +516,20 @@ export const players = {
    *
    * @returns {{ criados:number, atualizados:number, apagados:number, desativados:number }}
    */
-  async replaceRoster(teamId, jogadores) {
+  async replaceRoster(teamId, jogadores, { manterInativos = [] } = {}) {
     const atuais = await players.listByTeam(teamId);
     const convocados = new Set((await db.all(db.STORES.matchSquad)).map((s) => s.playerId));
-    // A identidade é o nome: o número é só um dado do jogador e pode mudar.
-    // Sem acentos nem maiúsculas, para "joão" e "Joao " serem a mesma pessoa.
-    const chave = (nome) =>
-      String(nome ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
-    const porNome = new Map();
-    for (const p of atuais) {
-      const k = chave(p.name);
-      if (!porNome.has(k)) porNome.set(k, []);
-      porNome.get(k).push(p);
-    }
+    const casados = casarPorNome(atuais, jogadores);
     const mantidos = new Set();
+    const inativar = new Set(manterInativos);
 
     let criados = 0;
     let atualizados = 0;
     let apagados = 0;
     let desativados = 0;
 
-    for (const j of jogadores) {
-      // Dois jogadores com o mesmo nome: cada linha do ficheiro fica com um.
-      const existente = (porNome.get(chave(j.name)) || []).find((p) => !mantidos.has(p.id));
+    for (const [i, j] of jogadores.entries()) {
+      const existente = casados[i];
       if (existente) {
         mantidos.add(existente.id);
         await players.update(existente.id, {
@@ -513,7 +551,7 @@ export const players = {
 
     for (const p of atuais) {
       if (mantidos.has(p.id)) continue;
-      if (convocados.has(p.id)) {
+      if (convocados.has(p.id) || inativar.has(p.id)) {
         if (p.isActive) {
           await players.update(p.id, { isActive: false });
           desativados += 1;
