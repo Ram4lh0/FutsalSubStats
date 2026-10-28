@@ -195,8 +195,18 @@ test('+ tempo: limites e validação do fim', () => {
   const st = buildMatchState(match, ctx.squad, ctx.events);
   assert.equal(validarFim(st, 43 * MIN), null);
   assert.equal(validarFim(st, 70 * MIN), null);
-  assert.equal(validarFim(st, 71 * MIN).chave, 'fim.erro.extraDemais');
+  assert.equal(validarFim(st, 120 * MIN), null);
+  assert.equal(validarFim(st, 121 * MIN).chave, 'fim.erro.extraDemais');
   assert.equal(validarFim(st, 9 * MIN).chave, 'fim.erro.antes'); // a substituição aos 10'
+});
+
+test('+ tempo: um jogo terminado cedo por engano pode ir até aos 40 min', () => {
+  const ctx = novo();
+  step(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  step(ctx, (s) => A.finishMatch(s, T0 + 4 * MIN), T0 + 4 * MIN);
+  const st = buildMatchState(match, ctx.squad, ctx.events);
+  assert.equal(validarFim(st, 40 * MIN), null);
+  assert.equal(validarFim(st, 121 * MIN).chave, 'fim.erro.extraDemais');
 });
 
 test('+ tempo: num jogo por terminar o máximo continua a ser o relógio', () => {

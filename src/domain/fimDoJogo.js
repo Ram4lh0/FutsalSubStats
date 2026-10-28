@@ -73,10 +73,10 @@ export function ultimoRegisto(state) {
   return melhor;
 }
 
-// Quanto tempo a mais se aceita depois do fim que ficou marcado (jogo
-// terminado). Chega para qualquer prolongamento; serve só de rede contra um
-// minuto escrito a mais por engano.
-export const EXTRA_MAX_MS = 30 * 60_000;
+// Até que minuto se aceita o fim de um jogo terminado. Teto fixo (e não "fim
+// marcado + X"), para dar para corrigir um jogo terminado muito cedo por
+// engano; serve só de rede contra um minuto escrito a mais (400 em vez de 40).
+export const FIM_MAX_MS = 120 * 60_000;
 
 /**
  * Entre que minutos se pode fixar o fim.
@@ -84,7 +84,7 @@ export const EXTRA_MAX_MS = 30 * 60_000;
  * - máximo: o que o relógio marca agora (jogo por terminar) ou o fim que ficou
  *   registado (jogo terminado).
  * - maxExtraMs: só num jogo terminado — o jogo pode ter continuado depois do
- *   que ficou marcado (relógio parado, tempo de desconto), até EXTRA_MAX_MS.
+ *   que ficou marcado (relógio parado, tempo de desconto), até FIM_MAX_MS.
  *   O que passa de `maxMs` é tempo extra.
  */
 export function limitesDoFim(state, now = Date.now()) {
@@ -95,7 +95,7 @@ export function limitesDoFim(state, now = Date.now()) {
   const maxMs = terminado
     ? state.fimOriginalMs ?? state.elapsedMatchMs
     : readClock(state, now).matchMs;
-  const maxExtraMs = terminado ? maxMs + EXTRA_MAX_MS : maxMs;
+  const maxExtraMs = terminado ? Math.max(maxMs, FIM_MAX_MS) : maxMs;
   return { minMs, maxMs, maxExtraMs, ultimoRegisto: ultimo, terminado };
 }
 
