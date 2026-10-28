@@ -2,8 +2,8 @@ export type Language = "pt" | "en" | "es";
 
 export const translations = {
   pt: {
-    nav: { label: "Navegação principal", tryHere: "Experimentar", features: "Durante o jogo", licenses: "Licenças", contact: "Contactos", language: "Idioma", cta: "Ver licenças", install: "Instalar", menu: "Abrir menu" },
-    hero: { eyebrow: "Para treinadores que querem controlar melhor o jogo", titleStart: "Controla minutos,", titleHighlight: "substituições e estatísticas em tempo real.", description: "Regista substituições, golos, faltas e cartões com poucos toques. No fim do jogo, tens tudo organizado por equipa e por jogador.", primary: "Experimentar demo", secondary: "Ver licenças", proofOffline: "Funciona sem internet", proofPrivacy: "Sem publicidade", statTime: "Tempo em campo", entries: "entradas", auto: "detetado sozinho", scroll: "Explorar" },
+    nav: { label: "Navegação principal", tryHere: "Experimentar", features: "Durante o jogo", licenses: "Licenças", contact: "Contactos", language: "Idioma", cta: "Ver licenças", install: "Instalar", menu: "Abrir menu", openWeb: "Abrir app no browser" },
+    hero: { eyebrow: "Para treinadores que querem controlar melhor o jogo", titleStart: "Controla minutos,", titleHighlight: "substituições e estatísticas em tempo real.", description: "Regista substituições, golos, faltas e cartões com poucos toques. No fim do jogo, tens tudo organizado por equipa e por jogador.", primary: "Experimentar demo", secondary: "Ver licenças", proofOffline: "Funciona sem internet", proofPrivacy: "Sem publicidade", webNote: "No telemóvel abre a loja; no computador, a app abre logo no browser.", statTime: "Tempo em campo", entries: "entradas", auto: "detetado sozinho", scroll: "Explorar" },
     demo: { label: "Demonstração interativa de um jogo de futsal", live: "EM JOGO", part: "1.ª PARTE", pause: "Parar", resume: "Continuar", undo: "Desfazer última ação", increaseHome: "Adicionar golo ao CAP", decreaseHome: "Retirar golo ao CAP", increaseAway: "Adicionar golo ao ADV", decreaseAway: "Retirar golo ao ADV", bench: "Banco", tap: "Toca ou arrasta um jogador para experimentar", tryTitle: "Experimenta aqui", tryText: "Toca ou arrasta um jogador em campo até um do banco", enters: "entra por", pickFirst: "Escolhe primeiro alguém em campo", pickBench: "Agora escolhe alguém do banco", pickField: "Agora escolhe alguém em campo", totalTime: "Tempo de jogo", playingFor: "Em jogo há", leftAgo: "Saiu há", notEntered: "Ainda não entrou", roles: { goalkeeper: "GR", wing: "ALA", defender: "FIXO", leftWing: "ALA E", rightWing: "ALA D", universal: "UNIVERSAL", pivot: "PIVOT" } },
     statement: { kicker: "Durante o jogo registas. Depois analisas.", title: "Tu segues o jogo.", highlight: "Nós guardamos os detalhes." },
     features: { kicker: "Durante o jogo", title: "Regista o essencial sem perder o ritmo do jogo.", intro: "Feita para o banco: rápida, clara e simples de usar durante a partida.", items: [
@@ -27,6 +27,7 @@ export const translations = {
       androidEmailIntro: "Para acesso à app no Android, envia email para:",
       iphone: "iPhone ou iPad",
       android: "Android",
+      computer: "Usar no computador (browser)",
       wrongDevice: "Não é este o meu telemóvel",
       downloadHere: "Descarrega aqui",
       openApp: "Abrir a app",
@@ -67,8 +68,8 @@ export const translations = {
     footer: { tagline: "Minutos, rotações e estatísticas sem folhas soltas." },
   },
   en: {
-    nav: { label: "Main navigation", tryHere: "Try it here", features: "During the match", licenses: "Licences", contact: "Contact", language: "Language", cta: "View licences", install: "Install", menu: "Open menu" },
-    hero: { eyebrow: "For coaches who manage minutes, not guesses", titleStart: "Control the match.", titleHighlight: "The app tracks the minutes.", description: "Log substitutions, goals, fouls and cards in a few taps. After the match, rotations and statistics are ready to review.", primary: "Try the app", secondary: "View licences", proofOffline: "Works offline", proofPrivacy: "No advertising", statTime: "Time on court", entries: "entries", auto: "detected automatically", scroll: "Explore" },
+    nav: { label: "Main navigation", tryHere: "Try it here", features: "During the match", licenses: "Licences", contact: "Contact", language: "Language", cta: "View licences", install: "Install", menu: "Open menu", openWeb: "Open app in browser" },
+    hero: { eyebrow: "For coaches who manage minutes, not guesses", titleStart: "Control the match.", titleHighlight: "The app tracks the minutes.", description: "Log substitutions, goals, fouls and cards in a few taps. After the match, rotations and statistics are ready to review.", primary: "Try the app", secondary: "View licences", proofOffline: "Works offline", proofPrivacy: "No advertising", webNote: "On a phone it opens the app store; on a computer, the app opens right in the browser.", statTime: "Time on court", entries: "entries", auto: "detected automatically", scroll: "Explore" },
     demo: { label: "Interactive futsal match demo", live: "LIVE", part: "1ST HALF", pause: "Pause", resume: "Resume", undo: "Undo last action", increaseHome: "Add a CAP goal", decreaseHome: "Remove a CAP goal", increaseAway: "Add an opponent goal", decreaseAway: "Remove an opponent goal", bench: "Bench", tap: "Tap or drag a player to try it", tryTitle: "Try it here", tryText: "Tap or drag an on-court player onto someone on the bench", enters: "replaces", pickFirst: "Pick an on-court player first", pickBench: "Now pick someone from the bench", pickField: "Now pick someone on court", totalTime: "Playing time", playingFor: "On court for", leftAgo: "Off for", notEntered: "Not yet played", roles: { goalkeeper: "GK", wing: "WING", defender: "DEF", leftWing: "L WING", rightWing: "R WING", universal: "UTILITY", pivot: "PIVOT" } },
     statement: { kicker: "Less bench maths. Better decisions later.", title: "You follow the match.", highlight: "Futsal SubStats keeps the details." },
     features: { kicker: "During the match", title: "Log events without losing sight of play.", intro: "Built for the bench: quick taps, clear information and nothing that gets in the way.", items: [
@@ -92,6 +93,7 @@ export const translations = {
       androidEmailIntro: "For Android access, email us at:",
       iphone: "iPhone or iPad",
       android: "Android",
+      computer: "Use on a computer (browser)",
       wrongDevice: "This is not my phone",
       downloadHere: "Download here",
       openApp: "Open the app",
@@ -132,8 +134,8 @@ export const translations = {
     footer: { tagline: "Minutes, rotations and stats without scattered sheets." },
   },
   es: {
-    nav: { label: "Navegación principal", tryHere: "Pruébala aquí", features: "Durante el partido", licenses: "Licencias", contact: "Contacto", language: "Idioma", cta: "Ver licencias", install: "Instalar", menu: "Abrir menú" },
-    hero: { eyebrow: "Para entrenadores que gestionan minutos, no intuiciones", titleStart: "Controla el partido.", titleHighlight: "La app cuenta los minutos.", description: "Registra cambios, goles, faltas y tarjetas en pocos toques. Al final tienes rotaciones y estadísticas listas para analizar.", primary: "Probar la app", secondary: "Ver licencias", proofOffline: "Funciona sin conexión", proofPrivacy: "Sin publicidad", statTime: "Tiempo en pista", entries: "entradas", auto: "detectado solo", scroll: "Explorar" },
+    nav: { label: "Navegación principal", tryHere: "Pruébala aquí", features: "Durante el partido", licenses: "Licencias", contact: "Contacto", language: "Idioma", cta: "Ver licencias", install: "Instalar", menu: "Abrir menú", openWeb: "Abrir app en el navegador" },
+    hero: { eyebrow: "Para entrenadores que gestionan minutos, no intuiciones", titleStart: "Controla el partido.", titleHighlight: "La app cuenta los minutos.", description: "Registra cambios, goles, faltas y tarjetas en pocos toques. Al final tienes rotaciones y estadísticas listas para analizar.", primary: "Probar la app", secondary: "Ver licencias", proofOffline: "Funciona sin conexión", proofPrivacy: "Sin publicidad", webNote: "En el móvil abre la tienda; en el ordenador, la app se abre directamente en el navegador.", statTime: "Tiempo en pista", entries: "entradas", auto: "detectado solo", scroll: "Explorar" },
     demo: { label: "Demostración interactiva de un partido de fútbol sala", live: "EN JUEGO", part: "1.ª PARTE", pause: "Parar", resume: "Continuar", undo: "Deshacer última acción", increaseHome: "Añadir gol al CAP", decreaseHome: "Quitar gol al CAP", increaseAway: "Añadir gol al rival", decreaseAway: "Quitar gol al rival", bench: "Banquillo", tap: "Toca o arrastra un jugador para probar", tryTitle: "Pruébala aquí", tryText: "Toca o arrastra un jugador en pista hasta uno del banquillo", enters: "entra por", pickFirst: "Elige primero a alguien en pista", pickBench: "Ahora elige a alguien del banquillo", pickField: "Ahora elige a alguien en pista", totalTime: "Tiempo de juego", playingFor: "En pista desde hace", leftAgo: "Salió hace", notEntered: "Todavía no ha entrado", roles: { goalkeeper: "PORTERO", wing: "ALA", defender: "CIERRE", leftWing: "ALA I", rightWing: "ALA D", universal: "UNIVERSAL", pivot: "PÍVOT" } },
     statement: { kicker: "Menos cuentas en el banquillo. Mejores decisiones después.", title: "Tú sigues el partido.", highlight: "Futsal SubStats guarda los detalles." },
     features: { kicker: "Durante el partido", title: "Registra sin dejar de mirar la pista.", intro: "Pensada para el banquillo: toques rápidos, información clara y nada que moleste durante el juego.", items: [
@@ -157,6 +159,7 @@ export const translations = {
       androidEmailIntro: "Para acceder a la app en Android, envía un email a:",
       iphone: "iPhone o iPad",
       android: "Android",
+      computer: "Usar en el ordenador (navegador)",
       wrongDevice: "Este no es mi móvil",
       downloadHere: "Descárgala aquí",
       openApp: "Abrir la app",

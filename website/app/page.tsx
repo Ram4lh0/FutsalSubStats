@@ -62,7 +62,7 @@ const initialOnCourt: DemoPlayerNumber[] = [1, 4, 5, 6, 9];
 const initialBench: DemoPlayerNumber[] = [2, 7, 8];
 const initialTimes: Record<DemoPlayerNumber, number> = { 1: 436, 2: 214, 4: 401, 5: 378, 6: 329, 7: 187, 8: 153, 9: 352 };
 
-type IconName = "clock" | "swap" | "chart" | "folder" | "wifi" | "shield" | "mail" | "check" | "arrow" | "globe" | "ball" | "share" | "dots" | "apple" | "android";
+type IconName = "clock" | "swap" | "chart" | "folder" | "wifi" | "shield" | "mail" | "check" | "arrow" | "globe" | "ball" | "share" | "dots" | "apple" | "android" | "monitor";
 function Icon({ name }: { name: IconName }) {
   const paths = {
     clock: <><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></>,
@@ -81,6 +81,7 @@ function Icon({ name }: { name: IconName }) {
     share: <><path d="M12 15V3m0 0L8.5 6.5M12 3l3.5 3.5"/><path d="M7 11H5v10h14V11h-2"/></>,
     dots: <><circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/></>,
     apple: <path d="M15.5 3c.2 1.3-.3 2.5-1 3.3-.8.9-1.9 1.5-3 1.4-.2-1.2.4-2.5 1.1-3.3.8-.9 2.1-1.5 2.9-1.4M18.6 16.4c-.5 1.2-.8 1.7-1.5 2.7-1 1.4-2.3 3.2-4 3.2-1.5 0-1.9-1-3.9-1-2 0-2.5 1-4 1-1.7 0-2.9-1.6-3.9-3-2.8-4-3.1-8.7-1.4-11.2 1.2-1.8 3.1-2.8 4.9-2.8 1.8 0 3 1 4.5 1 1.5 0 2.4-1 4.5-1 1.6 0 3.2.9 4.4 2.4-3.9 2.1-3.2 7.6.4 8.7"/>,
+    monitor: <><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></>,
     android: <><path d="M6 11h12v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1z"/><path d="M6 11a6 6 0 0 1 12 0"/><path d="m8 5 1.2 2M16 5l-1.2 2"/><path d="M3.5 12v4M20.5 12v4M10 19v2.5M14 19v2.5"/></>,
   };
   return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
@@ -363,6 +364,7 @@ function InstallDialog({ t, onClose }: { t: (typeof translations)[Language]; onC
         <div className="install-choice">
           <button type="button" onClick={() => setSistema("ios")}><Icon name="apple"/>{c.iphone}</button>
           <button type="button" onClick={() => setSistema("android")}><Icon name="android"/>{c.android}</button>
+          <a href={APP_URL} target="_blank" rel="noreferrer"><Icon name="monitor"/>{c.computer}</a>
         </div>
       </> : (sistema === "ios" ? APP_STORE_URL : PLAY_STORE_URL) ? <>
         {/* Com loja não há nada para explicar, só o link — sem a barra do
@@ -570,6 +572,16 @@ export default function Home() {
     if (storeUrl) { window.location.href = storeUrl; return; }
     setInstallOpen(true);
   };
+  // "Experimentar demo": no telemóvel vai direto à loja do aparelho; no
+  // computador o link segue para a app no browser (é o href, por isso funciona
+  // mesmo sem JavaScript e é o que os motores de busca veem).
+  const handleTry = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    const sistema = detectarSistema();
+    const storeUrl = sistema === "android" ? PLAY_STORE_URL : sistema === "ios" ? APP_STORE_URL : null;
+    if (!storeUrl) return;
+    event.preventDefault();
+    window.location.href = storeUrl;
+  };
   const iniciarCheckoutStripe = async (type: "coach" | "club", accessToken: string) => {
     setCheckoutLoading(type);
     setCheckoutErrorType(null);
@@ -720,12 +732,12 @@ export default function Home() {
   return <main>
     <header className="site-header">
       <a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><img src="/logo.png" alt="" width={36} height={36}/></span><span>Futsal <b>SubStats</b></span></a>
-      <nav className={menuOpen ? "open" : ""} aria-label={t.nav.label}><a href="#try-demo" onClick={() => setMenuOpen(false)}>{t.nav.tryHere}</a><a href="#features" onClick={() => setMenuOpen(false)}>{t.nav.features}</a><a href="#licenses" onClick={() => setMenuOpen(false)}>{t.nav.licenses}</a><a href="#contact" onClick={() => setMenuOpen(false)}>{t.nav.contact}</a></nav>
+      <nav className={menuOpen ? "open" : ""} aria-label={t.nav.label}><a href="#try-demo" onClick={() => setMenuOpen(false)}>{t.nav.tryHere}</a><a href="#features" onClick={() => setMenuOpen(false)}>{t.nav.features}</a><a href="#licenses" onClick={() => setMenuOpen(false)}>{t.nav.licenses}</a><a href="#contact" onClick={() => setMenuOpen(false)}>{t.nav.contact}</a><a className="nav-web" href={APP_URL} target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}><Icon name="monitor"/>{t.nav.openWeb}</a></nav>
       <div className="header-actions"><label className="language-select"><span className="sr-only">{t.nav.language}</span><Icon name="globe"/><b aria-hidden="true">{lang.toUpperCase()}</b><select aria-label={t.nav.language} value={lang} onChange={(e) => setLang(e.target.value as Language)}><option value="pt">PT</option><option value="en">EN</option><option value="es">ES</option></select></label><button type="button" className="button small header-install" onClick={handleInstall}>{t.nav.install}</button><button className="menu-button" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label={t.nav.menu}><span/><span/></button></div>
     </header>
 
     <section className="hero" id="top"><div className="hero-grid" aria-hidden="true"/><div className="hero-glow glow-one"/><div className="hero-glow glow-two"/>
-      <div className="hero-copy reveal"><div className="eyebrow"><i/> {t.hero.eyebrow}</div><h1>{t.hero.titleStart} <span>{t.hero.titleHighlight}</span></h1><p>{t.hero.description}</p><div className="hero-actions"><a className="button" href="#experience">{t.hero.primary}<Icon name="arrow"/></a><a className="text-link" href="#licenses">{t.hero.secondary}<span>↓</span></a></div><div className="hero-proof"><span><Icon name="wifi"/>{t.hero.proofOffline}</span><span><Icon name="shield"/>{t.hero.proofPrivacy}</span><span><Icon name="globe"/>PT · EN · ES</span></div></div>
+      <div className="hero-copy reveal"><div className="eyebrow"><i/> {t.hero.eyebrow}</div><h1>{t.hero.titleStart} <span>{t.hero.titleHighlight}</span></h1><p>{t.hero.description}</p><div className="hero-actions"><a className="button" href={APP_URL} target="_blank" rel="noreferrer" onClick={handleTry}>{t.hero.primary}<Icon name="arrow"/></a><a className="text-link" href="#licenses">{t.hero.secondary}<span>↓</span></a></div><p className="hero-web-note"><Icon name="monitor"/>{t.hero.webNote}</p><div className="hero-proof"><span><Icon name="wifi"/>{t.hero.proofOffline}</span><span><Icon name="shield"/>{t.hero.proofPrivacy}</span><span><Icon name="globe"/>PT · EN · ES</span></div></div>
       <div className="hero-visual reveal" id="try-demo"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="try-callout"><span>↘</span><div><b>{t.demo.tryTitle}</b><small>{t.demo.tryText}</small></div></div><div className="device-shell"><div className="device-camera"/><LiveMatch t={t}/></div></div>
       <a className="scroll-cue" href="#experience"><span/>{t.hero.scroll}</a>
     </section>
@@ -744,7 +756,7 @@ export default function Home() {
 
     <section className="offline-section" id="offline"><div className="offline-glow"/><div className="offline-visual reveal"><div className="signal-rings"><i/><i/><i/></div><div className="offline-device"><span className="offline-notch"/><span className="offline-icon"><Icon name="wifi"/><b>{t.offline.local}</b></span><small>{t.offline.device}</small></div><div className="sync-path"><i/><i/><i/></div><div className="data-card data-one"><Icon name="folder"/><span><b>{t.offline.saved}</b><small>{t.offline.device}</small></span><Icon name="check"/></div><div className="data-card data-two"><Icon name="chart"/><span><b>{t.offline.synced}</b><small>{t.offline.connection}</small></span><Icon name="check"/></div></div><div className="offline-copy reveal"><span className="section-number">04</span><p>{t.offline.kicker}</p><h2>{t.offline.title}</h2><p>{t.offline.text}</p><div className="offline-detail"><Icon name="shield"/><div><b>{t.offline.privacyTitle}</b><span>{t.offline.privacyText}</span></div></div></div></section>
 
-    <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">05</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club","custom"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><div className="plan-price">{plan.oldPrice&&<del>{plan.oldPrice}</del>}<strong>{plan.price}</strong><span>{t.licenses.perSeason}</span></div><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul>{type==="custom"?<a className="button" href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(t.licenses.custom.subject)}`}>{t.licenses.custom.cta}<Icon name="mail"/></a>:<button className="button" type="button" disabled={checkoutLoading !== null} onClick={() => handleLicenseCheckout(type)}>{checkoutLoading === type ? t.licenses.buying : t.licenses.buy}<Icon name="arrow"/></button>}{checkoutErrorType === type && <p className="claim-error">{t.licenses.checkoutError}</p>}{licenseWarning?.type === type && <p className="claim-error">{licenseWarning.kind === "club-covers" ? t.licenses.alreadyOwnClub : t.licenses.alreadyOwnSame}</p>}</article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><button type="button" className="button" onClick={handleInstall}>{t.licenses.installNow}<Icon name="arrow"/></button></div></div></section>
+    <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">05</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club","custom"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><div className="plan-price">{plan.oldPrice&&<del>{plan.oldPrice}</del>}<strong>{plan.price}</strong><span>{t.licenses.perSeason}</span></div><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul>{type==="custom"?<a className="button" href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(t.licenses.custom.subject)}`}>{t.licenses.custom.cta}<Icon name="mail"/></a>:<button className="button" type="button" disabled={checkoutLoading !== null} onClick={() => handleLicenseCheckout(type)}>{checkoutLoading === type ? t.licenses.buying : t.licenses.buy}<Icon name="arrow"/></button>}{checkoutErrorType === type && <p className="claim-error">{t.licenses.checkoutError}</p>}{licenseWarning?.type === type && <p className="claim-error">{licenseWarning.kind === "club-covers" ? t.licenses.alreadyOwnClub : t.licenses.alreadyOwnSame}</p>}</article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><a className="button" href={APP_URL} target="_blank" rel="noreferrer" onClick={handleTry}>{t.licenses.installNow}<Icon name="arrow"/></a></div></div></section>
 
     <section className="contact-section" id="contact"><div className="contact-card reveal"><div><p>{t.contact.kicker}</p><h2>{t.contact.title}</h2><span>{t.contact.text}</span></div><a className="button" href={emailHref}><Icon name="mail"/>{t.contact.button}</a><small>{CONTACT_EMAIL}</small></div></section>
     {/* FAQ em dados estruturados, sempre na versão portuguesa: é a que o
