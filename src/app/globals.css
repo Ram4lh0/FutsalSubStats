@@ -1755,6 +1755,12 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   margin-top: 14px;
 }
 .wizard { padding-bottom: calc(var(--nav-bottom-altura) + 24px); }
+/* Jogo já jogado fora da app: por baixo do "guardar e abrir", a azul para não
+   se confundir com o caminho normal de registar ao vivo. */
+.wizard__manual { display: flex; justify-content: flex-end; margin-top: 10px; }
+.btn--manual { background: #2563eb; color: #fff; border-color: transparent; }
+.btn--manual:hover { background: #1d4ed8; }
+@media (max-width: 640px) { .wizard__manual .btn { flex: 1 1 auto; } }
 
 .pickgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
 .pick { display: grid; grid-template-columns: 42px 1fr; grid-template-rows: auto auto; gap: 2px 10px; align-items: center; text-align: left; min-height: 62px; padding: 10px 12px; background: var(--card-2); border: 2px solid var(--line); border-radius: 12px; cursor: pointer; }

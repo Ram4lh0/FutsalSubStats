@@ -1246,6 +1246,7 @@ export default {
   'novo.criarProvaCurto': 'Create competition',
   'novo.guardarJogo': 'Save match',
   'novo.guardarEAbrir': 'Save and open',
+  'novo.registoManual': 'Match already recorded outside the app - manual entry',
   'novo.semJogadoresAtivos': 'There are no active players. Create the squad before scheduling a match.',
   'novo.semCompeticoesTexto': 'This team has no competitions yet. Every match belongs to one — league, cup or friendlies — so each competition keeps its own stats. Create the first one here and carry on.',
   'escalao.criarJogo': 'Create match',

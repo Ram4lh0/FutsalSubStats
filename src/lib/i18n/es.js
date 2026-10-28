@@ -1246,6 +1246,7 @@ export default {
   'novo.criarProvaCurto': 'Crear competición',
   'novo.guardarJogo': 'Guardar partido',
   'novo.guardarEAbrir': 'Guardar y abrir',
+  'novo.registoManual': 'Partido ya registrado fuera de la app - registro manual',
   'novo.semJogadoresAtivos': 'No hay jugadores activos. Crea la plantilla antes de programar un partido.',
   'novo.semCompeticoesTexto': 'Este equipo aún no tiene competiciones. Cada partido pertenece a una — liga, copa o amistosos — para que las estadísticas de cada competición queden separadas. Crea aquí la primera y continúa.',
   'escalao.criarJogo': 'Crear partido',

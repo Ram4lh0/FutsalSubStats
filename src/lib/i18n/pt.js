@@ -1249,6 +1249,7 @@ export default {
   'novo.criarProvaCurto': 'Criar competição',
   'novo.guardarJogo': 'Guardar jogo',
   'novo.guardarEAbrir': 'Guardar e abrir',
+  'novo.registoManual': 'Jogo já registado fora da app - registo manual',
   'novo.semJogadoresAtivos': 'Não existem jogadores ativos. Crie o plantel antes de marcar um jogo.',
   'novo.semCompeticoesTexto': 'Este escalão ainda não tem competições. Todo o jogo pertence a uma — campeonato, taça ou particulares — para as estatísticas de cada prova ficarem separadas. Crie aqui a primeira e continue.',
   'escalao.criarJogo': 'Criar jogo',

@@ -12,9 +12,11 @@ import { Empty, Field } from '@/components/bits.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { confirmarPoucosConvocados } from '@/lib/squad.js';
-import { clubs, teams, competitions, players, matches, squad, events } from '@/lib/data/repository.js';
+import { clubs, teams, competitions, players, matches, squad, events, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { matchCreated } from '@/domain/actions.js';
+import { eventosJogoCompleto } from '@/domain/jogoManual.js';
+import { foulsTotal } from '@/domain/reducer.js';
 import { validateMatchInfo, validateSquadSelection, validateLineup } from '@/domain/validation.js';
 import {
   LOCATION,
@@ -209,7 +211,13 @@ function Assistente() {
     });
   }
 
-  async function guardar(abrir) {
+  /**
+   * `modo`: 'guardar' fica na lista de jogos, 'abrir' vai preparar o jogo e
+   * 'manual' dá o jogo como já jogado fora da app e abre o resumo, onde se
+   * acrescenta a frio o que aconteceu.
+   */
+  async function guardar(modo) {
+    const abrir = modo === 'abrir';
     if (aGuardar) return;
     setAGuardar(true);
     try {
@@ -269,6 +277,11 @@ function Assistente() {
         })
       );
 
+      if (modo === 'manual') {
+        await registarJaJogado(jogo.id);
+        return;
+      }
+
       sync.saveNow(userId, user?.email);
       toast(t('novo.criado'), 'ok');
       if (abrir) setGuidedTutorialStepById('setup');
@@ -278,6 +291,38 @@ function Assistente() {
     } finally {
       setAGuardar(false);
     }
+  }
+
+  /** As duas partes jogadas de ponta a ponta, e o resumo guardado como no apito final. */
+  async function registarJaJogado(matchId) {
+    const base = await loadMatch(matchId);
+    const novos = eventosJogoCompleto({
+      match: base.match,
+      squad: base.squad,
+      events: base.events,
+      inicio: base.match.scheduledAt,
+    });
+    for (const ev of novos) await events.append(ev, { sync: 'defer' });
+    const fresco = await loadMatch(matchId);
+    await matches.update(
+      matchId,
+      {
+        teamFouls: foulsTotal(fresco.state, 'US'),
+        status: fresco.state.status,
+        startedAt: fresco.state.startedAt,
+        finishedAt: fresco.state.finishedAt,
+        teamScore: fresco.state.teamScore,
+        opponentScore: fresco.state.opponentScore,
+        halftimeTeamScore: fresco.state.halftimeTeamScore,
+        halftimeOpponentScore: fresco.state.halftimeOpponentScore,
+        currentPeriod: fresco.state.currentPeriod,
+        timerStatus: fresco.state.timerStatus,
+      },
+      { sync: 'defer' }
+    );
+    await sync.saveNow(userId, user?.email);
+    toast(t('novo.criado'), 'ok');
+    router.push(rotas.jogoResumo(matchId));
   }
 
   const nav = (voltarLabel, seguinteLabel, aoSeguinte) => (
@@ -555,7 +600,7 @@ function Confirmacao({
           className="btn btn--ghost"
           type="button"
           disabled={aGuardar}
-          onClick={() => onGuardar(false)}
+          onClick={() => onGuardar('guardar')}
         >
           {aGuardar ? t('comum.aGuardar') : t('novo.guardarJogo')}
         </button>
@@ -564,9 +609,19 @@ function Confirmacao({
           type="button"
           disabled={aGuardar}
           data-tour="match-save-open"
-          onClick={() => onGuardar(true)}
+          onClick={() => onGuardar('abrir')}
         >
           {aGuardar ? t('comum.aGuardar') : t('novo.guardarEAbrir')}
+        </button>
+      </div>
+      <div className="wizard__manual">
+        <button
+          className="btn btn--manual"
+          type="button"
+          disabled={aGuardar}
+          onClick={() => onGuardar('manual')}
+        >
+          {t('novo.registoManual')}
         </button>
       </div>
     </div>
