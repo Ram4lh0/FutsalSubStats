@@ -14,6 +14,8 @@ import { Empty } from '@/components/bits.jsx';
 import { Dialog, useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import Halftime from '@/components/live/Halftime.jsx';
+import DemoHistoria, { historiaJaVista } from '@/components/DemoHistoria.jsx';
+import { emDemo } from '@/lib/demo.js';
 import { Scoreboard, ClockBox, RivalOut, Court, Bench, Penalties, clockMsOf } from '@/components/live/pieces.jsx';
 import {
   pickPlayer,
@@ -89,6 +91,10 @@ function Live() {
   const [carregado, setCarregado] = useState(null);
   const [club, setClub] = useState(null);
   const [sel, setSel] = useState(null); // { kind: 'court'|'bench', playerId }
+  // A história da demonstração, por cima do intervalo (components/DemoHistoria).
+  // Lida depois de montar: no servidor não há sessionStorage.
+  const [historia, setHistoria] = useState(false);
+  useEffect(() => setHistoria(emDemo() && !historiaJaVista()), []);
   // Sanções cujo fim já foi anunciado — evita repetir o aviso a cada batimento e
   // evita anunciar sanções que já tinham terminado quando o ecrã abriu.
   const anunciadas = useRef(new Set());
@@ -1101,6 +1107,7 @@ function Live() {
           onEditTempos={editarTemposDaPrimeira}
           onStart={startSecondHalf}
         />
+        {historia ? <DemoHistoria onFim={() => setHistoria(false)} /> : null}
       </div>
     );
   }

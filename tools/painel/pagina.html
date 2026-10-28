@@ -684,7 +684,7 @@ document.querySelector('.abas').addEventListener('click', (e) => {
 // (contas novas) e aos dois jogos. Quem fechou sem responder não entra nas
 // respostas, mas aparece em "Quem recebeu o popup", com todas as contas a quem
 // ele já apareceu.
-const MOMENTOS = { registo: 'registo', dois_jogos: '2 jogos' };
+const MOMENTOS = { registo: 'registo', dois_jogos: '2 jogos', demo: 'demo' };
 const contaCelula = (r) => `
   <td>
     <div>${texto(r.nome || r.conta)}${r.interna ? ' <span class="muted small">(interna)</span>' : ''}</div>

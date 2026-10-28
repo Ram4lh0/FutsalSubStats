@@ -624,15 +624,18 @@ export async function desassociarClube(sb, { userId, clubeId }) {
  *
  * Quem fechou o popup sem responder também tem linha (é a marca de "já viu"):
  * vem com `respondido: false`. `recebidos` são todas as linhas, para se ver a
- * quem o popup já apareceu; `respostas` só as que trazem resposta.
+ * quem o popup já apareceu; `respostas` só as que trazem resposta. Vêm do
+ * mais recente para o mais antigo. As respostas do fim da demonstração
+ * (`feedback_demo`) entram com o momento `demo`.
  */
 export async function feedbacks(sb) {
-  const [respostas, perfis] = await Promise.all([
+  const [respostas, perfis, demo] = await Promise.all([
     sb
       .from('feedback_inicial')
       .select('user_id, momento, respondido, origem, email, opiniao, created_at')
       .order('created_at', { ascending: false }),
     sb.from('profiles').select('id, email, name'),
+    sb.from('feedback_demo').select('id, opiniao, email, created_at'),
   ]);
   const erro = [respostas, perfis].find((r) => r.error);
   if (erro) throw new Error(erro.error.message);
@@ -653,6 +656,25 @@ export async function feedbacks(sb) {
       quando: r.created_at,
     };
   });
+
+  // O fim do jogo de experiência (migração 20261028120000): sem conta, por isso
+  // identifica-se pelo email que deixaram. Se a tabela ainda não existir, o erro
+  // fica por aqui e o resto da aba continua a funcionar.
+  for (const d of demo?.error ? [] : demo?.data || []) {
+    linhas.push({
+      userId: `demo:${d.id}`,
+      conta: d.email || 'demo (sem conta)',
+      nome: null,
+      interna: eInterno(d.email),
+      momento: 'demo',
+      respondido: true,
+      origem: null,
+      email: d.email || null,
+      opiniao: d.opiniao || null,
+      quando: d.created_at,
+    });
+  }
+  linhas.sort((a, b) => String(b.quando || '').localeCompare(String(a.quando || '')));
 
   return {
     recebidos: linhas,
