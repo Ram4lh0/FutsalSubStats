@@ -52,6 +52,7 @@ export const translations = {
       offlineNote: "Depois de instalada, podes apontar um jogo inteiro mesmo sem cobertura.",
     },
     faq: { kicker: "Perguntas frequentes", title: "O essencial antes de começar.", items: [
+      { question: "Está na Google Play Store? Há versão Android?", answer: "Sim. O Futsal SubStats está na Google Play Store para Android desde outubro de 2026 (play.google.com/store/apps/details?id=com.futsalsubstats.app), na App Store para iPhone e iPad e também funciona no browser." },
       { question: "Funciona sem internet?", answer: "Sim. O jogo fica guardado no dispositivo e sincroniza quando a ligação voltar." },
       { question: "Preciso de criar conta?", answer: "Para experimentar, não. Podes fazer uma partida demo. Para guardar época, plantel e estatísticas, precisas de conta." },
       { question: "Serve para escalões de formação?", answer: "Sim. Ajuda sobretudo quando o tempo de jogo tem de ser acompanhado com mais rigor." },
@@ -116,6 +117,7 @@ export const translations = {
       offlineNote: "Once installed, you can log a full match even with no signal.",
     },
     faq: { kicker: "Frequently asked", title: "What to know before you start.", items: [
+      { question: "Is it on the Google Play Store? Is there an Android version?", answer: "Yes. Futsal SubStats has been on the Google Play Store for Android since October 2026 (play.google.com/store/apps/details?id=com.futsalsubstats.app), on the App Store for iPhone and iPad, and it also runs in the browser." },
       { question: "Does it work offline?", answer: "Yes. The match is saved on the device and syncs when connection returns." },
       { question: "Do I need an account?", answer: "Not to try it. You can run a demo match. To keep seasons, squads and statistics, you need an account." },
       { question: "Is it suitable for youth teams?", answer: "Yes. It is especially useful when playing time needs to be tracked with more care." },
@@ -180,6 +182,7 @@ export const translations = {
       offlineNote: "Una vez instalada, puedes registrar un partido completo aunque no haya cobertura.",
     },
     faq: { kicker: "Preguntas frecuentes", title: "Lo esencial antes de empezar.", items: [
+      { question: "¿Está en Google Play Store? ¿Hay versión Android?", answer: "Sí. Futsal SubStats está en Google Play Store para Android desde octubre de 2026 (play.google.com/store/apps/details?id=com.futsalsubstats.app), en App Store para iPhone e iPad y también funciona en el navegador." },
       { question: "¿Funciona sin internet?", answer: "Sí. El partido queda guardado en el dispositivo y se sincroniza cuando vuelve la conexión." },
       { question: "¿Necesito crear una cuenta?", answer: "Para probarla, no. Puedes hacer un partido demo. Para guardar temporada, plantilla y estadísticas, necesitas cuenta." },
       { question: "¿Sirve para categorías de formación?", answer: "Sí. Ayuda especialmente cuando el tiempo de juego debe controlarse con más rigor." },

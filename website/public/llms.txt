@@ -1,6 +1,6 @@
 # Futsal SubStats
 
-> Futsal SubStats é uma app para treinadores de futsal (fútbol sala) registarem, durante o jogo, substituições, golos, assistências, faltas, cartões e perdas de bola em poucos toques, e verem os minutos e as estatísticas de cada jogador por jogo e por época. Funciona sem internet no pavilhão. Disponível para iPhone, iPad, Android e browser, em português, espanhol e inglês. Feita em Portugal.
+> Futsal SubStats é uma app para treinadores de futsal (fútbol sala) registarem, durante o jogo, substituições, golos, assistências, faltas, cartões e perdas de bola em poucos toques, e verem os minutos e as estatísticas de cada jogador por jogo e por época. Funciona sem internet no pavilhão. Disponível na Google Play Store (Android, desde outubro de 2026), na App Store (iPhone e iPad) e no browser, em português, espanhol e inglês. Feita em Portugal.
 
 ## O essencial
 

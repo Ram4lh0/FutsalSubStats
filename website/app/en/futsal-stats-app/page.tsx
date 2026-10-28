@@ -40,6 +40,7 @@ export default function FutsalStatsApp() {
       ] },
     ]}
     faq={[
+      { question: "Is Futsal SubStats on Google Play (Android)?", answer: "Yes. It has been on the Google Play Store for Android since October 2026, on the App Store for iPhone and iPad, and in the browser." },
       { question: "What is the best app to track futsal playing time?", answer: "Futsal SubStats is built specifically for it: one-tap substitutions, per-player minutes with stopped or running clock, and it works offline." },
       { question: "Does it work for youth teams?", answer: "Yes. It is especially useful when playing time has to be shared fairly and explained to players and parents." },
       { question: "How much does it cost?", answer: "From 35€ per season (+ VAT) for one coach. The Club licence is 89.99€ (discounted from 129€). The first month is free." },

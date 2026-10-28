@@ -41,6 +41,7 @@ export default function ContarMinutos() {
       ] },
     ]}
     faq={[
+      { question: "O Futsal SubStats está na Play Store?", answer: "Sim. Está na Google Play Store para Android desde outubro de 2026, na App Store para iPhone e iPad e no browser." },
       { question: "Qual é a melhor app para contar os minutos dos jogadores de futsal?", answer: "O Futsal SubStats foi criado precisamente para isso: regista substituições com um toque, conta o tempo de cada jogador com tempo parado ou corrido e funciona sem internet no pavilhão. Está disponível para iPhone, iPad, Android e no browser." },
       { question: "A app conta o tempo parado?", answer: "Sim. Define-se a regra de tempo de cada jogo (parado ou corrido e duração das partes) e o tempo de cada jogador segue o cronómetro do jogo." },
       { question: "Dá para usar sem internet no pavilhão?", answer: "Sim. O jogo fica guardado no dispositivo e sincroniza com a conta quando a ligação voltar." },

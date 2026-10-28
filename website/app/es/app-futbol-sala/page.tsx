@@ -40,6 +40,7 @@ export default function AppFutbolSala() {
       ] },
     ]}
     faq={[
+      { question: "¿Futsal SubStats está en Google Play (Android)?", answer: "Sí. Está en Google Play Store para Android desde octubre de 2026, en App Store para iPhone e iPad y en el navegador." },
       { question: "¿Cuál es la mejor app para contar los minutos en fútbol sala?", answer: "Futsal SubStats está pensada exactamente para eso: registra cada cambio con un toque, cuenta el tiempo de cada jugador con tiempo parado o corrido y funciona sin conexión." },
       { question: "¿Está en español?", answer: "Sí. La app y la web están en español, portugués e inglés." },
       { question: "¿Cuánto cuesta?", answer: "Desde 35€ por temporada (+ IVA) para un entrenador. La licencia Club cuesta 89,99€ (con descuento, antes 129€). El primer mes es gratis." },
