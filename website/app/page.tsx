@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { translations, type Language } from "./translations";
 import { supabase } from "./supabase";
+import { GUIDE_LINKS } from "./guias/ArticlePage";
 
 const CONTACT_EMAIL = "review.FutsalSubStats@gmail.com";
 // A app está nas duas lojas (Play Store em produção desde 23/10/2026): o botão
@@ -746,6 +747,13 @@ export default function Home() {
     <section className="licenses" id="licenses"><div className="section-heading centered reveal"><span className="section-number">05</span><div><p>{t.licenses.kicker}</p><h2>{t.licenses.title}</h2></div><p className="section-intro">{t.licenses.intro}</p></div><div className="pricing-grid">{(["coach","club","custom"] as const).map((type) => { const plan=t.licenses[type]; return <article className={`price-card reveal ${type==="club"?"featured":""}`} key={type}>{type==="club"&&<span className="recommended">{t.licenses.recommended}</span>}<p>{plan.label}</p><h3>{plan.name}</h3><div className="plan-price">{plan.oldPrice&&<del>{plan.oldPrice}</del>}<strong>{plan.price}</strong><span>{t.licenses.perSeason}</span></div><p className="plan-description">{plan.description}</p><ul>{plan.features.map((f)=><li key={f}><Icon name="check"/>{f}</li>)}</ul>{type==="custom"?<a className="button" href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(t.licenses.custom.subject)}`}>{t.licenses.custom.cta}<Icon name="mail"/></a>:<button className="button" type="button" disabled={checkoutLoading !== null} onClick={() => handleLicenseCheckout(type)}>{checkoutLoading === type ? t.licenses.buying : t.licenses.buy}<Icon name="arrow"/></button>}{checkoutErrorType === type && <p className="claim-error">{t.licenses.checkoutError}</p>}{licenseWarning?.type === type && <p className="claim-error">{licenseWarning.kind === "club-covers" ? t.licenses.alreadyOwnClub : t.licenses.alreadyOwnSame}</p>}</article>; })}</div><div className="trial-note reveal"><span><Icon name="ball"/></span><div className="trial-copy"><b>{t.licenses.trialTitle}</b><p>{t.licenses.trialText}</p></div><div className="install-action"><button type="button" className="button" onClick={handleInstall}>{t.licenses.installNow}<Icon name="arrow"/></button></div></div></section>
 
     <section className="contact-section" id="contact"><div className="contact-card reveal"><div><p>{t.contact.kicker}</p><h2>{t.contact.title}</h2><span>{t.contact.text}</span></div><a className="button" href={emailHref}><Icon name="mail"/>{t.contact.button}</a><small>{CONTACT_EMAIL}</small></div></section>
+    {/* FAQ em dados estruturados, sempre na versão portuguesa: é a que o
+        servidor renderiza e a que o Google e os motores de IA leem. */}
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: translations.pt.faq.items.map((item) => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })),
+    }) }} />
     <section className="faq-section"><div className="faq-heading reveal"><p>{t.faq.kicker}</p><h2>{t.faq.title}</h2></div><div className="faq-list reveal">{t.faq.items.map((item)=><details key={item.question}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
     {installOpen && <InstallDialog t={t} onClose={() => setInstallOpen(false)}/>}
     {checkoutClaim && <CheckoutClaimDialog
@@ -763,6 +771,6 @@ export default function Home() {
       onToggleMode={() => setLoginDialog({ ...loginDialog, mode: loginDialog.mode === "entrar" ? "criar" : "entrar", status: "idle", error: "" })}
       onClose={() => setLoginDialog(null)}
     />}
-    <footer><a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><img src="/logo.png" alt="" width={36} height={36}/></span><span>Futsal <b>SubStats</b></span></a><p>{t.footer.tagline}</p><div><a href={`mailto:${CONTACT_EMAIL}`}>{t.nav.contact}</a><a href="#licenses">{t.nav.licenses}</a><span>© 2026 Futsal SubStats</span></div></footer>
+    <footer><a href="#top" className="brand" aria-label="Futsal SubStats"><span className="brand-mark"><img src="/logo.png" alt="" width={36} height={36}/></span><span>Futsal <b>SubStats</b></span></a><p>{t.footer.tagline}</p><div><a href={`mailto:${CONTACT_EMAIL}`}>{t.nav.contact}</a><a href="#licenses">{t.nav.licenses}</a><span>© 2026 Futsal SubStats</span></div><nav className="footer-guides" aria-label="Guias">{GUIDE_LINKS.map((link) => <a key={link.href} href={link.href}>{link.label}</a>)}</nav></footer>
   </main>;
 }

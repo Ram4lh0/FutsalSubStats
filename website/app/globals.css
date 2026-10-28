@@ -172,3 +172,11 @@
   .try-callout small{font-size:12px}
 }
 
+
+/* Guias e páginas de texto (app/guias/ArticlePage.tsx) */
+.guide{max-width:820px;margin:auto;padding:28px 20px 60px;line-height:1.65}.guide-header{display:flex;align-items:center;justify-content:space-between;padding:8px 0 36px}.guide-home{color:var(--muted);font-size:14px}.guide-home:hover{color:#fff}
+.guide-article h1{font-size:clamp(28px,5vw,42px);line-height:1.15;letter-spacing:-.03em;margin:0 0 18px}.guide-lead{font-size:18px;color:#cfdaee;margin:0 0 30px}.guide-article h2{font-size:22px;letter-spacing:-.02em;margin:38px 0 10px;color:var(--green-soft)}.guide-article h3{font-size:16px;margin:18px 0 4px}.guide-article p,.guide-article li{color:#c3cfe4}.guide-article ul{padding-left:20px}.guide-article li{margin:6px 0}.guide-article a:not(.button){color:var(--green-soft);text-decoration:underline}
+.guide-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:16px}.guide-table{width:100%;border-collapse:collapse;font-size:14px}.guide-table th,.guide-table td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.guide-table th{background:var(--bg2);color:var(--muted);font-weight:600}.guide-table tr:last-child td{border-bottom:0}.guide-table ul{margin:0;padding-left:16px}.guide-table li{margin:2px 0}.guide-price{white-space:nowrap}.guide-price del{color:var(--muted)}.guide-price small{display:block;color:var(--amber);font-size:12px}
+.guide-cta{margin-top:44px;padding:24px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card)}.guide-cta .button{width:auto;margin:0}.guide-cta p{margin:14px 0 0;font-size:14px}.guide-updated{font-size:12px;color:var(--muted)!important;margin-top:24px}
+.guide-more{display:flex;flex-wrap:wrap;gap:10px 18px;padding-top:24px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}.guide-more b{width:100%;color:var(--text)}.guide-more a:hover{color:#fff}
+.footer-guides{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:center;gap:8px 18px}.footer-guides a:hover{color:#fff}

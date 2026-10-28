@@ -1,0 +1,40 @@
+# Futsal SubStats
+
+> Futsal SubStats é uma app para treinadores de futsal (fútbol sala) registarem, durante o jogo, substituições, golos, assistências, faltas, cartões e perdas de bola em poucos toques, e verem os minutos e as estatísticas de cada jogador por jogo e por época. Funciona sem internet no pavilhão. Disponível para iPhone, iPad, Android e browser, em português, espanhol e inglês. Feita em Portugal.
+
+## O essencial
+
+- Substituições com um toque (ou arrastar) e minutos de jogo de cada jogador contados automaticamente.
+- Cronómetro de futsal: tempo parado ou corrido, por parte e por escalão.
+- Golos, assistências, faltas, cartões, perdas de bola, expulsões com tempo de castigo e guarda-redes avançado (5x4).
+- Funciona offline: o jogo fica no dispositivo e sincroniza quando houver rede.
+- Painéis de equipa e de jogador ao longo da época, filtro por jogo, exportação Excel/CSV e PDF.
+- Importa o plantel a partir de CSV (número, nome, posição, pé preferido).
+- Sem publicidade; dados alojados na União Europeia, não vendidos nem partilhados.
+
+## Preços (por época, + IVA; primeiro mês gratuito)
+
+- Treinador: 35€ — um treinador, um escalão.
+- Personalizado de Treinador: 60€ — licença de treinador com estatísticas personalizadas e acompanhamento individual.
+- Clube: 89,99€ com desconto (antes 129€) — até cinco escalões, vários treinadores com acesso próprio.
+- Personalizado: 209,99€ com desconto (antes 299€) — tudo do Clube + estatísticas e dashboards personalizados e acompanhamento individual.
+
+## Páginas
+
+- [Página inicial](https://futsalsubstats.com/): demo interativa, funcionalidades, licenças e FAQ.
+- [Preços](https://futsalsubstats.com/precos)
+- [Como controlar os minutos dos jogadores de futsal](https://futsalsubstats.com/contar-minutos-futsal)
+- [App de estatísticas de futsal para treinadores](https://futsalsubstats.com/estatisticas-futsal)
+- [Papel, Excel ou app?](https://futsalsubstats.com/papel-excel-ou-app)
+- [Español: app de estadísticas de fútbol sala](https://futsalsubstats.com/es/app-futbol-sala)
+- [English: futsal stats app](https://futsalsubstats.com/en/futsal-stats-app)
+
+## Onde instalar
+
+- [App Store (iPhone e iPad)](https://apps.apple.com/pt/app/futsal-substats/id6804845572)
+- [Google Play (Android)](https://play.google.com/store/apps/details?id=com.futsalsubstats.app)
+- [Web app](https://futsalsubstats.vercel.app)
+
+## Contacto
+
+- Email: review.FutsalSubStats@gmail.com
