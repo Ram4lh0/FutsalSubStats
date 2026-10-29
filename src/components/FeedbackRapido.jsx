@@ -25,7 +25,7 @@ export default function FeedbackRapido() {
   const ui = useUI();
   const t = useT();
   const pathname = usePathname() || '';
-  // Lido depois de montar, como na AppBar: no servidor não há sessionStorage.
+  // Lido depois de montar: no servidor não há sessionStorage.
   const [demo, setDemo] = useState(false);
   useEffect(() => setDemo(emDemo()), []);
 

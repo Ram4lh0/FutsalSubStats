@@ -32,3 +32,15 @@ android/key.properties
 
 # mapa do código gerado pelo Graphify (regenerável)
 graphify-out/
+
+# Saída do `npm run check` — regenera-se a cada corrida.
+check.log
+
+# Plantéis de clubes importados à mão: dados reais, ficam só neste PC.
+supabase/*-sub[0-9]*.sql
+supabase/patameiras-*.sql
+supabase/ricardo-fc-*.sql
+supabase/equipa-do-*.sql
+
+# Cache da CLI do Supabase.
+supabase/.temp/
