@@ -29,7 +29,7 @@ import { gerarXlsx } from './xlsx.js';
 const LIMITE_BAIXO = 70;
 const PERIODOS = ['epoca', 'mes', 'quinzena', 'semana'];
 
-/** As cores de cada estado, as dos botões (globals.css, `.tpbtn--*`). */
+/** As cores de cada estado, as dos botões (src/app/estilos/, `.tpbtn--*`). */
 const COR_ESTADO = {
   [PRESENCA.PRESENTE]: { fundo: COR.verde, letra: [5, 36, 15] },
   [PRESENCA.FALTA_INJUSTIFICADA]: { fundo: COR.vermelho, letra: COR.branco },

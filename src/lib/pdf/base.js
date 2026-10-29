@@ -23,7 +23,7 @@ import { t, localeAtual } from '../i18n/index.js';
 
 /* ------------------------------------------------------------- cores */
 
-// As da app (src/app/globals.css), acertadas para papel branco: o fundo
+// As da app (src/app/estilos/), acertadas para papel branco: o fundo
 // azul-escuro só no cabeçalho e no topo das tabelas, o resto em tinta escura
 // para se ler impresso.
 export const COR = {

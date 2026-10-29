@@ -1,0 +1,363 @@
+/* ===================================================================
+   Registos extra por escalão (domain/registos.js, components/registos/)
+   Só aparecem nos escalões que os têm ligados; sem nenhum, nada disto
+   se aplica e o ecrã do jogo fica como sempre.
+   =================================================================== */
+
+/* Botões no cartão do jogador em campo: tudo numa linha que quebra sozinha —
+   ação +, ação −, (defesa), remate, recuperação e o G no fim. */
+.pcard__registos { display: flex; flex-wrap: wrap; gap: 3px 2px; align-items: center; margin-top: 3px; }
+.pcard__goal--inline { position: static; margin-left: auto; width: 24px; height: 24px; font-size: 0.7rem; }
+.court .pcard__registos .pcard__goal--inline { right: auto; bottom: auto; }
+.pcard--court:has(.pcard__registos) { padding-bottom: 7px; }
+.court .pcard--court:has(.pcard__registos) .pcard__times { padding-right: 0; }
+/* Com os botões o cartão é mais alto: o campo cresce para os cinco caberem. */
+.court:has(.pcard__registos) { min-height: max(clamp(200px, 46vh, 520px), 440px); }
+@media (max-width: 720px) {
+  .court:has(.pcard__registos) { min-height: 600px; }
+}
+/* Ao alto, o cartão do GR leva mais um botão (Defesa) e com a largura dos
+   outros os botões partiam em três linhas: o cartão crescia e subia para cima
+   do Fixo. Está sozinho na sua linha, por isso pode ser mais largo. */
+@media (max-width: 900px) and (orientation: portrait) {
+  .court .pcard--court.slot--goalkeeper:has(.pcard__registos) { width: min(62%, 230px); }
+}
+.pcard__regbtn {
+  position: relative; display: inline-flex; align-items: center; gap: 3px; height: 22px; padding: 0 5px;
+  border-radius: 999px; font-size: 0.66rem; font-weight: 700; cursor: pointer; user-select: none;
+  border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06); color: var(--text);
+}
+/* O número fica no canto do botão, fora do fluxo, para não o alargar. */
+.pcard__regbtn b {
+  position: absolute; top: -6px; right: -4px; font-size: 0.6rem; min-width: 14px; height: 14px; padding: 0 3px;
+  border-radius: 999px; display: inline-grid; place-items: center; background: var(--primary); color: var(--primary-ink);
+}
+.pcard__regbtn--negativa b { background: #ef4444; color: #fff; }
+.pcard__regbtn--remate { border-color: rgba(56, 189, 248, 0.6); }
+.pcard__regbtn--recup { border-color: rgba(244, 114, 182, 0.6); }
+.pcard__regbtn--defesa { border-color: rgba(250, 204, 21, 0.7); }
+.pcard__regbtn--perda { border-color: rgba(251, 146, 60, 0.75); }
+.pcard__regbtn--positiva, .pcard__regbtn--negativa { padding: 0 6px; }
+.pcard__regbtn--positiva { border-color: rgba(34, 197, 94, 0.75); color: #4ade80; }
+.pcard__regbtn--negativa { border-color: rgba(239, 68, 68, 0.75); color: #f87171; }
+.pcard__regbtn:hover { background: rgba(255, 255, 255, 0.12); }
+.pcard__regbtn:active { transform: scale(0.94); }
+
+/* Barra de foras e cantos, entre o marcador e o campo. */
+.regbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 8px 0;
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-2);
+}
+.regbar__grupo { display: flex; align-items: center; gap: 6px; }
+.regbar__rot { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 2px; }
+.regbar__btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); cursor: pointer;
+}
+.regbar__btn--deles { border-color: rgba(251, 113, 133, 0.45); }
+.regbar__btn strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
+.regbar__eq { font-size: 0.72rem; color: var(--muted); max-width: 9ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.regbar__mais { font-weight: 800; color: var(--primary); }
+.regbar__btn:active { transform: scale(0.96); }
+.regbar__resumo { font-size: 0.78rem; color: var(--muted); margin-left: auto; }
+.regbar__ver { min-height: 36px; }
+
+/* O campo para tocar e os mapas. */
+.regcampo { display: block; width: 100%; height: auto; user-select: none; touch-action: manipulation; }
+.regcampo__lateral line { stroke: var(--primary); stroke-width: 3; stroke-linecap: round; opacity: 0.9; }
+.regcampo.is-pickable { cursor: crosshair; }
+.regcampo__metade { fill: #0f3d27; }
+.regcampo__metade--deles { fill: #12482e; }
+.regcampo__metade--deles.is-on { fill: #175a39; }
+.regcampo__metade.is-on { fill: #175a39; }
+.regcampo__linhas rect, .regcampo__linhas line, .regcampo__linhas circle, .regcampo__linhas path { fill: none; stroke: rgba(255, 255, 255, 0.75); stroke-width: 1.6; }
+.regcampo__pontos-fixos circle { fill: rgba(255, 255, 255, 0.75); }
+.regcampo__rotulo { fill: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-anchor: middle; text-transform: uppercase; }
+.regcampo__rotulo--deles { fill: #a7f3d0; }
+.regcampo__marca { pointer-events: none; opacity: 0.9; }
+
+/* A janela de "onde foi". */
+.regzona__sub { margin: 0 0 10px; color: var(--muted); font-size: 0.9rem; }
+.regzona__opcoes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.regzona__opcao {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
+  border-radius: 12px; border: 2px solid var(--line); background: var(--card-2); color: var(--text);
+  font-weight: 700; cursor: pointer;
+}
+.regzona__opcao.is-on { border-color: var(--cor, var(--primary)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor, var(--primary)) 30%, transparent); }
+.regzona__bola { width: 12px; height: 12px; border-radius: 50%; background: var(--cor, #fff); flex: none; display: inline-block; }
+.regzona__campo { position: relative; }
+.regzona__campo.is-espera .regcampo { opacity: 0.45; }
+.regzona__aviso { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 700; pointer-events: none; }
+.regzona__dica { margin-right: auto; color: var(--muted); font-size: 0.85rem; align-self: center; }
+
+/* O painel de estatísticas avançadas (jogo ao vivo, intervalo, resumo). */
+.regpainel { display: flex; flex-direction: column; gap: 12px; }
+.regpainel__totais { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.regpainel__total { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--card-2); border: 1px solid var(--line); }
+.regpainel__totalRot { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.regpainel__totalVal { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+.regpainel__totalExtra { font-size: 0.72rem; color: var(--muted); }
+.regpainel__mapa { width: 100%; max-width: 480px; margin-inline: auto; }
+.regpainel__legenda { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.85rem; }
+.regpainel__item { display: inline-flex; align-items: center; gap: 6px; }
+.regpainel__item--anel .regzona__bola { background: transparent; box-shadow: inset 0 0 0 3px var(--cor, #fff); }
+.regpainel__filtros { display: flex; flex-wrap: wrap; gap: 6px; }
+.regpainel__filtros .regzona__opcao { min-height: 36px; padding: 0 12px; }
+.regpainel__tabela { overflow-x: auto; }
+.regpainel__linha { cursor: pointer; }
+.regpainel__linha.is-on td { background: rgba(56, 189, 248, 0.12); }
+.regpainel__nota { font-size: 0.78rem; margin: 6px 0 0; }
+/* Corrigir registos no intervalo: a lista fica fechada por omissão. */
+.registos__corrigir { margin-top: 10px; }
+.registos__corrigir > summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+
+/* ---------------------------------------------- visão geral do clube (add-on) */
+.visao__filtros { margin-bottom: 14px; }
+.visao__filtros .btn--tiny { min-width: 32px; }
+.visao__quadro { padding: 16px 18px; }
+.visao__cabeca { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.visao__titulo { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.visao__titulo strong { font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.visao__titulo .muted { font-size: 0.85rem; }
+.visao__balanco { display: flex; align-items: baseline; gap: 8px; font-size: 0.95rem; white-space: nowrap; }
+.visao__golos { color: var(--muted); }
+.visao__lista { list-style: none; margin: 0; padding: 0; }
+.visao__linha {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) auto minmax(0, auto);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.visao__linha:last-child { border-bottom: 0; }
+.visao__linha.is-clickable { cursor: pointer; }
+.visao__linha.is-clickable:hover { background: var(--card-2); }
+.visao__escalao { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.visao__jogo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.visao__placar { font-size: 1.05rem; text-align: right; min-width: 52px; }
+.visao__estado { justify-self: end; }
+.visao__vazio, .visao__folga { margin: 10px 4px 0; font-size: 0.85rem; }
+.visao__numeros { margin-bottom: 16px; }
+.visao__metricas { margin: 10px 0 14px; }
+@media (max-width: 560px) {
+  .visao__quadro { padding: 14px 12px; }
+  .visao__linha { grid-template-columns: minmax(88px, 0.8fr) minmax(0, 2fr) auto; gap: 8px; }
+  .visao__jogo { white-space: normal; line-height: 1.25; }
+  .visao__jogo .mono { font-size: 0.85em; }
+  .visao__estado { grid-column: 2 / -1; justify-self: start; }
+  .visao__estado:empty { display: none; }
+  .visao__balanco { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+}
+
+/* linhas no tempo (graficos.jsx → LinhasNoTempo) */
+.linhas { display: flex; flex-direction: column; gap: 6px; }
+.linhas .graf { height: 160px; }
+.linhas__area { position: relative; }
+.linhas__max { position: absolute; top: -2px; left: 0; font-size: 0.7rem; color: var(--muted); }
+.linhas__legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8rem; color: var(--muted); }
+.linhas__chave { display: inline-flex; align-items: center; gap: 6px; }
+.linhas__chave::before { content: ''; width: 14px; height: 3px; border-radius: 2px; background: currentColor; }
+.linhas__traco { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.linhas__ponto { fill: none; stroke-width: 7; stroke-linecap: round; }
+.linhas__serie--vitoria, .linhas__chave--vitoria::before { stroke: var(--primary); color: var(--primary); }
+.linhas__serie--empate, .linhas__chave--empate::before { stroke: var(--warn); color: var(--warn); }
+.linhas__serie--derrota, .linhas__chave--derrota::before { stroke: var(--danger); color: var(--danger); }
+.linhas__serie--marcados, .linhas__chave--marcados::before { stroke: var(--primary); color: var(--primary); }
+.linhas__serie--sofridos, .linhas__chave--sofridos::before { stroke: var(--danger); color: var(--danger); }
+.linhas__chave::before { background: currentColor; }
+.linhas__chave { color: var(--muted); }
+.graf__eixo--leve { stroke-dasharray: 3 4; opacity: 0.6; }
+
+/* ------------------------------------------- assistir ao vivo (add-on) */
+
+/* O interruptor da preparação do jogo. */
+.aovivo-interruptor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+}
+.aovivo-interruptor__texto { display: flex; flex-direction: column; gap: 4px; }
+.aovivo-interruptor__texto .muted { font-size: 0.85rem; }
+.interruptor {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  position: relative;
+  width: 52px;
+  height: 30px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.interruptor::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.interruptor:checked { background: var(--primary); border-color: var(--primary); }
+.interruptor:checked::after { transform: translateX(22px); background: var(--primary-ink); }
+.interruptor:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+/* O ponto vermelho de "em direto". */
+.aovivo-ponto {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--danger);
+  vertical-align: middle;
+  animation: aovivo-pulsar 1.6s ease-in-out infinite;
+}
+@keyframes aovivo-pulsar { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .aovivo-ponto { animation: none; } }
+
+/* A lista "Jogos ao vivo" na aba Jogos. */
+.aovivo-lista { margin-top: 24px; }
+.aovivo-lista__itens { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.aovivo-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  min-height: var(--touch);
+}
+.aovivo-item__quem { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.aovivo-item__quem strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aovivo-item__estado { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.04em; }
+.aovivo-item__ir { color: var(--primary); font-weight: 700; }
+@media (max-width: 420px) {
+  .aovivo-item { grid-template-columns: 1fr auto; }
+  .aovivo-item__estado { display: none; }
+}
+
+/* O ecrã de acompanhamento. */
+.aovivo-selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.aovivo-selo.is-on { color: var(--text); border-color: var(--danger); }
+.aovivo-ligacao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.aovivo-ligacao.is-caiu {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--warn);
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--text);
+}
+.aovivo-fim { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* Marcador em cima e relógio por baixo, em qualquer largura: aqui não há
+   botões à volta do relógio, e a grelha do ecrã de registo deixava-os colados. */
+.live__head.aovivo__marcador {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+}
+.aovivo__marcador .scoreboard { display: grid; width: 100%; max-width: 420px; }
+.aovivo__marcador .scoreboard__dash { display: block; }
+.aovivo__marcador .scoreboard__name { max-width: 30vw; }
+.aovivo__equipa { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .aovivo__equipa { grid-template-columns: 1fr; } }
+.aovivo-jogadores { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.aovivo-jogadores li {
+  display: grid;
+  grid-template-columns: 8.5em 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+}
+.aovivo-jogadores__pos {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.aovivo-jogadores__nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aovivo-jogadores li:not(:has(.aovivo-jogadores__pos)) { grid-template-columns: 1fr auto; }
+.aovivo-jogadores li.is-vazio .aovivo-jogadores__nome,
+.aovivo-jogadores li.is-expulso { color: var(--muted); }
+.aovivo-jogadores__tempo { color: var(--muted); font-size: 0.85rem; }
+
+/* As substituições, a mais recente em cima. */
+.aovivo-trocas { margin-top: 12px; }
+.aovivo-trocas__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.aovivo-trocas__lista li {
+  display: grid;
+  grid-template-columns: 4.5em 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--card-2);
+}
+.aovivo-trocas__quando { display: flex; flex-direction: column; font-size: 0.85rem; }
+.aovivo-trocas__quem { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.aovivo-trocas__quem > span { overflow-wrap: anywhere; }
+.aovivo-trocas__entra [aria-hidden] { color: var(--primary); }
+.aovivo-trocas__sai [aria-hidden] { color: var(--danger); }
+.aovivo-trocas__pos { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Popups de feedback (FeedbackInicial). Uma pergunta de cada vez à vista, com
+   opções para tocar em vez de escrever; fechar é só a cruz no canto. */
+.modal.fbpop { position: relative; width: min(460px, 100%); padding: 28px 24px 22px; overflow-y: auto; background: linear-gradient(180deg, #1b2b47 0%, var(--card) 46%); text-align: center; }
+.fbpop__close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: var(--muted); background: transparent; border: 0; cursor: pointer; }
+.fbpop__close:hover { color: var(--text); background: rgba(255, 255, 255, 0.07); }
+.fbpop__badge { width: 54px; height: 54px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 16px; color: var(--primary); background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35); }
+.fbpop__title { font-size: 1.3rem; font-weight: 800; line-height: 1.25; margin: 0 24px; }
+.fbpop__sub { margin: 8px 6px 0; color: var(--muted); font-size: 0.92rem; line-height: 1.45; }
+.fbpop__form { display: grid; gap: 20px; margin-top: 22px; text-align: left; }
+.fbpop__q { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 10px; }
+.fbpop__label { padding: 0; font-size: 0.95rem; font-weight: 700; color: var(--text); }
+.fbpop__label--small { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.fbpop__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.fbpop__chip { padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); color: var(--text); font: inherit; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.fbpop__chip:hover { border-color: #3d5580; }
+.fbpop__chip.is-on { border-color: var(--primary); background: rgba(34, 197, 94, 0.14); color: #b9f5cf; }
+.fbpop__stars { display: flex; justify-content: center; gap: 6px; }
+.fbpop__star { padding: 4px; border: 0; background: none; color: #33476b; cursor: pointer; transition: transform 0.12s, color 0.12s; }
+.fbpop__star.is-on { color: #facc15; }
+.fbpop__star:hover { transform: scale(1.1); }
+.fbpop__star:active { transform: scale(0.92); }
+.fbpop__hint { margin: -4px 0 0; text-align: center; font-size: 0.82rem; font-weight: 600; color: var(--muted); min-height: 1.2em; }
+.fbpop__area { resize: vertical; min-height: 84px; }
+.fbpop__email { display: grid; gap: 6px; }
+.fbpop__send { min-height: 48px; font-size: 1rem; }
+.fbpop__send:disabled { opacity: 0.45; }
+@media (max-width: 480px) {
+  .modal.fbpop { padding: 24px 18px 18px; }
+  .fbpop__title { font-size: 1.15rem; }
+}

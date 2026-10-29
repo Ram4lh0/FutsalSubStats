@@ -1,4 +1,15 @@
-import './globals.css';
+// Os estilos estavam todos num globals.css de 4 mil linhas; agora vivem em
+// src/app/estilos/, um ficheiro por zona. A ordem conta (a cascata é a mesma
+// de antes): o que vem depois ganha ao que vem antes, com a mesma
+// especificidade.
+import './estilos/01-base.css';
+import './estilos/02-componentes.css';
+import './estilos/03-tabelas-e-formularios.css';
+import './estilos/04-jogo-ao-vivo.css';
+import './estilos/05-modais-e-responsivo.css';
+import './estilos/06-painel-e-impressao.css';
+import './estilos/07-treino.css';
+import './estilos/08-registos-e-extras.css';
 import { Suspense } from 'react';
 import Providers from './providers.jsx';
 import MainNavigation from '@/components/MainNavigation.jsx';

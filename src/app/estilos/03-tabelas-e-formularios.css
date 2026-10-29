@@ -1,0 +1,336 @@
+/* ------------------------------------------------------------------ tabelas */
+
+/* A tabela desliza dentro do seu contentor. Sem isto, uma tabela larga arrasta a
+   página inteira e o dedo acaba a mover-se na diagonal. */
+.tablewrap {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Ao lado sim, ao alto não.
+   *
+   * Ao lado é o que se quer: arrastar a tabela para ver as colunas da direita
+   * não pode levar a página atrás.
+   *
+   * Ao alto era uma armadilha. Um elemento com `overflow: auto` é um contentor
+   * de deslize **mesmo quando não há nada a transbordar**, e com `contain` ele
+   * engole o gesto em vez de o passar a quem está por fora. Numa tabela de
+   * estatísticas mais curta do que os 520px de altura máxima, o dedo em cima da
+   * tabela não fazia nada e a página só deslizava com o dedo no fundo escuro ao
+   * lado. Acontecia o mesmo ao chegar ao fim de uma tabela comprida.
+   *
+   * `auto` no eixo vertical devolve o encadeamento: a tabela desliza enquanto
+   * tiver para onde, e a partir daí é a página que continua. */
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  max-width: 100%;
+  /* Deslize vertical dentro da própria tabela: a página fica quieta e o
+     cabeçalho das colunas continua à vista. */
+  max-height: min(60vh, 520px);
+}
+.table { width: 100%; min-width: max-content; border-collapse: separate; border-spacing: 0; background: transparent; }
+/* A coluna que fica com a folga.
+ *
+ * Numa tabela larga o browser reparte o espaço que sobra por todas as colunas,
+ * e o que era uma linha compacta abre-se em leque: o resultado ficava a meio
+ * ecrã do nome do adversário a que pertence. Com uma coluna a pedir tudo, as
+ * outras encolhem ao conteúdo e ficam encostadas umas às outras. */
+.table .col--elastico { width: 100%; }
+
+/* A primeira coluna fica fixa à esquerda: percorre-se as colunas sem perder de
+   vista de quem é a linha. */
+.table th:nth-child(1), .table td:nth-child(1) { position: sticky; left: 0; z-index: 2; }
+.table td:nth-child(1) { background: var(--card); }
+.table th:nth-child(1) { background: var(--bg-2); z-index: 4; }
+
+/* Nas tabelas de jogadores o número sozinho não diz nada — o nome vai junto.
+   O deslocamento da segunda coluna é a largura real da primeira, medida depois
+   de a tabela entrar no ecrã (--col1). */
+/* Tabelas compactas sem coluna fixa: evita a primeira coluna tapar o Resultado no telemovel. */
+.tablewrap--nofreeze .table th:nth-child(1),
+.tablewrap--nofreeze .table td:nth-child(1) {
+  position: static;
+  left: auto;
+  z-index: auto;
+}
+.tablewrap--nofreeze .table thead th:nth-child(1) { position: sticky; top: 0; z-index: 3; }
+
+.table--who th:nth-child(2), .table--who td:nth-child(2) { position: sticky; left: var(--col1, 56px); z-index: 2; }
+.table--who td:nth-child(2) { background: var(--card); }
+.table--who th:nth-child(2) { background: var(--bg-2); z-index: 4; }
+.table--who td:nth-child(2)::after,
+.table--who th:nth-child(2)::after {
+  content: ''; position: absolute; top: 0; right: -1px; bottom: 0; width: 1px; background: var(--line);
+}
+
+/* Cabeçalho colado ao topo enquanto se desliza a tabela ao alto. */
+.table thead th { position: sticky; top: 0; z-index: 3; }
+.table thead th:nth-child(1) { z-index: 5; }
+.table--who thead th:nth-child(2) { z-index: 5; }
+.table th, .table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+.table thead th { box-shadow: inset 0 -1px 0 var(--line); border-bottom: 0; }
+.table th.num, .table td.num { text-align: right; }
+.table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: var(--bg-2); }
+.table th.is-yellow { color: var(--warn); }
+.table th.is-red { color: var(--danger); }
+.table tbody tr:last-child td { border-bottom: 0; }
+.table tr.is-muted td { opacity: 0.55; }
+.table tr.is-undone td { opacity: 0.45; text-decoration: line-through; }
+.table tr.is-danger td { box-shadow: inset 0 0 0 100vmax rgba(239, 68, 68, 0.1); }
+.table--tight th, .table--tight td { padding: 7px 10px; font-size: 0.85rem; }
+/* O atalho para a ficha vive dentro da coluna do nome, que é fixa: assim o "+"
+   acompanha sempre o jogador, mesmo com a tabela deslizada para o lado. */
+.cellwho { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.cellwho__name { min-width: 0; }
+.btn--plus {
+  color: #86d6a4;
+  border-color: rgba(134, 214, 164, 0.45);
+  background: rgba(134, 214, 164, 0.08);
+  font-weight: 800;
+  line-height: 1;
+  padding: 0;
+  min-height: 0;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  font-size: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn--plus:hover { background: rgba(134, 214, 164, 0.18); }
+
+/* Linha inteira clicável: nas listas de jogos e de competições o alvo é a linha,
+   não um botão ao fundo dela. */
+.table tr.is-clickable { cursor: pointer; }
+/* O realce é uma camada POR CIMA do fundo, não uma troca de fundo.
+   Trocar o fundo tornava translúcidas as células fixas — e o que estava a
+   deslizar por baixo aparecia através do nome e da data. */
+.table tr.is-clickable:hover td { box-shadow: inset 0 0 0 100vmax rgba(148, 163, 184, 0.08); }
+.table tr.is-clickable:active td { box-shadow: inset 0 0 0 100vmax rgba(148, 163, 184, 0.14); }
+
+/* Guardar sem abrir é um fim de linha legítimo — merece cor, mas não a do botão
+   principal, que continua a ser "guardar e abrir". */
+.btn--soft {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #b9f6ce;
+}
+.btn--soft:hover { background: rgba(34, 197, 94, 0.26); }
+
+/* Editar ao canto do cartão: pequeno, discreto, sempre no mesmo sítio. */
+.card { position: relative; }
+.card__edit {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.card__edit:hover { color: var(--text); border-color: var(--muted); }
+
+.link { color: var(--info); cursor: pointer; font-weight: 600; }
+
+.badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; background: var(--card-2); border: 1px solid var(--line); margin-left: 6px; }
+.badge--ok { color: var(--primary); border-color: rgba(34, 197, 94, 0.4); }
+.badge--live { color: var(--primary); border-color: rgba(34, 197, 94, 0.5); background: rgba(34, 197, 94, 0.12); }
+.badge--warn { color: var(--warn); border-color: rgba(245, 158, 11, 0.4); }
+.badge--danger { color: #fff; background: var(--danger); border-color: transparent; }
+.badge--muted { color: var(--muted); }
+.badge--info { color: var(--info); border-color: rgba(56, 189, 248, 0.4); }
+.res--w { color: var(--primary); font-weight: 700; }
+.res--l { color: var(--danger); font-weight: 700; }
+.res--d { color: var(--warn); font-weight: 700; }
+
+/* ---------------------------------------------------------------- formulários */
+
+.form { display: flex; flex-direction: column; gap: 14px; }
+.form--safe-actions { margin-bottom: calc(var(--nav-bottom-altura) + 34px); }
+.form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* Envolve para a linha seguinte: em espanhol e inglês os botões são mais
+   compridos do que em português, e num iPhone estreito três seguidos deixavam
+   de caber. */
+.form__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+.form__actions--left { justify-content: flex-start; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field--narrow { max-width: 140px; }
+.field--check { flex-direction: row; align-items: center; gap: 10px; }
+.field--check input { width: 24px; height: 24px; }
+.field__label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.input--time { max-width: 160px; }
+.field__hint { font-size: 0.78rem; color: var(--muted); }
+.input { min-height: var(--touch); padding: 0 14px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; width: 100%; }
+.input--area { padding: 12px 14px; min-height: 80px; resize: vertical; }
+.input--color { padding: 4px; height: var(--touch); }
+.input--search { max-width: 340px; }
+/* Campos que não ganham nada em ser largos. */
+.input[type='datetime-local'], .input[type='date'], .input[type='time'] { max-width: 250px; }
+.input[type='number'] { max-width: 140px; }
+select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 40px; }
+
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.toolbar--filters { margin-top: -6px; }
+.toolbar--filters .input { min-height: 40px; }
+.toolbar__spacer { flex: 1; }
+.toolbar__count { font-size: 0.9rem; white-space: nowrap; }
+.counter { font-weight: 700; font-variant-numeric: tabular-nums; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); }
+.counter.is-full { color: var(--warn); border-color: var(--warn); }
+
+/* O apagar do resumo: afastado do resto e encostado à direita, onde não se
+   carrega sem se querer. */
+.resumo__apagar { display: flex; justify-content: flex-end; margin-top: 28px; }
+
+.notes { white-space: pre-wrap; }
+.readonly { min-height: var(--touch); display: flex; align-items: center; padding: 0 14px; background: var(--bg-2); border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); }
+
+
+/* ------------------------------------------------------------------ auth */
+
+.auth { display: grid; place-items: center; min-height: min(78vh, 720px); padding-block: clamp(18px, 7vh, 64px); }
+.auth__card { width: min(440px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 26px; display: flex; flex-direction: column; gap: 14px; }
+.auth__logo { font-size: 2.5rem; }
+.auth__title { font-size: 1.6rem; }
+.auth__sub, .auth__note { color: var(--muted); font-size: 0.88rem; }
+.auth__note { font-size: 0.76rem; }
+
+/* ---------------------------------------------------------------- assistente */
+
+.stepper { display: flex; gap: 8px; margin-bottom: 16px; padding: 0; flex-wrap: wrap; }
+.stepper__item { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: 0.88rem; }
+.stepper__item.is-active { color: var(--text); border-color: var(--primary); }
+.stepper__item.is-done { color: var(--primary); }
+.stepper__n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--card-2); font-size: 0.75rem; }
+.wizard__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.wizard { padding-bottom: calc(var(--nav-bottom-altura) + 24px); }
+/* Jogo já jogado fora da app: por baixo do "guardar e abrir", a azul para não
+   se confundir com o caminho normal de registar ao vivo. */
+.wizard__manual { display: flex; justify-content: flex-end; margin-top: 10px; }
+.btn--manual {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #bfdbfe;
+}
+.btn--manual:hover { background: rgba(59, 130, 246, 0.24); }
+@media (max-width: 640px) { .wizard__manual .btn { flex: 1 1 auto; } }
+
+.pickgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+/* Convocar a arrastar (lib/selecaoArraste.js): na vertical a página rola, para
+   o lado é seleção. Sem seleção de texto, que o rato arrastava por cima dos nomes. */
+.pickgrid { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.pick { display: grid; grid-template-columns: 42px 1fr; grid-template-rows: auto auto; gap: 2px 10px; align-items: center; text-align: left; min-height: 62px; padding: 10px 12px; background: var(--card-2); border: 2px solid var(--line); border-radius: 12px; cursor: pointer; }
+.pick.is-on { border-color: var(--primary); background: rgba(34, 197, 94, 0.14); }
+.pick.is-muted { opacity: 0.5; }
+.pick__num { grid-row: 1 / 3; font-size: 1.3rem; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.pick__name { font-weight: 600; }
+.pick__pos { font-size: 0.76rem; color: var(--muted); }
+
+.chiprow { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 10px 14px; border-radius: 999px; background: var(--card-2); border: 2px solid var(--line); cursor: pointer; min-height: 46px; }
+.chip.is-selected { border-color: var(--info); box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.28); }
+.chip.is-target { border-color: rgba(34, 197, 94, 0.7); }
+.chip--static { cursor: default; border-width: 1px; }
+
+.review { display: grid; gap: 8px; margin-bottom: 8px; }
+.review div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+.review dt { color: var(--muted); }
+.review dd { font-weight: 600; }
+
+/* Barra de botões fixa ao fundo do ecrã, opaca de ponta a ponta. Nada passa
+ * por baixo dela — o conteúdo desaparece na borda superior.
+ *
+ * Serve a preparação do jogo e o assistente de jogo novo: em ambos há uma lista
+ * de catorze jogadores por cima, e o botão que interessa ficava sempre para lá
+ * do fim do ecrã. Deslizar até ao fundo para confirmar é o género de coisa que
+ * não custa nada da primeira vez e irrita a partir da terceira.
+ *
+ * O `max(10px, var(--seguro-baixo))` é o que a torna dinâmica no Android: em
+ * telemóveis com a barra de navegação sempre à vista, o sistema diz-nos quanto
+ * espaço ela ocupa e a barra sobe o suficiente para não ficar por baixo dela;
+ * em gestos, sem barra nenhuma, fica só com os 10px. O valor vem do plugin de
+ * barras de sistema, que o injecta como variável no `<html>`. */
+.setup__footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--nav-bottom-altura);
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -8px 18px rgba(3, 8, 18, 0.85);
+  padding: 10px max(20px, var(--seguro-esq)) max(10px, var(--seguro-baixo));
+}
+.setup__footer > * { max-width: min(1400px, 100%); }
+.setup__spacer { height: calc(96px + var(--nav-bottom-altura)); flex: none; }
+.setup__hint { color: var(--muted); }
+.setup__buttons { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ------------------------------------------------------- campo (selector) */
+
+/* Meio-campo na horizontal: baliza à esquerda, ataque para a direita.
+   GR · FIXO · (ALA E em cima / ALA D em baixo) · PIVOT à frente. */
+.courtpick { display: grid; gap: 16px; }
+.courtpick__court { position: relative; width: 100%; max-width: 760px; margin-inline: auto; aspect-ratio: 2 / 1; max-height: 340px; min-height: 220px; border-radius: 16px; overflow: hidden; background: linear-gradient(90deg, #0d2119, #123024); border: 1px solid var(--line); }
+.courtpick__hint { font-size: 0.82rem; color: var(--muted); }
+.courtpick__bench { display: grid; gap: 12px; }
+.court__bg { position: absolute; inset: 0; }
+/* meio-círculo do meio-campo, encostado à direita */
+.court__bg::before { content: ''; position: absolute; right: -11%; top: 50%; height: 68%; aspect-ratio: 1; transform: translateY(-50%); border: 2px solid rgba(255,255,255,0.16); border-radius: 50%; }
+/* área de grande penalidade, à esquerda */
+.court__bg::after { content: ''; position: absolute; left: 0; top: 50%; width: 13%; height: 56%; transform: translateY(-50%); border: 2px solid rgba(255,255,255,0.16); border-left: 0; border-radius: 0 60% 60% 0 / 0 50% 50% 0; }
+
+.slot { position: absolute; transform: translate(-50%, -50%); width: clamp(104px, 19%, 158px); min-height: 74px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px; border-radius: 14px; border: 2px dashed rgba(255,255,255,0.28); background: rgba(8, 20, 15, 0.55); color: var(--text); cursor: pointer; }
+.slot.is-filled { border-style: solid; border-color: var(--primary); background: rgba(6, 30, 18, 0.9); }
+/* Mesmo vocabulário visual das substituições: âmbar em quem está escolhido,
+   verde a marcar os destinos possíveis. */
+.slot.is-selected { border-color: var(--warn); border-style: solid; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3); }
+.slot.is-target { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22); }
+.slot__clear { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%; background: var(--card-2); border: 1px solid var(--line); display: grid; place-items: center; font-size: 0.7rem; color: var(--muted); }
+.slot__pos { font-size: 0.68rem; letter-spacing: 0.08em; color: var(--muted); }
+/* Nome numa linha só: assim o cartão tem sempre a mesma altura e não estica
+   para fora do campo quando o jogador tem nome comprido. */
+.slot__player { display: flex; flex-direction: column; align-items: center; max-width: 100%; min-width: 0; }
+.slot__player strong { font-size: 1.05rem; }
+.slot__player span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot__empty { font-size: 0.78rem; color: var(--muted); }
+
+/* Guarda-redes recuado, fixo à frente dele, alas abertos, pivô destacado.
+   Os 14% e 86% dão a mesma margem às duas pontas do campo. */
+.slot--goalkeeper,   .pcard--court.slot--goalkeeper   { left: 15%; top: 50%; }
+.slot--fixo,         .pcard--court.slot--fixo         { left: 37%; top: 50%; }
+.slot--left_winger,  .pcard--court.slot--left_winger  { left: 61%; top: 21%; }
+.slot--right_winger, .pcard--court.slot--right_winger { left: 61%; top: 79%; }
+.slot--pivot,        .pcard--court.slot--pivot        { left: 86%; top: 50%; }
+
+.picklist { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow: auto; }
+.picklist__item { display: flex; align-items: center; gap: 12px; min-height: var(--touch); padding: 10px 14px; background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; cursor: pointer; text-align: left; }
+.picklist__item.is-active { border-color: var(--primary); }
+.picklist__item--clear { color: var(--muted); }
+.picklist__item--special { color: var(--warn); border-color: rgba(245, 158, 11, 0.45); }
+.picklist--grelha { display: grid; grid-template-columns: 1fr 1fr; }
+.picklist__grupo { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 14px 0 8px; }
+.picklist__grupo + .picklist { max-height: 34vh; }
+.picklist__num { font-weight: 800; min-width: 42px; }
+.picklist__name { flex: 1; font-weight: 600; }
+.picklist__pos { color: var(--muted); font-size: 0.8rem; }

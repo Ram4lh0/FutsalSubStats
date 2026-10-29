@@ -1,0 +1,1051 @@
+/* ------------------------------------------------------------------ botões */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--touch); padding: 0 18px;
+  background: var(--card-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  font-weight: 600; cursor: pointer; transition: transform 0.05s ease, filter 0.15s ease;
+}
+.btn:active { transform: scale(0.97); }
+.btn[disabled] { opacity: 0.4; pointer-events: none; }
+.btn--primary { background: var(--primary); color: var(--primary-ink); border-color: transparent; }
+.btn--warn { background: var(--warn); color: #201400; border-color: transparent; }
+.btn--danger { background: var(--danger); color: #fff; border-color: transparent; }
+.btn--danger.btn--ghost { background: transparent; color: var(--danger); border-color: rgba(239, 68, 68, 0.45); }
+.btn--danger:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn--ghost { background: transparent; }
+.btn--big { min-height: 60px; font-size: 1.05rem; padding: 0 22px; }
+.btn--tiny { min-height: 36px; padding: 0 12px; font-size: 0.85rem; border-radius: 10px; }
+.btn--block { width: 100%; }
+/* Encerrar a parte ou o jogo.
+ *
+ * Eram botões fantasma, ou seja os mais apagados do ecrã, e são a coisa mais
+ * consequente que ali se carrega: fecham uma parte e não há como voltar atrás
+ * sem desfazer eventos. Ficar à mistura com o resto obrigava a procurá-los.
+ *
+ * Azul e não verde nem vermelho, e a razão é a companhia: ao lado está o
+ * "Parar tempo" em âmbar e, no jogo corrido, o "Retomar tempo" em verde — dois
+ * botões da mesma cor lado a lado, num ecrã que se usa de relance com o jogo a
+ * correr, é pior do que nenhuma cor. Vermelho também não: isto não é destruir
+ * nada, é o passo seguinte, e assustar quem chega ao fim da parte não ajuda.
+ *
+ * Fica com o contorno pintado em vez do fundo cheio, para não competir com o
+ * botão principal do rodapé. */
+.btn--fecha {
+  background: rgba(56, 189, 248, 0.14);
+  color: var(--info);
+  border-color: rgba(56, 189, 248, 0.55);
+  font-weight: 700;
+}
+.btn--fecha:hover { background: rgba(56, 189, 248, 0.24); }
+.btn--icon { width: var(--touch); padding: 0; font-size: 1.6rem; line-height: 1; }
+
+/* ------------------------------------------------------------------ cabeça */
+
+.page__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+.page__headmain { display: flex; align-items: center; gap: 12px; }
+.page__title { font-size: 1.6rem; letter-spacing: -0.01em; }
+.page__sub { color: var(--muted); font-size: 0.92rem; margin-top: 2px; }
+.page__actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.area-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.area-actions--compact {
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.area-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.area-heading > strong {
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+}
+/* Encostado à tabela, quase como se fosse parte dela — não um botão solto
+ * no meio do ecrã. A tabela em si tem uma margem de baixo para não ficar
+ * tapada pela barra de navegação (ver `.tablewrap` no ecrã estreito); aqui
+ * ela sobra, porque quem reserva esse espaço agora é o botão fixo mais
+ * abaixo — por isso anula-se só quando a tabela é seguida deste botão. */
+.tablewrap:has(+ .matches-showmore) {
+  margin-bottom: 0;
+}
+.matches-showmore {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0;
+}
+/* `position: sticky` só desloca o botão se houver algo para deslizar por
+ * baixo dele: com poucos jogos a lista não enche o ecrã, `.view` não tem
+ * scroll, e o "Novo jogo" ficava preso onde o fluxo normal o pôs — a meio
+ * do ecrã, longe da barra de baixo. Fixo ao ecrã (não ao conteúdo) é a
+ * única forma de o garantir sempre encostado ao topo da barra de navegação,
+ * com poucos ou muitos jogos. */
+.matches-actions {
+  position: fixed;
+  left: max(20px, var(--seguro-esq));
+  right: max(20px, var(--seguro-dir));
+  max-width: 1400px;
+  margin: 0 auto;
+  bottom: calc(var(--nav-bottom-altura) + 14px);
+  z-index: 25;
+  align-items: center;
+  padding: 0;
+  background: none;
+  pointer-events: none;
+}
+.matches-actions > * {
+  pointer-events: auto;
+}
+/* Flutua por cima da lista ao rolar — um pouco menos transparente do que o
+ * `.btn--ghost` normal, para não se perder em cima das linhas da tabela. */
+.matches-actions .btn--ghost {
+  background: rgba(11, 18, 32, 0.72);
+  backdrop-filter: blur(6px);
+}
+.summary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.section { font-size: 1.05rem; margin: 22px 0 10px; }
+.section--tight { margin: 0; }
+
+/* As abas de um escalão: Plantel, Jogos, Competições, Estatísticas, Gráficos.
+ *
+ * ## Porque é que dobram em vez de deslizarem
+ *
+ * Deslizavam: `overflow-x: auto` e uma fila que saía pela direita. Num
+ * telemóvel ao alto as cinco não cabem, e a última ficava fora do ecrã — sem
+ * seta, sem sombra, sem nada que dissesse que havia mais. A aba dos Gráficos
+ * tinha acabado de ser feita e, para quem tinha o telemóvel na mão, não
+ * existia.
+ *
+ * Uma barra que desliza só funciona quando se vê que ela desliza. Aqui não se
+ * via, e a solução é não haver deslize nenhum: as abas dobram para a linha de
+ * baixo e ficam todas à vista de uma vez.
+ *
+ * O `flex: 1 1 auto` é o que faz a segunda linha não ficar a meio: as duas que
+ * sobram esticam-se e ocupam a largura toda, em vez de ficarem encolhidas à
+ * esquerda com um vazio ao lado. Num ecrã largo, onde cabem todas numa linha,
+ * nada disto se nota — cada aba fica com o tamanho do seu nome mais a folga. */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+.tab { flex: 0 1 auto; background: none; border: 0; border-bottom: 3px solid transparent; padding: 12px 16px; color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab.is-active { color: var(--text); border-bottom-color: var(--primary); }
+/* Só onde a fila pode dobrar é que as abas esticam. Num ecrã largo cabem todas
+   e ficam com o tamanho do nome, encostadas à esquerda, como sempre estiveram —
+   esticadas por mil e quatrocentos píxeis pareciam outra coisa. */
+@media (max-width: 900px) {
+  .tab { flex: 1 1 auto; }
+}
+/* Num ecrã estreito aperta-se o espaço à volta do nome antes de dobrar a fila:
+   com menos folga cabem três por linha em vez de duas, e as cinco resolvem-se
+   em duas linhas. */
+@media (max-width: 560px) {
+  .tabs { gap: 4px; }
+  .tab { padding: 10px 10px; font-size: 0.92rem; }
+  /* Jogos e V/E/D ficam sozinhos, lado a lado, na primeira linha; o cartão
+   * dos golos fica sozinho e centrado na segunda. `.grid` (mais abaixo no
+   * ficheiro, sem media query) também define `display`, e com a mesma
+   * especificidade de classe ganhava por vir depois — daí o `.grid` aqui a
+   * mais, só para pesar mais do que ele e o `display: flex` pegar mesmo. */
+  .grid.stats__resumo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .stats__resumo-topo {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+  .stats__resumo-topo .stat {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .stats__resumo .golcard {
+    width: min(240px, 100%);
+  }
+}
+
+/* ------------------------------------------------------------------ cartões */
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
+/* Cartão de coisas sem volta a dar. A moldura vermelha não é decoração: é para
+   ninguém chegar aqui a pensar que está noutro sítio qualquer. */
+.card--danger { border-color: rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.06); }
+.card--danger p { margin-bottom: 10px; }
+.card--staff {
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(5, 57, 38, 0.98), rgba(12, 87, 56, 0.9));
+  border-color: rgba(34, 197, 94, 0.55);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.card--staff .input {
+  max-width: 360px;
+  background: rgba(8, 23, 36, 0.76);
+}
+.staffcard__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.staffcard__license {
+  flex: none;
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 211, 252, 0.46);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(37, 99, 235, 0.12));
+  color: #bae6fd;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.card--staff > .muted {
+  margin: 6px 0 10px;
+}
+
+.licenses-card {
+  scroll-margin-top: 1rem;
+}
+.profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 520px);
+}
+.profile-lang {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.profile-lang .btn {
+  min-width: 38px;
+  padding: 0 9px;
+}
+
+.licenses-card__head,
+.license-option__title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.license-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+
+.license-option {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 36%),
+    rgba(7, 18, 35, 0.42);
+}
+
+.license-option--club {
+  border-color: rgba(34, 197, 94, 0.52);
+}
+
+.license-option__title h3,
+.license-option__title strong {
+  margin: 0;
+}
+
+.license-price {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  min-width: max-content;
+  text-align: right;
+}
+
+.license-price__old {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.license-price strong {
+  color: var(--text);
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.license-trial {
+  align-self: flex-start;
+  margin-top: 0.65rem;
+  padding: 6px 10px;
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #bae6fd;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.license-option__features {
+  flex: 1;
+  margin: 0.9rem 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.license-option__features li {
+  margin: 0.5rem 0;
+}
+
+.license-option__features li::before {
+  content: '✓';
+  margin-right: 0.55rem;
+  color: var(--green);
+  font-weight: 800;
+}
+.license-limit {
+  margin: -2px 0 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(56, 189, 248, 0.08)),
+    rgba(7, 18, 35, 0.32);
+}
+
+.license-limit__eyebrow {
+  margin: 0 0 0.35rem;
+  color: #86efac;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.license-limit h3 {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.license-limit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 1rem;
+}
+
+.license-limit-plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1.05rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(7, 18, 35, 0.48);
+  overflow: hidden;
+}
+
+.license-limit-plan::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at top right, rgba(148, 163, 184, 0.12), transparent 36%);
+}
+
+.license-limit-plan--club {
+  border-color: rgba(34, 197, 94, 0.56);
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.08);
+}
+
+.license-limit-plan--club::before {
+  background: radial-gradient(circle at top right, rgba(34, 197, 94, 0.18), transparent 40%);
+}
+
+.license-limit-plan__badge {
+  align-self: flex-start;
+  margin-bottom: 0.7rem;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 197, 94, 0.38);
+  background: rgba(22, 101, 52, 0.38);
+  color: #bbf7d0;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.license-limit-plan__head {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.license-limit-plan h3 { margin: 0; font-size: 1.35rem; }
+.license-limit-plan ul {
+  position: relative;
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+.license-limit-plan li::before {
+  content: '✓';
+  margin-right: 0.55rem;
+  color: var(--green);
+  font-weight: 900;
+}
+
+.tutorial-settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-color: rgba(56, 189, 248, 0.34);
+  background: rgba(56, 189, 248, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.08);
+}
+.tutorial-settings .section {
+  color: #dff6ff;
+}
+.tutorial-settings__aviso {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fbbf24;
+}
+.tutorial-settings .btn {
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #bae6fd;
+  background: rgba(14, 165, 233, 0.1);
+}
+.tutorial-page { max-width: 980px; margin: 0 auto; }
+.tutorial-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.tutorial-progress { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin: 1.25rem 0; padding: 0; list-style: none; }
+.tutorial-progress li { position: relative; height: 4px; background: var(--line); }
+.tutorial-progress li span { position: absolute; top: 50%; left: 50%; display: grid; place-items: center; width: 26px; height: 26px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--surface); border: 1px solid var(--line); font-size: 0.75rem; font-weight: 800; }
+.tutorial-progress li.is-active { background: var(--green); }
+.tutorial-progress li.is-active span { color: #03120b; background: var(--green); border-color: var(--green); }
+.tutorial-stage { min-height: 360px; display: grid; align-content: center; }
+.tutorial-field { max-width: 520px; margin: 0 auto; width: 100%; }
+.tutorial-inline-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.tutorial-roster ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 1rem; }
+.tutorial-roster li { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid var(--line); }
+.tutorial-roster li span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.tutorial-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.tutorial-player-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tutorial-score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; text-align: center; }
+.tutorial-score strong:last-child { text-align: left; }
+.tutorial-score strong:first-child { text-align: right; }
+.tutorial-score span, .tutorial-clock { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.tutorial-clock { margin: 1.3rem 0; text-align: center; }
+.tutorial-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+.tutorial-match > .muted { text-align: center; margin-top: 1rem; }
+.tutorial-finish { text-align: center; }
+.tutorial-finish strong { display: block; margin: 0.5rem; font-size: 4rem; }
+.tutorial-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tutorial-stats > div { display: grid; gap: 8px; padding: 1rem; border: 1px solid var(--line); border-radius: 8px; text-align: center; }
+.tutorial-stats span { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
+.tutorial-stats strong { font-size: 1.8rem; }
+.tutorial-stats p { grid-column: 1 / -1; text-align: center; }
+.tutorial-footer { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
+
+.guided-tour {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  pointer-events: none;
+}
+.guided-tour__blanket {
+  position: fixed;
+  inset: 0;
+  display: none;
+}
+.guided-tour__spotlight {
+  position: fixed;
+  border: 2px solid rgba(56, 189, 248, 0.98);
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 5px rgba(56, 189, 248, 0.14),
+    0 0 22px rgba(56, 189, 248, 0.58);
+}
+.guided-tour__panel {
+  position: fixed;
+  right: max(16px, var(--seguro-dir));
+  bottom: max(16px, var(--seguro-baixo));
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100dvh - max(24px, var(--seguro-cima)) - max(24px, var(--seguro-baixo)));
+  overflow: auto;
+  pointer-events: auto;
+  border: 1px solid rgba(56, 189, 248, 0.48);
+  border-radius: 12px;
+  background: rgba(11, 18, 32, 0.98);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(148, 163, 184, 0.12) inset;
+  padding: 12px;
+}
+.guided-tour__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.guided-tour__topactions {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.guided-tour__progress {
+  color: #86efac;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.guided-tour h2 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  line-height: 1.15;
+}
+.guided-tour p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.38;
+}
+.guided-tour__note {
+  display: grid;
+  gap: 3px;
+  margin-top: 9px;
+  padding: 9px;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.08);
+}
+.guided-tour__note span {
+  color: #bae6fd;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.guided-tour__note p {
+  color: #dff6ff;
+}
+.guided-tour__hint {
+  margin-top: 7px !important;
+  color: #fde68a !important;
+  font-size: 0.78rem;
+}
+.guided-tour__countdown {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 7px !important;
+  padding: 3px 7px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 999px;
+  color: #7dd3fc !important;
+  background: rgba(14, 165, 233, 0.12);
+  font-size: 0.72rem !important;
+  font-weight: 800;
+}
+.guided-tour__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 11px;
+}
+.guided-tour .btn {
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  gap: 5px;
+}
+.guided-tour__actions .btn {
+  flex: 0 1 auto;
+}
+.guided-tour__restart {
+  margin-top: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #93c5fd;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.guided-tour__tab {
+  position: fixed;
+  z-index: 81;
+  top: 50%;
+  right: max(0px, var(--seguro-dir));
+  transform: translateY(-50%);
+  width: 30px;
+  height: 92px;
+  padding: 0;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  background: rgba(11, 18, 32, 0.96);
+  color: #7dd3fc;
+  box-shadow: -6px 0 18px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(148, 163, 184, 0.1) inset;
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+.guided-tour__tab:active {
+  transform: translateY(-50%) scale(0.96);
+}
+.guided-tour-highlight {
+  position: relative;
+  z-index: 30;
+  outline: 2px solid rgba(56, 189, 248, 0.98);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 7px rgba(56, 189, 248, 0.12), 0 0 20px rgba(56, 189, 248, 0.45);
+  border-radius: 10px;
+}
+
+@media (max-width: 700px) {
+  .licenses-card__head,
+  .license-option__title {
+    align-items: flex-start;
+  }
+
+  .license-option__title,
+  .license-limit-plan__head {
+    flex-direction: column;
+  }
+
+  .license-price {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .license-grid {
+    grid-template-columns: 1fr;
+  }
+  .license-limit-grid { grid-template-columns: 1fr; }
+  .tutorial-settings, .tutorial-head { align-items: stretch; flex-direction: column; }
+  .tutorial-stage { min-height: 420px; }
+  .tutorial-form-grid, .tutorial-player-grid { grid-template-columns: 1fr; }
+  .tutorial-roster ul, .tutorial-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tutorial-inline-form { grid-template-columns: 1fr; }
+  .tutorial-score span, .tutorial-clock { font-size: 2rem; }
+  .guided-tour {
+    inset: 0;
+  }
+  .guided-tour__panel {
+    padding: 12px;
+  }
+  .guided-tour__actions .btn {
+    flex: 0 1 auto;
+  }
+}
+
+@media (min-width: 980px) {
+  .app {
+    padding-left: 220px;
+  }
+  /* No jogo ao vivo o `.mainnav--side` já fica escondido (`display: none`,
+   * ali em cima), mas isso não devolve o espaço que este `padding-left`
+   * reserva para ele — no iPad em horizontal (que já passa dos 980px) ficava
+   * uma faixa preta à esquerda do tamanho da barra lateral, como se ela
+   * continuasse lá. É o `.app:has(.mainnav--side.is-collapsed)` a seguir que
+   * obriga à segunda regra, mais específica: sem ela, se a barra tivesse
+   * ficado recolhida antes de entrar no jogo, ganhava a este reset na mesma
+   * (o `:has()` conta como se tivesse as classes do que está lá dentro). */
+  .app.is-live,
+  .app.is-live:has(.mainnav--side.is-collapsed) {
+    padding-left: 0;
+  }
+  .mainnav--bottom {
+    display: none;
+  }
+  .mainnav--side {
+    position: fixed;
+    z-index: 70;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    width: 220px;
+    flex-direction: column;
+    gap: 8px;
+    padding: max(20px, var(--seguro-cima)) 14px max(20px, var(--seguro-baixo)) max(14px, var(--seguro-esq));
+    border-right: 1px solid var(--line);
+    background: rgba(11, 18, 32, 0.96);
+  }
+  .app:has(.mainnav--side.is-collapsed) {
+    padding-left: 72px;
+  }
+  .mainnav--side.is-collapsed {
+    width: 72px;
+    align-items: center;
+    padding-inline: 10px;
+  }
+  .mainnav--side.is-collapsed .mainnav__brand span,
+  .mainnav--side.is-collapsed .mainnav__item span,
+  .mainnav--side.is-collapsed .mainnav__live {
+    display: none;
+  }
+  .mainnav--side.is-collapsed .mainnav__sidehead {
+    width: 100%;
+    justify-content: center;
+  }
+  .mainnav--side.is-collapsed .mainnav__item {
+    width: 48px;
+    justify-content: center;
+    padding: 0;
+  }
+  .mainnav--side.is-collapsed .mainnav__collapse {
+    width: 42px;
+  }
+  .mainnav__brand {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+    padding: 10px 8px;
+    color: var(--text);
+    text-align: left;
+    font-size: 1.04rem;
+    font-weight: 900;
+  }
+  .mainnav__brand span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mainnav__collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.3rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .mainnav--side .mainnav__item {
+    min-height: 46px;
+    justify-content: flex-start;
+    padding: 0 12px;
+    border-radius: 10px;
+    font-size: 0.96rem;
+  }
+  .mainnav--side .mainnav__item.is-active {
+    background: rgba(56, 189, 248, 0.11);
+  }
+  .mainnav__live {
+    margin-top: auto;
+    min-height: 42px;
+    padding: 0 12px;
+    border: 1px solid rgba(56, 189, 248, 0.42);
+    border-radius: 10px;
+    color: var(--info);
+    font-weight: 800;
+    text-align: left;
+  }
+  .mainnav-top {
+    padding-left: 20px;
+    padding-right: max(20px, var(--seguro-dir));
+  }
+  .view {
+    padding-bottom: max(32px, var(--seguro-baixo));
+    scroll-padding-bottom: max(32px, var(--seguro-baixo));
+  }
+  .setup__footer {
+    bottom: 0;
+    z-index: 30;
+  }
+  .setup__spacer {
+    height: 96px;
+  }
+  .wizard {
+    padding-bottom: 96px;
+  }
+  .form--safe-actions {
+    margin-bottom: 16px;
+  }
+  .matches-actions {
+    position: static;
+    background: transparent;
+    padding: 0;
+  }
+}
+.stafflist { margin-top: 12px; }
+.stafflist__title {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.stafflist__toggle {
+  background: rgba(4, 34, 24, 0.62);
+  border-color: rgba(134, 214, 164, 0.34);
+}
+.stafflist__items {
+  display: grid;
+  gap: 7px;
+  margin-top: 0;
+}
+.staffmember {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid rgba(134, 214, 164, 0.22);
+  border-radius: 14px;
+  background: rgba(5, 29, 22, 0.42);
+}
+.staffmember__main {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.staffmember__identity {
+  min-width: 0;
+}
+.staffmember__identity strong,
+.staffmember__identity p {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.staffmember__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 6px;
+}
+.stafflist__remove {
+  min-height: 40px;
+  padding: 8px 12px;
+}
+@media (max-width: 560px) {
+  .card--staff {
+    padding: 12px;
+  }
+  .staffcard__head {
+    align-items: center;
+    gap: 8px;
+  }
+  .staffcard__license {
+    padding: 5px 9px;
+    font-size: 0.66rem;
+  }
+  .card--staff > .muted {
+    margin: 4px 0 8px;
+    font-size: 0.9rem;
+    line-height: 1.32;
+  }
+  .card--staff .form__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .card--staff .input,
+  .card--staff .btn--primary {
+    width: 100%;
+    max-width: none;
+  }
+  .staffmember {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 7px;
+    padding: 9px;
+    border-radius: 12px;
+  }
+  .staffmember__main {
+    gap: 4px;
+  }
+  .staffmember__identity strong {
+    font-size: 0.94rem;
+  }
+  .staffmember__meta .pill {
+    max-width: 100%;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+  }
+  .stafflist__remove {
+    width: 100%;
+    min-height: 36px;
+    padding-block: 6px;
+  }
+}
+.safe-scroll-tail {
+  height: calc(var(--nav-bottom-altura) + 18px);
+}
+/* Cartão dentro de outro — usado para a caixa do ficheiro de exemplo dentro da
+   janela de importação. Mais discreto e mais apertado, para se ler como um à
+   parte e não como uma segunda secção. */
+.card--inset { padding: 12px 14px; margin: 14px 0; background: rgba(148, 163, 184, 0.06); }
+.card--inset p { margin-bottom: 8px; }
+/* Texto corrido para ler, não para consultar: linha curta e espaço entre
+   parágrafos. É o que separa uma política de privacidade legível de um muro. */
+.prose { max-width: 68ch; line-height: 1.6; }
+.prose p { margin-bottom: 12px; }
+.prose .section:first-child { margin-top: 0; }
+
+/* Entrada do jogo de experiência, no ecrã de início de sessão. */
+.jogo-demo { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 420px; margin: 18px auto 0; text-align: center; }
+.auth__demo { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: -10px; }
+.auth__divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 0.86rem; font-weight: 700; }
+.auth__divider::before, .auth__divider::after { content: ''; height: 1px; flex: 1; background: var(--line); }
+.auth__providers { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.btn--provider {
+  justify-content: center;
+  min-height: 58px;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  color: #fff;
+  font-size: 1.02rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+.auth__provider-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex: 0 0 24px; }
+.auth__provider-icon svg { width: 24px; height: 24px; display: block; }
+.btn--demo { border-color: rgba(56, 189, 248, 0.58); background: rgba(56, 189, 248, 0.14); color: #d9f3ff; box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.12); }
+.btn--demo:hover { background: rgba(56, 189, 248, 0.2); border-color: rgba(125, 211, 252, 0.78); }
+
+/* Convite a criar conta, no fim da experiência. Fica acima de tudo o resto
+   porque é a única coisa que se pede a quem chegou ali. */
+/* A história curta à entrada do intervalo da demonstração (DemoHistoria). */
+.demo-historia { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: max(16px, var(--seguro-cima, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: rgba(5, 12, 24, 0.82); backdrop-filter: blur(3px); }
+.demo-historia__cartao { width: min(440px, 100%); display: flex; flex-direction: column; gap: 20px; padding: 26px 22px 20px; border-radius: 18px; border: 1px solid rgba(56, 189, 248, 0.5); background: var(--card); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45); }
+.demo-historia__texto { font-size: 1.25rem; line-height: 1.45; font-weight: 600; margin: 0; text-wrap: balance; }
+.demo-historia__pontos { display: flex; gap: 6px; }
+.demo-historia__pontos span { width: 8px; height: 8px; border-radius: 50%; background: rgba(148, 163, 184, 0.4); }
+.demo-historia__pontos span.is-on { background: #38bdf8; width: 22px; border-radius: 4px; }
+.demo-historia__acoes { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.demo-cta { border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.07); }
+.demo-cta .page__title { margin-bottom: 10px; }
+.demo-cta p { margin-bottom: 10px; max-width: 62ch; line-height: 1.5; }
+.demo-cta__actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.collapse summary { cursor: pointer; font-weight: 600; }
+.collapse[open] summary { margin-bottom: 14px; }
+
+.grid { display: grid; gap: 14px; }
+.grid--cards { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+/* Um cartão sozinho fica ao meio.
+ *
+ * Com `auto-fill` a grelha cria as colunas todas que couberem e o único cartão
+ * ocupa a primeira — encostado à esquerda, com um vazio à direita que parecia
+ * uma lista a meio de carregar.
+ *
+ * Quem põe esta classe conta os cartões no ecrã, e não a licença. No painel dos
+ * clubes é sempre um, porque uma conta tem um clube. Na lista de escalões
+ * depende: uma licença de Clube pode ter vários e um treinador associado pode
+ * receber acesso a vários — nesses casos a grelha continua a ser uma grelha, e
+ * isto não se aplica.
+ *
+ * O `minmax(0, 420px)` é o que impede o cartão de esticar de margem a margem num
+ * computador, onde um cartão de mil pixels de largura não se lê melhor. */
+.grid--cards.grid--um { grid-template-columns: minmax(0, 420px); justify-content: center; }
+.grid--stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 8px; }
+
+@media (min-width: 700px) {
+  .painelv__metricas-atleta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.stats__resumo .stat__label,
+.grid--destaques .stat__label,
+.painelv .stat__label,
+.painelv__bloco > .section {
+  font-weight: 800;
+}
+
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+/* O título de um cartão de estatística. A negrito: em maiúsculas pequenas e na
+   cor apagada, ficava mais leve do que o texto normal à volta e a grelha lia-se
+   como uma mancha só. O peso é o que separa o rótulo do número. */
+.stat__label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+/* O valor ao centro, e a etiqueta encostada à esquerda em cima.
+   Uma grelha de cinco cartões com números de larguras diferentes — `10`, `-7`,
+   `3/4/3` — fica desalinhada ao alto se todos encostarem à esquerda; ao centro,
+   é o meio de cada cartão que os alinha. A etiqueta fica onde estava: é ela que
+   se lê a percorrer a fila, e para isso tem de começar sempre no mesmo sítio. */
+.stat__value { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; }
+.stat__hint { margin-top: auto; font-size: 0.8rem; color: var(--muted); }
+/* Cartão que abre o detalhe por trás: é um botão, mas mantém o desenho do resto
+   da grelha — nada de o fazer parecer um controlo diferente. */
+.stat--clickable { text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.stat--clickable:hover { border-color: var(--primary); }
+.stat--clickable .stat__hint { text-decoration: underline; text-underline-offset: 2px; }
+/* Resultado final: verde ganhou, âmbar empatou, vermelho perdeu. */
+.stat--win { background: rgba(34, 197, 94, 0.14); border-color: rgba(34, 197, 94, 0.55); }
+.stat--win .stat__value, .stat--win .stat__hint { color: var(--primary); }
+.stat--draw { background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.55); }
+.stat--draw .stat__value, .stat--draw .stat__hint { color: var(--warn); }
+.stat--loss { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.55); }
+.stat--loss .stat__value, .stat--loss .stat__hint { color: #ff8080; }
+
+.club-card { border-top: 4px solid var(--primary); display: flex; flex-direction: column; gap: 14px; }
+.club-card__head { display: flex; gap: 12px; align-items: center; }
+.club-card__crest { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; color: #04220f; }
+.club-card__stats { display: grid; gap: 8px; }
+.club-card__stats div { display: flex; justify-content: space-between; gap: 10px; }
+.club-card__stats dt { color: var(--muted); font-size: 0.88rem; }
+.club-card__stats dd { font-weight: 600; text-align: right; }
+.club-card__actions { display: flex; gap: 10px; margin-top: auto; }
+.club-card__actions .btn { flex: 1; }
+.club-card__actions .btn:only-child {
+  flex: 0 1 220px;
+  margin-inline: auto;
+}
+.club-list-actions {
+  margin: -4px 0 14px;
+}
+
+.banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-radius: var(--radius); margin-bottom: 16px; }
+.banner--live { background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.4); }
+
+.empty { text-align: center; color: var(--muted); padding: 44px 20px; display: flex; flex-direction: column; gap: 16px; align-items: center; }
+.error { white-space: pre-wrap; text-align: left; font-size: 0.75rem; color: var(--danger); }
+/* Aviso que aparece dentro de um formulário: vazio não ocupa lugar. */
+.error--aviso { margin: 0; font-size: 0.9rem; font-weight: 600; }
+.error--aviso:empty { display: none; }

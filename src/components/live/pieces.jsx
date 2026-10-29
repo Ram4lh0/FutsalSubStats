@@ -461,8 +461,9 @@ export function Bench({ state, sel, clockMs, on, arrasto }) {
     });
 
   // Duas linhas equilibradas em vez de uma cheia e outra com as sobras:
-  // 9 suplentes dão 5+4, não 7+2.
-  const cols = lista.length <= 6 ? Math.max(1, lista.length) : Math.ceil(lista.length / 2);
+  // 9 suplentes dão 5+4, não 7+2. Com poucos suplentes a grelha fica nas seis
+  // colunas, para um ou dois cartões não esticarem pela largura toda.
+  const cols = lista.length <= 6 ? 6 : Math.ceil(lista.length / 2);
   const noBanco = lista.filter((p) => p.status === PLAYER_MATCH_STATUS.ON_BENCH).length;
 
   // O banco inteiro recebe quem vem do campo. Largar em cima de um suplente diz
