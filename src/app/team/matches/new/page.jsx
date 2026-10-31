@@ -78,6 +78,7 @@ function Assistente() {
     timing: '',
     scheduledAt: dataHoraPorOmissao(),
     homeOrAway: 'HOME',
+    venue: '',
     notes: '',
   });
   const [escolhidos, setEscolhidos] = useState([]);
@@ -253,6 +254,7 @@ function Assistente() {
         competitionId: info.competitionId,
         timing: info.timing,
         homeOrAway: info.homeOrAway,
+        venue: info.homeOrAway === 'AWAY' ? info.venue : null,
         scheduledAt: new Date(info.scheduledAt).getTime(),
         season: club?.currentSeason || null,
         notes: info.notes,
@@ -398,6 +400,11 @@ function Assistente() {
                 </select>
               </Field>
             </div>
+            {info.homeOrAway === 'AWAY' ? (
+              <Field label={t('conv.pavilhaoFora')}>
+                <input className="input" maxLength={120} placeholder={t('treino.localExemplo')} {...campo('venue')} />
+              </Field>
+            ) : null}
             <div className="form__row">
               <Field
                 label={t('prep.competicao')}
@@ -452,6 +459,7 @@ function Assistente() {
               });
               if (erro) return toast(mensagemErro(erro), 'error');
               if (!info.competitionId) return toast(t('novo.escolhaCompeticao'), 'error');
+              if (info.homeOrAway === 'AWAY' && !info.venue.trim()) return toast(t('conv.faltaPavilhao'), 'error');
               setEtapa(1);
             })}
           </div>

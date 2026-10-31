@@ -2,7 +2,8 @@
 
 // components/PrepararJogo.jsx — marcar um jogo sem sair da lista de jogos.
 //
-// Pergunta só o essencial (adversário, dia e hora, casa/fora, competição) e
+// Pergunta só o essencial (adversário, dia e hora, casa/fora, competição e,
+// se for fora, o pavilhão) e
 // grava o jogo logo, como rascunho: sem convocatória nem cinco inicial. Isso
 // faz-se mais tarde — os convocados em Treino → Convocatórias, o cinco na
 // preparação, na hora do jogo.
@@ -49,6 +50,7 @@ export function usePrepararJogo({ teamId, team, club, competitions = [] }) {
       homeOrAway: dados.homeOrAway,
       scheduledAt: new Date(dados.scheduledAt).getTime(),
       season: club?.currentSeason || null,
+      venue: dados.homeOrAway === 'AWAY' ? dados.venue : null,
     });
     await events.append(
       matchCreated({
@@ -76,6 +78,7 @@ function Formulario({ provas, onFechar }) {
     scheduledAt: sabadoPorOmissao(),
     homeOrAway: 'HOME',
     competitionId: provas.length === 1 ? provas[0].id : '',
+    venue: '',
   });
   const campo = (k) => ({ value: v[k], onChange: (e) => setV((x) => ({ ...x, [k]: e.target.value })) });
 
@@ -84,7 +87,8 @@ function Formulario({ provas, onFechar }) {
     if (!v.opponentName.trim()) return toast(t('conv.faltaAdversario'), 'error');
     if (!v.scheduledAt) return;
     if (provas.length && !v.competitionId) return toast(t('novo.escolhaCompeticao'), 'error');
-    onFechar({ ...v, opponentName: v.opponentName.trim() });
+    if (v.homeOrAway === 'AWAY' && !v.venue.trim()) return toast(t('conv.faltaPavilhao'), 'error');
+    onFechar({ ...v, opponentName: v.opponentName.trim(), venue: v.venue.trim() });
   }
 
   return (
@@ -105,6 +109,11 @@ function Formulario({ provas, onFechar }) {
             </select>
           </Field>
         </div>
+        {v.homeOrAway === 'AWAY' ? (
+          <Field label={t('conv.pavilhaoFora')}>
+            <input className="input" maxLength={120} placeholder={t('treino.localExemplo')} {...campo('venue')} />
+          </Field>
+        ) : null}
         {provas.length ? (
           <Field label={t('prep.competicao')}>
             <select className="input" {...campo('competitionId')}>

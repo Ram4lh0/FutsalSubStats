@@ -5,14 +5,13 @@
 // o que falta para a mandar para o grupo: o pavilhão, o texto do WhatsApp e o
 // PDF.
 //
-// EXPERIÊNCIA: o pavilhão de cada jogo e o pavilhão de casa do escalão ficam
-// só neste aparelho (localStorage). Se ficar, passam a colunas (`matches.venue`
-// e `teams.home_venue`) e entram nos mappers.
+// O pavilhão de cada jogo é a coluna `matches.venue` e sincroniza com o resto
+// do jogo. O pavilhão de casa do escalão, que só serve para pré-preencher os
+// jogos em casa, fica por agora neste aparelho (localStorage).
 
 import { t, localeAtual } from './i18n/index.js';
 import { COR, novoRelatorio } from './pdf/base.js';
 
-const CHAVE_JOGO = (matchId) => `fss:pavilhao:${matchId}`;
 const CHAVE_CASA = (teamId) => `fss:pavilhaoCasa:${teamId}`;
 
 function ler(chave) {
@@ -32,14 +31,12 @@ function gravar(chave, valor) {
   }
 }
 
-export const pavilhaoDoJogo = (matchId) => ler(CHAVE_JOGO(matchId));
-export const gravarPavilhaoDoJogo = (matchId, v) => gravar(CHAVE_JOGO(matchId), (v || '').trim());
 export const pavilhaoDeCasa = (teamId) => ler(CHAVE_CASA(teamId));
 export const gravarPavilhaoDeCasa = (teamId, v) => gravar(CHAVE_CASA(teamId), (v || '').trim());
 
 /** O pavilhão a mostrar: o do jogo, ou o de casa quando o jogo é em casa. */
 export function pavilhaoEfetivo(match) {
-  return pavilhaoDoJogo(match.id) || (match.homeOrAway === 'HOME' ? pavilhaoDeCasa(match.teamId) : '');
+  return match.venue || (match.homeOrAway === 'HOME' ? pavilhaoDeCasa(match.teamId) : '');
 }
 
 /** Convocados por número de camisola (sem número vão para o fim). */

@@ -599,6 +599,7 @@ export const matches = {
       timing,
       opponentName: data.opponentName.trim(),
       opponentShortName: (data.opponentShortName || '').trim() || null,
+      venue: (data.venue || '').trim() || null,
       competitionId: data.competitionId || null,
       homeOrAway: data.homeOrAway || 'HOME',
       scheduledAt: data.scheduledAt || now(),

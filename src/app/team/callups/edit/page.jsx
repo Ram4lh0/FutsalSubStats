@@ -31,13 +31,7 @@ import { canCreateMatch } from '@/lib/entitlements.js';
 import useSelecaoArraste from '@/lib/selecaoArraste.js';
 import { copiarTexto, linkWhatsApp, abrirFora } from '@/lib/partilha.js';
 import { entregarFicheiro, nomeLimpo } from '@/lib/ficheiros.js';
-import {
-  gravarPavilhaoDoJogo,
-  pavilhaoDeCasa,
-  pavilhaoDoJogo,
-  pdfConvocatoria,
-  textoConvocatoria,
-} from '@/lib/convocatoria.js';
+import { pavilhaoDeCasa, pdfConvocatoria, textoConvocatoria } from '@/lib/convocatoria.js';
 import { useT } from '@/lib/i18n/index.js';
 
 export default function CallupPage() {
@@ -118,6 +112,7 @@ function EscolherJogo({ clubId, teamId, dados }) {
     if (aGuardar) return;
     if (!v.opponentName.trim()) return toast(t('conv.faltaAdversario'), 'error');
     if (provas.length && !v.competitionId) return toast(t('novo.escolhaCompeticao'), 'error');
+    if (v.homeOrAway === 'AWAY' && !v.pavilhao.trim()) return toast(t('conv.faltaPavilhao'), 'error');
     setAGuardar(true);
     try {
       const permissao = await canCreateMatch();
@@ -133,6 +128,9 @@ function EscolherJogo({ clubId, teamId, dados }) {
         homeOrAway: v.homeOrAway,
         scheduledAt: new Date(v.scheduledAt).getTime(),
         season: dados.club?.currentSeason || null,
+        // Em casa, só fica no jogo um pavilhão diferente do de casa — assim
+        // mudar o pavilhão de casa mais tarde chega aos jogos já criados.
+        venue: v.homeOrAway === 'AWAY' || v.pavilhao.trim() !== pavilhaoDeCasa(teamId) ? v.pavilhao : null,
       });
       await events.append(
         matchCreated({
@@ -146,9 +144,6 @@ function EscolherJogo({ clubId, teamId, dados }) {
           opponentScore: 0,
         })
       );
-      // Em casa, só se grava no jogo um pavilhão diferente do de casa — assim
-      // mudar o pavilhão de casa mais tarde chega aos jogos já criados.
-      if (v.homeOrAway === 'AWAY' || v.pavilhao.trim() !== pavilhaoDeCasa(teamId)) gravarPavilhaoDoJogo(jogo.id, v.pavilhao);
       sync.saveNow(userId, user?.email);
       toast(t('conv.jogoCriado'), 'ok');
       abrir(jogo.id);
@@ -201,7 +196,10 @@ function EscolherJogo({ clubId, teamId, dados }) {
                 </select>
               </Field>
             ) : null}
-            <Field label={t('conv.pavilhao')} hint={v.homeOrAway === 'HOME' && !pavilhaoDeCasa(teamId) ? t('conv.dicaCasa') : null}>
+            <Field
+              label={v.homeOrAway === 'AWAY' ? t('conv.pavilhaoFora') : t('conv.pavilhao')}
+              hint={v.homeOrAway === 'HOME' && !pavilhaoDeCasa(teamId) ? t('conv.dicaCasa') : null}
+            >
               <input className="input" maxLength={100} placeholder={t('treino.localExemplo')} {...campo('pavilhao')} />
             </Field>
           </div>
@@ -259,7 +257,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
         opponentName: match.opponentName,
         scheduledAt: paraInput(match.scheduledAt || Date.now()),
         homeOrAway: match.homeOrAway || 'HOME',
-        pavilhao: pavilhaoDoJogo(match.id),
+        pavilhao: match.venue || '',
       });
     }
   }, [match, info]);
@@ -289,7 +287,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
     info.opponentName.trim() !== match.opponentName ||
     new Date(info.scheduledAt).getTime() !== match.scheduledAt ||
     info.homeOrAway !== (match.homeOrAway || 'HOME') ||
-    info.pavilhao.trim() !== pavilhaoDoJogo(match.id);
+    info.pavilhao.trim() !== (match.venue || '');
   const porGravar = mudouLista || mudouInfo;
   const casa = pavilhaoDeCasa(teamId);
 
@@ -305,14 +303,21 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
   }
 
   async function guardar() {
-    if (!info.opponentName.trim()) return toast(t('conv.faltaAdversario'), 'error');
+    if (!info.opponentName.trim()) {
+      toast(t('conv.faltaAdversario'), 'error');
+      return false;
+    }
+    if (info.homeOrAway === 'AWAY' && !info.pavilhao.trim()) {
+      toast(t('conv.faltaPavilhao'), 'error');
+      return false;
+    }
     if (mudouInfo) {
       await matches.update(match.id, {
         opponentName: info.opponentName.trim(),
         scheduledAt: new Date(info.scheduledAt).getTime(),
         homeOrAway: info.homeOrAway,
+        venue: info.pavilhao.trim() || null,
       });
-      gravarPavilhaoDoJogo(match.id, info.pavilhao);
     }
     if (mudouLista) {
       // Quem já estava convocado guarda a posição do cinco inicial, se a tinha.
@@ -333,28 +338,38 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
     }
     sync.saveNow(userId, user?.email);
     toast(t('conv.guardada'), 'ok');
+    return true;
   }
 
   // O que vai para o grupo é sempre o que está gravado; com alterações por
   // gravar, grava-se primeiro.
   async function antesDeMandar() {
-    if (porGravar && !soLeitura) await guardar();
+    // Fora, a convocatória não sai sem pavilhão: é para isso que serve.
+    if (info.homeOrAway === 'AWAY' && !info.pavilhao.trim()) {
+      toast(t('conv.faltaPavilhao'), 'error');
+      return null;
+    }
+    if (porGravar && !soLeitura && !(await guardar())) return null;
     const rows = await squad.listByMatch(match.id);
     const m = (await matches.get(match.id)) || match;
     return { match: m, team: dados.team, club: dados.club, convocados: rows, competicao: prova?.name || null };
   }
 
   async function copiar() {
-    const ok = await copiarTexto(textoConvocatoria(await antesDeMandar()));
+    const d = await antesDeMandar();
+    if (!d) return;
+    const ok = await copiarTexto(textoConvocatoria(d));
     toast(ok ? t('conv.copiado') : t('conv.naoCopiou'), ok ? 'ok' : 'error');
   }
 
   async function whatsapp() {
-    abrirFora(linkWhatsApp(textoConvocatoria(await antesDeMandar())));
+    const d = await antesDeMandar();
+    if (d) abrirFora(linkWhatsApp(textoConvocatoria(d)));
   }
 
   async function pdf() {
     const d = await antesDeMandar();
+    if (!d) return;
     const blob = await pdfConvocatoria(d);
     const nome = `${nomeLimpo(`convocatoria-${dados.team?.name || ''}-${d.match.opponentName}`)}.pdf`;
     await entregarFicheiro(blob, nome, 'application/pdf', { titulo: t('conv.tituloTexto') });
@@ -387,7 +402,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
                 <option value="AWAY">{t('local.AWAY')}</option>
               </select>
             </Field>
-            <Field label={t('conv.pavilhao')}>
+            <Field label={info.homeOrAway === 'AWAY' ? t('conv.pavilhaoFora') : t('conv.pavilhao')}>
               <input
                 className="input"
                 maxLength={100}

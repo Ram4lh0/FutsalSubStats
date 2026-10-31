@@ -87,6 +87,7 @@ function Preparacao() {
         opponentShortName: match.opponentShortName || '',
         scheduledAt: paraInput(match.scheduledAt),
         homeOrAway: match.homeOrAway,
+        venue: match.venue || '',
         competitionId: match.competitionId || '',
         timing: timingOf(match),
         notes: match.notes || '',
@@ -152,6 +153,7 @@ function Preparacao() {
 
   async function guardarDados() {
     if (aGuardar) return;
+    if (form.homeOrAway === 'AWAY' && !(form.venue || '').trim()) return toast(t('conv.faltaPavilhao'), 'error');
     setAGuardar(true);
     try {
       await matches.update(matchId, {
@@ -159,6 +161,7 @@ function Preparacao() {
         opponentShortName: (form.opponentShortName || '').trim() || null,
         scheduledAt: new Date(form.scheduledAt).getTime(),
         homeOrAway: form.homeOrAway,
+        venue: (form.venue || '').trim() || null,
         competitionId: form.competitionId || null,
         timing: form.timing,
         notes: form.notes,
@@ -284,8 +287,10 @@ function Preparacao() {
         </section>
       ) : null}
 
-      <details className="card collapse">
+      {/* Jogo fora sem pavilhão: os dados do jogo abrem sozinhos a pedi-lo. */}
+      <details className="card collapse" open={match.homeOrAway === 'AWAY' && !match.venue ? true : undefined}>
         <summary>{t('prep.dadosDoJogo')}</summary>
+        {match.homeOrAway === 'AWAY' && !match.venue ? <p className="muted">{t('conv.pedePavilhao')}</p> : null}
         <div className="form">
           <div className="form__row">
             <Field label={t('prep.adversario')}>
@@ -306,6 +311,11 @@ function Preparacao() {
               </select>
             </Field>
           </div>
+          {form.homeOrAway === 'AWAY' ? (
+            <Field label={t('conv.pavilhaoFora')}>
+              <input className="input" maxLength={120} placeholder={t('treino.localExemplo')} {...campo('venue')} />
+            </Field>
+          ) : null}
           <div className="form__row">
             <Field label={t('prep.competicao')}>
               <select
