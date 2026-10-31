@@ -4,14 +4,15 @@
 //
 // Uma grelha de segunda a domingo. Cada dia com treino leva um ponto com a cor
 // do estado: agendado, realizado (já tem presenças), por marcar (passou e
-// ninguém marcou presenças) ou cancelado. Tocar num dia escolhe-o; a lista
-// por baixo da grelha é de quem chama.
+// ninguém marcou presenças) ou cancelado. Os dias com jogo levam um quadrado
+// roxo à parte. Tocar num dia escolhe-o; a lista por baixo da grelha é de quem
+// chama.
 
 import { useMemo } from 'react';
 import { grelhaDoMes, deIsoDia, maiuscula } from '@/domain/treino.js';
 import { useLocale, useT } from '@/lib/i18n/index.js';
 
-export default function Calendario({ ano, mes, hoje, selecionado, estadosPorDia, onDia, onMes }) {
+export default function Calendario({ ano, mes, hoje, selecionado, estadosPorDia, jogosPorDia = new Map(), onDia, onMes }) {
   const t = useT();
   const locale = useLocale();
   const semanas = useMemo(() => grelhaDoMes(ano, mes), [ano, mes]);
@@ -47,12 +48,14 @@ export default function Calendario({ ano, mes, hoje, selecionado, estadosPorDia,
         {semanas.flat().map((dia) => {
           const foraDoMes = deIsoDia(dia).getMonth() !== mes;
           const estados = estadosPorDia.get(dia) || [];
+          const jogos = jogosPorDia.get(dia) || 0;
           const classe = [
             'tcal__dia',
             foraDoMes ? 'is-fora' : '',
             dia === hoje ? 'is-hoje' : '',
             dia === selecionado ? 'is-sel' : '',
             estados.length ? 'tem-treino' : '',
+            jogos ? 'tem-jogo' : '',
           ].join(' ');
           return (
             <button key={dia} type="button" className={classe} onClick={() => onDia(dia)}>
@@ -61,6 +64,7 @@ export default function Calendario({ ano, mes, hoje, selecionado, estadosPorDia,
                 {estados.slice(0, 3).map((e, i) => (
                   <i key={i} className={`tcal__ponto tcal__ponto--${e}`} />
                 ))}
+                {jogos ? <i className="tcal__ponto tcal__ponto--jogo" /> : null}
               </span>
             </button>
           );
@@ -72,6 +76,9 @@ export default function Calendario({ ano, mes, hoje, selecionado, estadosPorDia,
             <i className={`tcal__ponto tcal__ponto--${e}`} /> {t(`treino.estado.${e}`)}
           </span>
         ))}
+        <span>
+          <i className="tcal__ponto tcal__ponto--jogo" /> {t('treino.legendaJogo')}
+        </span>
       </div>
     </div>
   );

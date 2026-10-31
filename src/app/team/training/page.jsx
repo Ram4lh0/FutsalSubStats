@@ -3,7 +3,8 @@
 // Treino → Calendário.
 //
 // Em cima, o mês com os treinos; por baixo da grelha, os treinos do dia
-// escolhido; e no fundo, as presenças do escalão (época, 30 dias, 7 dias).
+// escolhido; depois os próximos três treinos (atalho para preparar a UT); e
+// no fundo, as presenças do escalão (época, 30 dias, 7 dias).
 //
 // Os treinos nascem da rotina semanal (ver /team/training/routine) e cada um
 // pode ser mudado sozinho. Ao abrir, a rotina volta a ser aplicada até ao fim
@@ -23,6 +24,8 @@ import FormTreino from '@/components/treino/FormTreino.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import useDadosTreino from '@/lib/useDadosTreino.js';
 import { treinos as repoTreinos } from '@/lib/data/treino.js';
+import { useTreinosComUT } from '@/lib/data/unidadeTreino.js';
+import LinhaJogo, { porJogar } from '@/components/treino/LinhaJogo.jsx';
 import { PRESENCA, deIsoDia, estadoNoCalendario, isoDia, maiuscula } from '@/domain/treino.js';
 import { useLocale, useT } from '@/lib/i18n/index.js';
 
@@ -39,13 +42,13 @@ function Conteudo() {
   return (
     <TeamShell clubId={clubId} teamId={teamId}>
       {(dados) => (
-        <Calendarios clubId={clubId} teamId={teamId} roster={dados.roster} club={dados.club} team={dados.team} />
+        <Calendarios clubId={clubId} teamId={teamId} roster={dados.roster} club={dados.club} team={dados.team} entries={dados.entries} />
       )}
     </TeamShell>
   );
 }
 
-function Calendarios({ clubId, teamId, roster, club, team }) {
+function Calendarios({ clubId, teamId, roster, club, team, entries }) {
   const t = useT();
   const locale = useLocale();
   const router = useRouter();
@@ -79,9 +82,34 @@ function Calendarios({ clubId, teamId, roster, club, team }) {
     return m;
   }, [dados, presencasPorTreino, hoje]);
 
+  // Os jogos do escalão por dia (`AAAA-MM-DD` local), para o calendário e a
+  // lista do dia.
+  const jogosPorDiaLista = useMemo(() => {
+    const m = new Map();
+    for (const e of entries || []) {
+      if (!e.match.scheduledAt) continue;
+      const dia = isoDia(new Date(e.match.scheduledAt));
+      if (!m.has(dia)) m.set(dia, []);
+      m.get(dia).push(e);
+    }
+    for (const lista of m.values()) lista.sort((a, b) => a.match.scheduledAt - b.match.scheduledAt);
+    return m;
+  }, [entries]);
+  const jogosPorDia = useMemo(
+    () => new Map([...jogosPorDiaLista].map(([dia, lista]) => [dia, lista.length])),
+    [jogosPorDiaLista]
+  );
+
+  const proximos = useMemo(
+    () => (dados?.treinos || []).filter((tr) => tr.date >= hoje && tr.status !== 'CANCELADO').slice(0, 3),
+    [dados, hoje]
+  );
+  const comUT = useTreinosComUT(proximos.map((tr) => tr.id));
+
   if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
 
   const doDia = dados.treinos.filter((tr) => tr.date === selecionado);
+  const jogosDoDia = jogosPorDiaLista.get(selecionado) || [];
   const proximo = dados.treinos.find((tr) => tr.date > selecionado && tr.status !== 'CANCELADO');
   const ativos = roster.filter((j) => j.isActive !== false);
 
@@ -142,6 +170,7 @@ function Calendarios({ clubId, teamId, roster, club, team }) {
           hoje={hoje}
           selecionado={selecionado}
           estadosPorDia={estadosPorDia}
+          jogosPorDia={jogosPorDia}
           onDia={setSelecionado}
           onMes={(ano, mes) => setVista({ ano, mes })}
         />
@@ -159,9 +188,19 @@ function Calendarios({ clubId, teamId, roster, club, team }) {
                 onAbrir={() => router.push(rotas.treino(clubId, teamId, tr.id))}
               />
             ))
-          ) : (
+          ) : jogosDoDia.length ? null : (
             <p className="muted">{t('treino.semTreinoNoDia')}</p>
           )}
+          {jogosDoDia.map((e) => (
+            <LinhaJogo
+              key={e.match.id}
+              entry={e}
+              jogo
+              onAbrir={() =>
+                router.push(porJogar(e) ? rotas.convocatoria(clubId, teamId, e.match.id) : rotas.jogoResumo(e.match.id))
+              }
+            />
+          ))}
           {!doDia.length && proximo ? (
             <button
               type="button"
@@ -181,6 +220,24 @@ function Calendarios({ clubId, teamId, roster, club, team }) {
         </div>
       </div>
 
+      {proximos.length ? (
+        <section className="card tprox">
+          <h2 className="section section--tight">{t('treino.proximos')}</h2>
+          {proximos.map((tr) => (
+            <LinhaTreino
+              key={tr.id}
+              treino={tr}
+              comDia
+              comUT={comUT.has(tr.id)}
+              presencas={presencasPorTreino.get(tr.id) || []}
+              plantel={ativos.length}
+              hoje={hoje}
+              onAbrir={() => router.push(rotas.treino(clubId, teamId, tr.id))}
+            />
+          ))}
+        </section>
+      ) : null}
+
       <EstatisticasPresencas
         treinos={dados.treinos}
         presencas={dados.presencas}
@@ -193,13 +250,20 @@ function Calendarios({ clubId, teamId, roster, club, team }) {
   );
 }
 
-function LinhaTreino({ treino, presencas, plantel, hoje, onAbrir }) {
+function LinhaTreino({ treino, presencas, plantel, hoje, onAbrir, comDia = false, comUT }) {
   const t = useT();
+  const locale = useLocale();
   const estado = estadoNoCalendario(treino, presencas.length > 0, hoje);
   const presentes = presencas.filter((p) => p.status === PRESENCA.PRESENTE).length;
   const kind = { agendado: 'info', realizado: 'ok', porMarcar: 'warn', cancelado: 'muted' }[estado];
   return (
     <button type="button" className={`tlinha tlinha--${estado}`} onClick={onAbrir}>
+      {comDia ? (
+        <span className="tlinha__dia">
+          <strong>{deIsoDia(treino.date).toLocaleDateString(locale, { weekday: 'short' }).replace('.', '').slice(0, 3)}</strong>
+          <span>{deIsoDia(treino.date).getDate()}</span>
+        </span>
+      ) : null}
       <span className="tlinha__hora">{treino.startTime}</span>
       <span className="tlinha__info">
         <strong>{t('treino.duracaoMin', { n: treino.durationMin })}</strong>
@@ -208,6 +272,9 @@ function LinhaTreino({ treino, presencas, plantel, hoje, onAbrir }) {
           <span className="muted"> · {t('treino.presentesDe', { n: presentes, total: plantel })}</span>
         ) : null}
       </span>
+      {comUT === undefined ? null : (
+        <span className={`tlinha__ut ${comUT ? 'is-on' : ''}`}>{comUT ? t('ut.feita') : t('ut.porFazer')}</span>
+      )}
       <Badge kind={kind}>{t(`treino.estado.${estado}`)}</Badge>
       <span className="tlinha__seta" aria-hidden="true">›</span>
     </button>

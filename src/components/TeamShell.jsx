@@ -71,8 +71,9 @@ function Shell({ clubId, teamId, children }) {
 
   const emAnalise = /^\/team(\/dashboard|\/player)?\/?$/.test(pathname || '');
   const emJogo = /^\/team\/matches\/?$/.test(pathname || '');
-  // A aba Treino: calendário (com as presenças por baixo) e quadro tático.
-  const emTreino = /^\/team\/(training|tactics)(\/|$)/.test(pathname || '');
+  // A aba Treino: treinos (calendário, UT e presenças), quadro tático e
+  // convocatórias.
+  const emTreino = /^\/team\/(training|tactics|callups)(\/|$)/.test(pathname || '');
   // A página de uma competição tem o seu próprio "Importar calendário", que
   // mete os jogos todos nela; aqui seria um segundo botão com outro sentido.
   const naCompeticao = /^\/team\/competition\/?$/.test(pathname || '');
@@ -85,8 +86,9 @@ function Shell({ clubId, teamId, children }) {
     { label: t('escalao.painel'), to: rotas.painelEscalao(clubId, teamId) },
   ];
   const abasTreino = [
-    { label: t('treino.calendario'), to: rotas.treinos(clubId, teamId) },
+    { label: t('treino.treinos'), to: rotas.treinos(clubId, teamId) },
     { label: t('treino.quadroTatico'), to: rotas.quadroTatico(clubId, teamId) },
+    { label: t('conv.aba'), to: rotas.convocatorias(clubId, teamId) },
   ];
   const abas = emTreino ? abasTreino : emAnalise ? abasAnalise : abasEquipas;
 

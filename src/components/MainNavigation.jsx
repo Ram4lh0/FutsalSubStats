@@ -242,6 +242,10 @@ export default function MainNavigation() {
         setGuidedTutorialStepById('stats');
       }
     }
+    // Escolhida a área, o menu lateral recolhe para dar o ecrã ao conteúdo;
+    // a seta "›" volta a abri-lo. (No telemóvel é a barra de baixo, e isto
+    // não mexe nela.)
+    setSideCollapsed(true);
     router.push(targetFor(nextArea, selected));
   }
 

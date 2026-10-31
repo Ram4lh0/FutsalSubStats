@@ -217,6 +217,22 @@ export async function gravarVideo(data, { velocidade = 1, titulo = '', onProgres
   return { blob: new Blob(partes, { type: mime }), ext: mime === 'video/mp4' ? 'mp4' : 'webm', mime };
 }
 
+/**
+ * Uma imagem parada da jogada (o primeiro frame), para o PDF da unidade de
+ * treino. Usa o mesmo desenho do vídeo, sem rodapé.
+ *
+ * @returns {{url: string, largura: number, altura: number}} PNG em data URL
+ */
+export function imagemDaJogada(data, { largura = 900 } = {}) {
+  const vb = caixa(data.campo).split(' ').map(Number);
+  const escala = largura / vb[2];
+  const canvas = document.createElement('canvas');
+  canvas.width = largura;
+  canvas.height = Math.round(vb[3] * escala);
+  desenhar(canvas.getContext('2d'), data, posicoesNoInstante(data, 0, resolverPosicoes(data)), vb, escala, null);
+  return { url: canvas.toDataURL('image/png'), largura: canvas.width, altura: canvas.height };
+}
+
 /** Um nome de ficheiro limpo a partir do título da jogada. */
 export function nomeDoFicheiro(titulo, ext) {
   return `${nomeLimpo(titulo, 'jogada')}.${ext}`;

@@ -1,6 +1,7 @@
 'use client';
 
-// Um treino: as presenças e as notas.
+// Um treino, em duas abas: a unidade de treino (UT — o que se vai fazer,
+// objetivos e notas) e as presenças.
 //
 // Cada jogador tem quatro botões — Presente, Falta injustificada, Falta
 // justificada, Lesão. "Todos presentes" marca de uma vez quem ainda não está
@@ -21,8 +22,14 @@ import { rotas } from '@/lib/routes.js';
 import { Badge, Empty } from '@/components/bits.jsx';
 import FormTreino from '@/components/treino/FormTreino.jsx';
 import LegendaPresencas from '@/components/treino/LegendaPresencas.jsx';
+import UnidadeTreino from '@/components/treino/UnidadeTreino.jsx';
+import { useUnidadeTreino, utVazia } from '@/lib/data/unidadeTreino.js';
 import { useUI, Dialog } from '@/lib/ui.jsx';
-import { treinos as repoTreinos, presencas as repoPresencas } from '@/lib/data/treino.js';
+import { treinos as repoTreinos, presencas as repoPresencas, jogadas as repoJogadas } from '@/lib/data/treino.js';
+import { normalizar } from '@/domain/jogada.js';
+import { useAuth } from '@/lib/auth.jsx';
+import { saveNow } from '@/lib/data/sync.js';
+import { entregarFicheiro, nomeLimpo } from '@/lib/ficheiros.js';
 import { ESTADOS_PRESENCA, PRESENCA, ESTADO_TREINO, deIsoDia, estadoNoCalendario, isoDia, maiuscula } from '@/domain/treino.js';
 import { useLocale, useT } from '@/lib/i18n/index.js';
 
@@ -38,12 +45,12 @@ function Conteudo() {
   const { clubId, teamId, trainingId } = useRouteParams();
   return (
     <TeamShell clubId={clubId} teamId={teamId}>
-      {(dados) => <Treino clubId={clubId} teamId={teamId} trainingId={trainingId} roster={dados.roster} />}
+      {(dados) => <Treino clubId={clubId} teamId={teamId} trainingId={trainingId} roster={dados.roster} club={dados.club} team={dados.team} />}
     </TeamShell>
   );
 }
 
-function Treino({ clubId, teamId, trainingId, roster }) {
+function Treino({ clubId, teamId, trainingId, roster, club, team }) {
   const t = useT();
   const locale = useLocale();
   const router = useRouter();
@@ -51,6 +58,15 @@ function Treino({ clubId, teamId, trainingId, roster }) {
   const soLeitura = useSoLeitura(teamId);
   const dados = useDadosTreino(teamId);
   const [notas, setNotas] = useState(null);
+  const [aba, setAba] = useState('ut');
+  const [ut, guardarUT] = useUnidadeTreino(trainingId);
+  const [jogadas, setJogadas] = useState([]);
+  const [aExportar, setAExportar] = useState(false);
+  const { userId, user } = useAuth();
+
+  useEffect(() => {
+    repoJogadas.listByTeam(teamId).then((rows) => setJogadas(rows.map((j) => ({ ...j, data: normalizar(j.data) }))));
+  }, [teamId, dados]);
 
   const treino = dados?.treinos.find((x) => x.id === trainingId) || null;
   const marcadas = useMemo(() => {
@@ -115,6 +131,43 @@ function Treino({ clubId, teamId, trainingId, roster }) {
     }
   }
 
+  // A UT grava a cada mudança; as notas gravam ao sair do campo. Este botão
+  // garante as notas ainda por gravar e volta ao calendário.
+  async function guardarEVoltar() {
+    if ((notas || '') !== (treino.notes || '')) await repoTreinos.notas(treino.id, notas);
+    ui.toast(t('treino.guardado'), 'ok');
+    router.push(voltar);
+  }
+
+  // O PDF da UT. As jogadas ligadas levam um botão para a animação, que é o
+  // link público de 30 dias: as que ainda não o têm, cria-se aqui (com OK).
+  async function exportarPdf() {
+    if (aExportar) return;
+    setAExportar(true);
+    try {
+      const ligadas = new Set((ut?.exercicios || []).flatMap((e) => e.jogadas || []));
+      let lista = jogadas;
+      const semLink = jogadas.filter((j) => ligadas.has(j.id) && !(j.shareToken && j.shareExpiresAt > Date.now()));
+      if (semLink.length) {
+        const ok = await ui.confirmar(t('ut.criarLinks', { n: semLink.length }), { okLabel: t('ut.criarLinksOk') });
+        if (ok) {
+          const novos = new Map();
+          for (const j of semLink) novos.set(j.id, await repoJogadas.novoLink(j.id));
+          lista = jogadas.map((j) => (novos.has(j.id) ? { ...j, ...novos.get(j.id), data: j.data } : j));
+          await saveNow(userId, user?.email);
+        }
+      }
+      const { gerarPdfUT } = await import('@/lib/pdf/relatorioUT.js');
+      const blob = await gerarPdfUT({ treino, ut: ut || utVazia(), club, team, jogadas: new Map(lista.map((j) => [j.id, j])) });
+      const nome = `${nomeLimpo(`ut-${team?.name || ''}-${treino.date}`)}.pdf`;
+      await entregarFicheiro(blob, nome, 'application/pdf', { titulo: t('ut.aba') });
+    } catch (err) {
+      ui.toast(t('ut.pdfFalhou', { erro: err?.message || err }), 'error');
+    } finally {
+      setAExportar(false);
+    }
+  }
+
   async function apagar() {
     const ok = await ui.confirmar(t('treino.apagarPergunta'), { okLabel: t('treino.apagar') });
     if (!ok) return;
@@ -161,7 +214,53 @@ function Treino({ clubId, teamId, trainingId, roster }) {
         )}
       </div>
 
-      {cancelado ? (
+      <nav className="tabs ttabs" role="tablist">
+        <button type="button" role="tab" className={`tab ${aba === 'ut' ? 'is-active' : ''}`} aria-selected={aba === 'ut'} onClick={() => setAba('ut')}>
+          {t('ut.aba')}
+        </button>
+        <button type="button" role="tab" className={`tab ${aba === 'presencas' ? 'is-active' : ''}`} aria-selected={aba === 'presencas'} onClick={() => setAba('presencas')}>
+          {t('treino.presencas')}
+          {!cancelado && jogadores.length ? (
+            <span className="ttabs__conta">{marcadas.size}/{jogadores.length}</span>
+          ) : null}
+        </button>
+      </nav>
+
+      {aba === 'ut' ? (
+        <>
+          <div className="ut__barra">
+            <span className="muted">{t('ut.gravaSozinha')}</span>
+            <span className="toolbar__spacer" />
+            <button type="button" className="btn btn--ghost btn--tiny" onClick={exportarPdf} disabled={aExportar}>
+              {aExportar ? t('presencasExport.aGerar') : t('ut.exportarPdf')}
+            </button>
+          </div>
+          <UnidadeTreino
+            ut={ut}
+            onMudar={guardarUT}
+            duracaoTreino={Number(treino.durationMin) || 90}
+            soLeitura={soLeitura}
+            jogadas={jogadas}
+            clubId={clubId}
+            teamId={teamId}
+          />
+          <section className="card">
+            <h2 className="section section--tight">{t('treino.notas')}</h2>
+            <textarea
+              className="input tnotas"
+              rows={4}
+              maxLength={4000}
+              placeholder={t('treino.notasExemplo')}
+              value={notas ?? ''}
+              disabled={soLeitura}
+              onChange={(e) => setNotas(e.target.value)}
+              onBlur={() => {
+                if ((notas || '') !== (treino.notes || '')) repoTreinos.notas(treino.id, notas);
+              }}
+            />
+          </section>
+        </>
+      ) : cancelado ? (
         <Empty>{t('treino.estaCancelado')}</Empty>
       ) : (
         <section className="card">
@@ -230,26 +329,13 @@ function Treino({ clubId, teamId, trainingId, roster }) {
         </section>
       )}
 
-      <section className="card">
-        <h2 className="section section--tight">{t('treino.notas')}</h2>
-        <textarea
-          className="input tnotas"
-          rows={4}
-          maxLength={4000}
-          placeholder={t('treino.notasExemplo')}
-          value={notas ?? ''}
-          disabled={soLeitura}
-          onChange={(e) => setNotas(e.target.value)}
-          onBlur={() => {
-            if ((notas || '') !== (treino.notes || '')) repoTreinos.notas(treino.id, notas);
-          }}
-        />
-      </section>
-
       {soLeitura ? null : (
         <div className="form__actions">
           <button className="btn btn--danger btn--ghost" type="button" onClick={apagar}>
             {t('treino.apagar')}
+          </button>
+          <button className="btn btn--primary" type="button" onClick={guardarEVoltar}>
+            {t('treino.guardarTreino')}
           </button>
         </div>
       )}

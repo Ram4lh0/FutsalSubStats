@@ -104,6 +104,10 @@ export const rotas = {
   treino: (club, team, training) => comIds('/team/training/session', { club, team, training }),
   rotinaTreino: (club, team) => comIds('/team/training/routine', { club, team }),
   quadroTatico: (club, team) => comIds('/team/tactics', { club, team }),
+  // Convocatórias: um jogo com convocados, preparado a partir da aba Treino.
+  // Sem `match`, abre a escolha (ou criação) do jogo.
+  convocatorias: (club, team) => comIds('/team/callups', { club, team }),
+  convocatoria: (club, team, match) => comIds('/team/callups/edit', { club, team, match }),
   jogada: (club, team, play) => comIds('/team/tactics/play', { club, team, play }),
   // O link que vai por WhatsApp. Abre sem conta nem app, e por isso fica fora
   // de `/team`.

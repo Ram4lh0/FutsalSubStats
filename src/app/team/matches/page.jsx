@@ -14,6 +14,7 @@ import useSoLeitura from '@/lib/useSoLeitura.js';
 import MatchList from '@/components/MatchList.jsx';
 import { useImportarCalendario } from '@/components/ImportarCalendario.jsx';
 import JogosAoVivo from '@/components/JogosAoVivo.jsx';
+import { usePrepararJogo } from '@/components/PrepararJogo.jsx';
 import { Empty } from '@/components/bits.jsx';
 import { rotas } from '@/lib/routes.js';
 import { useAuth } from '@/lib/auth.jsx';
@@ -44,23 +45,26 @@ function Conteudo() {
 
   return (
     <TeamShell clubId={clubId} teamId={teamId}>
-      {({ entries, competitions }) => (
+      {({ entries, competitions, team, club }) => (
         <>
           {soLeitura ? null : (
             <BarraImportar clubId={clubId} teamId={teamId} />
           )}
           {entries.length ? (
-            <Jogos entries={entries} competitions={competitions} clubId={clubId} teamId={teamId} />
+            <Jogos entries={entries} competitions={competitions} clubId={clubId} teamId={teamId} team={team} club={club} />
           ) : (
             <Empty
               action={
-                <button
-                  className="btn btn--primary"
-                  data-tour="create-match"
-                  onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}
-                >
-                  {t('escalao.criarJogo')}
-                </button>
+                <>
+                  <BotaoPrepararJogo teamId={teamId} team={team} club={club} competitions={competitions} />
+                  <button
+                    className="btn btn--primary"
+                    data-tour="create-match"
+                    onClick={() => router.push(rotas.jogoNovo(clubId, teamId))}
+                  >
+                    {t('escalao.criarJogo')}
+                  </button>
+                </>
               }
             >
               {t('escalao.semJogos')}
@@ -89,7 +93,18 @@ function BarraImportar({ clubId, teamId }) {
   );
 }
 
-function Jogos({ entries, competitions, clubId, teamId }) {
+/** "Preparar jogo": marca o jogo ali mesmo, sem convocatória nem cinco. */
+function BotaoPrepararJogo({ teamId, team, club, competitions, pequeno = false }) {
+  const t = useT();
+  const preparar = usePrepararJogo({ teamId, team, club, competitions });
+  return (
+    <button className={`btn btn--manual ${pequeno ? 'btn--tiny' : ''}`} onClick={preparar}>
+      {t('conv.prepararJogo')}
+    </button>
+  );
+}
+
+function Jogos({ entries, competitions, clubId, teamId, team, club }) {
   const router = useRouter();
   const t = useT();
   const [mostrarTudo, setMostrarTudo] = useState(false);
@@ -118,6 +133,7 @@ function Jogos({ entries, competitions, clubId, teamId }) {
           </button>
         ) : null}
         <span className="toolbar__spacer" />
+        <BotaoPrepararJogo teamId={teamId} team={team} club={club} competitions={competitions} pequeno />
         <button
           className="btn btn--primary btn--tiny"
           data-tour="create-match"

@@ -351,6 +351,10 @@ ul { padding: 0; list-style: none; }
 
 .view {
   flex: 1 1 auto; min-height: 0; overflow: auto;
+  /* O espaço da barra de deslocamento fica sempre reservado: sem isto, trocar
+     de uma aba curta para uma comprida estreitava a página uns 15 px e tudo
+     saltava para o lado. */
+  scrollbar-gutter: stable;
   padding: 10px 20px 20px;
   padding-left: max(20px, var(--seguro-esq));
   padding-right: max(20px, var(--seguro-dir));

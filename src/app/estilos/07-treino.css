@@ -274,3 +274,82 @@
 .tclube__partilha input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--primary); }
 .tclube__partilha span { display: grid; gap: 2px; }
 .tclube__copiar { display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; }
+
+/* ------------------------------------- próximos treinos e UT (experiência) */
+.tprox { display: grid; gap: 8px; }
+.tlinha__dia {
+  display: flex; flex-direction: column; align-items: center; min-width: 40px; line-height: 1.1;
+  font-size: 0.72rem; color: var(--muted); text-transform: uppercase;
+}
+.tlinha__dia span { font-size: 1.15rem; font-weight: 800; color: var(--text); }
+.tlinha__ut {
+  font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+  border: 1px dashed var(--line); color: var(--muted); white-space: nowrap;
+}
+.tlinha__ut.is-on { border-style: solid; border-color: var(--primary); color: var(--primary); }
+
+.ttabs { margin-bottom: 14px; }
+.ttabs__conta {
+  margin-left: 8px; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px;
+  background: var(--bg-2); color: var(--muted); font-variant-numeric: tabular-nums;
+}
+
+.ut { display: grid; gap: 0; }
+.ut__tempo { font-size: 0.85rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ut__tempo.is-certo { color: var(--primary); }
+.ut__tempo.is-acima { color: var(--danger); }
+.ut__parte { margin-top: 14px; padding-left: 12px; border-left: 3px solid var(--info); display: grid; gap: 8px; }
+.ut__parte--AQUECIMENTO { border-left-color: var(--warn); }
+.ut__parte--PRINCIPAL { border-left-color: var(--primary); }
+.ut__parte--RETORNO { border-left-color: var(--info); }
+.ut__partehead { display: flex; align-items: baseline; gap: 10px; }
+.ut__partehead h3 { margin: 0; font-size: 0.95rem; }
+.ut__partehead .muted { font-size: 0.8rem; }
+.ut__ex {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: start;
+  padding: 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+}
+.ut__exnum { font-weight: 800; color: var(--muted); text-align: center; padding-top: 8px; }
+.ut__excorpo { display: grid; gap: 6px; min-width: 0; }
+.ut__exlinha { display: flex; gap: 6px; }
+.ut__exnome { flex: 1; min-width: 0; font-weight: 700; }
+.ut__exdesc { min-height: 0; padding: 8px 12px; font: inherit; font-size: 0.88rem; line-height: 1.4; resize: vertical; }
+.ut__exacoes { display: flex; flex-direction: column; gap: 4px; }
+.ut__exacoes .tpbtn { min-width: 32px; height: 30px; }
+.ut__tirar:hover { color: var(--danger); border-color: var(--danger); }
+.ut__mais { justify-self: start; }
+@media (max-width: 520px) {
+  .ut__ex { grid-template-columns: minmax(0, 1fr) auto; }
+  .ut__exnum { display: none; }
+}
+
+/* ------------------------------------------- convocatórias (experiência) */
+.tlinha.is-ativo { border-color: var(--primary); }
+.conv__prova { margin: 0; font-size: 0.85rem; }
+.conv__grelha { margin-top: 12px; }
+.conv__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+.conv__nota { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.85rem; }
+.ut__barra { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 0.82rem; }
+.ut__jogadas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ut__jogada {
+  display: inline-flex; align-items: center; border: 1px solid var(--info); border-radius: 999px;
+  background: rgba(56, 189, 248, 0.1); overflow: hidden;
+}
+.ut__jogada.is-falta { border-color: var(--line); opacity: 0.6; }
+.ut__jogadanome { background: none; border: 0; color: var(--info); font: inherit; font-size: 0.8rem; font-weight: 700; padding: 4px 6px 4px 10px; cursor: pointer; }
+.ut__jogadanome:disabled { color: var(--muted); cursor: default; }
+.ut__jogadatirar { background: none; border: 0; color: var(--muted); font: inherit; padding: 4px 9px 4px 4px; cursor: pointer; }
+.ut__jogadatirar:hover { color: var(--danger); }
+.ut__lista { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; max-height: 50vh; overflow: auto; }
+.ut__opcao { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); cursor: pointer; }
+.ut__opcao span { display: flex; flex-direction: column; }
+.ut__opcao small { font-size: 0.75rem; }
+
+/* -------------------------------------- jogos no calendário (experiência) */
+.tcal__ponto--jogo { background: #a78bfa; border-radius: 2px; }
+.tcal__dia.tem-jogo .tcal__num { font-weight: 800; color: #c4b5fd; }
+.tlinha--jogo { border-left: 4px solid #a78bfa; }
+.tlinha__etiqueta {
+  display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 999px;
+  background: rgba(167, 139, 250, 0.18); color: #c4b5fd; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+}
