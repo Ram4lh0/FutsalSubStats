@@ -95,6 +95,11 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     await commit(registar(state, dados));
   }
 
+  // Só a contagem: um toque, mais um remate deles. Sem resultado nem zona.
+  async function registarRemateAdvSimples() {
+    await commit(registar(state, { registo: REGISTO.REMATE_ADV_SIMPLES }));
+  }
+
   async function registarRecuperacao(p) {
     const r = await perguntarOnde(ui, {
       titulo: t('registos.recuperacaoDe', quem(p)),
@@ -175,6 +180,7 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
       registarFora,
       registarCanto,
       registarRemateAdv,
+      registarRemateAdvSimples,
       verRegistos,
     },
     alvosDoDesfazer,

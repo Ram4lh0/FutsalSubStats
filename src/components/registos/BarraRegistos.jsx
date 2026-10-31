@@ -49,6 +49,16 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
           </button>
         </div>
       ) : null}
+      {ligados.has(REGISTO.REMATE_ADV_SIMPLES) ? (
+        <div className="regbar__grupo">
+          <span className="regbar__rot">{t('registos.total.remate_adv_simples')}</span>
+          <button type="button" className="regbar__btn regbar__btn--deles" onClick={on.registarRemateAdvSimples}>
+            <span className="regbar__eq">{opponentName}</span>
+            <strong>{r.rematesAdvSimples}</strong>
+            <span className="regbar__mais">+</span>
+          </button>
+        </div>
+      ) : null}
       {ligados.has(REGISTO.FORA) ? linha(REGISTO.FORA, r.foras, on.registarFora) : null}
       {ligados.has(REGISTO.CANTO) ? linha(REGISTO.CANTO, r.cantos, on.registarCanto) : null}
       {curto ? <span className="regbar__resumo">{curto}</span> : null}

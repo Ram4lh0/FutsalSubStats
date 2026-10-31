@@ -712,6 +712,29 @@ export function rematesAdvDaEpoca(entries) {
   };
 }
 
+/** Os remates do adversário só contados (sem resultado), jogo a jogo e na época. */
+export function rematesAdvSimplesDaEpoca(entries) {
+  const porJogo = terminados(entries)
+    .map((e) => {
+      const n = registosDoJogo(e.state).filter((r) => r.registo === REGISTO.REMATE_ADV_SIMPLES).length;
+      if (!n) return null;
+      return {
+        matchId: e.match.id,
+        adversario: e.match.opponentShortName || e.match.opponentName || '',
+        scheduledAt: e.match.scheduledAt || null,
+        remates: n,
+      };
+    })
+    .filter(Boolean);
+  const remates = porJogo.reduce((t, j) => t + j.remates, 0);
+  return {
+    jogos: porJogo.length,
+    remates,
+    rematesPorJogo: porJogo.length ? remates / porJogo.length : 0,
+    porJogo,
+  };
+}
+
 /** Golos por remate à baliza, nos jogos com remates registados. */
 export function eficacia(entries) {
   const jogos = rematesPorJogo(entries);

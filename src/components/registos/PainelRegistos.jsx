@@ -60,6 +60,9 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
             extra={t('registos.aBalizaDe', { n: r.rematesAdvBaliza, total: r.rematesAdv })}
           />
         ) : null}
+        {tem(REGISTO.REMATE_ADV_SIMPLES) ? (
+          <Total rotulo={t('registos.total.remate_adv_simples')} valor={r.rematesAdvSimples} />
+        ) : null}
         {tem(REGISTO.RECUPERACAO) ? (
           <Total rotulo={t('registos.total.recuperacao')} valor={r.recuperacoes} />
         ) : null}

@@ -46,6 +46,10 @@ export const REGISTO = {
   // Perdas de bola (pedido a 27/10/2026, clubes Personalizado): quantas vezes
   // cada jogador perdeu a bola. Sem zona — o clube disse que não precisava.
   PERDA_BOLA: 'perda_bola',
+  // Remates do adversário só contados (pedido a 31/10/2026): um toque, +1.
+  // Sem resultado nem zona — por enquanto. Não se mistura com o `remate_adv`:
+  // esse diz o que aconteceu a cada remate, este só quantos foram.
+  REMATE_ADV_SIMPLES: 'remate_adv_simples',
 };
 
 /** Resultado de um remate. `GOLO` corre primeiro o fluxo normal do golo. */
@@ -101,6 +105,13 @@ export const CATALOGO = {
     disponivel: true,
   },
   [REGISTO.PERDA_BOLA]: { por: 'jogador', ponto: false, resultados: null, disponivel: true },
+  [REGISTO.REMATE_ADV_SIMPLES]: {
+    por: 'equipa',
+    soAdversario: true,
+    ponto: false,
+    resultados: null,
+    disponivel: true,
+  },
 };
 
 /** Os remates que levam um golo atrás (o nosso e o do adversário). */
@@ -453,6 +464,7 @@ export function resumoRegistos(state, now = Date.now()) {
     rematesAdv: rematesAdv.length,
     rematesAdvBaliza: rematesAdv.filter((r) => A_BALIZA.has(r.resultado)).length,
     porResultadoAdv,
+    rematesAdvSimples: de(REGISTO.REMATE_ADV_SIMPLES).length,
     defesas: de(REGISTO.DEFESA_GR).length,
     recuperacoes: de(REGISTO.RECUPERACAO).length,
     perdas: de(REGISTO.PERDA_BOLA).length,

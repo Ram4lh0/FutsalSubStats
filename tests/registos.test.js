@@ -65,7 +65,7 @@ function desfazer(ctx, alvo, now) {
 /* ------------------------------------------------------------- catálogo */
 
 test('catálogo: os registos pela ordem certa (fase 1 e remates do adversário)', () => {
-  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola']);
+  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples']);
   assert.equal(CATALOGO.fora.por, 'equipa');
   assert.equal(CATALOGO.canto.ponto, false);
 });
@@ -355,6 +355,31 @@ test('perda de bola: do jogador, sem zona, conta no resumo e desfaz-se', async (
   r = resumoRegistos(st, T0 + 10 * MIN);
   assert.equal(r.perdas, 2);
   assert.equal(r.jogadores.find((j) => j.playerId === 'p2').perdas, 1);
+});
+
+test('remate do adversário só contado: sem jogador, resultado nem zona; desfaz-se', () => {
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const remate = (t) =>
+    gravar(ctx, (s) => registar(s, { registo: 'remate_adv_simples', playerId: 'p2', equipa: 'US', x: 0.2, y: 0.5 }, t), t);
+  const e1 = remate(T0 + 2 * MIN);
+  remate(T0 + 3 * MIN);
+  remate(T0 + 4 * MIN);
+  assert.equal(e1.playerId, null);
+  assert.equal(e1.metadata.equipa, 'THEM', 'é sempre do adversário');
+  assert.equal('x' in e1.metadata, false, 'a zona não se guarda');
+  assert.equal('resultado' in e1.metadata, false);
+
+  let st = estado(ctx);
+  let r = resumoRegistos(st, T0 + 10 * MIN);
+  assert.equal(r.rematesAdvSimples, 3);
+  assert.equal(r.rematesAdv, 0, 'não se mistura com os remates com resultado');
+  assert.ok(r.tipos.has('remate_adv_simples'));
+  assert.deepEqual(marcadores(st), [], 'não vai para o mapa');
+
+  desfazer(ctx, e1, T0 + 5 * MIN);
+  st = estado(ctx);
+  assert.equal(resumoRegistos(st, T0 + 10 * MIN).rematesAdvSimples, 2);
 });
 
 test('sem registos: resumo vazio e nada para desenhar', () => {

@@ -28,6 +28,7 @@ import {
   recuperacoesPorJogador,
   perdasPorJogador,
   perdasDaEpoca,
+  rematesAdvSimplesDaEpoca,
   mapaDaEpoca,
 } from '../src/domain/dashboard.js';
 
@@ -666,6 +667,22 @@ test('recuperações por jogador contam o tempo só dos jogos com recuperações
     r.map((j) => [j.playerId, j.recuperacoes, j.courtMs, j.por10]),
     [['p1', 2, 20 * MIN, 1], ['p2', 1, 10 * MIN, 1]]
   );
+});
+
+test('remates do adversário só contados: por jogo e média, sem contar jogos sem dados', () => {
+  const j1 = comRegistos(jogo({ id: 'a' }), [
+    reg('r1', 'remate_adv_simples', { equipa: 'THEM' }),
+    reg('r2', 'remate_adv_simples', { equipa: 'THEM' }),
+    reg('r3', 'remate_adv_simples', { equipa: 'THEM' }),
+  ]);
+  const j2 = comRegistos(jogo({ id: 'b', quando: 2 }), [reg('r4', 'remate_adv_simples', { equipa: 'THEM' })]);
+  const j3 = jogo({ id: 'c', quando: 3 });
+  const r = rematesAdvSimplesDaEpoca([j1, j2, j3]);
+  assert.equal(r.jogos, 2);
+  assert.equal(r.remates, 4);
+  assert.equal(r.rematesPorJogo, 2);
+  assert.deepEqual(r.porJogo.map((j) => j.remates), [3, 1]);
+  assert.ok(registosDaEpoca([j1]).has('remate_adv_simples'));
 });
 
 test('perdas de bola: por jogador, da equipa e no painel do atleta', () => {

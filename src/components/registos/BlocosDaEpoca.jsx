@@ -25,6 +25,7 @@ import {
   rematesPorJogo,
   rematesAdvPorJogo,
   rematesAdvDaEpoca,
+  rematesAdvSimplesDaEpoca,
 } from '@/domain/dashboard.js';
 import { useT } from '@/lib/i18n/index.js';
 
@@ -40,6 +41,7 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
   const perdasEquipa = useMemo(() => perdasDaEpoca(entries), [entries]);
   const rematesAdv = useMemo(() => rematesAdvPorJogo(entries), [entries]);
   const adv = useMemo(() => rematesAdvDaEpoca(entries), [entries]);
+  const advSimples = useMemo(() => rematesAdvSimplesDaEpoca(entries), [entries]);
   const filtros = NO_MAPA.filter((id) => tipos.has(id));
   const [escolhido, setFiltro] = useState(null);
   const filtro = filtros.includes(escolhido) ? escolhido : filtros[0] || null;
@@ -102,6 +104,26 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
               rotulo: j.adversario,
               valor: j.remates,
               texto: t('registos.epoca.rematesDoJogo', { n: j.remates, baliza: j.aBaliza }),
+            }))}
+          />
+        </Bloco>
+      ) : null}
+
+      {tipos.has(REGISTO.REMATE_ADV_SIMPLES) ? (
+        <Bloco titulo={t('registos.epoca.rematesAdv')}>
+          <div className="grid grid--stats">
+            <StatCard
+              label={t('registos.epoca.rematesAdvPorJogo')}
+              value={advSimples.rematesPorJogo.toFixed(1)}
+              hint={t('painelv.emJogos', { n: advSimples.jogos })}
+            />
+            <StatCard label={t('registos.total.remate_adv_simples')} value={advSimples.remates} />
+          </div>
+          <BarrasH
+            linhas={advSimples.porJogo.map((j) => ({
+              rotulo: j.adversario,
+              valor: j.remates,
+              texto: String(j.remates),
             }))}
           />
         </Bloco>

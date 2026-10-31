@@ -24,6 +24,7 @@ import {
   rematesPorJogo,
   rematesAdvDaEpoca,
   rematesAdvPorJogo,
+  rematesAdvSimplesDaEpoca,
   recuperacoesPorJogador,
   perdasDaEpoca,
   perdasPorJogador,
@@ -266,6 +267,18 @@ function registosExtra(r, entries) {
         valor: j.remates,
         texto: t('registos.epoca.rematesDoJogo', { n: j.remates, baliza: j.aBaliza }),
       })),
+      { cor: COR.vermelho }
+    );
+  }
+  if (tipos.has(REGISTO.REMATE_ADV_SIMPLES)) {
+    const adv = rematesAdvSimplesDaEpoca(entries);
+    r.secao(t('registos.epoca.rematesAdv'), 30);
+    r.cartoes([
+      { rotulo: t('registos.epoca.rematesAdvPorJogo'), valor: adv.rematesPorJogo.toFixed(1), detalhe: t('painelv.emJogos', { n: adv.jogos }) },
+      { rotulo: t('registos.total.remate_adv_simples'), valor: adv.remates },
+    ]);
+    r.barrasH(
+      adv.porJogo.map((j) => ({ rotulo: j.adversario, valor: j.remates, texto: String(j.remates) })),
       { cor: COR.vermelho }
     );
   }

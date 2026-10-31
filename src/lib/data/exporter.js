@@ -78,6 +78,9 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
           ]),
         ]
       : []),
+    ...(reg?.tipos.has(REGISTO.REMATE_ADV_SIMPLES)
+      ? [[t('registos.total.remate_adv_simples'), reg.rematesAdvSimples]]
+      : []),
     ...pp.periodos.map((x) => [
       t('csv.periodo5v4', { n: x.numero }),
       t('csv.detalhe5v4', {

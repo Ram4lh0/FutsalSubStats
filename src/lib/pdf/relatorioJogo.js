@@ -281,6 +281,9 @@ function registosDoJogo(r, state, match) {
       detalhe: t('registos.aBalizaDe', { n: reg.rematesAdvBaliza, total: reg.rematesAdv }),
     });
   }
+  if (tem(REGISTO.REMATE_ADV_SIMPLES)) {
+    cartoes.push({ rotulo: t('registos.total.remate_adv_simples'), valor: reg.rematesAdvSimples });
+  }
   if (tem(REGISTO.DEFESA_GR)) cartoes.push({ rotulo: t('registos.total.defesa_gr'), valor: reg.defesas });
   if (tem(REGISTO.RECUPERACAO)) cartoes.push({ rotulo: t('registos.total.recuperacao'), valor: reg.recuperacoes });
   if (tem(REGISTO.PERDA_BOLA)) cartoes.push({ rotulo: t('registos.total.perda_bola'), valor: reg.perdas });

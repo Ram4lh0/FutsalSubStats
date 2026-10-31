@@ -42,6 +42,7 @@ export const NOME_REGISTO = {
   acao: 'Ações +/−',
   remate_adv: 'Remates do adversário',
   perda_bola: 'Perdas de bola',
+  remate_adv_simples: 'Remates do adversário (só número)',
 };
 
 /**
