@@ -46,10 +46,21 @@ export const REGISTO = {
   // Perdas de bola (pedido a 27/10/2026, clubes Personalizado): quantas vezes
   // cada jogador perdeu a bola. Sem zona — o clube disse que não precisava.
   PERDA_BOLA: 'perda_bola',
-  // Remates do adversário só contados (pedido a 31/10/2026): um toque, +1.
-  // Sem resultado nem zona — por enquanto. Não se mistura com o `remate_adv`:
-  // esse diz o que aconteceu a cada remate, este só quantos foram.
+  // Remates do adversário só contados (31/10/2026). Saiu do catálogo no
+  // mesmo dia (`disponivel: false`): é o `remate_adv` sem zona e sem
+  // resultado, agora que isso se escolhe por escalão. Lê-se na mesma.
   REMATE_ADV_SIMPLES: 'remate_adv_simples',
+  // Pedidos a 31/10/2026 (clubes Personalizado), a partir das ações de outra
+  // app: passes falhados por jogador, penáltis nossos e deles, e os
+  // lançamentos de baliza de cada equipa.
+  PASSE_FALHADO: 'passe_falhado',
+  PENALTI: 'penalti',
+  PENALTI_ADV: 'penalti_adv',
+  LANCAMENTO_BALIZA: 'lancamento_baliza',
+  // O livre de 10 metros, da 6.ª falta da parte em diante. É de TODOS os
+  // escalões: não se liga no painel, grava-se sempre que o treinador diz se
+  // foi golo. `equipa` é quem bate o livre.
+  LIVRE_10M: 'livre_10m',
 };
 
 /** Resultado de um remate. `GOLO` corre primeiro o fluxo normal do golo. */
@@ -61,8 +72,33 @@ export const RESULTADO_REMATE = {
   POSTE: 'POSTE',
 };
 
+/** Penáltis: o que aconteceu ao pontapé. `GOLO` corre primeiro o fluxo do golo. */
+export const RESULTADO_PENALTI = {
+  GOLO: 'GOLO',
+  DEFENDIDO: 'DEFENDIDO',
+  FORA: 'FORA',
+  POSTE: 'POSTE',
+};
+
+/** O livre de 10 metros: foi golo ou não. */
+export const RESULTADO_10M = { GOLO: 'GOLO', FALHADO: 'FALHADO' };
+
 /** Os "fixe" verde e vermelho: uma ação boa ou má, marcada à mão. */
 export const RESULTADO_ACAO = { POSITIVA: 'POSITIVA', NEGATIVA: 'NEGATIVA' };
+
+/**
+ * As opções que um escalão pode mudar num registo, no painel. Cada registo diz
+ * em `opcoes` quais lhe servem. Guardam-se em `team_stat_config.opcoes`, como
+ * `{ registos: { remate: { zona: false } } }`; o que não estiver lá vale a
+ * `omissao`. Os eventos guardam sempre o que têm, por isso mudar uma opção a
+ * meio da época não estraga os jogos que já lá estão.
+ */
+export const OPCOES = {
+  zona: { nome: 'pedir a zona', omissao: true },
+  resultado: { nome: 'pedir o que aconteceu', omissao: true },
+  cartao: { nome: 'botão no cartão do jogador', omissao: true },
+  barra: { nome: 'botão na barra de cima (pergunta quem)', omissao: false },
+};
 
 /**
  * O catálogo da fase 1. Cada entrada diz quem faz o registo (`jogador` ou
@@ -77,13 +113,28 @@ export const CATALOGO = {
     por: 'jogador',
     ponto: true,
     resultados: Object.values(RESULTADO_REMATE),
+    opcoes: ['zona', 'resultado'],
     disponivel: true,
   },
   // O ponto é de onde rematou o adversário. Só o guarda-redes tem o botão.
-  [REGISTO.DEFESA_GR]: { por: 'jogador', ponto: true, resultados: null, soGR: true, disponivel: true },
-  [REGISTO.RECUPERACAO]: { por: 'jogador', ponto: true, resultados: null, disponivel: true },
+  [REGISTO.DEFESA_GR]: {
+    por: 'jogador',
+    ponto: true,
+    resultados: null,
+    soGR: true,
+    opcoes: ['zona'],
+    disponivel: true,
+  },
+  [REGISTO.RECUPERACAO]: { por: 'jogador', ponto: true, resultados: null, opcoes: ['zona'], disponivel: true },
   // O fora só acontece numa linha lateral: o ponto fica encostado a ela.
-  [REGISTO.FORA]: { por: 'equipa', ponto: true, lateral: true, resultados: null, disponivel: true },
+  [REGISTO.FORA]: {
+    por: 'equipa',
+    ponto: true,
+    lateral: true,
+    resultados: null,
+    opcoes: ['zona'],
+    disponivel: true,
+  },
   [REGISTO.CANTO]: { por: 'equipa', ponto: false, resultados: null, disponivel: true },
   // Ainda por decidir se entram já ou só com as notas da fase 2. Para as
   // desligar em toda a app basta pôr `disponivel: false` aqui.
@@ -102,6 +153,7 @@ export const CATALOGO = {
     soAdversario: true,
     ponto: true,
     resultados: Object.values(RESULTADO_REMATE),
+    opcoes: ['zona', 'resultado'],
     disponivel: true,
   },
   [REGISTO.PERDA_BOLA]: { por: 'jogador', ponto: false, resultados: null, disponivel: true },
@@ -110,12 +162,62 @@ export const CATALOGO = {
     soAdversario: true,
     ponto: false,
     resultados: null,
+    disponivel: false,
+  },
+  // Como a perda de bola, mas o escalão escolhe onde fica o botão: no cartão
+  // de cada jogador, na barra de cima (pergunta quem falhou), ou nos dois.
+  [REGISTO.PASSE_FALHADO]: {
+    por: 'jogador',
+    ponto: false,
+    resultados: null,
+    opcoes: ['cartao', 'barra'],
+    disponivel: true,
+  },
+  // Penáltis nossos: quem bateu (pode ficar por dizer) e o que aconteceu.
+  [REGISTO.PENALTI]: {
+    por: 'jogador',
+    jogadorOpcional: true,
+    ponto: false,
+    resultados: Object.values(RESULTADO_PENALTI),
+    disponivel: true,
+  },
+  // Penáltis do adversário: DEFENDIDO é defesa do nosso guarda-redes.
+  [REGISTO.PENALTI_ADV]: {
+    por: 'equipa',
+    soAdversario: true,
+    ponto: false,
+    resultados: Object.values(RESULTADO_PENALTI),
+    disponivel: true,
+  },
+  [REGISTO.LANCAMENTO_BALIZA]: { por: 'equipa', ponto: false, resultados: null, disponivel: true },
+  // `sempre`: não vai ao painel nem precisa de estar ligado. `jogadorOpcional`:
+  // num livre nosso guarda-se quem bateu, se o treinador o disser.
+  [REGISTO.LIVRE_10M]: {
+    por: 'equipa',
+    jogadorOpcional: true,
+    ponto: false,
+    resultados: Object.values(RESULTADO_10M),
+    sempre: true,
     disponivel: true,
   },
 };
 
-/** Os remates que levam um golo atrás (o nosso e o do adversário). */
-const REMATES = new Set([REGISTO.REMATE, REGISTO.REMATE_ADV]);
+/**
+ * Os registos que levam um golo atrás quando o resultado é `GOLO`: o golo
+ * grava-se primeiro e o registo fica preso a ele por `goloEventId`.
+ */
+const REMATES = new Set([
+  REGISTO.REMATE,
+  REGISTO.REMATE_ADV,
+  REGISTO.PENALTI,
+  REGISTO.PENALTI_ADV,
+  REGISTO.LIVRE_10M,
+]);
+
+/** O registo leva um golo atrás quando dá golo? (Remates, penáltis, 10 m.) */
+export function levaGolo(registo) {
+  return REMATES.has(registo);
+}
 
 /** Os ids pela ordem do catálogo — é a ordem em que aparecem em todo o lado. */
 export const REGISTOS = Object.keys(CATALOGO);
@@ -134,6 +236,16 @@ export const COR_RESULTADO = {
 /** Nos remates do adversário o golo é sofrido: vermelho, não verde. */
 export const COR_RESULTADO_ADV = { ...COR_RESULTADO, GOLO: '#f43f5e' };
 
+/** Penáltis e livres de 10 m: golo nosso verde, falhado cinzento. */
+export const COR_PENALTI = {
+  GOLO: '#22c55e',
+  DEFENDIDO: '#38bdf8',
+  FORA: '#94a3b8',
+  POSTE: '#a78bfa',
+  FALHADO: '#94a3b8',
+};
+export const COR_PENALTI_ADV = { ...COR_PENALTI, GOLO: '#f43f5e' };
+
 export const COR_REGISTO = {
   recuperacao: '#f472b6',
   defesa_gr: '#38bdf8',
@@ -145,6 +257,11 @@ export function eRegistoConhecido(id) {
   return Object.prototype.hasOwnProperty.call(CATALOGO, id);
 }
 
+/** Os registos que se ligam no painel (os `sempre` não precisam). */
+export function registosDoPainel() {
+  return REGISTOS.filter((id) => CATALOGO[id].disponivel && !CATALOGO[id].sempre);
+}
+
 /**
  * Os registos que este escalão pode registar: o que a config diz, cortado
  * pelo que existe e está disponível no catálogo, pela ordem do catálogo.
@@ -152,7 +269,52 @@ export function eRegistoConhecido(id) {
  */
 export function registosLigados(lista) {
   const pedidos = new Set(Array.isArray(lista) ? lista : []);
-  return new Set(REGISTOS.filter((id) => pedidos.has(id) && CATALOGO[id].disponivel));
+  return new Set(registosDoPainel().filter((id) => pedidos.has(id)));
+}
+
+/**
+ * As opções de um registo neste escalão, já com as omissões: por exemplo
+ * `{ zona: true, resultado: false }`. Só traz as que o registo admite.
+ * `opcoes` é a coluna `team_stat_config.opcoes` (ou nada).
+ */
+export function opcoesDoRegisto(opcoes, id) {
+  const def = CATALOGO[id];
+  const gravadas = opcoes?.registos?.[id] || {};
+  const out = {};
+  for (const o of def?.opcoes || []) {
+    out[o] = typeof gravadas[o] === 'boolean' ? gravadas[o] : OPCOES[o].omissao;
+  }
+  return out;
+}
+
+/** As opções de todos os registos, para os ecrãs: `{ remate: { zona, resultado }, … }`. */
+export function opcoesDosRegistos(opcoes) {
+  return Object.fromEntries(
+    REGISTOS.filter((id) => CATALOGO[id].opcoes).map((id) => [id, opcoesDoRegisto(opcoes, id)])
+  );
+}
+
+/**
+ * Valida as opções para gravar: `{ remate: { zona: false }, … }`. Devolve
+ * `{ registos }` só com o que o catálogo admite, ou `{ erro }`.
+ */
+export function validarOpcoes(porRegisto) {
+  if (porRegisto == null) return { registos: {} };
+  if (typeof porRegisto !== 'object' || Array.isArray(porRegisto)) {
+    return { erro: 'as opções têm de ser um objeto' };
+  }
+  const registos = {};
+  for (const [id, valores] of Object.entries(porRegisto)) {
+    const def = CATALOGO[id];
+    if (!def?.opcoes) return { erro: `o registo ${id} não tem opções` };
+    for (const [o, v] of Object.entries(valores || {})) {
+      if (!def.opcoes.includes(o)) return { erro: `opção desconhecida: ${id}.${o}` };
+      if (typeof v !== 'boolean') return { erro: `a opção ${id}.${o} tem de ser verdadeiro ou falso` };
+      if (!registos[id]) registos[id] = {};
+      registos[id][o] = v;
+    }
+  }
+  return { registos };
 }
 
 /**
@@ -161,7 +323,9 @@ export function registosLigados(lista) {
  */
 export function validarListaDeRegistos(lista) {
   if (!Array.isArray(lista)) return { erro: 'a lista de registos tem de ser um array' };
-  const desconhecidos = lista.filter((id) => !eRegistoConhecido(id) || !CATALOGO[id].disponivel);
+  const desconhecidos = lista.filter(
+    (id) => !eRegistoConhecido(id) || !CATALOGO[id].disponivel || CATALOGO[id].sempre
+  );
   if (desconhecidos.length) {
     return { erro: `registo desconhecido: ${desconhecidos.join(', ')}`, desconhecidos };
   }
@@ -213,8 +377,13 @@ export function registar(
 ) {
   const def = CATALOGO[registo];
   if (!def) throw new Error(`Registo desconhecido: ${registo}`);
-  if (def.por === 'jogador' && !playerId) throw new Error(`O registo ${registo} precisa de jogador.`);
-  if (def.resultados && !def.resultados.includes(resultado)) {
+  if (def.por === 'jogador' && !playerId && !def.jogadorOpcional) {
+    throw new Error(`O registo ${registo} precisa de jogador.`);
+  }
+  // Um remate sem resultado é válido quando o escalão não o pede: fica só
+  // contado. Um resultado que não exista, nunca.
+  const semResultado = resultado == null && Boolean(def.opcoes?.includes('resultado'));
+  if (def.resultados && !semResultado && !def.resultados.includes(resultado)) {
     throw new Error(`Resultado inválido para ${registo}: ${resultado}`);
   }
 
@@ -224,7 +393,11 @@ export function registar(
     // Os registos de jogador são sempre nossos; os do adversário, sempre deles.
     equipa: def.por === 'jogador' ? 'US' : def.soAdversario ? 'THEM' : equipaValida(equipa),
   };
-  if (def.resultados) metadata.resultado = resultado;
+  if (def.resultados && !semResultado) metadata.resultado = resultado;
+  // Quem bateu, num registo de equipa que o admite (o livre de 10 m nosso).
+  let comJogador = null;
+  if (def.por === 'jogador') comJogador = playerId || null;
+  else if (def.jogadorOpcional && metadata.equipa === 'US') comJogador = playerId || null;
   if (def.ponto) {
     const px = arredondar(x);
     let py = arredondar(y);
@@ -240,7 +413,7 @@ export function registar(
     state,
     EVENT.STAT_RECORDED,
     {
-      playerId: def.por === 'jogador' ? playerId : null,
+      playerId: comJogador,
       metadata,
       ...(matchElapsedMs != null
         ? {
@@ -272,9 +445,11 @@ export function corrigirRegisto(state, { targetEventId, ...campos }, now = Date.
 
   const metadata = { v: VERSAO, targetEventId };
   if ('playerId' in campos) {
-    if (def?.por === 'equipa') throw new Error('Este registo é da equipa, não de um jogador.');
-    if (!campos.playerId) throw new Error('O registo precisa de jogador.');
-    metadata.playerId = campos.playerId;
+    if (def?.por === 'equipa' && !def.jogadorOpcional) {
+      throw new Error('Este registo é da equipa, não de um jogador.');
+    }
+    if (!campos.playerId && !def?.jogadorOpcional) throw new Error('O registo precisa de jogador.');
+    metadata.playerId = campos.playerId || null;
   }
   if ('equipa' in campos && !def?.soAdversario) metadata.equipa = equipaValida(campos.equipa);
   if ('resultado' in campos) {
@@ -351,7 +526,9 @@ export function registosDoJogo(state) {
     const r = porId.get(md.targetEventId);
     if (!r) continue;
     const def = CATALOGO[r.registo];
-    if ('playerId' in md && md.playerId && def.por === 'jogador') r.playerId = md.playerId;
+    if ('playerId' in md && (md.playerId || def.jogadorOpcional)) {
+      if (def.por === 'jogador' || def.jogadorOpcional) r.playerId = md.playerId || null;
+    }
     if ('equipa' in md && def.por === 'equipa' && !def.soAdversario) {
       r.equipa = md.equipa === 'THEM' ? 'THEM' : 'US';
     }
@@ -412,6 +589,17 @@ export function resumoRegistos(state, now = Date.now()) {
   const rematesAdv = de(REGISTO.REMATE_ADV);
   const porResultadoAdv = Object.fromEntries(Object.values(RESULTADO_REMATE).map((o) => [o, 0]));
   for (const r of rematesAdv) if (r.resultado in porResultadoAdv) porResultadoAdv[r.resultado] += 1;
+  // Penáltis e livres de 10 m: quantos e quantos deram golo.
+  const bolaParada = (lista) => {
+    const porResultado = {};
+    for (const r of lista) if (r.resultado) porResultado[r.resultado] = (porResultado[r.resultado] || 0) + 1;
+    return {
+      total: lista.length,
+      golos: lista.filter((r) => r.resultado === RESULTADO_REMATE.GOLO).length,
+      porResultado,
+    };
+  };
+  const livres = de(REGISTO.LIVRE_10M);
 
   const tempos = new Map(matchStatsTable(state, now).map((r) => [r.playerId, r.courtMs]));
   const jogadores = Object.values(state.players || {})
@@ -421,6 +609,7 @@ export function resumoRegistos(state, now = Date.now()) {
       const courtMs = tempos.get(p.playerId) || 0;
       const recuperacoes = meus.filter((r) => r.registo === REGISTO.RECUPERACAO).length;
       const perdas = meus.filter((r) => r.registo === REGISTO.PERDA_BOLA).length;
+      const passes = meus.filter((r) => r.registo === REGISTO.PASSE_FALHADO).length;
       return {
         playerId: p.playerId,
         number: p.number,
@@ -434,6 +623,8 @@ export function resumoRegistos(state, now = Date.now()) {
         defesas: meus.filter((r) => r.registo === REGISTO.DEFESA_GR).length,
         perdas,
         perdas10: recuperacoesPor10(perdas, courtMs),
+        passes,
+        passes10: recuperacoesPor10(passes, courtMs),
         positivas: meus.filter(
           (r) => r.registo === REGISTO.ACAO && r.resultado === RESULTADO_ACAO.POSITIVA
         ).length,
@@ -449,6 +640,7 @@ export function resumoRegistos(state, now = Date.now()) {
         j.recuperacoes ||
         j.defesas ||
         j.perdas ||
+        j.passes ||
         j.positivas ||
         j.negativas
     )
@@ -460,16 +652,33 @@ export function resumoRegistos(state, now = Date.now()) {
     tipos: new Set(lista.map((r) => r.registo)),
     remates: remates.length,
     rematesBaliza: remates.filter((r) => A_BALIZA.has(r.resultado)).length,
+    // Remates sem resultado (o escalão não o pede): sem eles todos com
+    // resultado, "à baliza" e eficácia não querem dizer nada.
+    rematesComResultado: remates.filter((r) => r.resultado).length,
     porResultado,
     rematesAdv: rematesAdv.length,
     rematesAdvBaliza: rematesAdv.filter((r) => A_BALIZA.has(r.resultado)).length,
+    rematesAdvComResultado: rematesAdv.filter((r) => r.resultado).length,
     porResultadoAdv,
     rematesAdvSimples: de(REGISTO.REMATE_ADV_SIMPLES).length,
     defesas: de(REGISTO.DEFESA_GR).length,
     recuperacoes: de(REGISTO.RECUPERACAO).length,
     perdas: de(REGISTO.PERDA_BOLA).length,
+    passes: de(REGISTO.PASSE_FALHADO).length,
+    penaltis: bolaParada(de(REGISTO.PENALTI)),
+    penaltisAdv: bolaParada(de(REGISTO.PENALTI_ADV)),
+    livres10: {
+      US: bolaParada(livres.filter((r) => r.equipa === 'US')),
+      THEM: bolaParada(livres.filter((r) => r.equipa === 'THEM')),
+    },
     foras: porEquipa(REGISTO.FORA),
     cantos: porEquipa(REGISTO.CANTO),
+    // Golos de canto (pelo tipo do golo), para os cantos convertidos.
+    golosCanto: {
+      US: (state.goals || []).filter((g) => g.team === 'US' && g.howScored === 'CANTO').length,
+      THEM: (state.goals || []).filter((g) => g.team === 'THEM' && g.howScored === 'CANTO').length,
+    },
+    lancamentos: porEquipa(REGISTO.LANCAMENTO_BALIZA),
     acoes: {
       positivas: acoes.filter((r) => r.resultado === RESULTADO_ACAO.POSITIVA).length,
       negativas: acoes.filter((r) => r.resultado === RESULTADO_ACAO.NEGATIVA).length,
@@ -480,7 +689,8 @@ export function resumoRegistos(state, now = Date.now()) {
 
 /**
  * Quantos de cada registo tem cada jogador, para os números nos botões do
- * cartão: Map playerId → { remate, recuperacao, defesa_gr, perda_bola, positivas, negativas }.
+ * cartão: Map playerId → { remate, recuperacao, defesa_gr, perda_bola, passe_falhado,
+ * positivas, negativas }.
  */
 export function contagemPorJogador(state) {
   const out = new Map();
@@ -492,6 +702,7 @@ export function contagemPorJogador(state) {
         recuperacao: 0,
         defesa_gr: 0,
         perda_bola: 0,
+        passe_falhado: 0,
         positivas: 0,
         negativas: 0,
       });
@@ -517,6 +728,11 @@ export function recuperacoesPor10(recuperacoes, courtMs) {
 
 /** A cor de um ponto no campo. */
 export function corDoRegisto(r) {
+  if (r.registo === REGISTO.PENALTI_ADV) return COR_PENALTI_ADV[r.resultado] || '#ffffff';
+  if (r.registo === REGISTO.PENALTI) return COR_PENALTI[r.resultado] || '#ffffff';
+  if (r.registo === REGISTO.LIVRE_10M) {
+    return (r.equipa === 'THEM' ? COR_PENALTI_ADV : COR_PENALTI)[r.resultado] || '#ffffff';
+  }
   if (r.registo === REGISTO.REMATE_ADV) return COR_RESULTADO_ADV[r.resultado] || '#ffffff';
   if (r.registo === REGISTO.REMATE) return COR_RESULTADO[r.resultado] || '#ffffff';
   if (r.registo === REGISTO.FORA) return r.equipa === 'THEM' ? COR_REGISTO.fora_THEM : COR_REGISTO.fora_US;

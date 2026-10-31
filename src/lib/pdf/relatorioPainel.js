@@ -28,6 +28,10 @@ import {
   recuperacoesPorJogador,
   perdasDaEpoca,
   perdasPorJogador,
+  passesDaEpoca,
+  passesPorJogador,
+  bolasParadas,
+  REGISTOS_BOLA_PARADA,
 } from '../../domain/dashboard.js';
 import { REGISTO } from '../../domain/registos.js';
 import { dayLabel } from '../format.js';
@@ -232,20 +236,25 @@ function registosExtra(r, entries) {
     const efi = eficacia(entries);
     const remates = rematesPorJogo(entries);
     r.secao(t('registos.epoca.remates'), 30);
+    // Com remates só contados (sem resultado), "à baliza" e eficácia saem.
     r.cartoes([
       { rotulo: t('registos.epoca.rematesPorJogo'), valor: efi.rematesPorJogo.toFixed(1), detalhe: t('painelv.emJogos', { n: efi.jogos }) },
-      { rotulo: t('registos.col.aBaliza'), valor: efi.aBaliza, detalhe: t('registos.aBalizaDe', { n: efi.aBaliza, total: efi.remates }) },
-      {
-        rotulo: t('registos.epoca.eficacia'),
-        valor: efi.percentagem == null ? '—' : `${efi.percentagem}%`,
-        detalhe: t('registos.epoca.eficaciaDetalhe', { golos: efi.golos, aBaliza: efi.aBaliza }),
-      },
+      ...(efi.semResultado
+        ? []
+        : [
+            { rotulo: t('registos.col.aBaliza'), valor: efi.aBaliza, detalhe: t('registos.aBalizaDe', { n: efi.aBaliza, total: efi.remates }) },
+            {
+              rotulo: t('registos.epoca.eficacia'),
+              valor: efi.percentagem == null ? '—' : `${efi.percentagem}%`,
+              detalhe: t('registos.epoca.eficaciaDetalhe', { golos: efi.golos, aBaliza: efi.aBaliza }),
+            },
+          ]),
     ]);
     r.barrasH(
       remates.map((j) => ({
         rotulo: j.adversario,
         valor: j.remates,
-        texto: t('registos.epoca.rematesDoJogo', { n: j.remates, baliza: j.aBaliza }),
+        texto: j.semResultado ? String(j.remates) : t('registos.epoca.rematesDoJogo', { n: j.remates, baliza: j.aBaliza }),
       }))
     );
   }
@@ -254,18 +263,22 @@ function registosExtra(r, entries) {
     r.secao(t('registos.epoca.rematesAdv'), 30);
     r.cartoes([
       { rotulo: t('registos.epoca.rematesAdvPorJogo'), valor: adv.rematesPorJogo.toFixed(1), detalhe: t('painelv.emJogos', { n: adv.jogos }) },
-      { rotulo: t('registos.col.aBaliza'), valor: adv.aBaliza, detalhe: t('registos.aBalizaDe', { n: adv.aBaliza, total: adv.remates }) },
-      {
-        rotulo: t('registos.epoca.defesaGR'),
-        valor: adv.percentagemDefesa == null ? '—' : `${adv.percentagemDefesa}%`,
-        detalhe: t('registos.epoca.defesaGRDetalhe', { defendidos: adv.defendidos, aBaliza: adv.aBaliza }),
-      },
+      ...(adv.semResultado
+        ? []
+        : [
+            { rotulo: t('registos.col.aBaliza'), valor: adv.aBaliza, detalhe: t('registos.aBalizaDe', { n: adv.aBaliza, total: adv.remates }) },
+            {
+              rotulo: t('registos.epoca.defesaGR'),
+              valor: adv.percentagemDefesa == null ? '—' : `${adv.percentagemDefesa}%`,
+              detalhe: t('registos.epoca.defesaGRDetalhe', { defendidos: adv.defendidos, aBaliza: adv.aBaliza }),
+            },
+          ]),
     ]);
     r.barrasH(
       rematesAdvPorJogo(entries).map((j) => ({
         rotulo: j.adversario,
         valor: j.remates,
-        texto: t('registos.epoca.rematesDoJogo', { n: j.remates, baliza: j.aBaliza }),
+        texto: j.semResultado ? String(j.remates) : t('registos.epoca.rematesDoJogo', { n: j.remates, baliza: j.aBaliza }),
       })),
       { cor: COR.vermelho }
     );
@@ -314,6 +327,62 @@ function registosExtra(r, entries) {
       { cor: COR.vermelho }
     );
     r.paragrafo(t('registos.epoca.perdasNota'));
+  }
+  if (tipos.has(REGISTO.PASSE_FALHADO)) {
+    const equipa = passesDaEpoca(entries);
+    r.secao(t('registos.epoca.passes'), 30);
+    r.cartoes([
+      { rotulo: t('registos.epoca.passesPorJogo'), valor: equipa.passesPorJogo.toFixed(1), detalhe: t('painelv.emJogos', { n: equipa.jogos }) },
+      { rotulo: t('registos.total.passe_falhado'), valor: equipa.passes },
+    ]);
+    r.barrasH(
+      passesPorJogador(entries).map((j) => ({
+        rotulo: `${j.number ?? ''} ${j.name}`.trim(),
+        valor: j.passes,
+        texto: t('registos.epoca.perdasDetalhe', { n: j.passes, porJogo: j.porJogo.toFixed(1) }),
+      })),
+      { cor: COR.vermelho }
+    );
+  }
+  if (REGISTOS_BOLA_PARADA.some((id) => tipos.has(id))) {
+    const bp = bolasParadas(entries);
+    const golosEm = (x) => t('registos.golosEm', { golos: x.golos, total: x.total });
+    r.secao(t('registos.epoca.bolasParadas'), 30);
+    const cartoes = [];
+    if (tipos.has(REGISTO.CANTO)) {
+      cartoes.push({
+        rotulo: t('registos.bp.cantos'),
+        valor: bp.cantos.percentagem == null ? '—' : `${bp.cantos.percentagem}%`,
+        detalhe: t('registos.bp.cantosDetalhe', { golos: bp.cantos.golos, cantos: bp.cantos.cantos }),
+      });
+    }
+    if (tipos.has(REGISTO.PENALTI)) {
+      cartoes.push({ rotulo: t('registos.total.penalti'), valor: `${bp.penaltis.golos}/${bp.penaltis.total}`, detalhe: golosEm(bp.penaltis) });
+    }
+    if (tipos.has(REGISTO.PENALTI_ADV)) {
+      cartoes.push({ rotulo: t('registos.total.penalti_adv'), valor: `${bp.penaltisAdv.golos}/${bp.penaltisAdv.total}`, detalhe: golosEm(bp.penaltisAdv) });
+    }
+    if (tipos.has(REGISTO.LIVRE_10M)) {
+      cartoes.push(
+        { rotulo: t('registos.bp.livres10Nos'), valor: `${bp.livres10.US.golos}/${bp.livres10.US.total}`, detalhe: golosEm(bp.livres10.US) },
+        { rotulo: t('registos.bp.livres10Eles'), valor: `${bp.livres10.THEM.golos}/${bp.livres10.THEM.total}`, detalhe: golosEm(bp.livres10.THEM) }
+      );
+    }
+    if (cartoes.length) r.cartoes(cartoes, { porLinha: Math.min(4, cartoes.length) });
+    r.barrasH(
+      [
+        ['bp.golosCanto', 'CANTO'],
+        ['bp.golosLivre', 'LIVRE'],
+        ['bp.golosPenalti', 'PENALTI'],
+        ['bp.golos10m', 'LIVRE_10M'],
+      ].map(([chave, tipo]) => ({
+        rotulo: t(`registos.${chave}`),
+        valor: bp.golos.US[tipo],
+        texto: `${bp.golos.US[tipo]} ${t('registos.bp.marcados')} · ${bp.golos.THEM[tipo]} ${t('registos.bp.sofridos')}`,
+      })),
+      { cor: COR.info }
+    );
+    r.paragrafo(t('registos.bp.nota'));
   }
 }
 

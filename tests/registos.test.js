@@ -20,6 +20,11 @@ import {
   resumoRegistos,
   temRegistos,
   validarListaDeRegistos,
+  levaGolo,
+  opcoesDoRegisto,
+  opcoesDosRegistos,
+  registosDoPainel,
+  validarOpcoes,
 } from '../src/domain/registos.js';
 
 const MIN = 60_000;
@@ -65,7 +70,7 @@ function desfazer(ctx, alvo, now) {
 /* ------------------------------------------------------------- catálogo */
 
 test('catálogo: os registos pela ordem certa (fase 1 e remates do adversário)', () => {
-  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples']);
+  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'livre_10m']);
   assert.equal(CATALOGO.fora.por, 'equipa');
   assert.equal(CATALOGO.canto.ponto, false);
 });
@@ -382,6 +387,95 @@ test('remate do adversário só contado: sem jogador, resultado nem zona; desfaz
   assert.equal(resumoRegistos(st, T0 + 10 * MIN).rematesAdvSimples, 2);
 });
 
+/* ------------------------------------------------- opções e registos novos */
+
+test('opções por registo: omissões, gravadas e validação', () => {
+  assert.deepEqual(opcoesDoRegisto(null, 'remate'), { zona: true, resultado: true });
+  assert.deepEqual(opcoesDoRegisto({ registos: { remate: { zona: false } } }, 'remate'), { zona: false, resultado: true });
+  assert.deepEqual(opcoesDoRegisto(null, 'defesa_gr'), { zona: true });
+  assert.deepEqual(opcoesDoRegisto(null, 'passe_falhado'), { cartao: true, barra: false });
+  assert.deepEqual(opcoesDoRegisto(null, 'canto'), {}, 'o canto não tem opções');
+  assert.equal(opcoesDosRegistos(null).canto, undefined);
+  assert.equal(opcoesDosRegistos({ registos: { fora: { zona: false } } }).fora.zona, false);
+
+  assert.deepEqual(validarOpcoes({ remate: { zona: false, resultado: true } }).registos, {
+    remate: { zona: false, resultado: true },
+  });
+  assert.match(validarOpcoes({ canto: { zona: false } }).erro, /canto/);
+  assert.match(validarOpcoes({ remate: { cor: true } }).erro, /remate\.cor/);
+  assert.match(validarOpcoes({ remate: { zona: 'não' } }).erro, /verdadeiro ou falso/);
+  assert.deepEqual(validarOpcoes(undefined).registos, {});
+});
+
+test('catálogo do painel: sem o livre de 10 m (é de todos) nem o remate só contado', () => {
+  const painel = registosDoPainel();
+  assert.ok(!painel.includes('livre_10m'));
+  assert.ok(!painel.includes('remate_adv_simples'));
+  assert.ok(painel.includes('penalti') && painel.includes('penalti_adv'));
+  assert.equal(registosLigados(['livre_10m', 'remate_adv_simples', 'penalti']).size, 1);
+  assert.ok(validarListaDeRegistos(['livre_10m']).erro);
+  assert.ok(levaGolo('penalti') && levaGolo('livre_10m') && !levaGolo('perda_bola'));
+});
+
+test('remate sem resultado: vale quando não se pede; um resultado inventado não', () => {
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const e = gravar(ctx, (s) => registar(s, { registo: 'remate', playerId: 'p5' }, T0 + MIN), T0 + MIN);
+  assert.equal('resultado' in e.metadata, false);
+  assert.equal(e.metadata.x, null);
+  assert.throws(() => registar(estado(ctx), { registo: 'remate', playerId: 'p5', resultado: 'TALVEZ' }));
+  // Um registo que não tem a opção continua a exigir o resultado.
+  assert.throws(() => registar(estado(ctx), { registo: 'acao', playerId: 'p5' }));
+
+  const r = resumoRegistos(estado(ctx), T0 + 5 * MIN);
+  assert.equal(r.remates, 1);
+  assert.equal(r.rematesComResultado, 0);
+});
+
+test('penáltis, livres de 10 m, passes falhados e lançamentos no resumo', () => {
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  // Penálti nosso que deu golo: o golo primeiro, o registo preso a ele.
+  const golo = gravar(ctx, (s) => A.teamGoalBy(s, 'p5', T0 + MIN), T0 + MIN);
+  gravar(ctx, (s) => registar(s, { registo: 'penalti', playerId: 'p5', resultado: 'GOLO', goloEventId: golo.id }, T0 + MIN), T0 + MIN);
+  // Penálti nosso falhado, sem dizer quem bateu.
+  const sem = gravar(ctx, (s) => registar(s, { registo: 'penalti', resultado: 'DEFENDIDO' }, T0 + 2 * MIN), T0 + 2 * MIN);
+  assert.equal(sem.playerId, null);
+  gravar(ctx, (s) => registar(s, { registo: 'penalti_adv', resultado: 'FORA', playerId: 'p1' }, T0 + 3 * MIN), T0 + 3 * MIN);
+  // Livre de 10 m: nosso falhado (com quem bateu), deles falhado (sem jogador).
+  const l1 = gravar(ctx, (s) => registar(s, { registo: 'livre_10m', equipa: 'US', playerId: 'p4', resultado: 'FALHADO' }, T0 + 4 * MIN), T0 + 4 * MIN);
+  const l2 = gravar(ctx, (s) => registar(s, { registo: 'livre_10m', equipa: 'THEM', playerId: 'p4', resultado: 'FALHADO' }, T0 + 5 * MIN), T0 + 5 * MIN);
+  assert.equal(l1.playerId, 'p4');
+  assert.equal(l2.playerId, null, 'num livre deles não há jogador nosso');
+  assert.throws(() => registar(estado(ctx), { registo: 'livre_10m', equipa: 'US', resultado: 'DEFENDIDO' }));
+  gravar(ctx, (s) => registar(s, { registo: 'passe_falhado', playerId: 'p2' }, T0 + 6 * MIN), T0 + 6 * MIN);
+  gravar(ctx, (s) => registar(s, { registo: 'passe_falhado', playerId: 'p2' }, T0 + 7 * MIN), T0 + 7 * MIN);
+  gravar(ctx, (s) => registar(s, { registo: 'lancamento_baliza', equipa: 'THEM' }, T0 + 8 * MIN), T0 + 8 * MIN);
+
+  const st = estado(ctx);
+  const r = resumoRegistos(st, T0 + 10 * MIN);
+  assert.deepEqual([r.penaltis.total, r.penaltis.golos], [2, 1]);
+  assert.deepEqual([r.penaltisAdv.total, r.penaltisAdv.golos], [1, 0]);
+  assert.deepEqual([r.livres10.US.total, r.livres10.THEM.total], [1, 1]);
+  assert.equal(r.passes, 2);
+  assert.equal(r.jogadores.find((j) => j.playerId === 'p2').passes, 2);
+  assert.deepEqual(r.lancamentos, { US: 0, THEM: 1 });
+
+  // Desfazer o golo leva o penálti com GOLO (como nos remates).
+  desfazer(ctx, golo, T0 + 9 * MIN);
+  assert.equal(resumoRegistos(estado(ctx), T0 + 10 * MIN).penaltis.total, 1);
+});
+
+test('corrigir um registo de jogador opcional: tirar e pôr quem bateu', () => {
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const p = gravar(ctx, (s) => registar(s, { registo: 'penalti', playerId: 'p5', resultado: 'FORA' }, T0 + MIN), T0 + MIN);
+  gravar(ctx, (s) => corrigirRegisto(s, { targetEventId: p.id, playerId: null }, T0 + 2 * MIN), T0 + 2 * MIN);
+  assert.equal(registosDoJogo(estado(ctx))[0].playerId, null);
+  gravar(ctx, (s) => corrigirRegisto(s, { targetEventId: p.id, playerId: 'p3' }, T0 + 3 * MIN), T0 + 3 * MIN);
+  assert.equal(registosDoJogo(estado(ctx))[0].playerId, 'p3');
+});
+
 test('sem registos: resumo vazio e nada para desenhar', () => {
   const ctx = novoJogo();
   gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
@@ -547,8 +641,8 @@ test('cada registo tem nome e resultados nas três línguas', async () => {
 test('contagem por jogador para os números dos botões do cartão', async () => {
   const { contagemPorJogador } = await import('../src/domain/registos.js');
   const c = contagemPorJogador(estado(jogoComRegistos()));
-  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, perda_bola: 0, positivas: 0, negativas: 0 });
-  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, perda_bola: 0, positivas: 2, negativas: 1 });
+  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, perda_bola: 0, passe_falhado: 0, positivas: 0, negativas: 0 });
+  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, perda_bola: 0, passe_falhado: 0, positivas: 2, negativas: 1 });
   assert.equal(c.get('p1').defesa_gr, 1);
   assert.equal(c.has('p7'), false);
 });

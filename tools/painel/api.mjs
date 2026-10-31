@@ -185,6 +185,7 @@ async function configDosRegistos(sb) {
     mapa.set(linha.team_id, {
       registos: Array.isArray(linha.registos) ? linha.registos : [],
       addons: Array.isArray(linha.addons) ? linha.addons : [],
+      opcoes: linha.opcoes?.registos || {},
     });
   }
   return mapa;
@@ -272,6 +273,7 @@ export async function estado(sb) {
   const registosPorEscalao = await configDosRegistos(sb);
   const registosDe = (teamId) => registosPorEscalao.get(teamId)?.registos || [];
   const addonsDe = (teamId) => registosPorEscalao.get(teamId)?.addons || [];
+  const opcoesDe = (teamId) => registosPorEscalao.get(teamId)?.opcoes || {};
 
   const clubesActivos = (clubes.data || []).filter((c) => !c.archived_at);
   const escaloesActivos = (escaloes.data || []).filter((t) => !t.archived_at);
@@ -317,6 +319,7 @@ export async function estado(sb) {
         nivel: x.nivel,
         registos: registosDe(x.escalao.id),
         addons: addonsDe(x.escalao.id),
+        opcoes: opcoesDe(x.escalao.id),
       }));
 
     // Os jogos que esta conta produziu: os dos escalões do seu clube. Os
@@ -343,7 +346,13 @@ export async function estado(sb) {
       // acesso a um destes escalões fica com os mesmos: a config é do escalão,
       // não da conta. Ver `partilhados[].registos` do outro lado.
       escaloesComRegistos: meusEscaloes
-        .map((t) => ({ teamId: t.id, nome: t.name, registos: registosDe(t.id), addons: addonsDe(t.id) }))
+        .map((t) => ({
+          teamId: t.id,
+          nome: t.name,
+          registos: registosDe(t.id),
+          addons: addonsDe(t.id),
+          opcoes: opcoesDe(t.id),
+        }))
         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt')),
       associadoA: associadoA.map((c) => ({ id: c.id, nome: c.name })),
       partilhados,

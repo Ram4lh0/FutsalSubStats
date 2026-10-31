@@ -16,7 +16,7 @@
 // com uma excepção declarada: os minutos por jogador, onde um jogo em curso
 // ainda diz alguma coisa sobre quem está a jogar hoje.
 
-import { MATCH_STATUS, normalizePosition, timingOf, timingConfig, goalTypesFor } from './constants.js';
+import { GOAL_TYPE, MATCH_STATUS, normalizePosition, timingOf, timingConfig, goalTypesFor } from './constants.js';
 import { clubAggregate, matchResult, playerMatchStats } from './stats.js';
 import { A_BALIZA, REGISTO, RESULTADO_REMATE, paraMarcadores, recuperacoesPor10, registosDoJogo } from './registos.js';
 
@@ -667,6 +667,8 @@ export function rematesPorJogo(entries) {
         remates: remates.length,
         aBaliza: remates.filter((r) => A_BALIZA.has(r.resultado)).length,
         golos: remates.filter((r) => r.resultado === RESULTADO_REMATE.GOLO).length,
+        // Remates só contados (o escalão não pede o resultado).
+        semResultado: remates.filter((r) => !r.resultado).length,
       };
     })
     .filter(Boolean);
@@ -686,6 +688,7 @@ export function rematesAdvPorJogo(entries) {
         aBaliza: remates.filter((r) => A_BALIZA.has(r.resultado)).length,
         defendidos: remates.filter((r) => r.resultado === RESULTADO_REMATE.DEFENDIDO).length,
         golos: remates.filter((r) => r.resultado === RESULTADO_REMATE.GOLO).length,
+        semResultado: remates.filter((r) => !r.resultado).length,
       };
     })
     .filter(Boolean);
@@ -707,6 +710,7 @@ export function rematesAdvDaEpoca(entries) {
     aBaliza,
     defendidos,
     golos: soma('golos'),
+    semResultado: soma('semResultado'),
     rematesPorJogo: jogos.length ? remates / jogos.length : 0,
     percentagemDefesa: aBaliza ? Math.round((defendidos / aBaliza) * 100) : null,
   };
@@ -747,6 +751,7 @@ export function eficacia(entries) {
     remates,
     aBaliza,
     golos,
+    semResultado: soma('semResultado'),
     rematesPorJogo: jogos.length ? remates / jogos.length : 0,
     percentagem: aBaliza ? Math.round((golos / aBaliza) * 100) : null,
   };
@@ -803,6 +808,83 @@ export function perdasPorJogador(entries) {
       por10: recuperacoesPor10(n, j.courtMs),
     }))
     .sort((a, b) => b.perdas - a.perdas || (a.number ?? 0) - (b.number ?? 0));
+}
+
+/** Passes falhados por jogador: as mesmas contas das perdas de bola. */
+export function passesPorJogador(entries) {
+  return contagemDaEpoca(entries, REGISTO.PASSE_FALHADO)
+    .map(({ n, ...j }) => ({
+      ...j,
+      passes: n,
+      porJogo: j.jogos ? n / j.jogos : 0,
+      por10: recuperacoesPor10(n, j.courtMs),
+    }))
+    .sort((a, b) => b.passes - a.passes || (a.number ?? 0) - (b.number ?? 0));
+}
+
+/** Os passes falhados da equipa na época: total e média por jogo. */
+export function passesDaEpoca(entries) {
+  const jogos = terminados(entries)
+    .map((e) => registosDoJogo(e.state).filter((r) => r.registo === REGISTO.PASSE_FALHADO).length)
+    .filter((n) => n > 0);
+  const passes = jogos.reduce((t, n) => t + n, 0);
+  return { jogos: jogos.length, passes, passesPorJogo: jogos.length ? passes / jogos.length : 0 };
+}
+
+/** Os registos que fazem aparecer o bloco das bolas paradas. */
+export const REGISTOS_BOLA_PARADA = [REGISTO.CANTO, REGISTO.PENALTI, REGISTO.PENALTI_ADV, REGISTO.LIVRE_10M];
+
+/**
+ * As bolas paradas na época (31/10/2026):
+ *  - golos marcados e sofridos de canto, livre, penálti e livre de 10 m, pelo
+ *    tipo apontado em cada golo (todos os jogos terminados);
+ *  - cantos convertidos: golos de canto nos jogos em que se contaram cantos,
+ *    sobre os cantos desses jogos (um jogo sem cantos contados não é um jogo
+ *    com zero cantos);
+ *  - tentativas e golos dos penáltis e dos livres de 10 m registados.
+ */
+export function bolasParadas(entries) {
+  const tipos = [GOAL_TYPE.CANTO, GOAL_TYPE.LIVRE, GOAL_TYPE.PENALTI, GOAL_TYPE.LIVRE_10M];
+  const golos = { US: {}, THEM: {} };
+  for (const eq of ['US', 'THEM']) for (const tp of tipos) golos[eq][tp] = 0;
+  const cantos = { cantos: 0, golos: 0, jogos: 0 };
+  const tentativa = () => ({ total: 0, golos: 0 });
+  const penaltis = tentativa();
+  const penaltisAdv = tentativa();
+  const livres10 = { US: tentativa(), THEM: tentativa() };
+  const somar = (alvo, r) => {
+    alvo.total += 1;
+    if (r.resultado === RESULTADO_REMATE.GOLO) alvo.golos += 1;
+  };
+
+  for (const e of terminados(entries)) {
+    const goals = e.state.goals || [];
+    for (const g of goals) {
+      if (g.howScored && g.howScored in (golos[g.team] || {})) golos[g.team][g.howScored] += 1;
+    }
+    const lista = registosDoJogo(e.state);
+    const nossosCantos = lista.filter((r) => r.registo === REGISTO.CANTO && r.equipa === 'US').length;
+    if (nossosCantos) {
+      cantos.jogos += 1;
+      cantos.cantos += nossosCantos;
+      cantos.golos += goals.filter((g) => g.team === 'US' && g.howScored === GOAL_TYPE.CANTO).length;
+    }
+    for (const r of lista) {
+      if (r.registo === REGISTO.PENALTI) somar(penaltis, r);
+      else if (r.registo === REGISTO.PENALTI_ADV) somar(penaltisAdv, r);
+      else if (r.registo === REGISTO.LIVRE_10M) somar(livres10[r.equipa === 'THEM' ? 'THEM' : 'US'], r);
+    }
+  }
+  return {
+    golos,
+    cantos: {
+      ...cantos,
+      percentagem: cantos.cantos ? Math.round((cantos.golos / cantos.cantos) * 100) : null,
+    },
+    penaltis,
+    penaltisAdv,
+    livres10,
+  };
 }
 
 /** As perdas de bola da equipa na época: total e média por jogo. */

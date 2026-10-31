@@ -436,7 +436,7 @@ test('uma conta que não existe dá uma mensagem clara', async () => {
 test('o catálogo do painel tem os registos todos (fase 1, remates do adversário e perdas)', () => {
   assert.deepEqual(
     catalogoDoPainel().map((r) => r.id),
-    ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples']
+    ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza']
   );
   assert.equal(catalogoDoPainel().find((r) => r.id === 'perda_bola').nome, 'Perdas de bola');
 });
@@ -460,6 +460,24 @@ test('definir os registos grava a lista validada, pela ordem do catálogo', asyn
   await definirRegistos(sb, { teamId: 't-1', registos: ['recuperacao'] });
   assert.equal(dados.team_stat_config.length, 1);
   assert.deepEqual((await registosDoEscalao(sb, 't-1')).registos, ['recuperacao']);
+});
+
+test('as opções de cada registo gravam-se em opcoes.registos, sem tocar no resto', async () => {
+  const dados = { ...cenario(), team_stat_config: [{ team_id: 't-1', registos: ['remate'], opcoes: { notas: 1 } }] };
+  const sb = supabaseFalso(dados);
+  await definirRegistos(sb, {
+    teamId: 't-1',
+    registos: ['remate', 'passe_falhado'],
+    opcoes: { remate: { zona: false, resultado: true }, passe_falhado: { cartao: false, barra: true } },
+  });
+  assert.deepEqual(dados.team_stat_config[0].opcoes, {
+    notas: 1,
+    registos: { remate: { zona: false, resultado: true }, passe_falhado: { cartao: false, barra: true } },
+  });
+  await assert.rejects(
+    () => definirRegistos(sb, { teamId: 't-1', registos: ['canto'], opcoes: { canto: { zona: false } } }),
+    /canto/
+  );
 });
 
 test('desligar tudo grava uma lista vazia em vez de apagar a linha', async () => {
@@ -568,7 +586,7 @@ test('os registos do clube vêm por escalão activo', async () => {
     r.escaloes.map((e) => [e.teamId, e.registos]),
     [['t-1', []], ['t-2', ['fora', 'canto']]]
   );
-  assert.equal(r.catalogo.length, 9);
+  assert.equal(r.catalogo.length, 12);
 });
 
 test('cada conta traz os últimos jogos que vê, do mais recente para o mais antigo', async () => {

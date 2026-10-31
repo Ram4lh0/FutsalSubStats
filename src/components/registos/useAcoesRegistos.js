@@ -1,24 +1,38 @@
 'use client';
 
 // components/registos/useAcoesRegistos.js — os toques dos registos extra no
-// jogo ao vivo: remate, recuperação, defesa, perda de bola, ação +/−, fora,
-// canto e remate do adversário.
+// jogo ao vivo: remate, recuperação, defesa, perda de bola, passe falhado,
+// ação +/−, fora, canto, lançamento de baliza, remate e penálti do adversário,
+// penálti nosso e o livre de 10 metros.
 //
 // Vive fora do `Live()` de propósito: o ecrã do jogo já é grande, e isto é um
 // bloco que só existe para os escalões com registos ligados. A página passa o
 // que já tem — o estado, o `commit` que grava e recalcula, o fluxo do golo —
 // e recebe de volta os handlers para pôr no `on`.
+//
+// As opções do escalão (`ligados.opcoes`) decidem o que se pergunta: sem zona
+// não aparece o campo, sem "o que aconteceu" não aparecem os resultados. Sem
+// nenhuma das duas, o toque grava logo.
 
 import { useUI } from '@/lib/ui.jsx';
-import { EVENT } from '@/domain/constants.js';
+import { events } from '@/lib/data/repository.js';
+import * as A from '@/domain/actions.js';
+import { EVENT, GOAL_TYPE } from '@/domain/constants.js';
 import {
+  COR_PENALTI,
+  COR_PENALTI_ADV,
   COR_RESULTADO,
   COR_RESULTADO_ADV,
   REGISTO,
+  RESULTADO_10M,
+  RESULTADO_PENALTI,
   RESULTADO_REMATE,
+  levaGolo,
   marcadores,
   registar,
+  registosDoJogo,
 } from '@/domain/registos.js';
+import { pickPlayer } from '@/components/live/dialogs.jsx';
 import { t } from '@/lib/i18n/index.js';
 import { perguntarOnde } from './CampoToque.jsx';
 import { abrirPainelRegistos } from './PainelRegistos.jsx';
@@ -26,13 +40,15 @@ import { abrirPainelRegistos } from './PainelRegistos.jsx';
 /**
  * @param {object} o
  * @param {object} o.state     o estado do jogo, como está agora
- * @param {Set}    o.ligados   os registos ligados para este escalão
+ * @param {Set}    o.ligados   os registos ligados para este escalão (com `.opcoes`)
  * @param {Function} o.commit  grava um evento e devolve o estado novo
- * @param {Function} o.marcarGolo  o fluxo normal do golo de um jogador; recebe
- *   `(p, { comRemate })` e chama `comRemate(st, goloEventId)` logo depois de o
- *   golo subir ao marcador, antes de perguntar a assistência
+ * @param {Function} o.marcarGolo  o fluxo do golo nosso; recebe
+ *   `(p, { comRemate, tipo })` — `p` a null para um golo sem marcador — e chama
+ *   `comRemate(st, goloEventId)` logo depois de o golo subir ao marcador.
+ *   Com `tipo`, o golo fica com esse tipo e não se pergunta mais nada; com
+ *   `base`, parte desse estado e não do da última vez que o ecrã desenhou.
  * @param {Function} o.marcarGoloAdversario  o fluxo do golo sofrido; recebe
- *   `({ comRemate })`, com o mesmo `comRemate(st, goloEventId)`
+ *   `({ comRemate, tipo })`, como o de cima
  * @param {Function} o.nomes   devolve `{ nos, eles }` (os nomes curtos)
  */
 export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, marcarGoloAdversario, nomes }) {
@@ -40,16 +56,33 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
 
   const quem = (p) => ({ numero: p.number, nome: p.name });
   const pontos = (registo) => (state ? marcadores(state, { registos: [registo] }) : []);
+  const opcoesDe = (registo) => ligados?.opcoes?.[registo] || {};
+
+  /**
+   * Pergunta o que este escalão quer para este registo. Resolve com
+   * `{ opcao, x, y }` (o que não se perguntou vem a null) ou null se fechar.
+   * Sem nada para perguntar, resolve logo, sem abrir janela.
+   */
+  async function perguntar(registo, { opcoes = null, ...resto }) {
+    const op = opcoesDe(registo);
+    const comZona = op.zona !== false;
+    const comResultado = Boolean(opcoes) && op.resultado !== false;
+    if (!comZona && !comResultado) return { opcao: null, x: null, y: null };
+    return perguntarOnde(ui, {
+      ...resto,
+      opcoes: comResultado ? opcoes : null,
+      markers: pontos(registo),
+      semCampo: !comZona,
+    });
+  }
+
+  const opcoesRemate = (cores, chave) =>
+    Object.values(RESULTADO_REMATE).map((o) => ({ id: o, rotulo: t(`registos.${chave}.${o}`), cor: cores[o] }));
 
   async function registarRemate(p) {
-    const r = await perguntarOnde(ui, {
+    const r = await perguntar(REGISTO.REMATE, {
       titulo: t('registos.remateDe', quem(p)),
-      opcoes: Object.values(RESULTADO_REMATE).map((o) => ({
-        id: o,
-        rotulo: t(`registos.resultado.${o}`),
-        cor: COR_RESULTADO[o],
-      })),
-      markers: pontos(REGISTO.REMATE),
+      opcoes: opcoesRemate(COR_RESULTADO, 'resultado'),
       destaque: 'deles',
     });
     if (!r) return;
@@ -67,21 +100,16 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
 
   /**
    * Remate do adversário: o que aconteceu (golo, defesa do nosso GR,
-   * bloqueado, fora, poste) e de onde rematou, na nossa metade. Golo é golo
-   * sofrido: corre primeiro o fluxo de sempre (marcador, sanções, tipo do
-   * golo) e o remate fica preso a esse golo, como nos nossos.
+   * bloqueado, fora, poste) e de onde rematou, na nossa metade — o que o
+   * escalão pedir. Golo é golo sofrido: corre primeiro o fluxo de sempre e o
+   * remate fica preso a esse golo, como nos nossos.
    */
   async function registarRemateAdv() {
     const { eles } = nomes();
-    const r = await perguntarOnde(ui, {
+    const r = await perguntar(REGISTO.REMATE_ADV, {
       titulo: t('registos.remateAdvDe', { equipa: eles }),
-      subtitulo: t('registos.remateAdvSub'),
-      opcoes: Object.values(RESULTADO_REMATE).map((o) => ({
-        id: o,
-        rotulo: t(`registos.resultadoAdv.${o}`),
-        cor: COR_RESULTADO_ADV[o],
-      })),
-      markers: pontos(REGISTO.REMATE_ADV),
+      subtitulo: opcoesDe(REGISTO.REMATE_ADV).zona !== false ? t('registos.remateAdvSub') : null,
+      opcoes: opcoesRemate(COR_RESULTADO_ADV, 'resultadoAdv'),
       destaque: 'nossa',
     });
     if (!r) return;
@@ -95,25 +123,16 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     await commit(registar(state, dados));
   }
 
-  // Só a contagem: um toque, mais um remate deles. Sem resultado nem zona.
-  async function registarRemateAdvSimples() {
-    await commit(registar(state, { registo: REGISTO.REMATE_ADV_SIMPLES }));
-  }
-
   async function registarRecuperacao(p) {
-    const r = await perguntarOnde(ui, {
-      titulo: t('registos.recuperacaoDe', quem(p)),
-      markers: pontos(REGISTO.RECUPERACAO),
-    });
+    const r = await perguntar(REGISTO.RECUPERACAO, { titulo: t('registos.recuperacaoDe', quem(p)) });
     if (!r) return;
     await commit(registar(state, { registo: REGISTO.RECUPERACAO, playerId: p.playerId, x: r.x, y: r.y }));
   }
 
   async function registarDefesa(p) {
-    const r = await perguntarOnde(ui, {
+    const r = await perguntar(REGISTO.DEFESA_GR, {
       titulo: t('registos.defesaDe', quem(p)),
       subtitulo: t('registos.defesaSub'),
-      markers: pontos(REGISTO.DEFESA_GR),
     });
     if (!r) return;
     await commit(registar(state, { registo: REGISTO.DEFESA_GR, playerId: p.playerId, x: r.x, y: r.y }));
@@ -124,16 +143,26 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     await commit(registar(state, { registo: REGISTO.PERDA_BOLA, playerId: p.playerId }));
   }
 
+  async function registarPasse(p) {
+    await commit(registar(state, { registo: REGISTO.PASSE_FALHADO, playerId: p.playerId }));
+  }
+
+  /** O passe falhado da barra de cima: primeiro quem falhou, dos que estão em campo. */
+  async function registarPasseBarra() {
+    const playerId = await pickPlayer(ui, state, t('registos.quemFalhouPasse'));
+    if (!playerId) return;
+    await commit(registar(state, { registo: REGISTO.PASSE_FALHADO, playerId }));
+  }
+
   async function registarAcao(p, resultado) {
     await commit(registar(state, { registo: REGISTO.ACAO, playerId: p.playerId, resultado }));
   }
 
   async function registarFora(equipa) {
     const { nos, eles } = nomes();
-    const r = await perguntarOnde(ui, {
+    const r = await perguntar(REGISTO.FORA, {
       titulo: t('registos.foraDe', { equipa: equipa === 'US' ? nos : eles }),
       subtitulo: t('registos.foraSub'),
-      markers: pontos(REGISTO.FORA),
       lateral: true,
     });
     if (!r) return;
@@ -144,22 +173,161 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     await commit(registar(state, { registo: REGISTO.CANTO, equipa }));
   }
 
+  async function registarLancamento(equipa) {
+    await commit(registar(state, { registo: REGISTO.LANCAMENTO_BALIZA, equipa }));
+  }
+
+  /** Os botões do resultado de um penálti (ou de um livre de 10 m). */
+  const opcoesPenalti = (cores, resultados, chave) =>
+    resultados.map((o) => ({ id: o, rotulo: t(`registos.${chave}.${o}`), cor: cores[o] }));
+
+  /**
+   * Penálti nosso: quem bateu (pode ficar por dizer) e o que aconteceu. Golo
+   * corre o fluxo do golo, com o tipo "penálti" já posto e sem assistência.
+   */
+  async function registarPenalti() {
+    const playerId = await pickPlayer(ui, state, t('registos.quemBateuPenalti'), {
+      allowNone: true,
+      noneLabel: t('acao.naoRegistar'),
+    });
+    if (playerId === undefined) return;
+    const p = playerId ? state.players[playerId] : null;
+    const r = await perguntarOnde(ui, {
+      titulo: p ? t('registos.penaltiDe', quem(p)) : t('registos.nome.penalti'),
+      opcoes: opcoesPenalti(COR_PENALTI, Object.values(RESULTADO_PENALTI), 'resultadoPenalti'),
+      semCampo: true,
+    });
+    if (!r) return;
+    const dados = { registo: REGISTO.PENALTI, playerId, resultado: r.opcao };
+    if (r.opcao === RESULTADO_PENALTI.GOLO) {
+      await marcarGolo(p, {
+        tipo: GOAL_TYPE.PENALTI,
+        comRemate: (st, goloEventId) => registar(st, { ...dados, goloEventId }),
+      });
+      return;
+    }
+    await commit(registar(state, dados));
+  }
+
+  /** Penálti do adversário: o que aconteceu. Golo é golo sofrido, já com o tipo. */
+  async function registarPenaltiAdv() {
+    const { eles } = nomes();
+    const r = await perguntarOnde(ui, {
+      titulo: t('registos.penaltiAdvDe', { equipa: eles }),
+      opcoes: opcoesPenalti(COR_PENALTI_ADV, Object.values(RESULTADO_PENALTI), 'resultadoPenaltiAdv'),
+      semCampo: true,
+    });
+    if (!r) return;
+    const dados = { registo: REGISTO.PENALTI_ADV, resultado: r.opcao };
+    if (r.opcao === RESULTADO_PENALTI.GOLO) {
+      await marcarGoloAdversario({
+        tipo: GOAL_TYPE.PENALTI,
+        comRemate: (st, goloEventId) => registar(st, { ...dados, goloEventId }),
+      });
+      return;
+    }
+    await commit(registar(state, dados));
+  }
+
+  /**
+   * O livre de 10 metros (todos os escalões): depois de uma falta da 6.ª em
+   * diante, foi golo ou não. `equipa` é quem bate. "Registar depois" fecha sem
+   * gravar. Num golo nosso pergunta-se quem marcou; o tipo do golo vem posto.
+   *
+   * @param {object} st  o estado depois da falta
+   */
+  async function perguntarLivre10(st, { equipa, n }) {
+    const { nos, eles } = nomes();
+    const cores = equipa === 'US' ? COR_PENALTI : COR_PENALTI_ADV;
+    const r = await perguntarOnde(ui, {
+      titulo: t('dialogo.livre10', { equipa: equipa === 'US' ? nos : eles }),
+      subtitulo: t('dialogo.faltaN', { n, equipa: equipa === 'US' ? eles : nos }),
+      opcoes: Object.values(RESULTADO_10M).map((o) => ({
+        id: o,
+        rotulo: t(`registos.resultado10m.${o}`),
+        cor: cores[o],
+      })),
+      semCampo: true,
+      fechar: t('registos.registarDepois'),
+    });
+    if (!r) return;
+    const dados = { registo: REGISTO.LIVRE_10M, equipa, resultado: r.opcao };
+    if (r.opcao !== RESULTADO_10M.GOLO) {
+      await commit(registar(st, dados));
+      return;
+    }
+    if (equipa === 'THEM') {
+      await marcarGoloAdversario({
+        base: st,
+        tipo: GOAL_TYPE.LIVRE_10M,
+        comRemate: (s, goloEventId) => registar(s, { ...dados, goloEventId }),
+      });
+      return;
+    }
+    const playerId = await pickPlayer(ui, st, t('acao.quemMarcou'), {
+      allowNone: true,
+      noneLabel: t('acao.naoRegistar'),
+    });
+    if (playerId === undefined) return;
+    await marcarGolo(playerId ? st.players[playerId] : null, {
+      base: st,
+      tipo: GOAL_TYPE.LIVRE_10M,
+      comRemate: (s, goloEventId) => registar(s, { ...dados, playerId, goloEventId }),
+    });
+  }
+
+  /**
+   * O remate que um golo leva consigo quando o escalão não pede o resultado
+   * dos remates: assim "remates" nunca fica abaixo dos golos. Devolve a função
+   * `comRemate` para o fluxo do golo, ou null se não for caso disso.
+   */
+  function remateDoGolo(equipa, playerId = null) {
+    const registo = equipa === 'US' ? REGISTO.REMATE : REGISTO.REMATE_ADV;
+    if (!ligados?.has(registo) || opcoesDe(registo).resultado !== false) return null;
+    if (equipa === 'US' && !playerId) return null;
+    return (st, goloEventId) =>
+      registar(st, { registo, playerId, resultado: RESULTADO_REMATE.GOLO, goloEventId });
+  }
+
+  /**
+   * O "−" dos contadores da barra: tira o último registo deste tipo (e desta
+   * equipa, nos que têm as duas). Fica marcado como desfeito, como no
+   * DESFAZER. Um registo preso a um golo não sai por aqui — tirá-lo deixava o
+   * golo sem o seu remate ou penálti, ou mexia no resultado: corrige-se o golo.
+   */
+  async function tirarUltimo(registo, equipa = null) {
+    const lista = registosDoJogo(state).filter(
+      (r) => r.registo === registo && (!equipa || r.equipa === equipa)
+    );
+    if (!lista.length) return;
+    const alvo = [...lista].reverse().find((r) => r.resultado !== RESULTADO_REMATE.GOLO);
+    if (!alvo) {
+      ui.toast(t('registos.tirarPeloGolo'), 'error');
+      return;
+    }
+    const ev = (state.events || []).find((e) => e.id === alvo.eventId);
+    if (!ev) return;
+    await events.markUndone(ev.id, null, { sync: 'defer' });
+    await commit(A.undoEvent(state, ev));
+    ui.toast(t('registos.tirado', { registo: t(`registos.nome.${registo}`) }), 'ok');
+  }
+
   function verRegistos() {
     const { nos, eles } = nomes();
     abrirPainelRegistos(ui, { state, ourName: nos, opponentName: eles });
   }
 
   /**
-   * O que o DESFAZER leva consigo. Um remate com GOLO foi gravado junto com o
-   * golo, por isso desfaz-se com ele: tirar só o remate deixava um golo que
-   * ninguém pediu para ficar.
+   * O que o DESFAZER leva consigo. Um remate (ou penálti, ou 10 m) com GOLO
+   * foi gravado junto com o golo, por isso desfaz-se com ele: tirar só o
+   * registo deixava um golo que ninguém pediu para ficar.
    */
   function alvosDoDesfazer(evento) {
     if (!evento) return [];
     const md = evento.metadata || {};
     if (
       evento.eventType === EVENT.STAT_RECORDED &&
-      (md.registo === REGISTO.REMATE || md.registo === REGISTO.REMATE_ADV) &&
+      levaGolo(md.registo) &&
       md.resultado === RESULTADO_REMATE.GOLO &&
       md.goloEventId
     ) {
@@ -176,13 +344,20 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
       registarRecuperacao,
       registarDefesa,
       registarPerda,
+      registarPasse,
+      registarPasseBarra,
       registarAcao,
       registarFora,
       registarCanto,
+      registarLancamento,
       registarRemateAdv,
-      registarRemateAdvSimples,
+      registarPenalti,
+      registarPenaltiAdv,
+      tirarUltimo,
       verRegistos,
     },
+    perguntarLivre10,
+    remateDoGolo,
     alvosDoDesfazer,
   };
 }

@@ -29,6 +29,9 @@ import {
   perdasPorJogador,
   perdasDaEpoca,
   rematesAdvSimplesDaEpoca,
+  bolasParadas,
+  passesPorJogador,
+  passesDaEpoca,
   mapaDaEpoca,
 } from '../src/domain/dashboard.js';
 
@@ -683,6 +686,51 @@ test('remates do adversário só contados: por jogo e média, sem contar jogos s
   assert.equal(r.rematesPorJogo, 2);
   assert.deepEqual(r.porJogo.map((j) => j.remates), [3, 1]);
   assert.ok(registosDaEpoca([j1]).has('remate_adv_simples'));
+});
+
+test('passes falhados: por jogador e da equipa, sem contar jogos sem dados', () => {
+  const jogadores = {
+    p1: emCampo('p1', 'Ana', 1, 20 * MIN),
+    p2: emCampo('p2', 'Rui', 2, 10 * MIN),
+  };
+  const j1 = comRegistos(jogo({ id: 'a', jogadores }), [
+    reg('r1', 'passe_falhado', { playerId: 'p1' }),
+    reg('r2', 'passe_falhado', { playerId: 'p2' }),
+    reg('r3', 'passe_falhado', { playerId: 'p2' }),
+  ]);
+  const j2 = jogo({ id: 'b', quando: 2, jogadores });
+  assert.deepEqual(
+    passesPorJogador([j1, j2]).map((j) => [j.playerId, j.passes, j.jogos]),
+    [['p2', 2, 1], ['p1', 1, 1]]
+  );
+  assert.deepEqual(passesDaEpoca([j1, j2]), { jogos: 1, passes: 3, passesPorJogo: 3 });
+});
+
+test('bolas paradas: golos por tipo, cantos convertidos e tentativas', () => {
+  const golo = (team, howScored) => ({ team, howScored, eventId: `${team}-${howScored}-${Math.random()}` });
+  const j1 = comRegistos(jogo({ id: 'a' }), [
+    reg('c1', 'canto', { equipa: 'US' }),
+    reg('c2', 'canto', { equipa: 'US' }),
+    reg('c3', 'canto', { equipa: 'US' }),
+    reg('c4', 'canto', { equipa: 'US' }),
+    reg('c5', 'canto', { equipa: 'THEM' }),
+    reg('p1', 'penalti', { resultado: 'DEFENDIDO', equipa: 'US' }),
+    reg('p2', 'penalti_adv', { resultado: 'FORA', equipa: 'THEM' }),
+    reg('l1', 'livre_10m', { resultado: 'FALHADO', equipa: 'THEM' }),
+  ]);
+  j1.state.goals = [golo('US', 'CANTO'), golo('THEM', 'LIVRE_10M'), golo('US', 'PENALTI')];
+  // Golo de canto num jogo sem cantos contados: conta nos golos, não na conversão.
+  const j2 = jogo({ id: 'b', quando: 2 });
+  j2.state.goals = [golo('US', 'CANTO')];
+
+  const bp = bolasParadas([j1, j2]);
+  assert.equal(bp.golos.US.CANTO, 2);
+  assert.equal(bp.golos.THEM.LIVRE_10M, 1);
+  assert.equal(bp.golos.US.PENALTI, 1);
+  assert.deepEqual(bp.cantos, { cantos: 4, golos: 1, jogos: 1, percentagem: 25 });
+  assert.deepEqual(bp.penaltis, { total: 1, golos: 0 });
+  assert.deepEqual(bp.penaltisAdv, { total: 1, golos: 0 });
+  assert.deepEqual(bp.livres10.THEM, { total: 1, golos: 0 });
 });
 
 test('perdas de bola: por jogador, da equipa e no painel do atleta', () => {

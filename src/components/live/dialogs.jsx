@@ -19,9 +19,19 @@ import { t } from '@/lib/i18n/index.js';
  *
  * Resolve com o id, `null` se escolher "nenhum", ou `undefined` se fechar.
  */
-export function pickPlayer(ui, state, title, { exclude, allowNone = false, noneLabel, extra = [] } = {}) {
+export function pickPlayer(
+  ui,
+  state,
+  title,
+  { exclude, allowNone = false, noneLabel, extra = [], comBanco = false } = {}
+) {
   const opcoes = Object.values(state.players)
-    .filter((p) => p.playerId !== exclude && p.status === PLAYER_MATCH_STATUS.ON_COURT)
+    .filter(
+      (p) =>
+        p.playerId !== exclude &&
+        (p.status === PLAYER_MATCH_STATUS.ON_COURT ||
+          (comBanco && p.status === PLAYER_MATCH_STATUS.ON_BENCH))
+    )
     .sort((a, b) => a.number - b.number);
 
   return ui.open((close) => (

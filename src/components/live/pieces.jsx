@@ -46,6 +46,7 @@ export function Scoreboard({
   interactive,
   on,
   opponentExtra = null,
+  ourExtra = null,
 }) {
   return (
     <div className="scoreboard">
@@ -56,7 +57,9 @@ export function Scoreboard({
         {opponentName}
       </span>
       <span className="scoreboard__dash">—</span>
-      <ScoreCell team="US" score={state.teamScore} side="is-left" interactive={interactive} on={on} />
+      <ScoreCell team="US" score={state.teamScore} side="is-left" interactive={interactive} on={on}>
+        {ourExtra}
+      </ScoreCell>
       <ScoreCell
         team="THEM"
         score={state.opponentScore}
@@ -130,6 +133,7 @@ export function RivalOut({ state, on, variant = 'standalone' }) {
           >
             −
           </button>
+          <span className="cardchip cardchip--red rivalout__chip" />
           <span className="rivalout__n">{n}</span>
           <button
             className="rivalout__b"
@@ -170,6 +174,35 @@ export function RivalOut({ state, on, variant = 'standalone' }) {
           </button>
         </span>
       </span>
+    </span>
+  );
+}
+
+/**
+ * Cartões da nossa equipa, o espelho do `RivalOut` do lado esquerdo: um `+` por
+ * cor, que pergunta a quem se aponta. É o mesmo registo do menu do cartão do
+ * jogador, só que sem ter de ir procurar o jogador primeiro.
+ */
+export function TeamCards({ state, on, variant = 'standalone' }) {
+  const amarelos = state.cards.filter((c) => c.type === 'YELLOW').length;
+  const vermelhos = state.cards.filter((c) => c.type === 'RED').length;
+  const linha = (label, n, cor, onAdd, aria) => (
+    <span className="rivalout__linha">
+      <span className="rivalout__lbl">{label}</span>
+      <span className="rivalout__ctrl">
+        <span className={`cardchip cardchip--${cor} rivalout__chip`} />
+        <span className="rivalout__n">{n}</span>
+        <button className="rivalout__b" aria-label={aria} onClick={onAdd}>
+          +
+        </button>
+      </span>
+    </span>
+  );
+  return (
+    <span className={`rivalout rivalout--ours rivalout--${variant}`}>
+      <span className="rivalout__titulo">{t('vivo.nossoTitulo')}</span>
+      {linha(t('vivo.advAmarelos'), amarelos, 'yellow', () => on.registarCartaoNosso('YELLOW'), t('vivo.registarAmareloNosso'))}
+      {linha(t('vivo.nossosVermelhos'), vermelhos, 'red', () => on.registarCartaoNosso('RED'), t('vivo.registarVermelhoNosso'))}
     </span>
   );
 }

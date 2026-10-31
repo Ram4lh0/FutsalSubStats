@@ -324,31 +324,31 @@
   }
 }
 
-/* Entre os 1001px e ~1100px o botão "Parar tempo"/"Terminar 1.ª parte" chega
- * a encostar-se ao pacote acima — é a largura mais apertada de todas em que
- * o cabeçalho já tem o relógio ao centro (a partir de 1001px) mas ainda não
- * sobra espaço nenhum a mais. Um iPad normal, na horizontal, cai mesmo aqui
- * (1024px). Os rótulos são o que pesa mais nesta caixa pequena: até aos 1200px
- * saem os nomes das linhas (e as duas linhas ficam numa coluna), e até aos
- * 1100px sai também o título. Percebe-se na mesma pelo cartão amarelo, pelo
- * contorno que acende e pelo `title`, e cabe sem tocar nos botões ao lado. */
-@media (min-width: 1001px) and (max-width: 1200px) {
-  .scoreboard__score > .rivalout--inline { grid-template-columns: auto; }
-  .scoreboard__score > .rivalout--inline .rivalout__lbl { display: none; }
-  .scoreboard__score > .rivalout--inline .rivalout__ctrl { justify-content: center; }
-}
-/* Logo acima dos 1200px o card volta a ficar à direita do relógio, e com os
-   nomes das linhas chegava ao `−` do resultado deles (sobretudo em espanhol e
-   com o tempo extra a alargar o relógio). Até aos 1320px vai sem eles. */
-@media (min-width: 1201px) and (max-width: 1320px) {
-  .live__head > .rivalout--standalone { grid-template-columns: auto; }
-  .live__head > .rivalout--standalone .rivalout__lbl { display: none; }
-  .live__head > .rivalout--standalone .rivalout__ctrl { justify-content: center; }
-}
-@media (min-width: 1001px) and (max-width: 1100px) {
-  .scoreboard__score > .rivalout--inline .rivalout__titulo {
-    display: none;
+/* Tablet/PC: os nomes das linhas ("Expulsos:", "Amarelos:") e o título ficam
+   sempre visíveis — sem eles só se via o cartão e um número, e não se percebia
+   de que lado era cada coisa. Pedido a 31/10/2026. */
+
+/* Cartões da nossa equipa: o espelho do card do adversário, do lado esquerdo. */
+.rivalout__chip { flex: none; width: 10px; height: 14px; vertical-align: 0; margin-right: 2px; }
+@media (min-width: 1001px) {
+  .live__head > .rivalout--ours {
+    justify-self: start;
+    transform: translateX(calc(-100% - 10px));
   }
+}
+@media (min-width: 721px) and (max-width: 1200px) {
+  .scoreboard__score.is-left { position: relative; }
+  .scoreboard__score > .rivalout--ours.rivalout--inline {
+    left: auto;
+    right: 100%;
+    margin-left: 0;
+    margin-right: clamp(2px, 0.6vw, 8px);
+  }
+}
+/* Telemóvel: o espaço é todo do relógio; aí os cartões continuam pelo menu do
+   cartão de cada jogador. */
+@media (max-width: 720px) {
+  .rivalout--ours { display: none; }
 }
 
 .pcard { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; text-align: left; }

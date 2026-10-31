@@ -16,13 +16,12 @@ import { useAuth } from '@/lib/auth.jsx';
 import Halftime from '@/components/live/Halftime.jsx';
 import DemoHistoria, { historiaJaVista } from '@/components/DemoHistoria.jsx';
 import { emDemo } from '@/lib/demo.js';
-import { Scoreboard, ClockBox, RivalOut, Court, Bench, Penalties, clockMsOf } from '@/components/live/pieces.jsx';
+import { Scoreboard, ClockBox, RivalOut, TeamCards, Court, Bench, Penalties, clockMsOf } from '@/components/live/pieces.jsx';
 import {
   pickPlayer,
   pickReplacement,
   positionMenu,
   stintsDialog,
-  tenMetreAlert,
   opponentYellowCardDialog,
   opponentCardsListDialog,
   pickGoalType,
@@ -246,14 +245,29 @@ function Live() {
    * O resultado sobe SEMPRE primeiro. A atribuição vem a seguir, num evento
    * separado — assim o marcador nunca fica à espera de dois toques, e fechar o
    * popup deixa apenas um golo por atribuir (corrigível no resumo).
+   *
+   * `tipo` (penálti, livre de 10 m): o golo já sabe como foi, por isso fica
+   * com esse tipo e não se pergunta a assistência. `p` pode vir a null num
+   * desses (o treinador não disse quem marcou). `base`: o estado de onde
+   * partir, quando o golo vem no fim de outro fluxo (a falta do 10 m).
    */
-  async function scoreFor(p, { comRemate = null } = {}) {
-    let st = await commit(A.teamGoalBy(state, p.playerId));
+  async function scoreFor(p, { comRemate = null, tipo = null, base = null } = {}) {
+    const de = base || state;
+    let st = await commit(p ? A.teamGoalBy(de, p.playerId) : A.goal(de, EVENT.TEAM_GOAL_ADDED));
     const golo = lastTeamGoal(st);
     if (!golo) return;
     // Remate que deu golo (registos extra): grava-se já, preso a este golo, e
-    // só depois se pergunta a assistência.
-    if (comRemate) st = (await commit(comRemate(st, golo.eventId))) || st;
+    // só depois se pergunta a assistência. Sem resultado nos remates, o golo
+    // leva o seu remate sozinho.
+    const remate = comRemate || (tipo ? null : registos.remateDoGolo('US', p?.playerId));
+    if (remate) st = (await commit(remate(st, golo.eventId))) || st;
+    if (tipo) {
+      await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, howScored: tipo }), {
+        sync: 'defer',
+      });
+      await recarregar();
+      return;
+    }
     await askAssist(st, golo, p.playerId);
   }
 
@@ -293,7 +307,10 @@ function Live() {
     await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, scorerId }), {
       sync: 'defer',
     });
-    const depois = await recarregar();
+    let depois = await recarregar();
+    // Sem resultado nos remates, o golo conta como remate de quem marcou.
+    const remate = registos.remateDoGolo('US', scorerId);
+    if (remate) depois = { state: (await commit(remate(depois.state, golo.eventId))) || depois.state };
     await askAssist(depois.state, golo, scorerId);
   }
 
@@ -340,18 +357,20 @@ function Live() {
    * Golo do adversário: pela regra, encurta a sanção mais antiga a decorrer. O
    * reducer trata disso; aqui só é preciso dar a notícia ao treinador.
    */
-  async function addOpponentGoal({ comRemate = null } = {}) {
+  async function addOpponentGoal({ comRemate = null, tipo = null, base = null } = {}) {
+    const de = base || state;
     unlockAudio();
     const emCurso = (st) =>
       openPenalties(st, readClock(st, Date.now()).matchMs, penaltyMs())
         .filter((p) => p.status === PENALTY_STATUS.RUNNING)
         .map((p) => p.playerId);
 
-    const antes = emCurso(state);
-    let st = await commit(A.goal(state, EVENT.OPPONENT_GOAL_ADDED));
+    const antes = emCurso(de);
+    let st = await commit(A.goal(de, EVENT.OPPONENT_GOAL_ADDED));
     // Remate do adversário que deu golo (registos extra): preso a este golo.
     const goloSofrido = [...st.goals].reverse().find((g) => g.team === 'THEM');
-    if (comRemate && goloSofrido) st = (await commit(comRemate(st, goloSofrido.eventId))) || st;
+    const remate = comRemate || (tipo ? null : registos.remateDoGolo('THEM'));
+    if (remate && goloSofrido) st = (await commit(remate(st, goloSofrido.eventId))) || st;
     const depois = new Set(emCurso(st));
     const libertado = antes.find((id) => !depois.has(id));
     // Primeiro a notícia urgente (quem pode voltar a entrar), depois a pergunta.
@@ -366,31 +385,34 @@ function Live() {
     // golos marcados, com "erro individual" no lugar de "jogada individual".
     // Fechar sem escolher deixa o golo sem tipo, corrigível na ficha do golo.
     const golo = [...st.goals].reverse().find((g) => g.team === 'THEM');
-    if (golo) await askGoalType(st, golo, 'THEM');
+    if (!golo) return;
+    // Penálti ou livre de 10 m: o tipo já se sabe.
+    if (tipo) {
+      await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, howScored: tipo }), {
+        sync: 'defer',
+      });
+      await recarregar();
+      return;
+    }
+    await askGoalType(st, golo, 'THEM');
   }
 
   /* --------------------------------------------------------------- faltas */
 
   /**
-   * O contador sobe já; o aviso dos 10 metros vem a seguir (é a informação
-   * urgente do momento) e só depois se pergunta o jogador.
+   * O contador sobe já e pergunta-se o jogador. Da 6.ª falta da parte em
+   * diante vem a seguir o livre de 10 metros (31/10/2026, todos os escalões):
+   * foi golo, não foi, ou registar depois — já não é só um aviso.
    *
    * Em qualquer dos casos o jogador escolhido é sempre do nosso plantel — do
    * adversário não temos ninguém registado. Muda o papel: numa falta nossa é
    * quem a cometeu, numa falta deles é quem a sofreu.
    */
   async function addFoul(team) {
-    const st = await commit(
+    let st = await commit(
       A.foul(state, team === 'US' ? EVENT.TEAM_FOUL_ADDED : EVENT.OPPONENT_FOUL_ADDED)
     );
     const n = foulsInPeriod(st, team);
-    if (n > FOUL_LIMIT) {
-      await tenMetreAlert(ui, {
-        beneficia: team === 'US' ? rivalName : ourName,
-        faltou: team === 'US' ? ourName : rivalName,
-        n,
-      });
-    }
 
     const ultima = [...st.fouls].reverse().find((f) => f.team === team);
     if (!ultima) return;
@@ -401,31 +423,26 @@ function Live() {
       nossa ? t('acao.quemFezFalta') : t('acao.quemSofreuFalta'),
       { allowNone: true, noneLabel: t('acao.naoRegistar') }
     );
-    if (!playerId) return;
-    await events.append(A.attributeFoul(st, { targetEventId: ultima.eventId, playerId }), {
-      sync: 'defer',
-    });
-    const depois = await recarregar();
-    const nome = depois.state.players[playerId]?.name || '—';
+    if (playerId) {
+      await events.append(A.attributeFoul(st, { targetEventId: ultima.eventId, playerId }), {
+        sync: 'defer',
+      });
+      st = (await recarregar())?.state || st;
+    }
+    if (n > FOUL_LIMIT) await registos.perguntarLivre10(st, { equipa: nossa ? 'THEM' : 'US', n });
   }
 
   async function foulFor(p) {
-    const st = await commit(A.foul(state, EVENT.TEAM_FOUL_ADDED));
+    let st = await commit(A.foul(state, EVENT.TEAM_FOUL_ADDED));
     const n = foulsInPeriod(st, 'US');
-    if (n > FOUL_LIMIT) {
-      await tenMetreAlert(ui, {
-        beneficia: rivalName,
-        faltou: ourName,
-        n,
-      });
-    }
 
     const ultima = [...st.fouls].reverse().find((f) => f.team === 'US');
     if (!ultima) return;
     await events.append(A.attributeFoul(st, { targetEventId: ultima.eventId, playerId: p.playerId }), {
       sync: 'defer',
     });
-    await recarregar();
+    st = (await recarregar())?.state || st;
+    if (n > FOUL_LIMIT) await registos.perguntarLivre10(st, { equipa: 'THEM', n });
   }
 
   function removeFoul(team) {
@@ -599,6 +616,20 @@ function Live() {
     const eraGR = estaNaBaliza(p.playerId);
     const st = await commit(A.redCard(state, { playerId: p.playerId }));
     if (eraGR && st) await reorganizarBaliza(st, t('gr.expulsoTitulo', { nome: p.name }));
+  }
+
+  /** Cartão da nossa equipa a partir do card do marcador: pergunta a quem. */
+  async function registarCartaoNosso(tipo) {
+    const playerId = await pickPlayer(
+      ui,
+      state,
+      t(tipo === CARD.RED ? 'vivo.quemVermelho' : 'vivo.quemAmarelo'),
+      { comBanco: true }
+    );
+    if (!playerId) return;
+    const p = state.players[playerId];
+    if (tipo === CARD.RED) await aplicarVermelho(p);
+    else await aplicarAmarelo(p);
   }
 
   function estaNaBaliza(playerId) {
@@ -1080,6 +1111,7 @@ function Live() {
     opponentExpulsion: (delta) => commit(A.opponentExpulsion(state, delta)),
     registarAmareloAdversario,
     verCartoesAdversario,
+    registarCartaoNosso,
     ...registos.on,
   };
 
@@ -1158,6 +1190,7 @@ function Live() {
           interactive
           on={on}
           opponentExtra={<RivalOut state={state} on={on} variant="inline" />}
+          ourExtra={<TeamCards state={state} on={on} variant="inline" />}
         />
         <ClockBox
           state={state}
@@ -1169,6 +1202,7 @@ function Live() {
           on={timing === MATCH_TIMING.TIMED ? on : null}
         />
         <RivalOut state={state} on={on} />
+        <TeamCards state={state} on={on} />
         <div className="live__controls">
           {/* No jogo cronometrado a pausa vive no canto inferior direito, ao
               alcance do polegar; aqui em cima seria um segundo botão igual. */}

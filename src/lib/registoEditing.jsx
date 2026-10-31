@@ -18,18 +18,21 @@ import * as A from '@/domain/actions.js';
 import { fmt } from '@/domain/clock.js';
 import {
   CATALOGO,
+  COR_PENALTI,
+  COR_PENALTI_ADV,
   COR_RESULTADO,
   COR_RESULTADO_ADV,
   RESULTADO_REMATE,
   corDoRegisto,
   corrigirRegisto,
+  levaGolo,
   registar,
   REGISTOS,
 } from '@/domain/registos.js';
 import { CampoSvg } from '@/components/registos/CampoToque.jsx';
 import { parseClock, mascaraTempo } from './goalEditing.jsx';
 import { erroDoMinuto, periodoDoMinuto } from './foulEditing.jsx';
-import { registoLabel } from './format.js';
+import { chaveResultado, registoLabel } from './format.js';
 import { t } from '@/lib/i18n/index.js';
 
 /** Os resultados que se podem escolher a frio: um remate não entra nem sai do golo. */
@@ -37,12 +40,34 @@ function resultadosPossiveis(registo, nova = false) {
   const def = CATALOGO[registo.registo];
   if (!def?.resultados) return [];
   if (nova) return def.resultados.filter((r) => r !== RESULTADO_REMATE.GOLO);
-  if (registo.registo !== 'remate' && registo.registo !== 'remate_adv') return def.resultados;
+  if (!levaGolo(registo.registo)) return def.resultados;
   if (registo.resultado === RESULTADO_REMATE.GOLO) return [RESULTADO_REMATE.GOLO];
   return def.resultados.filter((r) => r !== RESULTADO_REMATE.GOLO);
 }
 
-function RegistoDialog({ state, registo, nova = false, ourName, opponentName, onClose, onSave, onDelete }) {
+/** As cores dos resultados de um registo, vistas do nosso lado. */
+function coresDe(registo, equipa) {
+  if (registo === 'penalti') return COR_PENALTI;
+  if (registo === 'penalti_adv') return COR_PENALTI_ADV;
+  if (registo === 'livre_10m') return equipa === 'THEM' ? COR_PENALTI_ADV : COR_PENALTI;
+  return CATALOGO[registo]?.soAdversario ? COR_RESULTADO_ADV : COR_RESULTADO;
+}
+
+/**
+ * `semResultado`: o escalão não pede o resultado deste registo, por isso pode
+ * gravar-se sem ele (um remate só contado).
+ */
+function RegistoDialog({
+  state,
+  registo,
+  nova = false,
+  semResultado = false,
+  ourName,
+  opponentName,
+  onClose,
+  onSave,
+  onDelete,
+}) {
   const def = CATALOGO[registo.registo];
   const [jogador, setJogador] = useState(registo.playerId || '');
   const [equipa, setEquipa] = useState(registo.equipa || 'US');
@@ -54,13 +79,17 @@ function RegistoDialog({ state, registo, nova = false, ourName, opponentName, on
 
   const ms = parseClock(minuto, NaN);
   const erro = minuto.trim() ? erroDoMinuto(state, ms) : 'faltas.minutoInvalido';
+  // Quem fez o registo: sempre nos de jogador, e nos de equipa que o admitem
+  // quando são nossos (o livre de 10 m). Num `jogadorOpcional` pode ficar vazio.
+  const pedeJogador = def.por === 'jogador' || (def.jogadorOpcional && equipa === 'US');
+  const podeSemResultado = semResultado || (!nova && registo.resultado == null);
   const valido =
     Number.isFinite(ms) &&
     !erro &&
-    (def.por !== 'jogador' || jogador) &&
-    (!def.resultados || Boolean(resultado));
+    (!pedeJogador || jogador || def.jogadorOpcional) &&
+    (!def.resultados || Boolean(resultado) || podeSemResultado);
   const resultados = resultadosPossiveis(registo, nova);
-  const cores = def.soAdversario ? COR_RESULTADO_ADV : COR_RESULTADO;
+  const cores = coresDe(registo.registo, equipa);
   const todos = Object.values(state.players).sort((a, b) => a.number - b.number);
   const marca = ponto
     ? [{ ...registo, id: 'atual', x: ponto.x, y: ponto.y, cor: corDoRegisto({ ...registo, equipa, resultado }) }]
@@ -75,19 +104,7 @@ function RegistoDialog({ state, registo, nova = false, ourName, opponentName, on
       wide
     >
       <div className="form">
-        {def.por === 'jogador' ? (
-          <label className="field">
-            <span className="field__label">{t('registos.col.jogador')}</span>
-            <select className="input" value={jogador} onChange={(e) => setJogador(e.target.value)}>
-              {nova ? <option value="">{t('cartoes.escolherJogador')}</option> : null}
-              {todos.map((p) => (
-                <option key={p.playerId} value={p.playerId}>
-                  #{p.number} {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : def.soAdversario ? null : (
+        {def.por === 'equipa' && !def.soAdversario ? (
           <label className="field">
             <span className="field__label">{t('registos.aFavorDe')}</span>
             <select className="input" value={equipa} onChange={(e) => setEquipa(e.target.value)}>
@@ -95,7 +112,22 @@ function RegistoDialog({ state, registo, nova = false, ourName, opponentName, on
               <option value="THEM">{opponentName}</option>
             </select>
           </label>
-        )}
+        ) : null}
+        {pedeJogador ? (
+          <label className="field">
+            <span className="field__label">{t('registos.col.jogador')}</span>
+            <select className="input" value={jogador} onChange={(e) => setJogador(e.target.value)}>
+              {nova || def.jogadorOpcional ? (
+                <option value="">{def.jogadorOpcional ? '—' : t('cartoes.escolherJogador')}</option>
+              ) : null}
+              {todos.map((p) => (
+                <option key={p.playerId} value={p.playerId}>
+                  #{p.number} {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         {resultados.length > 1 ? (
           <div className="field">
@@ -110,7 +142,7 @@ function RegistoDialog({ state, registo, nova = false, ourName, opponentName, on
                   onClick={() => setResultado(r)}
                 >
                   {cores[r] ? <span className="regzona__bola" /> : null}
-                  {t(`registos.${def.soAdversario ? 'resultadoAdv' : 'resultado'}.${r}`)}
+                  {t(`registos.${chaveResultado(registo)}.${r}`)}
                 </button>
               ))}
             </div>
@@ -178,7 +210,7 @@ function RegistoDialog({ state, registo, nova = false, ourName, opponentName, on
           disabled={!valido}
           onClick={() =>
             onSave({
-              playerId: def.por === 'jogador' ? jogador : null,
+              playerId: pedeJogador ? jogador || null : null,
               equipa,
               resultado: resultado || null,
               matchElapsedMs: ms,
@@ -204,8 +236,12 @@ export function camposMudados(registo, novo) {
   const campos = {};
   if (def.por === 'jogador' && novo.playerId && novo.playerId !== registo.playerId) {
     campos.playerId = novo.playerId;
+  } else if (def.jogadorOpcional && (novo.playerId || null) !== (registo.playerId || null)) {
+    campos.playerId = novo.playerId || null;
   }
-  if (def.por === 'equipa' && novo.equipa !== registo.equipa) campos.equipa = novo.equipa;
+  if (def.por === 'equipa' && !def.soAdversario && novo.equipa !== registo.equipa) {
+    campos.equipa = novo.equipa;
+  }
   if (def.resultados && novo.resultado && novo.resultado !== registo.resultado) {
     campos.resultado = novo.resultado;
   }
@@ -265,9 +301,19 @@ export async function editRegisto(ui, { matchId, registo, ourName, opponentName,
   return true;
 }
 
-/** Que registo acrescentar: só os ligados no escalão, pela ordem do catálogo. */
+/**
+ * Os registos que se podem acrescentar a frio: os ligados no escalão e os de
+ * todos (o livre de 10 m), pela ordem do catálogo.
+ */
+function tiposAFrio(ligados) {
+  return REGISTOS.filter(
+    (id) => CATALOGO[id].disponivel && (CATALOGO[id].sempre || ligados?.has(id))
+  );
+}
+
+/** Que registo acrescentar. */
 function TipoDialog({ ligados, onClose, onPick }) {
-  const tipos = REGISTOS.filter((id) => ligados.has(id) && CATALOGO[id].disponivel);
+  const tipos = tiposAFrio(ligados);
   return (
     <Dialog title={t('registos.escolherTipo')} onClose={onClose}>
       <div className="menu">
@@ -286,12 +332,13 @@ function TipoDialog({ ligados, onClose, onPick }) {
  * registos que o escalão tem acesso a registar. Devolve true se gravou.
  */
 export async function addRegisto(ui, { matchId, ligados, ourName, opponentName, syncUser = null }) {
-  if (!ligados?.size) return false;
+  const possiveis = tiposAFrio(ligados);
+  if (!possiveis.length) return false;
   const antes = await loadMatch(matchId);
   if (!antes) return false;
   const tipo =
-    ligados.size === 1
-      ? [...ligados][0]
+    possiveis.length === 1
+      ? possiveis[0]
       : await ui.open((close) => (
           <TipoDialog ligados={ligados} onClose={() => close(null)} onPick={(id) => close(id)} />
         ));
@@ -311,6 +358,7 @@ export async function addRegisto(ui, { matchId, ligados, ourName, opponentName, 
       state={antes.state}
       registo={vazio}
       nova
+      semResultado={ligados?.opcoes?.[tipo]?.resultado === false}
       ourName={ourName}
       opponentName={opponentName}
       onClose={() => close(null)}

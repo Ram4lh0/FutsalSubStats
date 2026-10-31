@@ -145,6 +145,9 @@ export const GOAL_TYPE = {
   CANTO: 'CANTO',
   LIVRE: 'LIVRE',
   PENALTI: 'PENALTI',
+  // Livre de 10 metros (31/10/2026): vem preenchido quando o golo nasce da
+  // pergunta do 10 m, e escolhe-se à mão nos outros casos.
+  LIVRE_10M: 'LIVRE_10M',
   TRANSICAO: 'TRANSICAO',
   ORGANIZACAO: 'ORGANIZACAO',
   INDIVIDUAL: 'INDIVIDUAL',
@@ -168,6 +171,7 @@ export const CONCEDED_GOAL_TYPES = [
   GOAL_TYPE.CANTO,
   GOAL_TYPE.LIVRE,
   GOAL_TYPE.PENALTI,
+  GOAL_TYPE.LIVRE_10M,
   GOAL_TYPE.TRANSICAO,
   GOAL_TYPE.ORGANIZACAO,
   'ERRO_INDIVIDUAL',

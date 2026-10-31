@@ -50,6 +50,7 @@ export const COR_TIPO_GOLO = {
   CANTO: [244, 114, 182],
   LIVRE: [250, 204, 21],
   PENALTI: [251, 146, 60],
+  LIVRE_10M: [232, 121, 249],
   TRANSICAO: COR.info,
   ORGANIZACAO: COR.verde,
   INDIVIDUAL: COR.vermelho,
