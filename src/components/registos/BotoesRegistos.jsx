@@ -2,8 +2,8 @@
 
 // components/registos/BotoesRegistos.jsx — os botões dos registos extra no
 // cartão do jogador em campo: ação + e −, defesa (só no guarda-redes), remate,
-// recuperação e perda de bola, cada um só se o escalão o tiver ligado, e o G
-// no fim.
+// recuperação, perda de bola e passe falhado (se o escalão o quiser no
+// cartão), cada um só se o escalão o tiver ligado, e o G no fim.
 //
 // São `span` como o G e o F: o cartão inteiro já é um botão, e um botão dentro
 // de outro não é HTML válido.
@@ -30,9 +30,15 @@ export function temBotoesNoCartao(ligados, pos) {
     ligados.has(REGISTO.REMATE) ||
     ligados.has(REGISTO.RECUPERACAO) ||
     ligados.has(REGISTO.PERDA_BOLA) ||
+    passeNoCartao(ligados) ||
     ligados.has(REGISTO.ACAO) ||
     (pos === 'GOALKEEPER' && ligados.has(REGISTO.DEFESA_GR))
   );
+}
+
+/** O passe falhado tem botão no cartão? (O escalão pode querê-lo só na barra.) */
+function passeNoCartao(ligados) {
+  return ligados.has(REGISTO.PASSE_FALHADO) && ligados.opcoes?.passe_falhado?.cartao !== false;
 }
 
 export default function BotoesRegistos({ pos, p, ligados, contagem, on, golo }) {
@@ -84,6 +90,11 @@ export default function BotoesRegistos({ pos, p, ligados, contagem, on, golo }) 
       {ligados.has(REGISTO.PERDA_BOLA)
         ? botao('perda', t('registos.btn.perda_bola'), t('registos.nome.perda_bola'), c.perda_bola, () =>
             on.registarPerda(p)
+          )
+        : null}
+      {passeNoCartao(ligados)
+        ? botao('passe', t('registos.btn.passe_falhado'), t('registos.nome.passe_falhado'), c.passe_falhado, () =>
+            on.registarPasse(p)
           )
         : null}
       {golo}

@@ -73,6 +73,7 @@
   --golo-canto: #f472b6;
   --golo-livre: #facc15;
   --golo-penalti: #fb923c;
+  --golo-10m: #e879f9;
   --golo-5v4: #2dd4bf;
 }
 .pizza { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -83,6 +84,7 @@
 .pizza__fatia--CANTO { stroke: var(--golo-canto); }
 .pizza__fatia--LIVRE { stroke: var(--golo-livre); }
 .pizza__fatia--PENALTI { stroke: var(--golo-penalti); }
+.pizza__fatia--LIVRE_10M { stroke: var(--golo-10m); }
 .pizza__fatia--TRANSICAO { stroke: var(--info); }
 .pizza__fatia--ORGANIZACAO { stroke: var(--primary); }
 .pizza__fatia--INDIVIDUAL { stroke: var(--danger); }
@@ -98,6 +100,7 @@
 .pizza__dot--CANTO { background: var(--golo-canto); }
 .pizza__dot--LIVRE { background: var(--golo-livre); }
 .pizza__dot--PENALTI { background: var(--golo-penalti); }
+.pizza__dot--LIVRE_10M { background: var(--golo-10m); }
 .pizza__dot--TRANSICAO { background: var(--info); }
 .pizza__dot--ORGANIZACAO { background: var(--primary); }
 .pizza__dot--INDIVIDUAL { background: var(--danger); }

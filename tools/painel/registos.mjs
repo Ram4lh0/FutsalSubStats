@@ -8,7 +8,7 @@
 //
 // Como a `api.mjs`, não sabe nada de HTTP e recebe o cliente `sb` de fora.
 
-import { CATALOGO, REGISTOS, validarListaDeRegistos } from '../../src/domain/registos.js';
+import { registosDoPainel, validarListaDeRegistos, validarOpcoes } from '../../src/domain/registos.js';
 import {
   ADDONS,
   GRUPOS,
@@ -19,7 +19,7 @@ import {
 
 /** O catálogo como o painel o mostra: só o que se pode ligar. */
 export function catalogoDoPainel() {
-  return REGISTOS.filter((id) => CATALOGO[id].disponivel).map((id) => ({
+  return registosDoPainel().map((id) => ({
     id,
     nome: NOMES[id] || id,
   }));
@@ -93,6 +93,7 @@ export async function registosDoClube(sb, clubeId) {
         nome: t.name,
         registos: Array.isArray(porEscalao.get(t.id)?.registos) ? porEscalao.get(t.id).registos : [],
         addons: Array.isArray(porEscalao.get(t.id)?.addons) ? porEscalao.get(t.id).addons : [],
+        opcoes: porEscalao.get(t.id)?.opcoes?.registos || {},
         atualizadoEm: porEscalao.get(t.id)?.updated_at || null,
       }))
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt')),
@@ -112,14 +113,23 @@ export async function registosDoClube(sb, clubeId) {
  * a linha já a tem: assim o painel continua a gravar registos num servidor
  * que ainda não tenha a migração.
  */
-export async function definirRegistos(sb, { teamId, registos, addons, catalogoAddons = ADDONS }) {
+export async function definirRegistos(sb, { teamId, registos, addons, opcoes, catalogoAddons = ADDONS }) {
   const validado = validarListaDeRegistos(registos);
   if (validado.erro) throw new Error(`Não gravado: ${validado.erro}.`);
   const validadoAddons = addons === undefined ? null : validarListaDeAddons(addons, catalogoAddons);
   if (validadoAddons?.erro) throw new Error(`Não gravado: ${validadoAddons.erro}.`);
+  const validadoOpcoes = opcoes === undefined ? null : validarOpcoes(opcoes);
+  if (validadoOpcoes?.erro) throw new Error(`Não gravado: ${validadoOpcoes.erro}.`);
   const escalao = await garantirEscalao(sb, teamId);
 
   const linha = { team_id: escalao.id, registos: validado.registos };
+  // As opções de cada registo (zona, resultado, …) ficam em `opcoes.registos`.
+  // O resto da coluna (reservado à fase 2) mantém-se como está.
+  if (validadoOpcoes) {
+    const atual = await sb.from('team_stat_config').select('*').eq('team_id', escalao.id).maybeSingle();
+    const antes = atual.data?.opcoes && typeof atual.data.opcoes === 'object' ? atual.data.opcoes : {};
+    linha.opcoes = { ...antes, registos: validadoOpcoes.registos };
+  }
   if (validadoAddons) {
     let temColuna = validadoAddons.addons.length > 0;
     if (!temColuna) {

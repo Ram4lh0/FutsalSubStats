@@ -267,18 +267,49 @@ function registosDoJogo(r, state, match) {
   const tem = (id) => reg.tipos.has(id);
   const eles = opponentShort(match);
   const cartoes = [];
+  // "À baliza" só com todos os remates com resultado (o escalão pode não o pedir).
   if (tem(REGISTO.REMATE)) {
     cartoes.push({
       rotulo: t('registos.total.remate'),
       valor: reg.remates,
-      detalhe: t('registos.aBalizaDe', { n: reg.rematesBaliza, total: reg.remates }),
+      detalhe:
+        reg.rematesComResultado === reg.remates
+          ? t('registos.aBalizaDe', { n: reg.rematesBaliza, total: reg.remates })
+          : undefined,
     });
   }
   if (tem(REGISTO.REMATE_ADV)) {
     cartoes.push({
       rotulo: t('registos.total.remate_adv'),
       valor: reg.rematesAdv,
-      detalhe: t('registos.aBalizaDe', { n: reg.rematesAdvBaliza, total: reg.rematesAdv }),
+      detalhe:
+        reg.rematesAdvComResultado === reg.rematesAdv
+          ? t('registos.aBalizaDe', { n: reg.rematesAdvBaliza, total: reg.rematesAdv })
+          : undefined,
+    });
+  }
+  const golosEm = (b) => t('registos.golosEm', { golos: b.golos, total: b.total });
+  if (tem(REGISTO.PENALTI)) {
+    cartoes.push({ rotulo: t('registos.total.penalti'), valor: reg.penaltis.total, detalhe: golosEm(reg.penaltis) });
+  }
+  if (tem(REGISTO.PENALTI_ADV)) {
+    cartoes.push({
+      rotulo: t('registos.total.penalti_adv'),
+      valor: reg.penaltisAdv.total,
+      detalhe: golosEm(reg.penaltisAdv),
+    });
+  }
+  if (tem(REGISTO.LIVRE_10M)) {
+    cartoes.push(
+      { rotulo: t('registos.bp.livres10Nos'), valor: reg.livres10.US.total, detalhe: golosEm(reg.livres10.US) },
+      { rotulo: t('registos.bp.livres10Eles'), valor: reg.livres10.THEM.total, detalhe: golosEm(reg.livres10.THEM) }
+    );
+  }
+  if (tem(REGISTO.PASSE_FALHADO)) cartoes.push({ rotulo: t('registos.total.passe_falhado'), valor: reg.passes });
+  if (tem(REGISTO.LANCAMENTO_BALIZA)) {
+    cartoes.push({
+      rotulo: t('registos.total.lancamento_baliza'),
+      valor: `${reg.lancamentos.US} – ${reg.lancamentos.THEM}`,
     });
   }
   if (tem(REGISTO.REMATE_ADV_SIMPLES)) {

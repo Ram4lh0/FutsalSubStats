@@ -20,7 +20,12 @@
 // Regra de ouro, como nos registos: um id nunca muda de significado. Para
 // tirar um add-on da app inteira sem apagar configs põe-se `disponivel: false`.
 
-import { CATALOGO as CATALOGO_REGISTOS, REGISTOS, registosLigados } from './registos.js';
+import {
+  CATALOGO as CATALOGO_REGISTOS,
+  OPCOES as OPCOES_REGISTOS,
+  registosDoPainel,
+  registosLigados,
+} from './registos.js';
 
 /** Os grupos, pela ordem em que aparecem no painel. */
 export const GRUPOS = [
@@ -43,6 +48,10 @@ export const NOME_REGISTO = {
   remate_adv: 'Remates do adversário',
   perda_bola: 'Perdas de bola',
   remate_adv_simples: 'Remates do adversário (só número)',
+  passe_falhado: 'Passes falhados',
+  penalti: 'Penáltis nossos',
+  penalti_adv: 'Penáltis do adversário',
+  lancamento_baliza: 'Lançamentos de baliza',
 };
 
 /**
@@ -85,13 +94,20 @@ function entrada(id, catalogo) {
 
 /** O catálogo inteiro como o painel o mostra: registos primeiro, depois o resto. */
 export function catalogoDeAddons(catalogo = ADDONS) {
-  const registos = REGISTOS.filter((id) => CATALOGO_REGISTOS[id].disponivel).map((id) => ({
+  const registos = registosDoPainel().map((id) => ({
     id,
     nome: NOME_REGISTO[id] || id,
     grupo: 'registos',
     campo: 'registos',
     depende: [],
     paraTodos: false,
+    // As opções que o escalão pode mudar neste registo (zona, resultado, …),
+    // com o valor por omissão. O painel desenha-as por baixo da caixa.
+    opcoes: (CATALOGO_REGISTOS[id].opcoes || []).map((o) => ({
+      id: o,
+      nome: OPCOES_REGISTOS[o].nome,
+      omissao: OPCOES_REGISTOS[o].omissao,
+    })),
   }));
   const outros = Object.entries(catalogo)
     .filter(([, a]) => a.disponivel !== false)

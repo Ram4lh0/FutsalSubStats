@@ -30,8 +30,9 @@ export function toCsv(rows) {
 /** As colunas dos registos extra de um jogador, pela ordem do cabeçalho. */
 function colunasDeRegistos(j) {
   if (!j) return [0, 0, 0, 0, 0, 0, 0];
-  // As perdas de bola vieram depois: ficam no fim, para não mexer nas colunas de antes.
-  return [j.remates, j.rematesBaliza, j.recuperacoes, j.defesas, j.positivas, j.negativas, j.perdas];
+  // As perdas de bola e os passes falhados vieram depois: ficam no fim, para
+  // não mexer nas colunas de antes.
+  return [j.remates, j.rematesBaliza, j.recuperacoes, j.defesas, j.positivas, j.negativas, j.perdas, j.passes];
 }
 
 export function matchSummaryCsv({ club, match, state, team, competition }) {
@@ -81,6 +82,21 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
     ...(reg?.tipos.has(REGISTO.REMATE_ADV_SIMPLES)
       ? [[t('registos.total.remate_adv_simples'), reg.rematesAdvSimples]]
       : []),
+    ...(reg?.tipos.has(REGISTO.PENALTI)
+      ? [[t('registos.csv.penaltis'), `${reg.penaltis.golos}/${reg.penaltis.total}`]]
+      : []),
+    ...(reg?.tipos.has(REGISTO.PENALTI_ADV)
+      ? [[t('registos.csv.penaltisAdv'), `${reg.penaltisAdv.golos}/${reg.penaltisAdv.total}`]]
+      : []),
+    ...(reg?.tipos.has(REGISTO.LIVRE_10M)
+      ? [
+          [t('registos.csv.livres10Nos'), `${reg.livres10.US.golos}/${reg.livres10.US.total}`],
+          [t('registos.csv.livres10Eles'), `${reg.livres10.THEM.golos}/${reg.livres10.THEM.total}`],
+        ]
+      : []),
+    ...(reg?.tipos.has(REGISTO.LANCAMENTO_BALIZA)
+      ? [[t('registos.csv.lancamentos'), `${reg.lancamentos.US}-${reg.lancamentos.THEM}`]]
+      : []),
     ...pp.periodos.map((x) => [
       t('csv.periodo5v4', { n: x.numero }),
       t('csv.detalhe5v4', {
@@ -115,6 +131,7 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
             t('registos.csv.acoesPositivas'),
             t('registos.csv.acoesNegativas'),
             t('registos.total.perda_bola'),
+            t('registos.total.passe_falhado'),
           ]
         : []),
     ],

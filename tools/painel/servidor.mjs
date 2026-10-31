@@ -146,8 +146,8 @@ const servidor = createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && caminho === '/api/registos') {
-      const { teamId, registos, addons } = await corpoJson(req);
-      return responder(res, 200, await definirRegistos(sb, { teamId, registos, addons }));
+      const { teamId, registos, addons, opcoes } = await corpoJson(req);
+      return responder(res, 200, await definirRegistos(sb, { teamId, registos, addons, opcoes }));
     }
 
     return responder(res, 404, { erro: 'Não há nada aqui.' });

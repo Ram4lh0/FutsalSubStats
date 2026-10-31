@@ -100,9 +100,21 @@ export function registoLabel(r, jogadores = null) {
   const jogador = r.playerId ? jogadores?.[r.playerId] : null;
   if (jogador) partes.push(`#${jogador.number}`);
   else if (CATALOGO[r.registo].por === 'equipa' && !CATALOGO[r.registo].soAdversario) partes.push(t(`registos.aFavor.${r.equipa === 'THEM' ? 'THEM' : 'US'}`));
-  if (r.resultado && r.registo === 'remate_adv') partes.push(t(`registos.resultadoAdv.${r.resultado}`));
-  else if (r.resultado && r.registo !== 'acao') partes.push(t(`registos.resultado.${r.resultado}`));
+  if (r.resultado && r.registo !== 'acao') partes.push(t(`registos.${chaveResultado(r)}.${r.resultado}`));
   return partes.join(' · ');
+}
+
+/**
+ * Em que dicionário está o nome do resultado de um registo: os remates e
+ * penáltis do adversário dizem-no do nosso lado ("golo sofrido", "defesa do
+ * GR"), o livre de 10 m tem "não foi golo".
+ */
+export function chaveResultado(r) {
+  if (r.registo === 'remate_adv') return 'resultadoAdv';
+  if (r.registo === 'penalti') return 'resultadoPenalti';
+  if (r.registo === 'penalti_adv') return 'resultadoPenaltiAdv';
+  if (r.registo === 'livre_10m') return 'resultado10m';
+  return 'resultado';
 }
 
 export function footLabel(f) {

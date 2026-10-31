@@ -28,7 +28,8 @@ const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGIST
 
 export default function PainelRegistos({ state, ourName, opponentName, now }) {
   const r = resumoRegistos(state, now);
-  const filtros = NO_MAPA.filter((id) => r.tipos.has(id));
+  // Só os registos com pontos no campo: sem zona (opção do escalão) não há mapa.
+  const filtros = NO_MAPA.filter((id) => r.tipos.has(id) && marcadores(state, { registos: [id] }).length);
   const [escolhido, setFiltro] = useState(null);
   const [jogador, setJogador] = useState(null);
   const filtro = filtros.includes(escolhido) ? escolhido : filtros[0] || null;
@@ -40,8 +41,13 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
     ? marcadores(state, { registos: [filtro] }).filter((m) => !jogador || m.playerId === jogador)
     : [];
   const porJogador = r.jogadores.some(
-    (j) => j.remates || j.recuperacoes || j.defesas || j.perdas || j.positivas || j.negativas
+    (j) => j.remates || j.recuperacoes || j.defesas || j.perdas || j.passes || j.positivas || j.negativas
   );
+  // "À baliza" só quer dizer alguma coisa se todos os remates tiverem resultado
+  // (o escalão pode não o pedir).
+  const rematesComTudo = r.remates > 0 && r.rematesComResultado === r.remates;
+  const advComTudo = r.rematesAdv > 0 && r.rematesAdvComResultado === r.rematesAdv;
+  const golosEm = (b) => t('registos.golosEm', { golos: b.golos, total: b.total });
 
   return (
     <div className="regpainel">
@@ -50,14 +56,14 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
           <Total
             rotulo={t('registos.total.remate')}
             valor={r.remates}
-            extra={t('registos.aBalizaDe', { n: r.rematesBaliza, total: r.remates })}
+            extra={rematesComTudo ? t('registos.aBalizaDe', { n: r.rematesBaliza, total: r.remates }) : null}
           />
         ) : null}
         {tem(REGISTO.REMATE_ADV) ? (
           <Total
             rotulo={t('registos.total.remate_adv')}
             valor={r.rematesAdv}
-            extra={t('registos.aBalizaDe', { n: r.rematesAdvBaliza, total: r.rematesAdv })}
+            extra={advComTudo ? t('registos.aBalizaDe', { n: r.rematesAdvBaliza, total: r.rematesAdv }) : null}
           />
         ) : null}
         {tem(REGISTO.REMATE_ADV_SIMPLES) ? (
@@ -68,6 +74,22 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
         ) : null}
         {tem(REGISTO.DEFESA_GR) ? <Total rotulo={t('registos.total.defesa_gr')} valor={r.defesas} /> : null}
         {tem(REGISTO.PERDA_BOLA) ? <Total rotulo={t('registos.total.perda_bola')} valor={r.perdas} /> : null}
+        {tem(REGISTO.PASSE_FALHADO) ? (
+          <Total rotulo={t('registos.total.passe_falhado')} valor={r.passes} />
+        ) : null}
+        {tem(REGISTO.PENALTI) ? (
+          <Total rotulo={t('registos.total.penalti')} valor={r.penaltis.total} extra={golosEm(r.penaltis)} />
+        ) : null}
+        {tem(REGISTO.PENALTI_ADV) ? (
+          <Total rotulo={t('registos.total.penalti_adv')} valor={r.penaltisAdv.total} extra={golosEm(r.penaltisAdv)} />
+        ) : null}
+        {tem(REGISTO.LIVRE_10M) ? (
+          <Total
+            rotulo={t('registos.total.livre_10m')}
+            valor={`${r.livres10.US.golos}/${r.livres10.US.total} – ${r.livres10.THEM.golos}/${r.livres10.THEM.total}`}
+            extra={`${ourName} – ${opponentName}`}
+          />
+        ) : null}
         {tem(REGISTO.FORA) ? (
           <Total
             rotulo={t('registos.total.fora')}
@@ -79,6 +101,17 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
           <Total
             rotulo={t('registos.total.canto')}
             valor={`${r.cantos.US} – ${r.cantos.THEM}`}
+            extra={
+              r.golosCanto.US || r.golosCanto.THEM
+                ? `${ourName} – ${opponentName} · ${t('registos.bp.golosCanto')}: ${r.golosCanto.US} – ${r.golosCanto.THEM}`
+                : `${ourName} – ${opponentName}`
+            }
+          />
+        ) : null}
+        {tem(REGISTO.LANCAMENTO_BALIZA) ? (
+          <Total
+            rotulo={t('registos.total.lancamento_baliza')}
+            valor={`${r.lancamentos.US} – ${r.lancamentos.THEM}`}
             extra={`${ourName} – ${opponentName}`}
           />
         ) : null}
@@ -87,7 +120,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
         ) : null}
       </div>
 
-      {r.remates ? (
+      {r.rematesComResultado ? (
         <div className="regpainel__legenda">
           {Object.values(RESULTADO_REMATE).map((o) => (
             <span key={o} className="regpainel__item" style={{ '--cor': COR_RESULTADO[o] }}>
@@ -150,6 +183,12 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                     <th title={t('registos.col.perdas10Titulo')}>{t('registos.col.perdas10')}</th>
                   </>
                 ) : null}
+                {tem(REGISTO.PASSE_FALHADO) ? (
+                  <>
+                    <th>{t('registos.col.passes')}</th>
+                    <th title={t('registos.col.passes10Titulo')}>{t('registos.col.passes10')}</th>
+                  </>
+                ) : null}
                 {tem(REGISTO.ACAO) ? <th>{t('registos.col.acoes')}</th> : null}
               </tr>
             </thead>
@@ -166,7 +205,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                   {tem(REGISTO.REMATE) ? (
                     <>
                       <td>{j.remates || '–'}</td>
-                      <td>{j.remates ? j.rematesBaliza : '–'}</td>
+                      <td>{j.remates && rematesComTudo ? j.rematesBaliza : '–'}</td>
                     </>
                   ) : null}
                   {tem(REGISTO.RECUPERACAO) ? (
@@ -180,6 +219,12 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                     <>
                       <td>{j.perdas || '–'}</td>
                       <td>{j.perdas10 == null ? '–' : j.perdas10.toFixed(1)}</td>
+                    </>
+                  ) : null}
+                  {tem(REGISTO.PASSE_FALHADO) ? (
+                    <>
+                      <td>{j.passes || '–'}</td>
+                      <td>{j.passes10 == null ? '–' : j.passes10.toFixed(1)}</td>
                     </>
                   ) : null}
                   {tem(REGISTO.ACAO) ? (

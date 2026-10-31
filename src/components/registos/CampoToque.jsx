@@ -154,22 +154,68 @@ export function CampoSvg({ markers = [], onPick = null, destaque = null, lateral
  * tocar no campo.
  *
  * Resolve com { opcao, x, y } (x/y a null em "sem zona"), ou null se fechar.
+ *
+ * `semCampo`: o escalão não pede a zona (ou o registo não a tem, como os
+ * penáltis). Só os botões das opções, e um toque numa fecha logo. `fechar` é
+ * o texto do botão de sair sem escolher (por omissão não há).
  */
 export function perguntarOnde(
   ui,
-  { titulo, subtitulo = null, opcoes = null, markers = [], destaque = null, lateral = false }
+  {
+    titulo,
+    subtitulo = null,
+    opcoes = null,
+    markers = [],
+    destaque = null,
+    lateral = false,
+    semCampo = false,
+    fechar = null,
+  }
 ) {
-  return ui.open((close) => (
-    <OndeDialog
-      titulo={titulo}
-      subtitulo={subtitulo}
-      opcoes={opcoes}
-      markers={markers}
-      destaque={destaque}
-      lateral={lateral}
-      close={close}
-    />
-  ));
+  return ui.open((close) =>
+    semCampo ? (
+      <SoOpcoesDialog titulo={titulo} subtitulo={subtitulo} opcoes={opcoes} fechar={fechar} close={close} />
+    ) : (
+      <OndeDialog
+        titulo={titulo}
+        subtitulo={subtitulo}
+        opcoes={opcoes}
+        markers={markers}
+        destaque={destaque}
+        lateral={lateral}
+        close={close}
+      />
+    )
+  );
+}
+
+function SoOpcoesDialog({ titulo, subtitulo, opcoes, fechar, close }) {
+  return (
+    <Dialog title={titulo} onClose={() => close(null)}>
+      {subtitulo ? <p className="regzona__sub">{subtitulo}</p> : null}
+      <div className="regzona__opcoes regzona__opcoes--grandes">
+        {(opcoes || []).map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            className="regzona__opcao"
+            style={o.cor ? { '--cor': o.cor } : undefined}
+            onClick={() => close({ opcao: o.id, x: null, y: null })}
+          >
+            {o.cor ? <span className="regzona__bola" /> : null}
+            {o.rotulo}
+          </button>
+        ))}
+      </div>
+      {fechar ? (
+        <footer className="modal__actions">
+          <button type="button" className="btn btn--ghost" onClick={() => close(null)}>
+            {fechar}
+          </button>
+        </footer>
+      ) : null}
+    </Dialog>
+  );
 }
 
 function OndeDialog({ titulo, subtitulo, opcoes, markers, destaque, lateral, close }) {
