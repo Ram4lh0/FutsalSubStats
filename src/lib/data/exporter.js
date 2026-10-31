@@ -5,6 +5,7 @@ import { fmt } from '../../domain/clock.js';
 import { matchStatsTable, powerPlayTotals } from '../../domain/stats.js';
 import { foulsTotal, foulsInPeriod } from '../../domain/reducer.js';
 import { REGISTO, resumoRegistos, temRegistos } from '../../domain/registos.js';
+import { entregarFicheiro } from '../ficheiros.js';
 // Nada vem já de `constants.js`: as etiquetas que este ficheiro usava — posições,
 // estados, eventos — passaram para os dicionários, e chegam aqui pelas funções
 // de `format.js`. O CSV sai no idioma em que a app está a ser vista.
@@ -257,16 +258,11 @@ export function matchEventsCsv({ match, state }) {
 }
 
 
+// Na app nativa o `<a download>` não faz nada (a WebView do Android ignora-o),
+// por isso o ficheiro vai pela mesma entrega dos PDF: guardar e partilhar.
 export function download(filename, content, mime = 'text/plain;charset=utf-8') {
   const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  return entregarFicheiro(blob, filename, mime, { titulo: filename });
 }
 
 export function downloadJson(filename, obj) {
