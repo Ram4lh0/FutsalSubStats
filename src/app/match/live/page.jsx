@@ -16,7 +16,7 @@ import { useAuth } from '@/lib/auth.jsx';
 import Halftime from '@/components/live/Halftime.jsx';
 import DemoHistoria, { historiaJaVista } from '@/components/DemoHistoria.jsx';
 import { emDemo } from '@/lib/demo.js';
-import { Scoreboard, ClockBox, RivalOut, Court, Bench, Penalties, clockMsOf } from '@/components/live/pieces.jsx';
+import { Scoreboard, ClockBox, RivalOut, TeamCards, Court, Bench, Penalties, clockMsOf } from '@/components/live/pieces.jsx';
 import {
   pickPlayer,
   pickReplacement,
@@ -618,6 +618,20 @@ function Live() {
     if (eraGR && st) await reorganizarBaliza(st, t('gr.expulsoTitulo', { nome: p.name }));
   }
 
+  /** Cartão da nossa equipa a partir do card do marcador: pergunta a quem. */
+  async function registarCartaoNosso(tipo) {
+    const playerId = await pickPlayer(
+      ui,
+      state,
+      t(tipo === CARD.RED ? 'vivo.quemVermelho' : 'vivo.quemAmarelo'),
+      { comBanco: true }
+    );
+    if (!playerId) return;
+    const p = state.players[playerId];
+    if (tipo === CARD.RED) await aplicarVermelho(p);
+    else await aplicarAmarelo(p);
+  }
+
   function estaNaBaliza(playerId) {
     return state.court.GOALKEEPER === playerId;
   }
@@ -1097,6 +1111,7 @@ function Live() {
     opponentExpulsion: (delta) => commit(A.opponentExpulsion(state, delta)),
     registarAmareloAdversario,
     verCartoesAdversario,
+    registarCartaoNosso,
     ...registos.on,
   };
 
@@ -1175,6 +1190,7 @@ function Live() {
           interactive
           on={on}
           opponentExtra={<RivalOut state={state} on={on} variant="inline" />}
+          ourExtra={<TeamCards state={state} on={on} variant="inline" />}
         />
         <ClockBox
           state={state}
@@ -1186,6 +1202,7 @@ function Live() {
           on={timing === MATCH_TIMING.TIMED ? on : null}
         />
         <RivalOut state={state} on={on} />
+        <TeamCards state={state} on={on} />
         <div className="live__controls">
           {/* No jogo cronometrado a pausa vive no canto inferior direito, ao
               alcance do polegar; aqui em cima seria um segundo botão igual. */}
