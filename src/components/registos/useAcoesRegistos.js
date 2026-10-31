@@ -15,6 +15,8 @@
 // nenhuma das duas, o toque grava logo.
 
 import { useUI } from '@/lib/ui.jsx';
+import { events } from '@/lib/data/repository.js';
+import * as A from '@/domain/actions.js';
 import { EVENT, GOAL_TYPE } from '@/domain/constants.js';
 import {
   COR_PENALTI,
@@ -28,6 +30,7 @@ import {
   levaGolo,
   marcadores,
   registar,
+  registosDoJogo,
 } from '@/domain/registos.js';
 import { pickPlayer } from '@/components/live/dialogs.jsx';
 import { t } from '@/lib/i18n/index.js';
@@ -286,6 +289,29 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
       registar(st, { registo, playerId, resultado: RESULTADO_REMATE.GOLO, goloEventId });
   }
 
+  /**
+   * O "−" dos contadores da barra: tira o último registo deste tipo (e desta
+   * equipa, nos que têm as duas). Fica marcado como desfeito, como no
+   * DESFAZER. Um registo preso a um golo não sai por aqui — tirá-lo deixava o
+   * golo sem o seu remate ou penálti, ou mexia no resultado: corrige-se o golo.
+   */
+  async function tirarUltimo(registo, equipa = null) {
+    const lista = registosDoJogo(state).filter(
+      (r) => r.registo === registo && (!equipa || r.equipa === equipa)
+    );
+    if (!lista.length) return;
+    const alvo = [...lista].reverse().find((r) => r.resultado !== RESULTADO_REMATE.GOLO);
+    if (!alvo) {
+      ui.toast(t('registos.tirarPeloGolo'), 'error');
+      return;
+    }
+    const ev = (state.events || []).find((e) => e.id === alvo.eventId);
+    if (!ev) return;
+    await events.markUndone(ev.id, null, { sync: 'defer' });
+    await commit(A.undoEvent(state, ev));
+    ui.toast(t('registos.tirado', { registo: t(`registos.nome.${registo}`) }), 'ok');
+  }
+
   function verRegistos() {
     const { nos, eles } = nomes();
     abrirPainelRegistos(ui, { state, ourName: nos, opponentName: eles });
@@ -327,6 +353,7 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
       registarRemateAdv,
       registarPenalti,
       registarPenaltiAdv,
+      tirarUltimo,
       verRegistos,
     },
     perguntarLivre10,
