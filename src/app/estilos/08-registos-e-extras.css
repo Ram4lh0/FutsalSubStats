@@ -81,7 +81,16 @@
 .regbar__menos:not(:disabled):active, .regbar__mais:active { background: rgba(255, 255, 255, 0.08); }
 .regbar__so { font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
 .regbar__vazio::before { content: '–'; color: var(--line); }
-.regbar__fundo { display: flex; align-items: center; gap: 10px; }
+/* O canto de cima da grelha: esconder a barra e abrir as estatísticas. */
+.regbar__topo { display: inline-flex; align-items: center; gap: 4px; }
+.regbar__acao {
+  min-height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: transparent; color: var(--text); font-size: 0.75rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.regbar__acao--icone { width: 28px; padding: 0; color: var(--muted); font-size: 0.9rem; }
+.regbar__acao:active { transform: scale(0.96); }
+.regbar--fina { flex-direction: row; align-items: center; gap: 10px; padding: 6px 10px; }
+.regbar--fina .regbar__acao:last-child { margin-left: auto; }
 /* No telemóvel: uma linha por registo, colunas nós e eles. */
 .regbar__lista { display: none; grid-template-columns: 1fr auto auto; align-items: center; gap: 6px 8px; }
 .regbar__lista .regbar__eq { justify-self: center; max-width: 11ch; font-size: 0.72rem; }
@@ -91,7 +100,6 @@
   .regbar__lista { display: grid; }
 }
 .regbar__resumo { font-size: 0.78rem; color: var(--muted); }
-.regbar__ver { min-height: 32px; margin-left: auto; }
 
 /* O campo para tocar e os mapas. */
 .regcampo { display: block; width: 100%; height: auto; user-select: none; touch-action: manipulation; }

@@ -14,15 +14,35 @@
 // eles, para caber sem deslizar. São as mesmas células, desenhadas duas vezes
 // e escolhidas pelo CSS.
 //
-// Por baixo, um resumo curto do que se regista nos cartões e o acesso às
-// estatísticas do jogo.
+// No canto de cima ficam o acesso às estatísticas do jogo e o botão de a
+// esconder. Escondida, a barra é uma linha fina (com o resumo do que se
+// regista nos cartões); o aparelho lembra-se da escolha.
 
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { REGISTO, resumoRegistos } from '@/domain/registos.js';
 import { t } from '@/lib/i18n/index.js';
 
+const CHAVE_ESCONDIDA = 'futsal.regbar.escondida';
+
+function lerEscondida() {
+  try {
+    return window.localStorage.getItem(CHAVE_ESCONDIDA) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export default function BarraRegistos({ state, ligados, ourName, opponentName, on }) {
   const r = resumoRegistos(state);
+  const [escondida, setEscondida] = useState(lerEscondida);
+  const mudar = (valor) => {
+    setEscondida(valor);
+    try {
+      window.localStorage.setItem(CHAVE_ESCONDIDA, valor ? '1' : '0');
+    } catch {
+      // Sem armazenamento (janela privada): fica só até sair do ecrã.
+    }
+  };
   const passeNaBarra = ligados.has(REGISTO.PASSE_FALHADO) && ligados.opcoes?.passe_falhado?.barra;
 
   // Cada coluna: o rótulo e, para cada equipa, o valor e o que fazem os
@@ -103,11 +123,54 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
     );
   };
 
+  const verEstatisticas = (
+    <button type="button" className="regbar__acao" onClick={on.verRegistos} title={curto || undefined}>
+      {t('registos.estatisticas')}
+    </button>
+  );
+  const esconder = (
+    <button
+      type="button"
+      className="regbar__acao regbar__acao--icone"
+      onClick={() => mudar(true)}
+      aria-label={t('registos.esconderBarra')}
+      title={t('registos.esconderBarra')}
+    >
+      ˄
+    </button>
+  );
+  const topo = (
+    <span className="regbar__topo">
+      {esconder}
+      {verEstatisticas}
+    </span>
+  );
+
+  // Escondida, ou sem contadores de equipa: só uma linha fina.
+  if (escondida || !colunas.length) {
+    return (
+      <section className="regbar regbar--fina" aria-label={t('registos.titulo')}>
+        {colunas.length ? (
+          <button
+            type="button"
+            className="regbar__acao"
+            onClick={() => mudar(false)}
+            aria-label={t('registos.mostrarBarra')}
+          >
+            {t('registos.barraFechada')} ˅
+          </button>
+        ) : null}
+        {curto ? <span className="regbar__resumo">{curto}</span> : null}
+        {verEstatisticas}
+      </section>
+    );
+  }
+
   return (
     <section className="regbar" aria-label={t('registos.titulo')}>
       {colunas.length ? (
         <div className="regbar__lista">
-          <span />
+          {topo}
           <span className="regbar__eq">{ourName}</span>
           <span className="regbar__eq regbar__eq--deles">{opponentName}</span>
           {colunas.map((c) => (
@@ -121,7 +184,7 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
       ) : null}
       {colunas.length ? (
         <div className="regbar__grelha" style={{ '--colunas': colunas.length }}>
-          <span />
+          {topo}
           {colunas.map((c) => (
             <span key={c.id} className="regbar__rot">
               {t(`registos.barra.${c.id}`)}
@@ -141,12 +204,6 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
           ))}
         </div>
       ) : null}
-      <div className="regbar__fundo">
-        {curto ? <span className="regbar__resumo">{curto}</span> : null}
-        <button type="button" className="btn btn--ghost regbar__ver" onClick={on.verRegistos}>
-          {t('registos.verEstatisticas')}
-        </button>
-      </div>
     </section>
   );
 }
