@@ -2261,4 +2261,5 @@ export default {
   "painelv.janelaJogoTodo": "A analisar o jogo todo. Arrasta as pegas ou clica num atalho.",
   "painelv.esconderFiltros": "Esconder filtros",
   "painelv.mostrarFiltros": "Mostrar filtros",
+  "painelv.limparPeriodo": "Limpar filtro do período",
 };

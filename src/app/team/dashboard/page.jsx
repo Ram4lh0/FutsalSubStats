@@ -307,7 +307,7 @@ function estadoAtletaJogo(j, t) {
   return { texto: t('painelv.entrou'), kind: 'info' };
 }
 
-function PainelAtleta({ periodosBase, faixasDe, alternarFaixa, dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo, extras, entries, atletaId }) {
+function PainelAtleta({ periodosBase, faixasDe, alternarFaixa, limparJanela, dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo, extras, entries, atletaId }) {
   const t = useT();
   const min = dados.minutos;
   const u = dados.utilizacao;
@@ -449,6 +449,11 @@ function PainelAtleta({ periodosBase, faixasDe, alternarFaixa, dados, etiquetas,
         ) : (
           <p className="muted">{t(guardaRedes ? 'painelv.semSofridosBaliza' : 'painelv.semGolosAtleta')}</p>
         )}
+      {limparJanela ? (
+          <button type="button" className="btn btn--ghost btn--tiny no-print" onClick={limparJanela}>
+                  {t('painelv.limparPeriodo')}
+                </button>
+        ) : null}
       </Bloco>
 
       <Bloco titulo={t('painelv.ultimosJogosAtleta')} className="painelv__bloco--ultimos-atleta">
@@ -590,9 +595,18 @@ function Painel({ club, team, entries, roster, competitions }) {
     setJanela((atual) => {
       if (!atual) return { de: ini, ate: fim };
       if (atual.de === ini && atual.ate === fim) return null;
-      return { de: Math.min(atual.de, ini), ate: Math.max(atual.ate, fim) };
+      // Fora da janela: alarga até lá.
+      if (ini >= atual.ate || fim <= atual.de) {
+        return { de: Math.min(atual.de, ini), ate: Math.max(atual.ate, fim) };
+      }
+      // Dentro da janela: tira essa faixa se estiver numa ponta; no meio, fica só ela.
+      if (ini <= atual.de) return fim >= atual.ate ? null : { de: fim, ate: atual.ate };
+      if (fim >= atual.ate) return { de: atual.de, ate: ini };
+      return { de: ini, ate: fim };
     });
   };
+  const limparJanela = () => setJanela(null);
+
 
   const min = useMemo(() => minutosPorJogador(filtrados, roster), [filtrados, roster]);
   const limiteForma = formaMobile ? 5 : 8;
@@ -770,6 +784,7 @@ function Painel({ club, team, entries, roster, competitions }) {
             periodosBase={(atletaBase || atleta).periodos}
             faixasDe={faixasDe}
             alternarFaixa={alternarFaixa}
+            limparJanela={janela ? limparJanela : null}
             etiquetas={etiquetas}
             faixaAtiva={faixaAtiva}
             setFaixaAtiva={setFaixaAtiva}
@@ -847,6 +862,11 @@ function Painel({ club, team, entries, roster, competitions }) {
                   {detalheDaFaixa(2, faixas.segunda)}
                 </div>
                 <p className="muted small no-print">{t('painelv.dicaFiltro')}</p>
+                {janela ? (
+                  <button type="button" className="btn btn--ghost btn--tiny no-print" onClick={limparJanela}>
+                  {t('painelv.limparPeriodo')}
+                </button>
+                ) : null}
                 <p className="legenda">
                   <span className="legenda__cor legenda__cor--marcados" /> {t('painelv.marcados')}
                   <span className="legenda__cor legenda__cor--sofridos" /> {t('painelv.sofridos')}
