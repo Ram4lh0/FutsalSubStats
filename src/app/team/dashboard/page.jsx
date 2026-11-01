@@ -40,6 +40,7 @@ import {
   parteDosJogos,
   painelDoAtleta,
   extrasDoAtleta,
+  recortarPorPeriodo,
 } from '@/domain/dashboard.js';
 import { fmt } from '@/domain/clock.js';
 import { MATCH_TIMING } from '@/domain/constants.js';
@@ -115,6 +116,9 @@ function Filtros({
   roster,
   atletaId,
   aoTrocarAtleta,
+  periodo,
+  nFaixas,
+  aoTrocarPeriodo,
   aoExportarPdf,
   aGerarPdf = false,
 }) {
@@ -142,6 +146,34 @@ function Filtros({
           </select>
         </div>
       ) : null}
+
+      <div className="filtros__grupo no-print">
+        <span className="filtros__rotulo">{t('painelv.periodo')}</span>
+        {(() => {
+          const todas = (parte) => Array.from({ length: nFaixas }, (_, i) => ({ parte, i }));
+          const igual = (parte) =>
+            periodo.length === nFaixas && periodo.every((s) => s.parte === parte);
+          const custom = periodo.length > 0 && !igual(1) && !igual(2);
+          return (
+            <>
+              <button type="button" className={`chip ${periodo.length === 0 ? 'is-on' : ''}`} onClick={() => aoTrocarPeriodo([])}>
+                {t('painelv.todoOJogo')}
+              </button>
+              <button type="button" className={`chip ${igual(1) ? 'is-on' : ''}`} onClick={() => aoTrocarPeriodo(todas(1))}>
+                {t('painelv.primeiraParte')}
+              </button>
+              <button type="button" className={`chip ${igual(2) ? 'is-on' : ''}`} onClick={() => aoTrocarPeriodo(todas(2))}>
+                {t('painelv.segundaParte')}
+              </button>
+              {custom ? (
+                <button type="button" className="chip is-on" onClick={() => aoTrocarPeriodo([])}>
+                  {t('painelv.faixasEscolhidas', { n: periodo.length })} ✕
+                </button>
+              ) : null}
+            </>
+          );
+        })()}
+      </div>
 
       {provas.length > 1 ? (
         <div className="filtros__grupo">
@@ -270,7 +302,7 @@ function estadoAtletaJogo(j, t) {
   return { texto: t('painelv.entrou'), kind: 'info' };
 }
 
-function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo, extras, entries, atletaId }) {
+function PainelAtleta({ periodosBase, faixasDe, alternarFaixa, dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo, extras, entries, atletaId }) {
   const t = useT();
   const min = dados.minutos;
   const u = dados.utilizacao;
@@ -362,12 +394,12 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
       </Bloco>
 
       <Bloco titulo={t(guardaRedes ? 'painelv.sofridosBalizaPeriodo' : 'painelv.golosAssistenciasPeriodo')} className="painelv__bloco--periodos-atleta">
-        {dados.periodos.comDados ? (
+        {periodosBase.comDados ? (
           <div className="painelv__partes">
             <div>
               <h3 className="painelv__parte">{t('painelv.primeiraParte')}</h3>
               <ColunasEspelhadas
-                faixas={dados.periodos.primeira}
+                faixas={periodosBase.primeira}
                 etiquetas={etiquetas}
                 chaveA={guardaRedes ? 'sofridosBaliza' : 'golos'}
                 chaveB={guardaRedes ? null : 'assistencias'}
@@ -375,13 +407,15 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
                 classeB="assistencias"
                 escolhida={faixaAtiva.parte === 1 ? faixaAtiva.i : null}
                 aoEscolher={(i) => setFaixaAtiva({ parte: 1, i })}
+                selecionadas={faixasDe(1)}
+                aoFiltrar={(i) => alternarFaixa(1, i)}
               />
-              {detalheDaFaixa(1, dados.periodos.primeira)}
+              {detalheDaFaixa(1, periodosBase.primeira)}
             </div>
             <div>
               <h3 className="painelv__parte">{t('painelv.segundaParte')}</h3>
               <ColunasEspelhadas
-                faixas={dados.periodos.segunda}
+                faixas={periodosBase.segunda}
                 etiquetas={etiquetas}
                 chaveA={guardaRedes ? 'sofridosBaliza' : 'golos'}
                 chaveB={guardaRedes ? null : 'assistencias'}
@@ -389,8 +423,10 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
                 classeB="assistencias"
                 escolhida={faixaAtiva.parte === 2 ? faixaAtiva.i : null}
                 aoEscolher={(i) => setFaixaAtiva({ parte: 2, i })}
+                selecionadas={faixasDe(2)}
+                aoFiltrar={(i) => alternarFaixa(2, i)}
               />
-              {detalheDaFaixa(2, dados.periodos.segunda)}
+              {detalheDaFaixa(2, periodosBase.segunda)}
             </div>
             <p className="legenda">
               {guardaRedes ? (
@@ -502,6 +538,8 @@ function Painel({ club, team, entries, roster, competitions }) {
   const formaMobile = useFormaMobile();
   // A faixa por cima da qual está o dedo, uma por parte.
   const [faixaAtiva, setFaixaAtiva] = useState({ parte: null, i: null });
+  // As faixas de tempo escolhidas como filtro: `{ parte, i }`. Vazio = jogo todo.
+  const [periodo, setPeriodo] = useState([]);
 
   const provas = useMemo(() => provasComJogos(entries, competitions), [entries, competitions]);
   const tipos = useMemo(() => tiposDeJogo(entries), [entries]);
@@ -515,10 +553,19 @@ function Painel({ club, team, entries, roster, competitions }) {
   // painel vazio.
   const jogos = useMemo(() => jogosParaEscolher(porProvaETipo), [porProvaETipo]);
   const jogoId = jogos.some((j) => j.id === jogoEscolhido) ? jogoEscolhido : '';
-  const filtrados = useMemo(
-    () => filtrar(porProvaETipo, { jogo: jogoId }),
-    [porProvaETipo, jogoId]
-  );
+  // Os jogos inteiros: o gráfico dos períodos desenha sempre estes.
+  const base = useMemo(() => filtrar(porProvaETipo, { jogo: jogoId }), [porProvaETipo, jogoId]);
+  const parteMs = useMemo(() => parteDosJogos(base, tipo), [base, tipo]);
+  const nFaixas = Math.max(1, Math.ceil(parteMs / (5 * 60_000)));
+  // O que o resto do painel conta: os jogos recortados às faixas escolhidas.
+  const filtrados = useMemo(() => recortarPorPeriodo(base, periodo, { parteMs }), [base, periodo, parteMs]);
+  const alternarFaixa = (parte, i) =>
+    setPeriodo((atual) =>
+      atual.some((s) => s.parte === parte && s.i === i)
+        ? atual.filter((s) => !(s.parte === parte && s.i === i))
+        : [...atual, { parte, i }]
+    );
+  const faixasDe = (parte) => new Set(periodo.filter((s) => s.parte === parte).map((s) => s.i));
 
   const min = useMemo(() => minutosPorJogador(filtrados, roster), [filtrados, roster]);
   const limiteForma = formaMobile ? 5 : 8;
@@ -526,13 +573,17 @@ function Painel({ club, team, entries, roster, competitions }) {
   const curva = useMemo(() => curvaDeForma(filtrados, { quantos: limiteForma }), [filtrados, limiteForma]);
   const lados = useMemo(() => casaEFora(filtrados), [filtrados]);
   const disc = useMemo(() => disciplina(filtrados), [filtrados]);
-  const parteMs = useMemo(() => parteDosJogos(filtrados, tipo), [filtrados, tipo]);
-  const faixas = useMemo(() => golosPorFaixa(filtrados, { parteMs }), [filtrados, parteMs]);
+  const faixas = useMemo(() => golosPorFaixa(base, { parteMs }), [base, parteMs]);
   const tiposDeGolo = useMemo(() => golosPorTipo(filtrados), [filtrados]);
   const tiposDeGoloSofrido = useMemo(() => golosPorTipo(filtrados, 'THEM'), [filtrados]);
   const atleta = useMemo(
     () => painelDoAtleta(filtrados, roster, atletaId, { parteMs, quantos: 5 }),
     [filtrados, roster, atletaId, parteMs]
+  );
+  // O gráfico de períodos do atleta também mostra os jogos inteiros.
+  const atletaBase = useMemo(
+    () => (atletaId && periodo.length ? painelDoAtleta(base, roster, atletaId, { parteMs, quantos: 5 }) : null),
+    [base, roster, atletaId, parteMs, periodo.length]
   );
   const extrasAtleta = useMemo(
     () => (atletaId ? extrasDoAtleta(filtrados, atletaId) : null),
@@ -677,6 +728,9 @@ function Painel({ club, team, entries, roster, competitions }) {
           roster={roster}
           atletaId={atletaId}
           aoTrocarAtleta={setAtletaId}
+          periodo={periodo}
+          nFaixas={nFaixas}
+          aoTrocarPeriodo={setPeriodo}
           aoExportarPdf={exportarPdf}
           aGerarPdf={aGerarPdf}
         />
@@ -686,6 +740,9 @@ function Painel({ club, team, entries, roster, competitions }) {
         atleta ? (
           <PainelAtleta
             dados={atleta}
+            periodosBase={(atletaBase || atleta).periodos}
+            faixasDe={faixasDe}
+            alternarFaixa={alternarFaixa}
             etiquetas={etiquetas}
             faixaAtiva={faixaAtiva}
             setFaixaAtiva={setFaixaAtiva}
@@ -714,6 +771,7 @@ function Painel({ club, team, entries, roster, competitions }) {
                   }))}
                   referencia={min.media}
                   rotuloReferencia={t('painelv.media')}
+                  aoClicar={(_, i) => setAtletaId(min.linhas[i].playerId)}
                 />
                 {min.linhas.some((l) => l.abaixo) ? (
                   <p className="painelv__aviso">
@@ -744,6 +802,8 @@ function Painel({ club, team, entries, roster, competitions }) {
                     etiquetas={etiquetas}
                     escolhida={faixaAtiva.parte === 1 ? faixaAtiva.i : null}
                     aoEscolher={(i) => setFaixaAtiva({ parte: 1, i })}
+                    selecionadas={faixasDe(1)}
+                    aoFiltrar={(i) => alternarFaixa(1, i)}
                   />
                   {detalheDaFaixa(1, faixas.primeira)}
                 </div>
@@ -754,9 +814,12 @@ function Painel({ club, team, entries, roster, competitions }) {
                     etiquetas={etiquetas}
                     escolhida={faixaAtiva.parte === 2 ? faixaAtiva.i : null}
                     aoEscolher={(i) => setFaixaAtiva({ parte: 2, i })}
+                    selecionadas={faixasDe(2)}
+                    aoFiltrar={(i) => alternarFaixa(2, i)}
                   />
                   {detalheDaFaixa(2, faixas.segunda)}
                 </div>
+                <p className="muted small no-print">{t('painelv.dicaFiltro')}</p>
                 <p className="legenda">
                   <span className="legenda__cor legenda__cor--marcados" /> {t('painelv.marcados')}
                   <span className="legenda__cor legenda__cor--sofridos" /> {t('painelv.sofridos')}

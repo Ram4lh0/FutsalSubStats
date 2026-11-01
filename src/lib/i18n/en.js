@@ -2245,4 +2245,8 @@ export default {
   "registos.ext.equipa": "Team records",
   "registos.ext.mapaAtleta": "Player map",
   "registos.epoca.defesasGR": "Saves by goalkeeper",
+  "painelv.periodo": "Period",
+  "painelv.todoOJogo": "Whole game",
+  "painelv.faixasEscolhidas": "{n} slots selected",
+  "painelv.dicaFiltro": "Click the bars to filter the whole dashboard by that period (you can pick several).",
 };

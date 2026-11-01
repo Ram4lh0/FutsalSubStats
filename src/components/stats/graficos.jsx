@@ -55,7 +55,7 @@ const escala = (max, comprimento) => (v) => (max > 0 ? (v / max) * comprimento :
  * @param {{rotulo: string, valor: number, texto: string, alerta?: boolean}[]} linhas
  * @param {number} referencia  Valor da linha tracejada (a média), ou 0 para não a desenhar.
  */
-export function BarrasH({ linhas, referencia = 0, rotuloReferencia = '' }) {
+export function BarrasH({ linhas, referencia = 0, rotuloReferencia = '', aoClicar = null }) {
   const maximo = Math.max(referencia, ...linhas.map((l) => l.valor), 1);
   const pct = (v) => `${(v / maximo) * 100}%`;
 
@@ -63,7 +63,14 @@ export function BarrasH({ linhas, referencia = 0, rotuloReferencia = '' }) {
     <div className="barras">
       <ul className="barras__lista">
         {linhas.map((l, i) => (
-          <li className="barras__linha" key={l.rotulo + i}>
+          <li
+            className={`barras__linha ${aoClicar ? 'barras__linha--clicavel' : ''}`}
+            key={l.rotulo + i}
+            onClick={aoClicar ? () => aoClicar(l, i) : undefined}
+            onKeyDown={aoClicar ? (e) => (e.key === 'Enter' || e.key === ' ') && aoClicar(l, i) : undefined}
+            role={aoClicar ? 'button' : undefined}
+            tabIndex={aoClicar ? 0 : undefined}
+          >
             <span className="barras__nome" title={l.rotulo}>
               {l.rotulo}
             </span>
@@ -121,6 +128,9 @@ export function ColunasEspelhadas({
   etiquetas,
   aoEscolher,
   escolhida = null,
+  // Faixas escolhidas como filtro do painel (clicar liga e desliga).
+  selecionadas = null,
+  aoFiltrar = null,
   chaveA = 'marcados',
   chaveB = 'sofridos',
   classeA = 'marcados',
@@ -148,6 +158,7 @@ export function ColunasEspelhadas({
           const valorA = f[chaveA] || 0;
           const valorB = temBaixo ? f[chaveB] || 0 : 0;
           const activa = escolhida === i;
+          const filtrada = Boolean(selecionadas?.has(i));
           const dica = [
             etiquetas[i] && etiquetas[i + 1] ? `${etiquetas[i]}–${etiquetas[i + 1]}` : etiquetas[i],
             `${nomeA}: ${valorA}`,
@@ -160,11 +171,11 @@ export function ColunasEspelhadas({
             // dois píxeis — ou uma faixa sem golos — também se escolhe.
             <div
               key={i}
-              className={`colesp__faixa ${activa ? 'is-activa' : ''}`}
+              className={`colesp__faixa ${activa ? 'is-activa' : ''} ${filtrada ? 'is-filtrada' : ''}`.trim()}
               title={dica}
               onPointerEnter={() => aoEscolher?.(i)}
               onPointerLeave={() => aoEscolher?.(null)}
-              onClick={() => aoEscolher?.(activa ? null : i)}
+              onClick={() => (aoFiltrar ? aoFiltrar(i) : aoEscolher?.(activa ? null : i))}
             >
               <div className="colesp__metade colesp__metade--cima">
                 {valorA > 0 ? <span className="colesp__valor">{valorA}</span> : null}
@@ -188,7 +199,7 @@ export function ColunasEspelhadas({
       </div>
       <ol className="colunas__eixo" aria-hidden="true">
         {etiquetas.map((e, i) => (
-          <li key={i} className={escolhida === i ? 'is-activa' : ''}>
+          <li key={i} className={`${escolhida === i ? 'is-activa' : ''} ${selecionadas?.has(i) ? 'is-filtrada' : ''}`.trim()}>
             {e}
           </li>
         ))}

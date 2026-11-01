@@ -387,6 +387,12 @@
 .colesp__barra--sofridos { background: var(--danger); }
 .colesp__barra--assistencias { background: var(--info); }
 .colesp__valor { font-size: 0.72rem; line-height: 1; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.colesp__faixa.is-filtrada { background: rgba(34, 197, 94, 0.16); box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.6); }
+.colunas__eixo li.is-filtrada { color: var(--primary); font-weight: 700; }
+.barras__linha--clicavel { cursor: pointer; border-radius: 8px; }
+.barras__linha--clicavel:hover { background: rgba(255, 255, 255, 0.05); }
+.barras__linha--clicavel:focus-visible { outline: 2px solid var(--primary); }
+.filtros__periodo-nota { font-size: 0.8rem; color: var(--muted); }
 .colesp__faixa:not(:hover):not(.is-activa) .colesp__valor { color: var(--muted); }
 
 /* -------------------------------------------------------------- impressão */

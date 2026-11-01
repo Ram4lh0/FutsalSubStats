@@ -781,3 +781,34 @@ test('o mapa da época junta os pontos de todos os jogos terminados', () => {
   const pontos = mapaDaEpoca([j1, j2], 'recuperacao');
   assert.deepEqual(pontos.map((m) => m.id), ['a:r1', 'b:r3']);
 });
+
+test('recortarPorPeriodo fica só com os golos e minutos das faixas escolhidas', async () => {
+  const { recortarPorPeriodo } = await import('../src/domain/dashboard.js');
+  const g = (team, period, ms) => ({ eventId: `${team}${ms}`, team, period, matchElapsedMs: ms, scorerId: null });
+  const j = jogo({
+    nossos: 2,
+    deles: 1,
+    golos: [g('US', 1, 2 * MIN), g('THEM', 1, 12 * MIN), g('US', 2, 27 * MIN)],
+    jogadores: {
+      a: {
+        playerId: 'a',
+        name: 'A',
+        number: 1,
+        stints: [{ startMatchMs: 0, endMatchMs: 40 * MIN, startWallMs: 0, endWallMs: 1 }],
+      },
+    },
+  });
+  // Nada escolhido: os jogos ficam como estão.
+  const todos = [j];
+  assert.equal(recortarPorPeriodo(todos, []), todos);
+  const r = recortarPorPeriodo([j], [{ parte: 1, i: 0 }])[0].state;
+  assert.equal(r.goals.length, 1);
+  assert.equal(r.teamScore, 1);
+  assert.equal(r.opponentScore, 0);
+  assert.equal(r.players.a.stints[0].endMatchMs, 5 * MIN);
+  // 2.ª parte, faixa 1 (5'–10' da parte = 25'–30' do jogo).
+  const s = recortarPorPeriodo([j], [{ parte: 2, i: 1 }])[0].state;
+  assert.equal(s.goals.length, 1);
+  assert.equal(s.players.a.stints[0].startMatchMs, 25 * MIN);
+  assert.equal(s.players.a.stints[0].endMatchMs, 30 * MIN);
+});

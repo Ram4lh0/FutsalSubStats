@@ -1052,3 +1052,91 @@ export function defesasPorJogador(entries) {
     .filter((j) => j.defesas > 0)
     .sort((a, b) => b.defesas - a.defesas || (a.number ?? 0) - (b.number ?? 0));
 }
+
+/* ------------------------------------------------ filtro por período */
+
+/**
+ * Recorta os jogos às faixas escolhidas (as mesmas do gráfico dos golos por
+ * período): `selecao` é uma lista de `{ parte, i }`, `i` a faixa dentro da
+ * parte. Vazia, devolve os jogos como estão.
+ *
+ * Em cada jogo ficam só os golos, faltas, cartões e registos extra dessas
+ * faixas, e os tempos em campo cortados às mesmas janelas. A última faixa de
+ * cada parte apanha o que passou do tempo regulamentar, como no gráfico.
+ * O resto (plantel, resultado final do jogo, etc.) não muda de sítio: o
+ * resultado passa a ser o das faixas, que é o que se está a ver.
+ */
+export function recortarPorPeriodo(entries, selecao, { faixaMs = 5 * 60_000, parteMs = 20 * 60_000 } = {}) {
+  if (!selecao?.length) return entries;
+  const nFaixas = Math.max(1, Math.ceil(parteMs / faixaMs));
+  const quer = (parte, i) => selecao.some((s) => s.parte === parte && s.i === i);
+
+  return entries.map((e) => {
+    const { state } = e;
+    if (state.status !== MATCH_STATUS.FINISHED) return e;
+    const primeira = state.firstHalfMs || 0;
+    const total = state.elapsedMatchMs || 0;
+    const faixaDe = (period, ms) => {
+      const parte = period === 2 ? 2 : 1;
+      const naParte = parte === 2 ? ms - primeira : ms;
+      return { parte, i: Math.min(nFaixas - 1, Math.max(0, Math.floor(naParte / faixaMs))) };
+    };
+    const dentro = (period, ms) => {
+      const f = faixaDe(period, ms);
+      return quer(f.parte, f.i);
+    };
+
+    // Janelas em tempo de jogo absoluto, para cortar os tempos em campo.
+    const janelas = [];
+    for (const s of selecao) {
+      const base = s.parte === 2 ? primeira : 0;
+      const fimParte = s.parte === 2 ? total : primeira;
+      const ini = base + s.i * faixaMs;
+      const fim = s.i === nFaixas - 1 ? Math.max(fimParte, ini) : Math.min(fimParte, base + (s.i + 1) * faixaMs);
+      if (fim > ini) janelas.push([ini, fim]);
+    }
+
+    const goals = (state.goals || []).filter((g) => dentro(g.period, g.matchElapsedMs));
+    const fouls = (state.fouls || []).filter((f) => dentro(f.period, f.matchElapsedMs));
+    const cards = (state.cards || []).filter((c) => dentro(c.period, c.matchElapsedMs));
+
+    const mantidos = new Set(
+      registosDoJogo(state)
+        .filter((r) => dentro(r.period, r.matchElapsedMs))
+        .map((r) => r.eventId)
+    );
+    const events = (state.events || []).filter((ev) => {
+      if (ev.eventType === 'STAT_RECORDED') return mantidos.has(ev.id);
+      if (ev.eventType === 'STAT_CORRECTED') return mantidos.has(ev.metadata?.targetEventId);
+      return true;
+    });
+
+    const players = {};
+    for (const [id, p] of Object.entries(state.players || {})) {
+      const stints = [];
+      for (const st of p.stints || []) {
+        const fimSt = st.endMatchMs ?? total;
+        for (const [ini, fim] of janelas) {
+          const a = Math.max(st.startMatchMs, ini);
+          const b = Math.min(fimSt, fim);
+          if (b > a) stints.push({ ...st, startMatchMs: a, endMatchMs: b });
+        }
+      }
+      players[id] = { ...p, stints };
+    }
+
+    return {
+      ...e,
+      state: {
+        ...state,
+        goals,
+        fouls,
+        cards,
+        events,
+        players,
+        teamScore: goals.filter((g) => g.team === 'US').length,
+        opponentScore: goals.filter((g) => g.team === 'THEM').length,
+      },
+    };
+  });
+}

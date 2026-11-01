@@ -2250,4 +2250,8 @@ export default {
   "registos.ext.equipa": "Registos da equipa",
   "registos.ext.mapaAtleta": "Mapa do atleta",
   "registos.epoca.defesasGR": "Defesas por guarda-redes",
+  "painelv.periodo": "Período",
+  "painelv.todoOJogo": "Todo o jogo",
+  "painelv.faixasEscolhidas": "{n} faixas escolhidas",
+  "painelv.dicaFiltro": "Clica nas barras para filtrar o painel todo por esse período (podes escolher várias).",
 };

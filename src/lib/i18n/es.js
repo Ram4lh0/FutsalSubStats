@@ -2246,4 +2246,8 @@ export default {
   "registos.ext.equipa": "Registros del equipo",
   "registos.ext.mapaAtleta": "Mapa del jugador",
   "registos.epoca.defesasGR": "Paradas por portero",
+  "painelv.periodo": "Periodo",
+  "painelv.todoOJogo": "Todo el partido",
+  "painelv.faixasEscolhidas": "{n} franjas elegidas",
+  "painelv.dicaFiltro": "Pulsa las barras para filtrar todo el panel por ese periodo (puedes elegir varios).",
 };
