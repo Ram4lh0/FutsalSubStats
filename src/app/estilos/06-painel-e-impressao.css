@@ -352,22 +352,14 @@
 .colunas__eixo li.is-activa { color: var(--text); font-weight: 700; }
 
 /* Colunas espelhadas (ColunasEspelhadas): barras finas, ponta arredondada só do
-   lado do valor, o número por cima em tinta de texto e uma grelha discreta a
-   a meia altura da coluna mais alta (27px de 54, mais o espaço junto ao eixo). */
+   lado do valor, o número por cima em tinta de texto e só a linha do zero.
+   */
 .colesp { --metade: 74px; }
 .colesp__plot {
   position: relative;
   display: grid;
   grid-template-columns: repeat(var(--n), minmax(0, 1fr));
-  background:
-    linear-gradient(var(--line), var(--line)) 0 var(--metade) / 100% 1px no-repeat,
-    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.14) 0 4px, transparent 4px 8px) 0 calc(var(--metade) - 29px) / 100% 1px no-repeat,
-    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.14) 0 4px, transparent 4px 8px) 0 calc(var(--metade) + 29px) / 100% 1px no-repeat;
-}
-.colunas--simples .colesp__plot {
-  background:
-    linear-gradient(var(--line), var(--line)) 0 var(--metade) / 100% 1px no-repeat,
-    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.14) 0 4px, transparent 4px 8px) 0 calc(var(--metade) - 29px) / 100% 1px no-repeat;
+  background: linear-gradient(var(--line), var(--line)) 0 var(--metade) / 100% 1px no-repeat;
 }
 .colesp__faixa { display: flex; flex-direction: column; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
 .colesp__faixa:hover, .colesp__faixa.is-activa { background: rgba(255, 255, 255, 0.04); }
