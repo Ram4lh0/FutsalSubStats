@@ -92,6 +92,21 @@ function VisaoGeral() {
     [visiveis, periodo, semana]
   );
 
+  const [semFiltros, setSemFiltros] = useState(false);
+  useEffect(() => {
+    try {
+      setSemFiltros(localStorage.getItem('futsal.filtros.escondidos') === '1');
+    } catch {}
+  }, []);
+  function alternarFiltros() {
+    setSemFiltros((v) => {
+      try {
+        localStorage.setItem('futsal.filtros.escondidos', v ? '0' : '1');
+      } catch {}
+      return !v;
+    });
+  }
+
   if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
   if (!dados.club) return <Empty>{t('clube.naoEncontrado')}</Empty>;
   if (!dados.ligado) return <Empty>{t('visao.desligada')}</Empty>;
@@ -118,6 +133,15 @@ function VisaoGeral() {
     <>
       <PageHead title={t('visao.titulo')} subtitle={club.name} />
 
+      <button
+        type="button"
+        className="btn btn--ghost btn--tiny filtros__alternar no-print"
+        aria-expanded={!semFiltros}
+        onClick={alternarFiltros}
+      >
+        {semFiltros ? t('painelv.mostrarFiltros') : t('painelv.esconderFiltros')}
+      </button>
+      {semFiltros ? null : (
       <div className="filtros visao__filtros">
         <div className="filtros__grupo">
           <span className="filtros__rotulo">{t('visao.periodo')}</span>
@@ -169,6 +193,7 @@ function VisaoGeral() {
           </div>
         ) : null}
       </div>
+      )}
 
       <Quadro club={club} resumo={resumo} etiqueta={etiquetaPeriodo} naEpoca={naEpoca} clubId={clubId} />
 
