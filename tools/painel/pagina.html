@@ -347,12 +347,14 @@ function diaCurto(iso) {
   return iso ? new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '—';
 }
 
-/** "há 3 h", "há 12 d", "nunca". */
+/** "há 25 min", "há 3 h", "há 12 d", "nunca". */
 function ha(iso) {
   const t = instante(iso);
   if (t === null) return 'nunca';
-  const horas = (Date.now() - t) / 36e5;
-  if (horas < 1) return 'agora mesmo';
+  const minutos = Math.floor((Date.now() - t) / 6e4);
+  if (minutos < 1) return 'agora mesmo';
+  if (minutos < 60) return `há ${minutos} min`;
+  const horas = minutos / 60;
   if (horas < 24) return `há ${Math.floor(horas)} h`;
   const dias = Math.floor(horas / 24);
   return dias < 60 ? `há ${dias} d` : `há ${Math.floor(dias / 30)} meses`;
