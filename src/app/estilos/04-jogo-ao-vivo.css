@@ -345,10 +345,13 @@
     margin-right: clamp(2px, 0.6vw, 8px);
   }
 }
-/* Telemóvel: o espaço é todo do relógio; aí os cartões continuam pelo menu do
-   cartão de cada jogador. */
-@media (max-width: 720px) {
-  .rivalout--ours { display: none; }
+/* Telemóvel: o mesmo card, espelhado à esquerda do relógio (o do adversário
+   fica à direita). No jogo cronometrado desce com ele para a fila do botão, e
+   essa fila reserva o mesmo espaço dos dois lados. */
+.rivalout--ours { right: auto; left: 10px; }
+@media (max-width: 520px) {
+  .rivalout--ours { right: auto; left: 6px; }
+  .live__head--cronometrado > .live__controls::before { min-width: var(--reserva-card); }
 }
 
 .pcard { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; text-align: left; }
