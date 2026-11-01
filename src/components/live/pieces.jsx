@@ -122,19 +122,20 @@ export function RivalOut({ state, on, variant = 'standalone' }) {
       title={n ? t('vivo.jogamCom', { n: MAX_ON_COURT - n }) : t('vivo.jogamComCinco')}
     >
       <span className="rivalout__titulo">{t('vivo.advTitulo')}</span>
+      {/* Sem rótulos "Expulsos"/"Amarelos": o cartão diz qual é qual. Para tirar
+          uma expulsão toca-se no cartão vermelho (pede confirmação), tal como
+          os amarelos se corrigem na lista que o cartão amarelo abre. */}
       <span className="rivalout__linha">
-        <span className="rivalout__lbl">{t('vivo.advExpulsos')}</span>
         <span className="rivalout__ctrl">
           <button
-            className="rivalout__b"
+            className="rivalout__b rivalout__b--cards"
             aria-label={t('vivo.menosExpulsao')}
             disabled={!n}
-            onClick={() => on.opponentExpulsion(-1)}
+            onClick={on.removerExpulsaoAdversario}
           >
-            −
+            <span className="cardchip cardchip--red" />
+            <span className="rivalout__n">{n}</span>
           </button>
-          <span className="cardchip cardchip--red rivalout__chip" />
-          <span className="rivalout__n">{n}</span>
           <button
             className="rivalout__b"
             aria-label={t('vivo.maisExpulsao')}
@@ -147,15 +148,6 @@ export function RivalOut({ state, on, variant = 'standalone' }) {
       {/* Amarelos: só se sabe o número da camisola (não há plantel deles). O
           cartão + contagem abre a lista, onde se corrige; o `+` aponta um novo. */}
       <span className={`rivalout__linha ${amarelos ? 'has-cards' : ''}`}>
-        {/* O nome da linha também abre a lista: toda a zona dos amarelos se
-            toca, menos o `+`, que aponta um novo. */}
-        <button
-          type="button"
-          className="rivalout__lbl rivalout__lbl--btn"
-          onClick={on.verCartoesAdversario}
-        >
-          {t('vivo.advAmarelos')}
-        </button>
         <span className="rivalout__ctrl">
           <button
             className="rivalout__b rivalout__b--cards"
@@ -186,9 +178,8 @@ export function RivalOut({ state, on, variant = 'standalone' }) {
 export function TeamCards({ state, on, variant = 'standalone' }) {
   const amarelos = state.cards.filter((c) => c.type === 'YELLOW').length;
   const vermelhos = state.cards.filter((c) => c.type === 'RED').length;
-  const linha = (label, n, cor, onAdd, aria) => (
+  const linha = (n, cor, onAdd, aria) => (
     <span className="rivalout__linha">
-      <span className="rivalout__lbl">{label}</span>
       <span className="rivalout__ctrl">
         <span className={`cardchip cardchip--${cor} rivalout__chip`} />
         <span className="rivalout__n">{n}</span>
@@ -201,8 +192,8 @@ export function TeamCards({ state, on, variant = 'standalone' }) {
   return (
     <span className={`rivalout rivalout--ours rivalout--${variant}`}>
       <span className="rivalout__titulo">{t('vivo.nossoTitulo')}</span>
-      {linha(t('vivo.advAmarelos'), amarelos, 'yellow', () => on.registarCartaoNosso('YELLOW'), t('vivo.registarAmareloNosso'))}
-      {linha(t('vivo.nossosVermelhos'), vermelhos, 'red', () => on.registarCartaoNosso('RED'), t('vivo.registarVermelhoNosso'))}
+      {linha(amarelos, 'yellow', () => on.registarCartaoNosso('YELLOW'), t('vivo.registarAmareloNosso'))}
+      {linha(vermelhos, 'red', () => on.registarCartaoNosso('RED'), t('vivo.registarVermelhoNosso'))}
     </span>
   );
 }

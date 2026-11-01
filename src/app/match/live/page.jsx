@@ -728,6 +728,13 @@ function Live() {
     }
   }
 
+  /** Tirar uma expulsão do adversário: já não há `−` solto, toca-se no cartão. */
+  async function removerExpulsaoAdversario() {
+    if (!state.opponentExpulsions) return;
+    const ok = await confirmar(t('acao.confirmaRemoverExpulsaoAdv'));
+    if (ok) await commit(A.opponentExpulsion(state, -1));
+  }
+
   function cardItems(p, close) {
     const cartoes = playerCards(p.playerId, state.cards);
     const temAmarelo = state.cards.some((c) => c.playerId === p.playerId && c.type === CARD.YELLOW);
@@ -1111,6 +1118,7 @@ function Live() {
     opponentExpulsion: (delta) => commit(A.opponentExpulsion(state, delta)),
     registarAmareloAdversario,
     verCartoesAdversario,
+    removerExpulsaoAdversario,
     registarCartaoNosso,
     ...registos.on,
   };

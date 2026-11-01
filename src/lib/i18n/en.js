@@ -1140,6 +1140,7 @@ export default {
   'acao.expulsoAdvPorAmarelos': 'Opponent #{numero} sent off for two yellows.',
   'acao.advJaExpulso': 'That player has already been sent off.',
   'acao.confirmaRemoverAmareloAdv': 'Remove the yellow card for opponent #{numero}?',
+  'acao.confirmaRemoverExpulsaoAdv': 'Remove one opponent sending-off?',
   'acao.comoFoiOGolo': 'How was the goal scored?',
   'acao.comoFoiOGoloSofrido': 'How was the goal conceded?',
   'acao.confirmaVermelho':

@@ -1143,6 +1143,7 @@ export default {
   'acao.expulsoAdvPorAmarelos': 'Adversário #{numero} expulso por acumulação de amarelos.',
   'acao.advJaExpulso': 'Esse jogador já foi expulso.',
   'acao.confirmaRemoverAmareloAdv': 'Remover o amarelo do adversário #{numero}?',
+  'acao.confirmaRemoverExpulsaoAdv': 'Tirar uma expulsão do adversário?',
   'acao.comoFoiOGolo': 'Como foi o golo?',
   'acao.comoFoiOGoloSofrido': 'Como foi o golo sofrido?',
   'acao.confirmaVermelho':

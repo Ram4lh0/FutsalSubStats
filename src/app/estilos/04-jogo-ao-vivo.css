@@ -90,14 +90,6 @@
   /* O traço separava dois números que agora estão em lados opostos do relógio. */
   .scoreboard__dash { display: none; }
   .live__head > .clockbox { grid-column: 2; grid-row: 1 / -1; }
-  .live__head > .rivalout {
-    position: static;
-    grid-column: 2;
-    grid-row: 1 / -1;
-    justify-self: end;
-    align-self: center;
-    transform: translateX(calc(100% + 10px));
-  }
   .live__head > .live__controls { grid-column: 4; grid-row: 1 / -1; }
   .scoreboard__name { max-width: 16vw; }
 }
@@ -228,6 +220,8 @@
     column-gap: 3px;
     row-gap: 0;
     border-radius: 8px;
+    /* Mais abaixo do que o meio: em cima ficava colado às faltas. */
+    top: 58%;
     transform: translateY(-38%);
   }
   .rivalout__titulo { font-size: 0.46rem; letter-spacing: 0.05em; margin-bottom: 0; }
@@ -303,7 +297,11 @@
  * fluxo, a célula do resultado volta a pesar só o que pesa do lado de cá
  * (o nosso resultado), as duas colunas `1fr` do cabeçalho voltam a ficar
  * simétricas, e o relógio ao centro deixa de puxar para a direita. */
-@media (min-width: 721px) and (max-width: 1200px) {
+@media (min-width: 721px) {
+  /* Os resultados chegam-se ao tempo (um de cada lado do relógio), e com eles
+     os cartões, que ficam do lado de fora de cada resultado. */
+  .scoreboard__score.is-left { justify-self: end; }
+  .scoreboard__score.is-right { justify-self: start; }
   .rivalout--standalone { display: none; }
   .scoreboard__score.is-right { position: relative; }
   .scoreboard__score > .rivalout--inline {
@@ -324,19 +322,12 @@
   }
 }
 
-/* Tablet/PC: os nomes das linhas ("Expulsos:", "Amarelos:") e o título ficam
-   sempre visíveis — sem eles só se via o cartão e um número, e não se percebia
-   de que lado era cada coisa. Pedido a 31/10/2026. */
+/* Os nomes das linhas ("Expulsos:", "Amarelos:") saíram a 01/11/2026: o cartão
+   amarelo ou vermelho diz o que é, e o título diz de que equipa. */
 
 /* Cartões da nossa equipa: o espelho do card do adversário, do lado esquerdo. */
 .rivalout__chip { flex: none; width: 10px; height: 14px; vertical-align: 0; margin-right: 2px; }
-@media (min-width: 1001px) {
-  .live__head > .rivalout--ours {
-    justify-self: start;
-    transform: translateX(calc(-100% - 10px));
-  }
-}
-@media (min-width: 721px) and (max-width: 1200px) {
+@media (min-width: 721px) {
   .scoreboard__score.is-left { position: relative; }
   .scoreboard__score > .rivalout--ours.rivalout--inline {
     left: auto;
