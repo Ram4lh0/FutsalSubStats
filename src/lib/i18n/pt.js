@@ -1423,7 +1423,7 @@ export default {
   'feedbackDemo.erro': 'Não foi possível enviar. Verifica a ligação e tenta outra vez.',
 
   /* ------------------------------------------------ importar o plantel */
-  'plantelCsv.importar': 'Importar CSV',
+  'plantelCsv.importar': "Importar plantel",
   'plantelCsv.titulo': 'Importar o plantel',
   'plantelCsv.formato':
     'O ficheiro tem de ter cinco colunas, por esta ordem: número, nome, posição preferencial, pé forte e estado. É exactamente o que sai do botão "Exportar CSV" — exporta, corrige no Excel, e volta a importar.',
@@ -1918,6 +1918,9 @@ export default {
   "calendarioCsv.exemploNome": "calendario-exemplo.csv",
   "calendarioCsv.acrescenta": "Importar acrescenta jogos: os que já existem não mudam, e um jogo repetido (mesmo dia e adversário) é ignorado.",
   "calendarioCsv.escolher": "Escolher ficheiro",
+  "folha.formatos": "Pode usar o ficheiro do Excel (.xlsx) ou um CSV.",
+  "folha.xlsAntigo": "Este ficheiro está no formato antigo do Excel (.xls). No Excel, use \"Guardar como\" e escolha .xlsx ou CSV.",
+  "folha.ilegivel": "Não foi possível ler este ficheiro. Use um ficheiro do Excel (.xlsx) ou CSV.",
   "calendarioCsv.colData": "Data",
   "calendarioCsv.colHora": "Hora",
   "calendarioCsv.colAdversario": "Adversário",

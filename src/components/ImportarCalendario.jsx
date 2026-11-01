@@ -18,7 +18,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, useUI } from '@/lib/ui.jsx';
-import { download, pickFile } from '@/lib/data/exporter.js';
+import { download, pickFolha } from '@/lib/data/exporter.js';
 import { calendarioExemploCsv, lerCalendarioCsv } from '@/lib/data/calendarioCsv.js';
 import { clubs, competitions, matches, loadTeamMatchStates } from '@/lib/data/repository.js';
 import { canCreateMatch } from '@/lib/entitlements.js';
@@ -69,6 +69,7 @@ export default function ImportarCalendario({ competicoes, competicaoFixa, onEsco
         )}
 
         <div className="card card--inset">
+          <p className="muted small">{t('folha.formatos')}</p>
           <p className="muted small">{t('calendarioCsv.semFicheiro')}</p>
           <button
             className="btn btn--ghost"
@@ -154,7 +155,13 @@ export function useImportarCalendario({ clubId, teamId }) {
     ));
     if (!quer) return false;
 
-    const bruto = await pickFile('.csv,text/csv');
+    let bruto;
+    try {
+      bruto = await pickFolha();
+    } catch (e) {
+      toast(t(e.chave || 'folha.ilegivel'), 'error', 9000);
+      return false;
+    }
     if (!bruto) return false;
 
     const { jogos, repetidos, problemas } = lerCalendarioCsv(bruto, {

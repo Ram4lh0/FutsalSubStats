@@ -1419,7 +1419,7 @@ export default {
   'feedbackDemo.erro': "Couldn't send it. Check your connection and try again.",
 
   /* -------------------------------------------------- roster import */
-  'plantelCsv.importar': 'Import CSV',
+  'plantelCsv.importar': "Import squad",
   'plantelCsv.titulo': 'Import the roster',
   'plantelCsv.formato':
     'The file must have five columns, in this order: number, name, preferred position, strong foot and status. It is exactly what the “Export CSV” button produces — export it, fix it in Excel, and import it back.',
@@ -1822,6 +1822,9 @@ export default {
   "calendarioCsv.exemploNome": "schedule-example.csv",
   "calendarioCsv.acrescenta": "Importing adds matches: existing ones stay as they are, and a repeated match (same day and opponent) is skipped.",
   "calendarioCsv.escolher": "Choose file",
+  "folha.formatos": "You can use an Excel file (.xlsx) or a CSV.",
+  "folha.xlsAntigo": "This file is in the old Excel format (.xls). In Excel, use \"Save as\" and choose .xlsx or CSV.",
+  "folha.ilegivel": "This file could not be read. Use an Excel file (.xlsx) or a CSV.",
   "calendarioCsv.colData": "Date",
   "calendarioCsv.colHora": "Time",
   "calendarioCsv.colAdversario": "Opponent",

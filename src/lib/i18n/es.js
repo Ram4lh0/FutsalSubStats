@@ -1419,7 +1419,7 @@ export default {
   'feedbackDemo.erro': 'No se ha podido enviar. Revisa la conexión e inténtalo de nuevo.',
 
   /* ------------------------------------------------ importar la plantilla */
-  'plantelCsv.importar': 'Importar CSV',
+  'plantelCsv.importar': "Importar plantilla",
   'plantelCsv.titulo': 'Importar la plantilla',
   'plantelCsv.formato':
     'El archivo tiene que tener cinco columnas, en este orden: dorsal, nombre, posición preferida, pie bueno y estado. Es exactamente lo que sale del botón «Exportar CSV» — exporta, corrige en Excel y vuelve a importar.',
@@ -1823,6 +1823,9 @@ export default {
   "calendarioCsv.exemploNome": "calendario-ejemplo.csv",
   "calendarioCsv.acrescenta": "Importar añade partidos: los que ya existen no cambian, y un partido repetido (mismo día y rival) se ignora.",
   "calendarioCsv.escolher": "Elegir archivo",
+  "folha.formatos": "Puede usar el archivo de Excel (.xlsx) o un CSV.",
+  "folha.xlsAntigo": "Este archivo está en el formato antiguo de Excel (.xls). En Excel, use \"Guardar como\" y elija .xlsx o CSV.",
+  "folha.ilegivel": "No se ha podido leer este archivo. Use un archivo de Excel (.xlsx) o CSV.",
   "calendarioCsv.colData": "Fecha",
   "calendarioCsv.colHora": "Hora",
   "calendarioCsv.colAdversario": "Rival",

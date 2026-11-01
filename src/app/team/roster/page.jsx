@@ -13,7 +13,7 @@ import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { players } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
-import { download, pickFile, slug } from '@/lib/data/exporter.js';
+import { download, pickFolha, slug } from '@/lib/data/exporter.js';
 import { plantelCsv, plantelExemploCsv, lerPlantelCsv } from '@/lib/data/plantelCsv.js';
 import ImportarPlantel from '@/components/ImportarPlantel.jsx';
 import ConflitoImportacao from '@/components/ConflitoImportacao.jsx';
@@ -133,7 +133,12 @@ function Roster({ team, entries, roster, clubId, teamId }) {
     ));
     if (!querFicheiro) return;
 
-    const bruto = await pickFile('.csv,text/csv');
+    let bruto;
+    try {
+      bruto = await pickFolha();
+    } catch (e) {
+      return toast(t(e.chave || 'folha.ilegivel'), 'error', 9000);
+    }
     if (!bruto) return;
 
     try {

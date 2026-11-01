@@ -6,6 +6,7 @@ import { matchStatsTable, powerPlayTotals } from '../../domain/stats.js';
 import { foulsTotal, foulsInPeriod } from '../../domain/reducer.js';
 import { REGISTO, resumoRegistos, temRegistos } from '../../domain/registos.js';
 import { entregarFicheiro } from '../ficheiros.js';
+import { pareceXlsx, pareceXlsAntigo, xlsxParaCsv } from './folhaXlsx.js';
 // Nada vem já de `constants.js`: as etiquetas que este ficheiro usava — posições,
 // estados, eventos — passaram para os dicionários, e chegam aqui pelas funções
 // de `format.js`. O CSV sai no idioma em que a app está a ser vista.
@@ -280,6 +281,49 @@ export function pickFile(accept = 'application/json') {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
       reader.readAsText(file);
+    };
+    input.click();
+  });
+}
+
+/** O que o seletor deixa escolher para o plantel e o calendário. */
+const TIPOS_FOLHA = [
+  '.csv',
+  'text/csv',
+  'text/comma-separated-values',
+  '.xlsx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+].join(',');
+
+/**
+ * Escolher uma folha de cálculo (CSV ou .xlsx) e devolvê-la como texto de CSV.
+ *
+ * O .xlsx é convertido aqui (ver folhaXlsx.js), por isso quem chama lê sempre
+ * um CSV. Um ficheiro que não se consegue ler atira um erro com `chave` (para
+ * mostrar ao treinador); cancelar devolve null.
+ */
+export function pickFolha() {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = TIPOS_FOLHA;
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return resolve(null);
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        if (pareceXlsAntigo(bytes)) throw Object.assign(new Error('xls'), { chave: 'folha.xlsAntigo' });
+        if (pareceXlsx(bytes)) {
+          try {
+            return resolve(xlsxParaCsv(bytes));
+          } catch {
+            throw Object.assign(new Error('xlsx'), { chave: 'folha.ilegivel' });
+          }
+        }
+        resolve(new TextDecoder('utf-8').decode(bytes));
+      } catch (e) {
+        reject(e.chave ? e : Object.assign(e, { chave: 'folha.ilegivel' }));
+      }
     };
     input.click();
   });

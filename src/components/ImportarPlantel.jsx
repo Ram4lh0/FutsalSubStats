@@ -32,6 +32,7 @@ export default function ImportarPlantel({ onEscolher, onClose }) {
         <p className="muted">{t('plantelCsv.opcionais')}</p>
 
         <div className="card card--inset">
+          <p className="muted small">{t('folha.formatos')}</p>
           <p className="muted small">{t('plantelCsv.semFicheiro')}</p>
           <button
             className="btn btn--ghost"
