@@ -168,7 +168,11 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
     t('csv.autogolo'),
     t('csv.guardaRedes'),
   ]);
-  (state.goals || []).forEach((g, i) => {
+  // Pela ordem do jogo (parte e minuto), não pela ordem em que foram registados.
+  const golos = [...(state.goals || [])].sort(
+    (a, b) => (a.period ?? 0) - (b.period ?? 0) || (a.matchElapsedMs ?? 0) - (b.matchElapsedMs ?? 0)
+  );
+  golos.forEach((g, i) => {
     const nm = (id) => (id ? state.players[id]?.name || '' : '');
     rows.push([
       i + 1,

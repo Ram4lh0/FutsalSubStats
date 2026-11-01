@@ -84,7 +84,11 @@ export async function gerarPdfJogo({ club, match, state, team, competition }) {
 
   // ---------------------------------------------------------------- golos
   const nome = (id) => (id ? state.players[id]?.name || '' : '');
-  const golos = state.goals || [];
+  // Pela ordem do jogo, não pela ordem em que foram registados: um golo
+  // acrescentado depois ao minuto 12 fica antes dos que vieram a seguir.
+  const golos = [...(state.goals || [])].sort(
+    (a, b) => (a.period ?? 0) - (b.period ?? 0) || (a.matchElapsedMs ?? 0) - (b.matchElapsedMs ?? 0)
+  );
   r.secao(t('resumo.golos'), 15);
   if (golos.length) {
     r.tabela({
