@@ -906,3 +906,149 @@ export function mapaDaEpoca(entries, registo) {
     }))
   );
 }
+
+/* ------------------------- registos extra: um jogador e a equipa toda */
+
+/** Os registos de jogador que têm números na ficha e no painel do atleta. */
+const REGISTOS_DO_ATLETA = [
+  REGISTO.REMATE,
+  REGISTO.RECUPERACAO,
+  REGISTO.DEFESA_GR,
+  REGISTO.PERDA_BOLA,
+  REGISTO.PASSE_FALHADO,
+  REGISTO.ACAO,
+  REGISTO.PENALTI,
+];
+
+const vazioDoRegisto = () => ({ n: 0, jogos: 0, courtMs: 0, porJogo: 0, por10: null });
+
+/**
+ * Os registos extra de um jogador na época: total, por jogo e por 10 minutos
+ * em campo. Cada registo só conta os jogos em que alguém o apontou e o atleta
+ * entrou (ou o fez): um jogo sem esse registo é um jogo sem dados, não com zero.
+ *
+ * Os remates trazem ainda quantos foram à baliza e quantos deram golo, e as
+ * percentagens; os penáltis, os golos; as ações, as positivas e negativas.
+ */
+export function extrasDoAtleta(entries, playerId) {
+  const por = Object.fromEntries(REGISTOS_DO_ATLETA.map((id) => [id, vazioDoRegisto()]));
+  const remates = { aBaliza: 0, golos: 0, comResultado: 0 };
+  const acoes = { positivas: 0, negativas: 0 };
+  const penaltis = { golos: 0 };
+
+  for (const e of terminados(entries)) {
+    const s = statsDoJogador(e.state, playerId);
+    if (!s) continue;
+    const lista = registosDoJogo(e.state);
+    for (const id of REGISTOS_DO_ATLETA) {
+      const doTipo = lista.filter((r) => r.registo === id);
+      if (!doTipo.length) continue;
+      const meus = doTipo.filter((r) => r.playerId === playerId);
+      if (!s.courtMs && !meus.length) continue;
+      const alvo = por[id];
+      alvo.n += meus.length;
+      alvo.jogos += 1;
+      alvo.courtMs += s.courtMs;
+      if (id === REGISTO.REMATE) {
+        for (const r of meus) {
+          if (!r.resultado) continue;
+          remates.comResultado += 1;
+          if (A_BALIZA.has(r.resultado)) remates.aBaliza += 1;
+          if (r.resultado === RESULTADO_REMATE.GOLO) remates.golos += 1;
+        }
+      } else if (id === REGISTO.ACAO) {
+        for (const r of meus) {
+          if (r.resultado === 'POSITIVA') acoes.positivas += 1;
+          else if (r.resultado === 'NEGATIVA') acoes.negativas += 1;
+        }
+      } else if (id === REGISTO.PENALTI) {
+        penaltis.golos += meus.filter((r) => r.resultado === RESULTADO_REMATE.GOLO).length;
+      }
+    }
+  }
+  for (const alvo of Object.values(por)) {
+    alvo.porJogo = alvo.jogos ? alvo.n / alvo.jogos : 0;
+    alvo.por10 = recuperacoesPor10(alvo.n, alvo.courtMs);
+  }
+  // Remates: percentagens sobre os remates que têm resultado.
+  const r = por[REGISTO.REMATE];
+  return {
+    comDados: REGISTOS_DO_ATLETA.some((id) => por[id].jogos > 0),
+    por,
+    remates: {
+      ...remates,
+      percentagemGolo: remates.comResultado ? Math.round((remates.golos / remates.comResultado) * 100) : null,
+      percentagemBaliza: remates.comResultado ? Math.round((remates.aBaliza / remates.comResultado) * 100) : null,
+      semResultado: r.n - remates.comResultado,
+    },
+    acoes,
+    penaltis,
+  };
+}
+
+/** Os pontos de um jogador no campo, na época (remates, recuperações, defesas). */
+export function mapaDoAtleta(entries, registo, playerId) {
+  return terminados(entries).flatMap((e) =>
+    paraMarcadores(
+      registosDoJogo(e.state).filter((r) => r.playerId === playerId),
+      { registos: [registo] }
+    ).map((m) => ({ ...m, id: `${e.match.id}:${m.id}`, matchId: e.match.id }))
+  );
+}
+
+/**
+ * Os registos extra da equipa inteira, para a tabela-resumo: por cada registo,
+ * o total nosso e deles, os jogos em que foi apontado e a média por jogo.
+ */
+export function extrasDaEquipa(entries) {
+  const por = {};
+  const alvo = (id) => (por[id] ||= { US: 0, THEM: 0, jogos: 0 });
+  const remates = { n: 0, aBaliza: 0, golos: 0, comResultado: 0 };
+  const acoes = { positivas: 0, negativas: 0 };
+  const defesas = { n: 0, jogos: 0 };
+  for (const e of terminados(entries)) {
+    const lista = registosDoJogo(e.state);
+    const vistos = new Set();
+    for (const r of lista) {
+      const a = alvo(r.registo);
+      a[r.equipa === 'THEM' ? 'THEM' : 'US'] += 1;
+      if (!vistos.has(r.registo)) {
+        vistos.add(r.registo);
+        a.jogos += 1;
+      }
+      if (r.registo === REGISTO.REMATE) {
+        remates.n += 1;
+        if (r.resultado) remates.comResultado += 1;
+        if (A_BALIZA.has(r.resultado)) remates.aBaliza += 1;
+        if (r.resultado === RESULTADO_REMATE.GOLO) remates.golos += 1;
+      } else if (r.registo === REGISTO.ACAO) {
+        if (r.resultado === 'POSITIVA') acoes.positivas += 1;
+        else if (r.resultado === 'NEGATIVA') acoes.negativas += 1;
+      } else if (r.registo === REGISTO.DEFESA_GR) {
+        defesas.n += 1;
+      }
+    }
+  }
+  return {
+    por,
+    remates: {
+      ...remates,
+      percentagemGolo: remates.comResultado ? Math.round((remates.golos / remates.comResultado) * 100) : null,
+      percentagemBaliza: remates.comResultado ? Math.round((remates.aBaliza / remates.comResultado) * 100) : null,
+    },
+    acoes,
+  };
+}
+
+/** Defesas do guarda-redes por jogador, com a média por jogo. */
+export function defesasPorJogador(entries) {
+  return contagemDaEpoca(entries, REGISTO.DEFESA_GR)
+    .map(({ n, ...j }) => ({
+      ...j,
+      defesas: n,
+      porJogo: j.jogos ? n / j.jogos : 0,
+      por10: recuperacoesPor10(n, j.courtMs),
+    }))
+    .filter((j) => j.defesas > 0)
+    .sort((a, b) => b.defesas - a.defesas || (a.number ?? 0) - (b.number ?? 0));
+}

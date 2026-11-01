@@ -12,6 +12,8 @@ import DataTable from '@/components/DataTable.jsx';
 import { Empty } from '@/components/bits.jsx';
 import { clubs, teams, players, loadTeamMatchStates } from '@/lib/data/repository.js';
 import { clubAggregate, matchStatsTable } from '@/domain/stats.js';
+import { extrasDoAtleta } from '@/domain/dashboard.js';
+import { TabelaExtrasAtleta } from '@/components/registos/ExtrasRegistos.jsx';
 import { fmt } from '@/domain/clock.js';
 import { FOOT, normalizePosition } from '@/domain/constants.js';
 import { dayLabel, positionLabel, footLabel } from '@/lib/format.js';
@@ -62,14 +64,14 @@ function Ficha() {
       // A ficha usa a mesma função de agregação da aba de estatísticas, para as
       // duas nunca discordarem.
       const agg = clubAggregate(entries, [player]).perPlayer[playerId] || VAZIO;
-      setDados({ player, club, team, meus, agg });
+      setDados({ player, club, team, meus, agg, extras: extrasDoAtleta(entries, playerId) });
     })();
   }, [clubId, teamId, playerId]);
 
   if (!dados) return <p className="muted">{t('comum.aCarregar')}</p>;
   if (!dados.player) return <Empty>{t('ficha.naoEncontrado')}</Empty>;
 
-  const { player, club, team, meus, agg } = dados;
+  const { player, club, team, meus, agg, extras } = dados;
   const guardaRedes = normalizePosition(player.preferredPosition) === 'GOALKEEPER' || agg.conceded > 0;
 
   // Uma linha só, como na tabela geral: as mesmas categorias, sem repetir o nome
@@ -134,6 +136,8 @@ function Ficha() {
           </tr>
         </tbody>
       </DataTable>
+
+      <TabelaExtrasAtleta extras={extras} />
 
       <h2 className="section">{t('ficha.historico')}</h2>
       {!meus.length ? (

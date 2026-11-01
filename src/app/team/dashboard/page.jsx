@@ -24,6 +24,7 @@ import { BarrasH, ColunasEspelhadas, EscadaForma, FitaForma, Pizza } from '@/com
 import { CartaoTop } from '@/components/stats/Destaques.jsx';
 import { ListaGolos } from '@/components/stats/CartaoGolos.jsx';
 import BlocosDaEpoca from '@/components/registos/BlocosDaEpoca.jsx';
+import { BlocosExtrasAtleta } from '@/components/registos/ExtrasRegistos.jsx';
 import {
   minutosPorJogador,
   golosPorFaixa,
@@ -38,6 +39,7 @@ import {
   jogosParaEscolher,
   parteDosJogos,
   painelDoAtleta,
+  extrasDoAtleta,
 } from '@/domain/dashboard.js';
 import { fmt } from '@/domain/clock.js';
 import { MATCH_TIMING } from '@/domain/constants.js';
@@ -268,7 +270,7 @@ function estadoAtletaJogo(j, t) {
   return { texto: t('painelv.entrou'), kind: 'info' };
 }
 
-function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo }) {
+function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo, extras, entries, atletaId }) {
   const t = useT();
   const min = dados.minutos;
   const u = dados.utilizacao;
@@ -479,6 +481,11 @@ function PainelAtleta({ dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo
           </div>
         </Bloco>
       ) : null}
+
+      {/* Os restantes registos extra do atleta (remates, recuperações, …). */}
+      {extras?.comDados ? (
+        <BlocosExtrasAtleta extras={extras} entries={entries} playerId={atletaId} Bloco={Bloco} />
+      ) : null}
     </>
   );
 }
@@ -526,6 +533,10 @@ function Painel({ club, team, entries, roster, competitions }) {
   const atleta = useMemo(
     () => painelDoAtleta(filtrados, roster, atletaId, { parteMs, quantos: 5 }),
     [filtrados, roster, atletaId, parteMs]
+  );
+  const extrasAtleta = useMemo(
+    () => (atletaId ? extrasDoAtleta(filtrados, atletaId) : null),
+    [filtrados, atletaId]
   );
 
   function trocarProva(id) {
@@ -679,6 +690,9 @@ function Painel({ club, team, entries, roster, competitions }) {
             faixaAtiva={faixaAtiva}
             setFaixaAtiva={setFaixaAtiva}
             abrirResumo={abrirResumo}
+            extras={extrasAtleta}
+            entries={filtrados}
+            atletaId={atletaId}
           />
         ) : (
           <Empty>{t('painelv.atletaSemDados')}</Empty>

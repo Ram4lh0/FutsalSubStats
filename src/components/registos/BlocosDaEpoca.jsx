@@ -14,10 +14,13 @@ import { useMemo, useState } from 'react';
 import { StatCard } from '@/components/bits.jsx';
 import { BarrasH } from '@/components/stats/graficos.jsx';
 import { CampoSvg } from './CampoToque.jsx';
+import { LegendaMapa, TabelaExtrasEquipa } from './ExtrasRegistos.jsx';
 import { REGISTO } from '@/domain/registos.js';
 import {
   REGISTOS_BOLA_PARADA,
   bolasParadas,
+  defesasPorJogador,
+  extrasDaEquipa,
   eficacia,
   mapaDaEpoca,
   passesDaEpoca,
@@ -49,6 +52,8 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
   const passes = useMemo(() => passesPorJogador(entries), [entries]);
   const passesEquipa = useMemo(() => passesDaEpoca(entries), [entries]);
   const bp = useMemo(() => bolasParadas(entries), [entries]);
+  const extras = useMemo(() => extrasDaEquipa(entries), [entries]);
+  const defesas = useMemo(() => defesasPorJogador(entries), [entries]);
   const temBolaParada = REGISTOS_BOLA_PARADA.some((id) => tipos.has(id));
   const golosEm = (x) => t('registos.golosEm', { golos: x.golos, total: x.total });
   // Só os registos com pontos no campo: sem zona (opção do escalão) não há mapa.
@@ -64,6 +69,10 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
 
   return (
     <>
+      <Bloco titulo={t('registos.ext.equipa')}>
+        <TabelaExtrasEquipa extras={extras} tipos={tipos} />
+      </Bloco>
+
       {tipos.has(REGISTO.REMATE) ? (
         <Bloco titulo={t('registos.epoca.remates')}>
           <div className="grid grid--stats">
@@ -169,6 +178,18 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
             }))}
           />
           <p className="muted small">{t('registos.epoca.recupNota')}</p>
+        </Bloco>
+      ) : null}
+
+      {defesas.length ? (
+        <Bloco titulo={t('registos.epoca.defesasGR')}>
+          <BarrasH
+            linhas={defesas.map((j) => ({
+              rotulo: `${j.number} ${j.name}`,
+              valor: j.defesas,
+              texto: t('registos.epoca.perdasDetalhe', { n: j.defesas, porJogo: j.porJogo.toFixed(1) }),
+            }))}
+          />
         </Bloco>
       ) : null}
 
@@ -281,6 +302,7 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
           <div className="regpainel__mapa">
             <CampoSvg markers={pontos} />
           </div>
+          <LegendaMapa filtro={filtro} />
           <p className="muted small">{t('registos.epoca.pontos', { n: pontos.length })}</p>
         </Bloco>
       ) : null}
