@@ -31,7 +31,7 @@ import { canCreateMatch } from '@/lib/entitlements.js';
 import useSelecaoArraste from '@/lib/selecaoArraste.js';
 import { copiarTexto, linkWhatsApp, abrirFora } from '@/lib/partilha.js';
 import { entregarFicheiro, nomeLimpo } from '@/lib/ficheiros.js';
-import { pavilhaoDeCasa, pdfConvocatoria, textoConvocatoria } from '@/lib/convocatoria.js';
+import { linkDeCasa, linkLimpo, pavilhaoDeCasa, pdfConvocatoria, textoConvocatoria } from '@/lib/convocatoria.js';
 import { useT } from '@/lib/i18n/index.js';
 
 export default function CallupPage() {
@@ -86,6 +86,7 @@ function EscolherJogo({ clubId, teamId, dados }) {
     homeOrAway: 'HOME',
     competitionId: provas.length === 1 ? provas[0].id : '',
     pavilhao: pavilhaoDeCasa(teamId),
+    link: linkDeCasa(teamId),
   }));
   const campo = (k) => ({ value: v[k], onChange: (e) => setV((x) => ({ ...x, [k]: e.target.value })) });
 
@@ -100,10 +101,12 @@ function EscolherJogo({ clubId, teamId, dados }) {
   function mudarLocal(homeOrAway) {
     // O pavilhão de casa entra sozinho num jogo em casa e sai num jogo fora.
     const casa = pavilhaoDeCasa(teamId);
+    const linkCasa = linkDeCasa(teamId);
     setV((x) => ({
       ...x,
       homeOrAway,
       pavilhao: homeOrAway === 'HOME' ? x.pavilhao || casa : x.pavilhao === casa ? '' : x.pavilhao,
+      link: homeOrAway === 'HOME' ? x.link || linkCasa : x.link === linkCasa ? '' : x.link,
     }));
   }
 
@@ -113,6 +116,7 @@ function EscolherJogo({ clubId, teamId, dados }) {
     if (!v.opponentName.trim()) return toast(t('conv.faltaAdversario'), 'error');
     if (provas.length && !v.competitionId) return toast(t('novo.escolhaCompeticao'), 'error');
     if (v.homeOrAway === 'AWAY' && !v.pavilhao.trim()) return toast(t('conv.faltaPavilhao'), 'error');
+    if (v.link.trim() && !linkLimpo(v.link)) return toast(t('conv.linkInvalido'), 'error');
     setAGuardar(true);
     try {
       const permissao = await canCreateMatch();
@@ -131,6 +135,7 @@ function EscolherJogo({ clubId, teamId, dados }) {
         // Em casa, só fica no jogo um pavilhão diferente do de casa — assim
         // mudar o pavilhão de casa mais tarde chega aos jogos já criados.
         venue: v.homeOrAway === 'AWAY' || v.pavilhao.trim() !== pavilhaoDeCasa(teamId) ? v.pavilhao : null,
+        venueUrl: v.homeOrAway === 'AWAY' || linkLimpo(v.link) !== linkDeCasa(teamId) ? linkLimpo(v.link) || null : null,
       });
       await events.append(
         matchCreated({
@@ -203,6 +208,9 @@ function EscolherJogo({ clubId, teamId, dados }) {
               <input className="input" maxLength={100} placeholder={t('treino.localExemplo')} {...campo('pavilhao')} />
             </Field>
           </div>
+          <Field label={t('conv.linkPavilhao')} hint={t('conv.linkPavilhaoDica')}>
+            <input className="input" type="url" inputMode="url" maxLength={500} placeholder="https://maps.app.goo.gl/…" {...campo('link')} />
+          </Field>
           <div className="form__actions">
             <button type="submit" className="btn btn--primary" disabled={aGuardar}>
               {t('conv.criarESeguir')}
@@ -258,6 +266,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
         scheduledAt: paraInput(match.scheduledAt || Date.now()),
         homeOrAway: match.homeOrAway || 'HOME',
         pavilhao: match.venue || '',
+        link: match.venueUrl || '',
       });
     }
   }, [match, info]);
@@ -287,7 +296,8 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
     info.opponentName.trim() !== match.opponentName ||
     new Date(info.scheduledAt).getTime() !== match.scheduledAt ||
     info.homeOrAway !== (match.homeOrAway || 'HOME') ||
-    info.pavilhao.trim() !== (match.venue || '');
+    info.pavilhao.trim() !== (match.venue || '') ||
+    linkLimpo(info.link) !== (match.venueUrl || '');
   const porGravar = mudouLista || mudouInfo;
   const casa = pavilhaoDeCasa(teamId);
 
@@ -311,12 +321,17 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
       toast(t('conv.faltaPavilhao'), 'error');
       return false;
     }
+    if (info.link.trim() && !linkLimpo(info.link)) {
+      toast(t('conv.linkInvalido'), 'error');
+      return false;
+    }
     if (mudouInfo) {
       await matches.update(match.id, {
         opponentName: info.opponentName.trim(),
         scheduledAt: new Date(info.scheduledAt).getTime(),
         homeOrAway: info.homeOrAway,
         venue: info.pavilhao.trim() || null,
+        venueUrl: linkLimpo(info.link) || null,
       });
     }
     if (mudouLista) {
@@ -411,6 +426,9 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
               />
             </Field>
           </div>
+          <Field label={t('conv.linkPavilhao')} hint={t('conv.linkPavilhaoDica')}>
+            <input className="input" type="url" inputMode="url" maxLength={500} placeholder="https://maps.app.goo.gl/…" {...campo('link')} />
+          </Field>
           {prova ? <p className="muted conv__prova">{t('prep.competicao')}: {prova.name}</p> : null}
         </div>
       </section>

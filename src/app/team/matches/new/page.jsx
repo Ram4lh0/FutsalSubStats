@@ -9,6 +9,7 @@ import useRouteParams from '@/lib/useRouteParams.js';
 import PageHead from '@/components/PageHead.jsx';
 import CourtPicker, { countFilled } from '@/components/CourtPicker.jsx';
 import { Empty, Field } from '@/components/bits.jsx';
+import { linkLimpo } from '@/lib/convocatoria.js';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { confirmarPoucosConvocados } from '@/lib/squad.js';
@@ -79,6 +80,7 @@ function Assistente() {
     scheduledAt: dataHoraPorOmissao(),
     homeOrAway: 'HOME',
     venue: '',
+    venueUrl: '',
     notes: '',
   });
   const [escolhidos, setEscolhidos] = useState([]);
@@ -255,6 +257,7 @@ function Assistente() {
         timing: info.timing,
         homeOrAway: info.homeOrAway,
         venue: info.homeOrAway === 'AWAY' ? info.venue : null,
+        venueUrl: info.homeOrAway === 'AWAY' ? linkLimpo(info.venueUrl) : null,
         scheduledAt: new Date(info.scheduledAt).getTime(),
         season: club?.currentSeason || null,
         notes: info.notes,
@@ -405,6 +408,11 @@ function Assistente() {
                 <input className="input" maxLength={120} placeholder={t('treino.localExemplo')} {...campo('venue')} />
               </Field>
             ) : null}
+            {info.homeOrAway === 'AWAY' ? (
+              <Field label={t('conv.linkPavilhao')} hint={t('conv.linkPavilhaoDica')}>
+                <input className="input" type="url" inputMode="url" maxLength={500} placeholder="https://maps.app.goo.gl/…" {...campo('venueUrl')} />
+              </Field>
+            ) : null}
             <div className="form__row">
               <Field
                 label={t('prep.competicao')}
@@ -460,6 +468,7 @@ function Assistente() {
               if (erro) return toast(mensagemErro(erro), 'error');
               if (!info.competitionId) return toast(t('novo.escolhaCompeticao'), 'error');
               if (info.homeOrAway === 'AWAY' && !info.venue.trim()) return toast(t('conv.faltaPavilhao'), 'error');
+              if (info.homeOrAway === 'AWAY' && info.venueUrl.trim() && !linkLimpo(info.venueUrl)) return toast(t('conv.linkInvalido'), 'error');
               setEtapa(1);
             })}
           </div>

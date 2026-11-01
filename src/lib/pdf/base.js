@@ -310,6 +310,21 @@ export class Relatorio {
     this.y += 2;
   }
 
+  /** "Rótulo: link", com o link clicável (e cortado se não couber numa linha). */
+  link(rotulo, url, { tamanho = 11 } = {}) {
+    if (!url) return;
+    const linha = tamanho * 0.45;
+    this.garantir(linha);
+    const prefixo = `${limpar(rotulo)}: `;
+    this.fonte(tamanho).cor(COR.texto);
+    this.texto(prefixo, this.M, this.y);
+    const x = this.M + this.largTexto(prefixo);
+    this.cor(COR.verdeTinta);
+    const visivel = this.cortar(url, this.largura - (x - this.M));
+    this.doc.textWithLink(visivel, x, this.y, { url });
+    this.y += linha + 2;
+  }
+
   /**
    * Cartões de números, como os `StatCard` da app: rótulo, valor, detalhe.
    *

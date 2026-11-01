@@ -17,7 +17,7 @@ import { rotas } from '@/lib/routes.js';
 import { Empty, Field } from '@/components/bits.jsx';
 import LinhaJogo, { porJogar } from '@/components/treino/LinhaJogo.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
-import { gravarPavilhaoDeCasa, pavilhaoDeCasa } from '@/lib/convocatoria.js';
+import { gravarLinkDeCasa, gravarPavilhaoDeCasa, linkDeCasa, linkLimpo, pavilhaoDeCasa } from '@/lib/convocatoria.js';
 import { useT } from '@/lib/i18n/index.js';
 
 export default function CallupsPage() {
@@ -43,7 +43,11 @@ function Convocatorias({ clubId, teamId, entries }) {
   const ui = useUI();
   const soLeitura = useSoLeitura(teamId);
   const [casa, setCasa] = useState('');
-  useEffect(() => setCasa(pavilhaoDeCasa(teamId)), [teamId]);
+  const [casaLink, setCasaLink] = useState('');
+  useEffect(() => {
+    setCasa(pavilhaoDeCasa(teamId));
+    setCasaLink(linkDeCasa(teamId));
+  }, [teamId]);
 
   const { proximos, ultimas } = useMemo(() => {
     const hoje = new Date();
@@ -62,10 +66,12 @@ function Convocatorias({ clubId, teamId, entries }) {
   const abrir = (matchId) => router.push(rotas.convocatoria(clubId, teamId, matchId));
 
   async function definirCasa() {
-    const novo = await ui.open((close) => <PavilhaoCasa inicial={casa} onFechar={close} />);
+    const novo = await ui.open((close) => <PavilhaoCasa inicial={casa} inicialLink={casaLink} onFechar={close} />);
     if (novo === null || novo === undefined) return;
-    gravarPavilhaoDeCasa(teamId, novo);
-    setCasa(novo.trim());
+    gravarPavilhaoDeCasa(teamId, novo.nome);
+    gravarLinkDeCasa(teamId, novo.link);
+    setCasa(novo.nome.trim());
+    setCasaLink(linkLimpo(novo.link));
   }
 
   return (
@@ -103,20 +109,29 @@ function Convocatorias({ clubId, teamId, entries }) {
   );
 }
 
-function PavilhaoCasa({ inicial, onFechar }) {
+function PavilhaoCasa({ inicial, inicialLink, onFechar }) {
   const t = useT();
+  const { toast } = useUI();
   const [v, setV] = useState(inicial);
+  const [link, setLink] = useState(inicialLink);
+  const guardar = () => {
+    if (link.trim() && !linkLimpo(link)) return toast(t('conv.linkInvalido'), 'error');
+    onFechar({ nome: v, link });
+  };
   return (
     <Dialog title={t('conv.pavilhaoCasa')} onClose={() => onFechar(null)}>
       <p className="modal__hint">{t('conv.pavilhaoCasaHint')}</p>
       <Field label={t('conv.pavilhao')}>
         <input className="input" autoFocus maxLength={100} placeholder={t('treino.localExemplo')} value={v} onChange={(e) => setV(e.target.value)} />
       </Field>
+      <Field label={t('conv.linkPavilhao')}>
+        <input className="input" type="url" inputMode="url" maxLength={500} placeholder="https://maps.app.goo.gl/…" value={link} onChange={(e) => setLink(e.target.value)} />
+      </Field>
       <footer className="modal__actions">
         <button className="btn btn--ghost" onClick={() => onFechar(null)}>
           {t('comum.cancelar')}
         </button>
-        <button className="btn btn--primary" onClick={() => onFechar(v)}>
+        <button className="btn btn--primary" onClick={guardar}>
           {t('comum.guardar')}
         </button>
       </footer>

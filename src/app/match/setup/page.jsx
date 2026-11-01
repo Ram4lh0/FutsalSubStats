@@ -13,6 +13,7 @@ import PageHead from '@/components/PageHead.jsx';
 import CourtPicker, { countFilled } from '@/components/CourtPicker.jsx';
 import { Empty, Field, StatusBadge } from '@/components/bits.jsx';
 import { confirmarPoucosConvocados } from '@/lib/squad.js';
+import { linkLimpo } from '@/lib/convocatoria.js';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { clubs, teams, competitions, players, matches, squad, events, loadMatch } from '@/lib/data/repository.js';
@@ -88,6 +89,7 @@ function Preparacao() {
         scheduledAt: paraInput(match.scheduledAt),
         homeOrAway: match.homeOrAway,
         venue: match.venue || '',
+        venueUrl: match.venueUrl || '',
         competitionId: match.competitionId || '',
         timing: timingOf(match),
         notes: match.notes || '',
@@ -154,6 +156,7 @@ function Preparacao() {
   async function guardarDados() {
     if (aGuardar) return;
     if (form.homeOrAway === 'AWAY' && !(form.venue || '').trim()) return toast(t('conv.faltaPavilhao'), 'error');
+    if ((form.venueUrl || '').trim() && !linkLimpo(form.venueUrl)) return toast(t('conv.linkInvalido'), 'error');
     setAGuardar(true);
     try {
       await matches.update(matchId, {
@@ -162,6 +165,7 @@ function Preparacao() {
         scheduledAt: new Date(form.scheduledAt).getTime(),
         homeOrAway: form.homeOrAway,
         venue: (form.venue || '').trim() || null,
+        venueUrl: linkLimpo(form.venueUrl) || null,
         competitionId: form.competitionId || null,
         timing: form.timing,
         notes: form.notes,
@@ -314,6 +318,11 @@ function Preparacao() {
           {form.homeOrAway === 'AWAY' ? (
             <Field label={t('conv.pavilhaoFora')}>
               <input className="input" maxLength={120} placeholder={t('treino.localExemplo')} {...campo('venue')} />
+            </Field>
+          ) : null}
+          {form.homeOrAway === 'AWAY' ? (
+            <Field label={t('conv.linkPavilhao')} hint={t('conv.linkPavilhaoDica')}>
+              <input className="input" type="url" inputMode="url" maxLength={500} placeholder="https://maps.app.goo.gl/…" {...campo('venueUrl')} />
             </Field>
           ) : null}
           <div className="form__row">
