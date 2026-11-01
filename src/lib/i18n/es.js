@@ -2250,4 +2250,9 @@ export default {
   "painelv.todoOJogo": "Todo el partido",
   "painelv.faixasEscolhidas": "{n} franjas elegidas",
   "painelv.dicaFiltro": "Pulsa las barras para filtrar todo el panel por ese periodo (puedes elegir varios).",
+  "painelv.intervalo": "Descanso",
+  "painelv.janelaDe": "Inicio del periodo",
+  "painelv.janelaAte": "Fin del periodo",
+  "painelv.janelaTexto": "Analizando del {de}′ al {ate}′",
+  "painelv.janelaJogoTodo": "Analizando todo el partido. Arrastra los controles o pulsa un atajo.",
 };

@@ -24,6 +24,7 @@ import { BarrasH, ColunasEspelhadas, EscadaForma, FitaForma, Pizza } from '@/com
 import { CartaoTop } from '@/components/stats/Destaques.jsx';
 import { ListaGolos } from '@/components/stats/CartaoGolos.jsx';
 import BlocosDaEpoca from '@/components/registos/BlocosDaEpoca.jsx';
+import JanelaTempo from '@/components/JanelaTempo.jsx';
 import { BlocosExtrasAtleta } from '@/components/registos/ExtrasRegistos.jsx';
 import {
   minutosPorJogador,
@@ -116,9 +117,9 @@ function Filtros({
   roster,
   atletaId,
   aoTrocarAtleta,
-  periodo,
-  nFaixas,
-  aoTrocarPeriodo,
+  janela,
+  parteMs,
+  aoTrocarJanela,
   aoExportarPdf,
   aGerarPdf = false,
 }) {
@@ -147,32 +148,9 @@ function Filtros({
         </div>
       ) : null}
 
-      <div className="filtros__grupo no-print">
+      <div className="filtros__grupo filtros__grupo--janela no-print">
         <span className="filtros__rotulo">{t('painelv.periodo')}</span>
-        {(() => {
-          const todas = (parte) => Array.from({ length: nFaixas }, (_, i) => ({ parte, i }));
-          const igual = (parte) =>
-            periodo.length === nFaixas && periodo.every((s) => s.parte === parte);
-          const custom = periodo.length > 0 && !igual(1) && !igual(2);
-          return (
-            <>
-              <button type="button" className={`chip ${periodo.length === 0 ? 'is-on' : ''}`} onClick={() => aoTrocarPeriodo([])}>
-                {t('painelv.todoOJogo')}
-              </button>
-              <button type="button" className={`chip ${igual(1) ? 'is-on' : ''}`} onClick={() => aoTrocarPeriodo(todas(1))}>
-                {t('painelv.primeiraParte')}
-              </button>
-              <button type="button" className={`chip ${igual(2) ? 'is-on' : ''}`} onClick={() => aoTrocarPeriodo(todas(2))}>
-                {t('painelv.segundaParte')}
-              </button>
-              {custom ? (
-                <button type="button" className="chip is-on" onClick={() => aoTrocarPeriodo([])}>
-                  {t('painelv.faixasEscolhidas', { n: periodo.length })} ✕
-                </button>
-              ) : null}
-            </>
-          );
-        })()}
+        <JanelaTempo parteMin={Math.round(parteMs / 60_000)} janela={janela} aoMudar={aoTrocarJanela} />
       </div>
 
       {provas.length > 1 ? (
@@ -538,8 +516,8 @@ function Painel({ club, team, entries, roster, competitions }) {
   const formaMobile = useFormaMobile();
   // A faixa por cima da qual está o dedo, uma por parte.
   const [faixaAtiva, setFaixaAtiva] = useState({ parte: null, i: null });
-  // As faixas de tempo escolhidas como filtro: `{ parte, i }`. Vazio = jogo todo.
-  const [periodo, setPeriodo] = useState([]);
+  // A janela de tempo escolhida, em minutos (`{ de, ate }`); null = jogo todo.
+  const [janela, setJanela] = useState(null);
 
   const provas = useMemo(() => provasComJogos(entries, competitions), [entries, competitions]);
   const tipos = useMemo(() => tiposDeJogo(entries), [entries]);
@@ -556,16 +534,38 @@ function Painel({ club, team, entries, roster, competitions }) {
   // Os jogos inteiros: o gráfico dos períodos desenha sempre estes.
   const base = useMemo(() => filtrar(porProvaETipo, { jogo: jogoId }), [porProvaETipo, jogoId]);
   const parteMs = useMemo(() => parteDosJogos(base, tipo), [base, tipo]);
-  const nFaixas = Math.max(1, Math.ceil(parteMs / (5 * 60_000)));
-  // O que o resto do painel conta: os jogos recortados às faixas escolhidas.
-  const filtrados = useMemo(() => recortarPorPeriodo(base, periodo, { parteMs }), [base, periodo, parteMs]);
-  const alternarFaixa = (parte, i) =>
-    setPeriodo((atual) =>
-      atual.some((s) => s.parte === parte && s.i === i)
-        ? atual.filter((s) => !(s.parte === parte && s.i === i))
-        : [...atual, { parte, i }]
-    );
-  const faixasDe = (parte) => new Set(periodo.filter((s) => s.parte === parte).map((s) => s.i));
+  const parteMin = Math.max(1, Math.round(parteMs / 60_000));
+  const janelaMs = janela ? { deMs: janela.de * 60_000, ateMs: janela.ate * 60_000 } : null;
+  // O que o resto do painel conta: os jogos recortados à janela escolhida.
+  const filtrados = useMemo(
+    () => recortarPorPeriodo(base, janelaMs, { parteMs }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [base, janela, parteMs]
+  );
+  // As faixas do gráfico que a janela toca, e o clique numa barra: a 1.ª
+  // clicada escolhe-a, a seguinte alarga a janela até lá, e clicar na única
+  // faixa escolhida limpa o filtro.
+  const faixaMin = 5;
+  const faixasDe = (parte) => {
+    const out = new Set();
+    if (!janela) return out;
+    const nF = Math.max(1, Math.ceil(parteMin / faixaMin));
+    for (let i = 0; i < nF; i++) {
+      const ini = (parte === 2 ? parteMin : 0) + i * faixaMin;
+      const fim = Math.min(ini + faixaMin, parte === 2 ? parteMin * 2 : parteMin);
+      if (ini < janela.ate && fim > janela.de) out.add(i);
+    }
+    return out;
+  };
+  const alternarFaixa = (parte, i) => {
+    const ini = (parte === 2 ? parteMin : 0) + i * faixaMin;
+    const fim = Math.min(ini + faixaMin, parte === 2 ? parteMin * 2 : parteMin);
+    setJanela((atual) => {
+      if (!atual) return { de: ini, ate: fim };
+      if (atual.de === ini && atual.ate === fim) return null;
+      return { de: Math.min(atual.de, ini), ate: Math.max(atual.ate, fim) };
+    });
+  };
 
   const min = useMemo(() => minutosPorJogador(filtrados, roster), [filtrados, roster]);
   const limiteForma = formaMobile ? 5 : 8;
@@ -582,8 +582,8 @@ function Painel({ club, team, entries, roster, competitions }) {
   );
   // O gráfico de períodos do atleta também mostra os jogos inteiros.
   const atletaBase = useMemo(
-    () => (atletaId && periodo.length ? painelDoAtleta(base, roster, atletaId, { parteMs, quantos: 5 }) : null),
-    [base, roster, atletaId, parteMs, periodo.length]
+    () => (atletaId && janela ? painelDoAtleta(base, roster, atletaId, { parteMs, quantos: 5 }) : null),
+    [base, roster, atletaId, parteMs, janela]
   );
   const extrasAtleta = useMemo(
     () => (atletaId ? extrasDoAtleta(filtrados, atletaId) : null),
@@ -728,9 +728,9 @@ function Painel({ club, team, entries, roster, competitions }) {
           roster={roster}
           atletaId={atletaId}
           aoTrocarAtleta={setAtletaId}
-          periodo={periodo}
-          nFaixas={nFaixas}
-          aoTrocarPeriodo={setPeriodo}
+          janela={janela}
+          parteMs={parteMs}
+          aoTrocarJanela={setJanela}
           aoExportarPdf={exportarPdf}
           aGerarPdf={aGerarPdf}
         />

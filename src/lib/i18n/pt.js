@@ -2254,4 +2254,9 @@ export default {
   "painelv.todoOJogo": "Todo o jogo",
   "painelv.faixasEscolhidas": "{n} faixas escolhidas",
   "painelv.dicaFiltro": "Clica nas barras para filtrar o painel todo por esse período (podes escolher várias).",
+  "painelv.intervalo": "Intervalo",
+  "painelv.janelaDe": "Início do período",
+  "painelv.janelaAte": "Fim do período",
+  "painelv.janelaTexto": "A analisar dos {de}′ aos {ate}′",
+  "painelv.janelaJogoTodo": "A analisar o jogo todo. Arrasta as pegas ou clica num atalho.",
 };

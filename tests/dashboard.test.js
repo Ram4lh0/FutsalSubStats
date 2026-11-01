@@ -782,7 +782,7 @@ test('o mapa da época junta os pontos de todos os jogos terminados', () => {
   assert.deepEqual(pontos.map((m) => m.id), ['a:r1', 'b:r3']);
 });
 
-test('recortarPorPeriodo fica só com os golos e minutos das faixas escolhidas', async () => {
+test('recortarPorPeriodo fica só com os golos e minutos da janela', async () => {
   const { recortarPorPeriodo } = await import('../src/domain/dashboard.js');
   const g = (team, period, ms) => ({ eventId: `${team}${ms}`, team, period, matchElapsedMs: ms, scorerId: null });
   const j = jogo({
@@ -798,17 +798,19 @@ test('recortarPorPeriodo fica só com os golos e minutos das faixas escolhidas',
       },
     },
   });
-  // Nada escolhido: os jogos ficam como estão.
+  const parteMs = 20 * MIN;
   const todos = [j];
-  assert.equal(recortarPorPeriodo(todos, []), todos);
-  const r = recortarPorPeriodo([j], [{ parte: 1, i: 0 }])[0].state;
+  assert.equal(recortarPorPeriodo(todos, null, { parteMs }), todos);
+  assert.equal(recortarPorPeriodo(todos, { deMs: 0, ateMs: 40 * MIN }, { parteMs }), todos);
+  // Dos 0' aos 5'.
+  const r = recortarPorPeriodo(todos, { deMs: 0, ateMs: 5 * MIN }, { parteMs })[0].state;
   assert.equal(r.goals.length, 1);
   assert.equal(r.teamScore, 1);
-  assert.equal(r.opponentScore, 0);
   assert.equal(r.players.a.stints[0].endMatchMs, 5 * MIN);
-  // 2.ª parte, faixa 1 (5'–10' da parte = 25'–30' do jogo).
-  const s = recortarPorPeriodo([j], [{ parte: 2, i: 1 }])[0].state;
+  // Dos 15' aos 30': apanha o fim da 1.ª parte e o início da 2.ª.
+  const s = recortarPorPeriodo(todos, { deMs: 15 * MIN, ateMs: 30 * MIN }, { parteMs })[0].state;
   assert.equal(s.goals.length, 1);
-  assert.equal(s.players.a.stints[0].startMatchMs, 25 * MIN);
-  assert.equal(s.players.a.stints[0].endMatchMs, 30 * MIN);
+  assert.equal(s.players.a.stints.length, 2);
+  const tempo = s.players.a.stints.reduce((t, x) => t + x.endMatchMs - x.startMatchMs, 0);
+  assert.equal(tempo, 15 * MIN);
 });

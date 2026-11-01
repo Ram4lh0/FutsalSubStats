@@ -2249,4 +2249,9 @@ export default {
   "painelv.todoOJogo": "Whole game",
   "painelv.faixasEscolhidas": "{n} slots selected",
   "painelv.dicaFiltro": "Click the bars to filter the whole dashboard by that period (you can pick several).",
+  "painelv.intervalo": "Half-time",
+  "painelv.janelaDe": "Period start",
+  "painelv.janelaAte": "Period end",
+  "painelv.janelaTexto": "Analysing minute {de}′ to {ate}′",
+  "painelv.janelaJogoTodo": "Analysing the whole game. Drag the handles or tap a shortcut.",
 };

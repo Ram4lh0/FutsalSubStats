@@ -1056,43 +1056,46 @@ export function defesasPorJogador(entries) {
 /* ------------------------------------------------ filtro por período */
 
 /**
- * Recorta os jogos às faixas escolhidas (as mesmas do gráfico dos golos por
- * período): `selecao` é uma lista de `{ parte, i }`, `i` a faixa dentro da
- * parte. Vazia, devolve os jogos como estão.
+ * Recorta os jogos a uma janela de tempo: `janela = { deMs, ateMs }` numa
+ * linha do tempo "nominal" que junta as duas partes (a 2.ª parte começa em
+ * `parteMs`, como no relógio de quem vê o jogo: 0–20' e 20'–40'). Sem janela,
+ * devolve os jogos como estão.
  *
- * Em cada jogo ficam só os golos, faltas, cartões e registos extra dessas
- * faixas, e os tempos em campo cortados às mesmas janelas. A última faixa de
- * cada parte apanha o que passou do tempo regulamentar, como no gráfico.
- * O resto (plantel, resultado final do jogo, etc.) não muda de sítio: o
- * resultado passa a ser o das faixas, que é o que se está a ver.
+ * Em cada jogo ficam só os golos, faltas, cartões e registos extra dessa
+ * janela, e os tempos em campo cortados a ela. O que passou do tempo
+ * regulamentar conta na última faixa de cada parte, como no gráfico dos golos
+ * por período. O resultado passa a ser o da janela, que é o que se está a ver.
  */
-export function recortarPorPeriodo(entries, selecao, { faixaMs = 5 * 60_000, parteMs = 20 * 60_000 } = {}) {
-  if (!selecao?.length) return entries;
-  const nFaixas = Math.max(1, Math.ceil(parteMs / faixaMs));
-  const quer = (parte, i) => selecao.some((s) => s.parte === parte && s.i === i);
+export function recortarPorPeriodo(entries, janela, { parteMs = 20 * 60_000 } = {}) {
+  if (!janela || !(janela.ateMs > janela.deMs)) return entries;
+  const { deMs, ateMs } = janela;
+  const FIM = 2 * parteMs;
+  if (deMs <= 0 && ateMs >= FIM) return entries;
 
   return entries.map((e) => {
     const { state } = e;
     if (state.status !== MATCH_STATUS.FINISHED) return e;
     const primeira = state.firstHalfMs || 0;
     const total = state.elapsedMatchMs || 0;
-    const faixaDe = (period, ms) => {
-      const parte = period === 2 ? 2 : 1;
-      const naParte = parte === 2 ? ms - primeira : ms;
-      return { parte, i: Math.min(nFaixas - 1, Math.max(0, Math.floor(naParte / faixaMs))) };
-    };
+    const nominal = (period, ms) =>
+      period === 2
+        ? parteMs + Math.min(parteMs - 1, Math.max(0, ms - primeira))
+        : Math.min(parteMs - 1, Math.max(0, ms));
     const dentro = (period, ms) => {
-      const f = faixaDe(period, ms);
-      return quer(f.parte, f.i);
+      const n = nominal(period, ms);
+      return n >= deMs && n < ateMs;
     };
 
-    // Janelas em tempo de jogo absoluto, para cortar os tempos em campo.
+    // A janela em tempo de jogo absoluto, para cortar os tempos em campo.
     const janelas = [];
-    for (const s of selecao) {
-      const base = s.parte === 2 ? primeira : 0;
-      const fimParte = s.parte === 2 ? total : primeira;
-      const ini = base + s.i * faixaMs;
-      const fim = s.i === nFaixas - 1 ? Math.max(fimParte, ini) : Math.min(fimParte, base + (s.i + 1) * faixaMs);
+    if (deMs < parteMs) {
+      const ini = deMs;
+      const fim = ateMs >= parteMs ? Math.max(primeira, ini) : ateMs;
+      if (fim > ini) janelas.push([ini, fim]);
+    }
+    if (ateMs > parteMs) {
+      const ini = primeira + Math.max(deMs, parteMs) - parteMs;
+      const fim = ateMs >= FIM ? total : primeira + ateMs - parteMs;
       if (fim > ini) janelas.push([ini, fim]);
     }
 
