@@ -254,6 +254,17 @@
 
 <div class="aba" id="aba-feedback" hidden>
 <section>
+  <h2>Feedback da app</h2>
+  <p class="muted small" style="margin:-4px 0 12px" id="app-nota"></p>
+  <div class="cartao feedback">
+    <table id="feedback-app">
+      <thead><tr><th>Conta</th><th>Data</th><th>Versão</th><th>Plataforma</th><th>Ecrã</th><th>Texto (original)</th></tr></thead>
+      <tbody><tr><td colspan="6" class="muted">A carregar…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
   <h2>Feedback inicial</h2>
   <p class="muted small" style="margin:-4px 0 12px" id="feedback-nota"></p>
   <div class="cartao feedback">
@@ -736,7 +747,24 @@ function desenharRecebidos(recebidos) {
     </tr>`).join('') || '<tr><td colspan="4" class="muted">Ainda ninguém recebeu o popup.</td></tr>';
 }
 
-function desenharFeedback({ recebidos = [], respostas, fechadosSemResposta }) {
+const PLATAFORMAS = { ios: 'iOS', android: 'Android', web: 'Web' };
+
+function desenharApp(app) {
+  const contas = new Set(app.map((f) => f.conta)).size;
+  $('#app-nota').textContent = `${app.length} feedback(s) de ${contas} conta(s), do mais recente para o mais antigo.`;
+  $('#feedback-app tbody').innerHTML = app.map((f) => `
+    <tr>
+      ${contaCelula({ nome: f.nome, conta: f.conta, interna: f.interna })}
+      <td class="nowrap small">${texto(dataHora(f.quando))}</td>
+      <td class="nowrap small">${texto(f.versao ? `v${f.versao}` : '—')}</td>
+      <td class="nowrap small">${texto(PLATAFORMAS[f.plataforma] || f.plataforma || '—')}</td>
+      <td class="small">${texto(f.ecra || '—')}</td>
+      <td class="opiniao">${texto(f.texto)}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="muted">Ainda não há feedback da app.</td></tr>';
+}
+
+function desenharFeedback({ app = [], recebidos = [], respostas, fechadosSemResposta }) {
+  desenharApp(app);
   desenharRecebidos(recebidos);
   const reais = respostas.filter((r) => !r.interna).length;
   $('#feedback-nota').textContent =

@@ -636,15 +636,23 @@ export async function desassociarClube(sb, { userId, clubeId }) {
  * quem o popup já apareceu; `respostas` só as que trazem resposta. Vêm do
  * mais recente para o mais antigo. As respostas do fim da demonstração
  * (`feedback_demo`) entram com o momento `demo`.
+ *
+ * `app` são os feedbacks que se mandam pelo ícone da app (`feedback_app`), com
+ * o texto como foi escrito, a conta, a data, a versão, a plataforma e o ecrã.
+ * Ficam à parte: não são respostas a popups.
  */
 export async function feedbacks(sb) {
-  const [respostas, perfis, demo] = await Promise.all([
+  const [respostas, perfis, demo, appFb] = await Promise.all([
     sb
       .from('feedback_inicial')
       .select('user_id, momento, respondido, origem, email, opiniao, created_at')
       .order('created_at', { ascending: false }),
     sb.from('profiles').select('id, email, name'),
     sb.from('feedback_demo').select('id, opiniao, email, created_at'),
+    sb
+      .from('feedback_app')
+      .select('id, user_id, texto, ecra, versao, plataforma, created_at')
+      .order('created_at', { ascending: false }),
   ]);
   const erro = [respostas, perfis].find((r) => r.error);
   if (erro) throw new Error(erro.error.message);
@@ -685,7 +693,25 @@ export async function feedbacks(sb) {
   }
   linhas.sort((a, b) => String(b.quando || '').localeCompare(String(a.quando || '')));
 
+  // Os da app: a conta vem do perfil, por isso não há mais uma consulta. Se a
+  // tabela ainda não existir, a aba continua a funcionar sem esta secção.
+  const app = (appFb?.error ? [] : appFb?.data || []).map((f) => {
+    const perfil = perfilPorId.get(f.user_id);
+    return {
+      id: f.id,
+      conta: perfil?.email || 'conta desconhecida',
+      nome: perfil?.name || null,
+      interna: eInterno(perfil?.email),
+      texto: f.texto,
+      versao: f.versao || null,
+      plataforma: f.plataforma || null,
+      ecra: f.ecra || null,
+      quando: f.created_at,
+    };
+  });
+
   return {
+    app,
     recebidos: linhas,
     respostas: linhas.filter((l) => l.respondido),
     fechadosSemResposta: linhas.filter((l) => !l.respondido).length,

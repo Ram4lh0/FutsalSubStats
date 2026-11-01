@@ -676,3 +676,21 @@ test('as respostas do fim da demonstração entram no feedback com o momento dem
     ['demo (sem conta)', 'demo', 'Gostei'],
   ]);
 });
+
+test('o feedback da app traz a conta, a data, a versão, a plataforma e o texto original', async () => {
+  const sb = supabaseFalso({
+    profiles: [{ id: 'u9', email: 'jose@mail.com', name: 'José' }],
+    feedback_app: [
+      { id: 'a1', user_id: 'u9', texto: 'Generamos muchas ocasiones sin poder definir ni una sola', ecra: '/match/summary/', versao: '1.26.2', plataforma: 'ios', created_at: '2026-11-01T07:57:00Z' },
+      { id: 'a2', user_id: 'u-sem-perfil', texto: 'Olá', ecra: '/account/', versao: null, plataforma: null, created_at: '2026-10-30T09:00:00Z' },
+    ],
+  });
+  const r = await feedbacks(sb);
+  assert.deepEqual(r.app.map((f) => [f.conta, f.nome, f.versao, f.plataforma, f.ecra, f.texto]), [
+    ['jose@mail.com', 'José', '1.26.2', 'ios', '/match/summary/', 'Generamos muchas ocasiones sin poder definir ni una sola'],
+    ['conta desconhecida', null, null, null, '/account/', 'Olá'],
+  ]);
+  // Não são respostas a popups: não entram em "recebidos" nem em "respostas".
+  assert.equal(r.recebidos.length, 0);
+  assert.equal(r.respostas.length, 0);
+});
