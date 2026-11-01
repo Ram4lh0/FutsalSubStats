@@ -513,6 +513,7 @@
 .janela { flex: 1; min-width: 260px; max-width: 640px; display: flex; flex-direction: column; gap: 6px; }
 .janela__atalhos { display: flex; flex-wrap: wrap; gap: 6px; }
 .janela__barra { position: relative; height: 34px; }
+.janela__trilhos { position: absolute; inset: 0 13px; }
 .janela__trilho, .janela__cheio { position: absolute; top: 14px; height: 6px; border-radius: 3px; }
 .janela__trilho { left: 0; right: 0; background: rgba(255, 255, 255, 0.12); }
 .janela__cheio { background: var(--primary, #22c55e); }
@@ -522,5 +523,13 @@
 .janela__barra input[type='range']::-moz-range-track { background: transparent; }
 .janela__barra input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 26px; height: 26px; margin-top: 4px; border-radius: 50%; background: #fff; border: 3px solid var(--primary, #22c55e); cursor: grab; }
 .janela__barra input[type='range']::-moz-range-thumb { pointer-events: auto; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 3px solid var(--primary, #22c55e); cursor: grab; }
-.janela__eixo { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); }
+.janela__eixo { padding-inline: 13px; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); }
 .janela__texto { margin: 0; font-size: 0.85rem; color: var(--muted); }
+
+/* Mostrar / esconder os filtros (poupa espaço no telemóvel). */
+.filtros__alternar { margin-bottom: 8px; }
+@media (max-width: 560px) {
+  .filtros__grupo--janela { flex-direction: column; align-items: stretch; gap: 8px; }
+  .filtros__grupo--janela .filtros__rotulo { align-self: flex-start; }
+  .janela { min-width: 0; max-width: none; width: 100%; margin-inline: auto; }
+}

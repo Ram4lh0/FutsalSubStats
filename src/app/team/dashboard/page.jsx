@@ -124,10 +124,35 @@ function Filtros({
   aGerarPdf = false,
 }) {
   const t = useT();
+  const [escondidos, setEscondidos] = useState(false);
+  // Lembra a escolha neste aparelho (só conveniência: sem storage, abre aberto).
+  useEffect(() => {
+    try {
+      setEscondidos(localStorage.getItem('futsal.filtros.escondidos') === '1');
+    } catch {}
+  }, []);
+  function alternar() {
+    setEscondidos((v) => {
+      try {
+        localStorage.setItem('futsal.filtros.escondidos', v ? '0' : '1');
+      } catch {}
+      return !v;
+    });
+  }
   const jogadores = [...(roster || [])].sort(
     (a, b) => (a.number ?? a.shirtNumber ?? 999) - (b.number ?? b.shirtNumber ?? 999)
   );
   return (
+    <>
+      <button
+        type="button"
+        className="btn btn--ghost btn--tiny filtros__alternar no-print"
+        aria-expanded={!escondidos}
+        onClick={alternar}
+      >
+        {escondidos ? t('painelv.mostrarFiltros') : t('painelv.esconderFiltros')}
+      </button>
+      {escondidos ? null : (
     <div className="filtros">
       {jogadores.length ? (
         <div className="filtros__grupo">
@@ -224,6 +249,8 @@ function Filtros({
         </button>
       </div>
     </div>
+      )}
+    </>
   );
 }
 

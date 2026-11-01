@@ -2254,4 +2254,6 @@ export default {
   "painelv.janelaAte": "Period end",
   "painelv.janelaTexto": "Analysing minute {de}′ to {ate}′",
   "painelv.janelaJogoTodo": "Analysing the whole game. Drag the handles or tap a shortcut.",
+  "painelv.esconderFiltros": "Hide filters",
+  "painelv.mostrarFiltros": "Show filters",
 };

@@ -48,12 +48,15 @@ export default function JanelaTempo({ parteMin, janela, aoMudar }) {
       </div>
 
       <div className="janela__barra">
-        <div className="janela__trilho" />
-        <div
-          className="janela__cheio"
-          style={{ left: `${(de / max) * 100}%`, right: `${100 - (ate / max) * 100}%` }}
-        />
-        <div className="janela__intervalo" style={{ left: '50%' }} title={t('painelv.intervalo')} />
+        {/* Os trilhos ficam recuados meia pega, para a pega parar sobre a linha. */}
+        <div className="janela__trilhos">
+          <div className="janela__trilho" />
+          <div
+            className="janela__cheio"
+            style={{ left: `${(de / max) * 100}%`, right: `${100 - (ate / max) * 100}%` }}
+          />
+          <div className="janela__intervalo" style={{ left: '50%' }} title={t('painelv.intervalo')} />
+        </div>
         <input
           type="range"
           min={0}

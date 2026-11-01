@@ -2259,4 +2259,6 @@ export default {
   "painelv.janelaAte": "Fim do período",
   "painelv.janelaTexto": "A analisar dos {de}′ aos {ate}′",
   "painelv.janelaJogoTodo": "A analisar o jogo todo. Arrasta as pegas ou clica num atalho.",
+  "painelv.esconderFiltros": "Esconder filtros",
+  "painelv.mostrarFiltros": "Mostrar filtros",
 };
