@@ -13,8 +13,21 @@
  * conteúdo que se ajusta à coluna, e não o contrário. */
 .painelv, .painelv__bloco, .painelv__partes, .painelv__tops { min-width: 0; }
 .painelv > *, .painelv__bloco > *, .painelv__partes > *, .painelv__tops > * { min-width: 0; }
-@media (min-width: 1100px) { .painelv { grid-template-columns: 1fr 1fr; align-items: start; } }
-@media print, (min-width: 900px) and (orientation: landscape) {
+/* Em ecrã largo os blocos arrumam-se em duas colunas que se enchem uma a seguir
+   à outra (como um mural): cada bloco tem a sua altura, e numa grelha de duas
+   colunas o mais baixo deixava um buraco por baixo. Ao imprimir mantém-se a
+   grelha. */
+@media screen and (min-width: 1100px) {
+  .painelv { display: block; column-count: 2; column-gap: 16px; }
+  .painelv > * { break-inside: avoid; margin-bottom: 16px; }
+  .painelv > .painelv__filtros { column-span: all; }
+}
+@media screen and (min-width: 900px) and (orientation: landscape) {
+  .painelv--atleta { display: block; column-count: 2; column-gap: 16px; }
+  .painelv--atleta > * { break-inside: avoid; margin-bottom: 16px; }
+  .painelv--atleta > .painelv__filtros { column-span: all; }
+}
+@media print {
   .painelv--atleta { grid-template-columns: 1fr 1fr; align-items: start; }
   .painelv--atleta .painelv__bloco--minutos-atleta { order: 1; }
   .painelv--atleta .painelv__bloco--utilizacao-atleta { order: 2; }
@@ -532,4 +545,14 @@
   .filtros__grupo--janela { flex-direction: column; align-items: stretch; gap: 8px; }
   .filtros__grupo--janela .filtros__rotulo { align-self: flex-start; }
   .janela { min-width: 0; max-width: none; width: 100%; margin-inline: auto; }
+}
+
+/* Os cartões de números do painel enchem a linha: com a grelha, a última linha
+   deixava buracos (cinco cartões em três colunas). Em flex, os que sobram
+   esticam para ocupar o espaço todo. */
+.painelv .grid--stats { display: flex; flex-wrap: wrap; }
+.painelv .grid--stats > * { flex: 1 1 150px; width: auto; min-width: 0; }
+@media (max-width: 560px) {
+  .painelv .grid--stats > * { flex-basis: 130px; }
+  .painelv .painelv__lados.grid--stats > * { flex-basis: 100%; }
 }
