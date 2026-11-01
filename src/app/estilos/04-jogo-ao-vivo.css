@@ -50,8 +50,11 @@
 /* Sem contorno em repouso. A borda existe mas transparente, para o bloco não
    saltar de posição quando acende à quinta falta. */
 .scoreboard__fouls { grid-row: 3; display: flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; border: 1px solid transparent; }
-.scoreboard > .is-left { grid-column: 1; }
-.scoreboard > .is-right { grid-column: 3; }
+/* `.scoreboard__team` é só um invólucro: aqui desaparece e as células ficam
+   na grelha do marcador, como sempre. */
+.scoreboard__team { display: contents; }
+.scoreboard .is-left { grid-column: 1; }
+.scoreboard .is-right { grid-column: 3; }
 .scoreboard__dash { grid-column: 2; grid-row: 2; font-size: 1.3rem; color: var(--muted); }
 .scoreboard__value { font-size: clamp(1.6rem, 3.2vw, 2.1rem); font-weight: 800; font-variant-numeric: tabular-nums; min-width: 30px; text-align: center; }
 
@@ -300,8 +303,16 @@
 @media (min-width: 721px) {
   /* Os resultados chegam-se ao tempo (um de cada lado do relógio), e com eles
      os cartões, que ficam do lado de fora de cada resultado. */
-  .scoreboard__score.is-left { justify-self: end; }
-  .scoreboard__score.is-right { justify-self: start; }
+  .live__head:not(.aovivo__marcador) .scoreboard__team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    grid-row: 1 / span 3;
+    align-self: center;
+  }
+  .live__head:not(.aovivo__marcador) .scoreboard__team.is-left { justify-self: end; }
+  .live__head:not(.aovivo__marcador) .scoreboard__team.is-right { justify-self: start; }
   .rivalout--standalone { display: none; }
   .scoreboard__score.is-right { position: relative; }
   .scoreboard__score > .rivalout--inline {
@@ -312,13 +323,16 @@
     top: 50%;
     transform: translateY(-50%);
     margin-left: clamp(2px, 0.6vw, 8px);
-    padding: 2px 5px;
+    /* Mais alto, com o título afastado dos cartões: há espaço na vertical. */
+    padding: 8px 8px 9px;
+    row-gap: 7px;
     flex: 0 0 auto;
     white-space: nowrap;
   }
   .scoreboard__score > .rivalout--inline .rivalout__titulo {
-    font-size: 0.44rem;
-    letter-spacing: 0.03em;
+    font-size: 0.5rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 1px;
   }
 }
 

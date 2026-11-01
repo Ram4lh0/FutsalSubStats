@@ -50,27 +50,35 @@ export function Scoreboard({
 }) {
   return (
     <div className="scoreboard">
-      <span className="scoreboard__name is-left" title={ourFull}>
-        {ourName}
-      </span>
-      <span className="scoreboard__name is-right" title={opponentFull}>
-        {opponentName}
-      </span>
+      {/* Nome, resultado e faltas de cada equipa vão juntos: num ecrã largo o
+          bloco encosta-se ao relógio e as três coisas ficam centradas entre si
+          (a cartões à parte, pendurados do resultado). No telemóvel o invólucro
+          desaparece (`display: contents`) e a grelha de três linhas é a de sempre. */}
+      <div className="scoreboard__team is-left">
+        <span className="scoreboard__name is-left" title={ourFull}>
+          {ourName}
+        </span>
+        <ScoreCell team="US" score={state.teamScore} side="is-left" interactive={interactive} on={on}>
+          {ourExtra}
+        </ScoreCell>
+        <FoulsCell state={state} team="US" side="is-left" interactive={interactive} on={on} />
+      </div>
       <span className="scoreboard__dash">—</span>
-      <ScoreCell team="US" score={state.teamScore} side="is-left" interactive={interactive} on={on}>
-        {ourExtra}
-      </ScoreCell>
-      <ScoreCell
-        team="THEM"
-        score={state.opponentScore}
-        side="is-right"
-        interactive={interactive}
-        on={on}
-      >
-        {opponentExtra}
-      </ScoreCell>
-      <FoulsCell state={state} team="US" side="is-left" interactive={interactive} on={on} />
-      <FoulsCell state={state} team="THEM" side="is-right" interactive={interactive} on={on} />
+      <div className="scoreboard__team is-right">
+        <span className="scoreboard__name is-right" title={opponentFull}>
+          {opponentName}
+        </span>
+        <ScoreCell
+          team="THEM"
+          score={state.opponentScore}
+          side="is-right"
+          interactive={interactive}
+          on={on}
+        >
+          {opponentExtra}
+        </ScoreCell>
+        <FoulsCell state={state} team="THEM" side="is-right" interactive={interactive} on={on} />
+      </div>
     </div>
   );
 }
@@ -130,7 +138,6 @@ export function RivalOut({ state, on, variant = 'standalone' }) {
           <button
             className="rivalout__b rivalout__b--cards"
             aria-label={t('vivo.menosExpulsao')}
-            disabled={!n}
             onClick={on.removerExpulsaoAdversario}
           >
             <span className="cardchip cardchip--red" />
