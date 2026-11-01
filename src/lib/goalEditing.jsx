@@ -77,7 +77,18 @@ function periodOf(state, ms, fallback) {
  * preenchida com o que está registado. Perguntar campo a campo obrigava a
  * atravessar três popups para corrigir um pormenor.
  */
-function GoalDialog({ state, goal, title, nova = false, ourName, opponentName, onClose, onSave, toast }) {
+function GoalDialog({
+  state,
+  goal,
+  title,
+  nova = false,
+  ourName,
+  opponentName,
+  onClose,
+  onSave,
+  onDelete,
+  toast,
+}) {
   const [equipa, setEquipa] = useState(goal.team);
   const nosso = equipa === 'US';
   const [quem, setQuem] = useState(
@@ -115,6 +126,14 @@ function GoalDialog({ state, goal, title, nova = false, ourName, opponentName, o
   const pool = (nosso ? jogadores : guardaRedes).sort(
     (a, b) => a.number - b.number
   );
+  // Os registos falham: uma substituição por apontar e quem marcou "não estava
+  // em campo". Por isso o marcador e a assistência deixam escolher qualquer
+  // convocado — primeiro os que estavam lá, depois os restantes.
+  const foraDeCampo = nosso && emCampo.length
+    ? Object.values(state.players)
+        .filter((p) => !emCampo.some((e) => e.playerId === p.playerId))
+        .sort((a, b) => a.number - b.number)
+    : [];
 
   function guardar() {
     const ms = parseClock(minuto, nova ? NaN : goal.matchElapsedMs);
@@ -151,16 +170,31 @@ function GoalDialog({ state, goal, title, nova = false, ourName, opponentName, o
     setTipo('');
   }
 
+  const linha = (p) => (
+    <option key={p.playerId} value={p.playerId}>
+      #{p.number} {p.name}
+    </option>
+  );
+
+  /** Em campo e fora de campo em grupos separados, sem `excluir` (o marcador). */
+  const jogadoresAgrupados = (excluir = null) => {
+    const dentro = pool.filter((p) => p.playerId !== excluir);
+    const fora = foraDeCampo.filter((p) => p.playerId !== excluir);
+    if (!fora.length) return dentro.map(linha);
+    return (
+      <>
+        <optgroup label={t('golos.estavamEmCampo')}>{dentro.map(linha)}</optgroup>
+        <optgroup label={t('golos.foraDeCampo')}>{fora.map(linha)}</optgroup>
+      </>
+    );
+  };
+
   const opcoes = (extra = []) => (
     <>
       <option value="">
         {nosso ? t('golos.semMarcador') : t('golos.semGuardaRedes')}
       </option>
-      {pool.map((p) => (
-        <option key={p.playerId} value={p.playerId}>
-          #{p.number} {p.name}
-        </option>
-      ))}
+      {jogadoresAgrupados()}
       {extra.map((o) => (
         <option key={o.id} value={o.id}>
           {o.label}
@@ -206,13 +240,7 @@ function GoalDialog({ state, goal, title, nova = false, ourName, opponentName, o
             <span className="field__label">{t('golos.quemAssistiu')}</span>
             <select className="input" value={assist} onChange={(e) => setAssist(e.target.value)}>
               <option value="">{t('golos.semAssistencia')}</option>
-              {pool
-                .filter((p) => p.playerId !== quem)
-                .map((p) => (
-                  <option key={p.playerId} value={p.playerId}>
-                    #{p.number} {p.name}
-                  </option>
-                ))}
+              {jogadoresAgrupados(quem)}
             </select>
           </label>
         ) : null}
@@ -249,6 +277,11 @@ function GoalDialog({ state, goal, title, nova = false, ourName, opponentName, o
       </div>
 
       <footer className="modal__actions">
+        {onDelete ? (
+          <button className="btn btn--ghost btn--danger" onClick={onDelete}>
+            {t('golos.apagar')}
+          </button>
+        ) : null}
         <button className="btn btn--ghost" onClick={onClose}>
           {t('comum.cancelar')}
         </button>
@@ -260,8 +293,16 @@ function GoalDialog({ state, goal, title, nova = false, ourName, opponentName, o
   );
 }
 
-/** Abre a ficha de um golo e devolve o que ficou por guardar (ou null). */
-export function goalDialog(ui, state, goal, { title, nova = false, ourName, opponentName } = {}) {
+/**
+ * Abre a ficha de um golo e devolve o que ficou por guardar (ou null). Com
+ * `apagavel`, a ficha tem também "Apagar golo", que devolve `{ apagar: true }`.
+ */
+export function goalDialog(
+  ui,
+  state,
+  goal,
+  { title, nova = false, ourName, opponentName, apagavel = false } = {}
+) {
   return ui.open((close) => (
     <GoalDialog
       state={state}
@@ -273,8 +314,40 @@ export function goalDialog(ui, state, goal, { title, nova = false, ourName, oppo
       toast={ui.toast}
       onClose={() => close(null)}
       onSave={(patch) => close(patch)}
+      onDelete={apagavel ? () => close({ apagar: true }) : undefined}
     />
   ));
+}
+
+/**
+ * Apaga um golo concreto — não o último, como o "−" do marcador. O golo sai
+ * como desfeito e leva consigo a atribuição (reducer) e o remate com GOLO que
+ * estava preso a ele (domain/registos.js). O resultado na linha do jogo segue.
+ */
+async function apagarGolo(ui, matchId, goal, syncUser) {
+  const ok = await ui.confirmar(
+    t(goal.team === 'US' ? 'golos.confirmaApagar' : 'golos.confirmaApagarSofrido', {
+      tempo: fmt(goal.matchElapsedMs),
+    }),
+    { okLabel: t('golos.apagar'), title: t('golos.apagar') }
+  );
+  if (!ok) return false;
+  const snap = await loadMatch(matchId);
+  const alvo = (snap?.state.allEvents || []).find((e) => e.id === goal.eventId);
+  if (!alvo) {
+    ui.toast(t('golos.naoApagou'), 'error');
+    return false;
+  }
+  await events.markUndone(alvo.id, null);
+  await events.append(A.undoEvent(snap.state, alvo));
+  const fresco = await loadMatch(matchId);
+  await matches.update(matchId, {
+    teamScore: fresco.state.teamScore,
+    opponentScore: fresco.state.opponentScore,
+  });
+  if (syncUser) sync.saveNow(syncUser.userId, syncUser.email);
+  ui.toast(t('golos.apagado'), 'ok');
+  return true;
 }
 
 /**
@@ -284,8 +357,9 @@ export function goalDialog(ui, state, goal, { title, nova = false, ourName, oppo
 export async function editGoal(ui, { matchId, goal, syncUser = null }) {
   const antes = await loadMatch(matchId);
   if (!antes) return false;
-  const patch = await goalDialog(ui, antes.state, goal);
+  const patch = await goalDialog(ui, antes.state, goal, { apagavel: true });
   if (!patch) return false;
+  if (patch.apagar) return apagarGolo(ui, matchId, goal, syncUser);
   await events.append(A.attributeGoal(antes.state, { targetEventId: goal.eventId, ...patch }));
   if (syncUser) sync.saveNow(syncUser.userId, syncUser.email);
   ui.toast(goal.team === 'US' ? t('golos.atualizado') : t('golos.sofridoAtualizado'), 'ok');

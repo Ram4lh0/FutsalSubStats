@@ -28,6 +28,8 @@ import { clubs, teams, competitions, matches, loadMatch } from '@/lib/data/repos
 import * as sync from '@/lib/data/sync.js';
 import { matchSummaryCsv, download, slug } from '@/lib/data/exporter.js';
 import { entregarFicheiro } from '@/lib/ficheiros.js';
+import { linkWhatsApp, abrirFora } from '@/lib/partilha.js';
+import { textoResumoWhatsApp } from '@/lib/resumoWhatsApp.js';
 import { matchStatsTable, matchResult, powerPlayTotals } from '@/domain/stats.js';
 import { foulsTotal, foulsInPeriod } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
@@ -276,6 +278,22 @@ function Resumo() {
   }
 
   /**
+   * O resultado, os nossos marcadores e assistências e as expulsões, numa
+   * mensagem já escrita no WhatsApp — só falta escolher a conversa.
+   */
+  function partilharWhatsApp() {
+    const texto = textoResumoWhatsApp({
+      state,
+      match,
+      ourName: clubShort(club),
+      opponentName: opponentShort(match),
+      team,
+      competition,
+    });
+    abrirFora(linkWhatsApp(texto));
+  }
+
+  /**
    * Sair da experiência: os dados fictícios não ficam no aparelho. A demo corre
    * com sessão iniciada, por isso volta-se à entrada da app, que para uma conta
    * sem equipa é o ecrã de criar o clube ou o escalão.
@@ -437,6 +455,9 @@ function Resumo() {
         actions={
           <div className="summary-actions">
             <StatusBadge status={state.status} />
+            <button className="btn btn--ghost" onClick={partilharWhatsApp}>
+              {t('partilhaResumo.botao')}
+            </button>
             <button
               className="btn btn--ghost"
               onClick={() =>
