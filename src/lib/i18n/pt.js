@@ -2263,6 +2263,8 @@ export default {
   "registos.ext.notaEquipa": "A média por jogo conta só os jogos em que o registo foi apontado.",
   "registos.ext.equipa": "Registos da equipa",
   "registos.ext.mapaAtleta": "Mapa do atleta",
+  "registos.pdf.mapaJogo": "Mapa do jogo",
+  "registos.pdf.porJogador": "Por jogador",
   "registos.epoca.defesasGR": "Defesas por guarda-redes",
   "painelv.periodo": "Período",
   "painelv.todoOJogo": "Todo o jogo",

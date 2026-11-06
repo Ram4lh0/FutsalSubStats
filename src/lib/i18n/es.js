@@ -2259,6 +2259,8 @@ export default {
   "registos.ext.notaEquipa": "La media por partido solo cuenta los partidos con ese registro.",
   "registos.ext.equipa": "Registros del equipo",
   "registos.ext.mapaAtleta": "Mapa del jugador",
+  "registos.pdf.mapaJogo": "Mapa del partido",
+  "registos.pdf.porJogador": "Por jugador",
   "registos.epoca.defesasGR": "Paradas por portero",
   "painelv.periodo": "Periodo",
   "painelv.todoOJogo": "Todo el partido",

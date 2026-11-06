@@ -17,9 +17,9 @@ import {
   COR_RESULTADO_ADV,
   REGISTO,
   RESULTADO_REMATE,
-  REGISTOS,
 } from '@/domain/registos.js';
 import { mapaDoAtleta } from '@/domain/dashboard.js';
+import { linhasExtrasAtleta, linhasExtrasEquipa } from '@/lib/registosExtras.js';
 import { useT } from '@/lib/i18n/index.js';
 
 const um = (n) => (n == null ? '—' : n.toFixed(1));
@@ -64,36 +64,10 @@ export function LegendaMapa({ filtro }) {
   );
 }
 
-/** As linhas da tabela de um jogador. */
-function linhasDoAtleta(extras, t) {
-  const { por, remates, acoes, penaltis } = extras;
-  const linhas = [];
-  for (const id of REGISTOS) {
-    const r = por[id];
-    if (!r || !r.jogos) continue;
-    if (id === REGISTO.DEFESA_GR && !r.n) continue;
-    let detalhe = '';
-    if (id === REGISTO.REMATE && remates.comResultado) {
-      detalhe = t('registos.ext.rematesDetalhe', {
-        baliza: remates.aBaliza,
-        pctBaliza: remates.percentagemBaliza,
-        golos: remates.golos,
-        pctGolo: remates.percentagemGolo,
-      });
-    } else if (id === REGISTO.ACAO) {
-      detalhe = t('registos.ext.acoesDetalhe', { pos: acoes.positivas, neg: acoes.negativas });
-    } else if (id === REGISTO.PENALTI) {
-      detalhe = t('registos.ext.penaltisDetalhe', { golos: penaltis.golos, total: r.n });
-    }
-    linhas.push({ id, nome: t(`registos.total.${id}`), r, detalhe });
-  }
-  return linhas;
-}
-
 /** A tabela por baixo da linha das estatísticas base, na ficha do jogador. */
 export function TabelaExtrasAtleta({ extras }) {
   const t = useT();
-  const linhas = useMemo(() => (extras ? linhasDoAtleta(extras, t) : []), [extras, t]);
+  const linhas = useMemo(() => linhasExtrasAtleta(extras, t), [extras, t]);
   if (!linhas.length) return null;
   return (
     <>
@@ -250,24 +224,7 @@ export function BlocosExtrasAtleta({ extras, entries, playerId, Bloco }) {
 /** A tabela-resumo da equipa: o total de cada registo, por jogo, nós e eles. */
 export function TabelaExtrasEquipa({ extras, tipos }) {
   const t = useT();
-  const linhas = REGISTOS.filter((id) => tipos.has(id) && extras.por[id]).map((id) => {
-    const a = extras.por[id];
-    const total = a.US + a.THEM;
-    let detalhe = '';
-    if (id === REGISTO.REMATE && extras.remates.comResultado) {
-      detalhe = t('registos.ext.rematesDetalhe', {
-        baliza: extras.remates.aBaliza,
-        pctBaliza: extras.remates.percentagemBaliza,
-        golos: extras.remates.golos,
-        pctGolo: extras.remates.percentagemGolo,
-      });
-    } else if (id === REGISTO.ACAO) {
-      detalhe = t('registos.ext.acoesDetalhe', { pos: extras.acoes.positivas, neg: extras.acoes.negativas });
-    } else if (a.US && a.THEM) {
-      detalhe = t('registos.ext.nosEles', { nos: a.US, eles: a.THEM });
-    }
-    return { id, total, porJogo: a.jogos ? total / a.jogos : 0, detalhe };
-  });
+  const linhas = linhasExtrasEquipa(extras, tipos, t);
   if (!linhas.length) return null;
   return (
     <>

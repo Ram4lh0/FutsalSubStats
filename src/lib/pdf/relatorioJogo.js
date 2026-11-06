@@ -12,12 +12,13 @@ import { golosPorFaixa } from '../../domain/dashboard.js';
 import { amarelosAdversario, faltasPorJogador, golosPorTipoNoJogo, mediaEmCampo } from '../../domain/intervalo.js';
 import { foulsInPeriod, foulsTotal } from '../../domain/reducer.js';
 import { matchResult, matchStatsTable, powerPlayTotals } from '../../domain/stats.js';
-import { REGISTO, RESULTADO_REMATE, resumoRegistos, temRegistos } from '../../domain/registos.js';
+import { REGISTO, RESULTADO_REMATE, marcadores, resumoRegistos, temRegistos } from '../../domain/registos.js';
 import { clubShort, dateLabel, homeAwayLabel, opponentShort, statusLabel } from '../format.js';
 import { t } from '../i18n/index.js';
 import { dataParaNome, nomeLimpo } from '../ficheiros.js';
 import { COR, novoRelatorio } from './base.js';
 import { partesLadoALado, tiposDeGoloLadoALado } from './relatorioPainel.js';
+import { mapaDosRemates, mapasDosRegistos } from './registos.js';
 
 /** `jogo-adversario-2026-10-25.pdf`, com a data do jogo. */
 export function nomePdfJogo(match) {
@@ -251,7 +252,7 @@ export async function gerarPdfJogo({ club, match, state, team, competition }) {
     { tamanho: 7 }
   );
 
-  registosDoJogo(r, state, match);
+  registosDoJogo(r, state, match, nos);
 
   if (match.notes) {
     r.secao(t('resumo.notas'), 10);
@@ -262,46 +263,48 @@ export async function gerarPdfJogo({ club, match, state, team, competition }) {
 }
 
 /**
- * Os registos extra do jogo (remates, remates do adversário, defesas, …), só
- * quando o jogo os tem — o mesmo critério do painel do resumo.
+ * Os registos extra do jogo (add-ons), só quando o jogo os tem — o mesmo que
+ * o painel do resumo (components/registos/PainelRegistos.jsx): os totais, o
+ * mapa dos remates, os campos dos outros registos com sítio e a tabela por
+ * jogador.
  */
-function registosDoJogo(r, state, match) {
+function registosDoJogo(r, state, match, nos) {
   if (!temRegistos(state)) return;
   const reg = resumoRegistos(state, Date.now());
   const tem = (id) => reg.tipos.has(id);
   const eles = opponentShort(match);
+  const nosEles = `${nos} – ${eles}`;
   const cartoes = [];
   // "À baliza" só com todos os remates com resultado (o escalão pode não o pedir).
+  const rematesComTudo = reg.remates > 0 && reg.rematesComResultado === reg.remates;
+  const advComTudo = reg.rematesAdv > 0 && reg.rematesAdvComResultado === reg.rematesAdv;
   if (tem(REGISTO.REMATE)) {
     cartoes.push({
       rotulo: t('registos.total.remate'),
       valor: reg.remates,
-      detalhe:
-        reg.rematesComResultado === reg.remates
-          ? t('registos.aBalizaDe', { n: reg.rematesBaliza, total: reg.remates })
-          : undefined,
+      detalhe: rematesComTudo ? t('registos.aBalizaDe', { n: reg.rematesBaliza, total: reg.remates }) : undefined,
     });
   }
   if (tem(REGISTO.REMATE_ADV)) {
     cartoes.push({
       rotulo: t('registos.total.remate_adv'),
       valor: reg.rematesAdv,
-      detalhe:
-        reg.rematesAdvComResultado === reg.rematesAdv
-          ? t('registos.aBalizaDe', { n: reg.rematesAdvBaliza, total: reg.rematesAdv })
-          : undefined,
+      detalhe: advComTudo ? t('registos.aBalizaDe', { n: reg.rematesAdvBaliza, total: reg.rematesAdv }) : undefined,
     });
   }
+  if (tem(REGISTO.REMATE_ADV_SIMPLES)) {
+    cartoes.push({ rotulo: t('registos.total.remate_adv_simples'), valor: reg.rematesAdvSimples });
+  }
+  if (tem(REGISTO.RECUPERACAO)) cartoes.push({ rotulo: t('registos.total.recuperacao'), valor: reg.recuperacoes });
+  if (tem(REGISTO.DEFESA_GR)) cartoes.push({ rotulo: t('registos.total.defesa_gr'), valor: reg.defesas });
+  if (tem(REGISTO.PERDA_BOLA)) cartoes.push({ rotulo: t('registos.total.perda_bola'), valor: reg.perdas });
+  if (tem(REGISTO.PASSE_FALHADO)) cartoes.push({ rotulo: t('registos.total.passe_falhado'), valor: reg.passes });
   const golosEm = (b) => t('registos.golosEm', { golos: b.golos, total: b.total });
   if (tem(REGISTO.PENALTI)) {
     cartoes.push({ rotulo: t('registos.total.penalti'), valor: reg.penaltis.total, detalhe: golosEm(reg.penaltis) });
   }
   if (tem(REGISTO.PENALTI_ADV)) {
-    cartoes.push({
-      rotulo: t('registos.total.penalti_adv'),
-      valor: reg.penaltisAdv.total,
-      detalhe: golosEm(reg.penaltisAdv),
-    });
+    cartoes.push({ rotulo: t('registos.total.penalti_adv'), valor: reg.penaltisAdv.total, detalhe: golosEm(reg.penaltisAdv) });
   }
   if (tem(REGISTO.LIVRE_10M)) {
     cartoes.push(
@@ -309,60 +312,119 @@ function registosDoJogo(r, state, match) {
       { rotulo: t('registos.bp.livres10Eles'), valor: reg.livres10.THEM.total, detalhe: golosEm(reg.livres10.THEM) }
     );
   }
-  if (tem(REGISTO.PASSE_FALHADO)) cartoes.push({ rotulo: t('registos.total.passe_falhado'), valor: reg.passes });
+  if (tem(REGISTO.FORA)) {
+    cartoes.push({ rotulo: t('registos.total.fora'), valor: `${reg.foras.US} – ${reg.foras.THEM}`, detalhe: nosEles });
+  }
+  if (tem(REGISTO.CANTO)) {
+    const golosCanto = reg.golosCanto?.US || reg.golosCanto?.THEM;
+    cartoes.push({
+      rotulo: t('registos.total.canto'),
+      valor: `${reg.cantos.US} – ${reg.cantos.THEM}`,
+      detalhe: golosCanto
+        ? `${nosEles} · ${t('registos.bp.golosCanto')}: ${reg.golosCanto.US} – ${reg.golosCanto.THEM}`
+        : nosEles,
+    });
+  }
   if (tem(REGISTO.LANCAMENTO_BALIZA)) {
     cartoes.push({
       rotulo: t('registos.total.lancamento_baliza'),
       valor: `${reg.lancamentos.US} – ${reg.lancamentos.THEM}`,
+      detalhe: nosEles,
     });
   }
-  if (tem(REGISTO.REMATE_ADV_SIMPLES)) {
-    cartoes.push({ rotulo: t('registos.total.remate_adv_simples'), valor: reg.rematesAdvSimples });
+  if (tem(REGISTO.ACAO)) {
+    cartoes.push({ rotulo: t('registos.total.acao'), valor: `+${reg.acoes.positivas} / -${reg.acoes.negativas}` });
   }
-  if (tem(REGISTO.DEFESA_GR)) cartoes.push({ rotulo: t('registos.total.defesa_gr'), valor: reg.defesas });
-  if (tem(REGISTO.RECUPERACAO)) cartoes.push({ rotulo: t('registos.total.recuperacao'), valor: reg.recuperacoes });
-  if (tem(REGISTO.PERDA_BOLA)) cartoes.push({ rotulo: t('registos.total.perda_bola'), valor: reg.perdas });
-  if (tem(REGISTO.FORA)) cartoes.push({ rotulo: t('registos.total.fora'), valor: `${reg.foras.US} – ${reg.foras.THEM}` });
-  if (tem(REGISTO.CANTO)) cartoes.push({ rotulo: t('registos.total.canto'), valor: `${reg.cantos.US} – ${reg.cantos.THEM}` });
   if (!cartoes.length) return;
 
   r.secao(t('registos.titulo'), 30);
   r.cartoes(cartoes, { porLinha: Math.min(4, cartoes.length) });
-  if (tem(REGISTO.REMATE_ADV)) {
+
+  // ------------------------------------------------- o mapa dos remates
+  const calorNos = marcadores(state, { registos: [REGISTO.REMATE] });
+  const calorEles = marcadores(state, { registos: [REGISTO.REMATE_ADV] });
+  mapaDosRemates(r, {
+    nossos: calorNos,
+    deles: calorEles,
+    rotuloNos: nos || t('registos.calor.nos'),
+    rotuloEles: eles || t('registos.calor.eles'),
+  });
+
+  // Remates com resultado mas sem sítio (o escalão não pede a zona): o que
+  // aconteceu em tabela, já que não há legenda do mapa para o dizer.
+  const resultados = (titulo, chave, porResultado) => {
     r.garantir(45);
-    r.sub(`${t('registos.total.remate_adv')} — ${eles}`);
+    r.sub(titulo);
     r.y += 2.5;
     r.tabela({
       colunas: [
         { titulo: t('registos.resultadoRotulo'), peso: 3 },
         { titulo: '#', alinhar: 'right' },
       ],
-      linhas: Object.values(RESULTADO_REMATE).map((o) => [
-        t(`registos.resultadoAdv.${o}`),
-        reg.porResultadoAdv[o],
-      ]),
+      linhas: Object.values(RESULTADO_REMATE).map((o) => [t(`registos.${chave}.${o}`), porResultado?.[o] ?? 0]),
     });
+  };
+  if (reg.rematesComResultado && !calorNos.length) {
+    resultados(`${t('registos.total.remate')} — ${nos}`, 'resultado', reg.porResultado);
   }
+  if (reg.rematesAdvComResultado && !calorEles.length) {
+    resultados(`${t('registos.total.remate_adv')} — ${eles}`, 'resultadoAdv', reg.porResultadoAdv);
+  }
+
+  // ------------------------------- recuperações, defesas e foras no campo
+  mapasDosRegistos(r, {
+    titulo: t('registos.pdf.mapaJogo'),
+    registos: [REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA],
+    pontosDe: (id) => (tem(id) ? marcadores(state, { registos: [id] }) : []),
+  });
+
+  // ------------------------------------------------- tabela por jogador
+  const porJogador = reg.jogadores.some(
+    (j) => j.remates || j.recuperacoes || j.defesas || j.perdas || j.passes || j.positivas || j.negativas
+  );
+  if (!porJogador) return;
+  const colunas = [
+    { titulo: '#', largura: 9 },
+    { titulo: t('registos.col.jogador'), peso: 2 },
+    { titulo: t('registos.col.tempo'), largura: 14, alinhar: 'right' },
+  ];
+  const valores = [(j) => j.number ?? '', (j) => j.name, (j) => fmt(j.courtMs)];
+  const um = (n) => (n == null ? '–' : n.toFixed(1));
+  const col = (titulo, f) => {
+    colunas.push({ titulo, peso: 1.4, alinhar: 'right' });
+    valores.push(f);
+  };
+  // As médias por 10 minutos logo a seguir ao total, com o título curto (no
+  // papel não cabe "Recup./10 min" numa coluna estreita).
+  const por10 = (f) => {
+    colunas.push({ titulo: "/10'", largura: 12, alinhar: 'right' });
+    valores.push(f);
+  };
+  if (tem(REGISTO.REMATE)) {
+    col(t('registos.col.remates'), (j) => j.remates || '–');
+    if (rematesComTudo) col(t('registos.col.aBaliza'), (j) => (j.remates ? j.rematesBaliza : '–'));
+  }
+  if (tem(REGISTO.RECUPERACAO)) {
+    col(t('registos.col.recuperacoes'), (j) => j.recuperacoes || '–');
+    por10((j) => um(j.recup10));
+  }
+  if (tem(REGISTO.DEFESA_GR)) col(t('registos.col.defesas'), (j) => j.defesas || '–');
   if (tem(REGISTO.PERDA_BOLA)) {
-    const linhas = reg.jogadores
-      .filter((j) => j.perdas || j.courtMs > 0)
-      .sort((a, b) => b.perdas - a.perdas || (a.number ?? 0) - (b.number ?? 0));
-    r.garantir(45);
-    r.sub(t('registos.epoca.perdas'));
-    r.y += 2.5;
-    r.tabela({
-      colunas: [
-        { titulo: '#', largura: 10 },
-        { titulo: t('registos.col.jogador'), peso: 3 },
-        { titulo: t('registos.col.perdas'), alinhar: 'right' },
-        { titulo: t('registos.col.perdas10'), alinhar: 'right' },
-      ],
-      linhas: linhas.map((j) => [
-        j.number ?? '',
-        j.name,
-        j.perdas,
-        j.perdas10 == null ? '–' : j.perdas10.toFixed(1),
-      ]),
-    });
+    col(t('registos.col.perdas'), (j) => j.perdas || '–');
+    por10((j) => um(j.perdas10));
   }
+  if (tem(REGISTO.PASSE_FALHADO)) {
+    col(t('registos.col.passes'), (j) => j.passes || '–');
+    por10((j) => um(j.passes10));
+  }
+  if (tem(REGISTO.ACAO)) {
+    col(t('registos.col.acoes'), (j) => (j.positivas || j.negativas ? `+${j.positivas} / -${j.negativas}` : '–'));
+  }
+  r.secao(`${t('registos.titulo')} · ${t('registos.pdf.porJogador')}`, 25);
+  r.tabela({
+    colunas,
+    linhas: reg.jogadores.map((j) => valores.map((f) => f(j))),
+    tamanho: colunas.length > 9 ? 7.2 : 7.8,
+  });
+  if (colunas.some((c) => c.titulo === "/10'")) r.paragrafo(t('registos.ext.por10Titulo') + " (/10').");
 }

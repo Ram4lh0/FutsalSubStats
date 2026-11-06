@@ -2258,6 +2258,8 @@ export default {
   "registos.ext.notaEquipa": "The per-game average only counts games where the record was logged.",
   "registos.ext.equipa": "Team records",
   "registos.ext.mapaAtleta": "Player map",
+  "registos.pdf.mapaJogo": "Match map",
+  "registos.pdf.porJogador": "By player",
   "registos.epoca.defesasGR": "Saves by goalkeeper",
   "painelv.periodo": "Period",
   "painelv.todoOJogo": "Whole game",

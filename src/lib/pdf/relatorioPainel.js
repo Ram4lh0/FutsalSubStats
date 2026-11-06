@@ -32,12 +32,18 @@ import {
   passesPorJogador,
   bolasParadas,
   REGISTOS_BOLA_PARADA,
+  defesasPorJogador,
+  extrasDaEquipa,
+  extrasDoAtleta,
+  mapaDaEpoca,
+  mapaDoAtleta,
 } from '../../domain/dashboard.js';
 import { REGISTO } from '../../domain/registos.js';
 import { dayLabel } from '../format.js';
 import { t } from '../i18n/index.js';
 import { dataParaNome, nomeLimpo } from '../ficheiros.js';
 import { COR, COR_TIPO_GOLO, Relatorio, linhaDeFiltros, novoRelatorio } from './base.js';
+import { mapaDosRemates, mapasDosRegistos, tabelaExtrasAtleta, tabelaExtrasEquipa } from './registos.js';
 
 const etiquetasDe = (faixas) => faixas.map((f) => `${Math.round(f.deMs / 60_000)}'`);
 const comSinal = (n) => (n > 0 ? `+${n}` : String(n));
@@ -84,7 +90,7 @@ export async function gerarPdfPainel({ club, team, entries, roster = [], parteMs
   });
 
   if (atletaId) {
-    if (atleta) relatorioDoAtleta(r, atleta);
+    if (atleta) relatorioDoAtleta(r, atleta, { entries, atletaId });
     else r.paragrafo(t('painelv.atletaSemDados'));
   } else if (!jogos.length && !minutosPorJogador(entries, roster).linhas.length) {
     r.paragrafo(t('painelv.semJogos'));
@@ -229,9 +235,14 @@ function relatorioDaEquipa(r, { entries, roster, parteMs, jogos }) {
   }
 }
 
-/** Remates, eficácia e recuperações — só com jogos que os tenham registado. */
+/**
+ * Os registos extra (add-ons) da época, pela ordem dos blocos do painel
+ * (components/registos/BlocosDaEpoca.jsx) — só com jogos que os tenham.
+ */
 function registosExtra(r, entries) {
   const tipos = registosDaEpoca(entries);
+  if (!tipos.size) return;
+  tabelaExtrasEquipa(r, extrasDaEquipa(entries), tipos);
   if (tipos.has(REGISTO.REMATE)) {
     const efi = eficacia(entries);
     const remates = rematesPorJogo(entries);
@@ -311,6 +322,18 @@ function registosExtra(r, entries) {
     );
     r.paragrafo(t('registos.epoca.recupNota'));
   }
+  const defesas = defesasPorJogador(entries);
+  if (defesas.length) {
+    r.secao(t('registos.epoca.defesasGR'), 20);
+    r.barrasH(
+      defesas.map((j) => ({
+        rotulo: `${j.number ?? ''} ${j.name}`.trim(),
+        valor: j.defesas,
+        texto: t('registos.epoca.perdasDetalhe', { n: j.defesas, porJogo: j.porJogo.toFixed(1) }),
+      })),
+      { cor: COR.info }
+    );
+  }
   if (tipos.has(REGISTO.PERDA_BOLA)) {
     const equipa = perdasDaEpoca(entries);
     r.secao(t('registos.epoca.perdas'), 30);
@@ -384,11 +407,24 @@ function registosExtra(r, entries) {
     );
     r.paragrafo(t('registos.bp.nota'));
   }
+
+  // Os mapas: os remates (nossos e deles) e os outros registos com sítio.
+  mapaDosRemates(r, {
+    nossos: mapaDaEpoca(entries, REGISTO.REMATE),
+    deles: mapaDaEpoca(entries, REGISTO.REMATE_ADV),
+    rotuloNos: t('registos.calor.nos'),
+    rotuloEles: t('registos.calor.eles'),
+  });
+  mapasDosRegistos(r, {
+    titulo: t('registos.epoca.mapa'),
+    registos: [REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA],
+    pontosDe: (id) => (tipos.has(id) ? mapaDaEpoca(entries, id) : []),
+  });
 }
 
 /* ------------------------------------------------------------- atleta */
 
-function relatorioDoAtleta(r, dados) {
+function relatorioDoAtleta(r, dados, { entries, atletaId }) {
   const min = dados.minutos;
   const u = dados.utilizacao;
   const imp = dados.impacto;
@@ -467,15 +503,7 @@ function relatorioDoAtleta(r, dados) {
     r.paragrafo(t('painelv.semFaltasAtleta'));
   }
 
-  const perdas = dados.perdas;
-  if (perdas?.comDados) {
-    r.secao(t('registos.total.perda_bola'), 20);
-    r.cartoes([
-      { rotulo: t('registos.total.perda_bola'), valor: perdas.total, detalhe: t('painelv.emJogos', { n: perdas.jogos }) },
-      { rotulo: t('registos.epoca.perdasPorJogo'), valor: perdas.porJogo.toFixed(1) },
-      { rotulo: t('registos.col.perdas10'), valor: perdas.por10 == null ? '—' : perdas.por10.toFixed(1) },
-    ]);
-  }
+  registosDoAtleta(r, entries, atletaId);
 
   r.secao(t('pdf.jogos'), 20);
   if (dados.ultimos.length) {
@@ -512,6 +540,38 @@ function relatorioDoAtleta(r, dados) {
   } else {
     r.paragrafo(t('painelv.semJogos'));
   }
+}
+
+/**
+ * Os registos extra do atleta (o que o painel e a ficha mostram): a tabela de
+ * cada registo, os remates com eficácia e o mapa dele (remates, recuperações
+ * e defesas com sítio marcado).
+ */
+function registosDoAtleta(r, entries, atletaId) {
+  const extras = extrasDoAtleta(entries, atletaId);
+  if (!tabelaExtrasAtleta(r, extras)) return;
+  const { por, remates } = extras;
+  if (por.remate?.jogos > 0 && remates.comResultado) {
+    r.secao(t('registos.total.remate'), 20);
+    r.cartoes([
+      { rotulo: t('registos.total.remate'), valor: por.remate.n, detalhe: t('painelv.emJogos', { n: por.remate.jogos }) },
+      {
+        rotulo: t('registos.col.aBaliza'),
+        valor: remates.percentagemBaliza == null ? '—' : `${remates.percentagemBaliza}%`,
+        detalhe: t('registos.aBalizaDe', { n: remates.aBaliza, total: remates.comResultado }),
+      },
+      {
+        rotulo: t('registos.ext.pctGolo'),
+        valor: remates.percentagemGolo == null ? '—' : `${remates.percentagemGolo}%`,
+        detalhe: t('registos.golosEm', { golos: remates.golos, total: remates.comResultado }),
+      },
+    ]);
+  }
+  mapasDosRegistos(r, {
+    titulo: t('registos.ext.mapaAtleta'),
+    registos: [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR],
+    pontosDe: (id) => (por[id]?.jogos > 0 ? mapaDoAtleta(entries, id, atletaId) : []),
+  });
 }
 
 /* ------------------------------------------------------------- comuns */

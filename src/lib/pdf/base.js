@@ -124,6 +124,48 @@ const RODAPE = 12;
 const CAB_GRANDE = 34;
 const CAB_PEQUENO = 13;
 
+/* ---------------------------------------------------------------- campo */
+
+// O campo dos registos, nas unidades do `CampoSvg` da app (10 por metro), com
+// a mesma moldura à volta (golos e rótulos das metades).
+const CAMPO = {
+  W: 400,
+  H: 200,
+  margemX: 16,
+  margemY: 14,
+  caixaW: 432,
+  caixaH: 228,
+  relva: [15, 61, 39], // .regcampo__metade
+  relvaDeles: [18, 72, 46],
+  linha: [214, 226, 219], // branco a 75% sobre a relva
+  anelFundo: [10, 40, 26], // o preto a 35% da app, sobre a relva
+};
+
+/** A área de 6 m: dois quartos de círculo a partir dos postes, unidos. */
+function areaDoCampo(lado) {
+  const r = 60;
+  const c1 = 100 - 15.8;
+  const c2 = 100 + 15.8;
+  const pts = [];
+  for (let i = 0; i <= 18; i++) {
+    const a = -Math.PI / 2 + (i / 18) * (Math.PI / 2);
+    pts.push([r * Math.cos(a), c1 + r * Math.sin(a)]);
+  }
+  for (let i = 0; i <= 18; i++) {
+    const a = (i / 18) * (Math.PI / 2);
+    pts.push([r * Math.cos(a), c2 + r * Math.sin(a)]);
+  }
+  return lado === 'esq' ? pts : pts.map(([x, y]) => [CAMPO.W - x, y]);
+}
+
+/** `#22c55e` (as cores dos registos) ou `[r, g, b]` → `[r, g, b]`. */
+export function rgb(cor) {
+  if (Array.isArray(cor)) return cor;
+  const h = String(cor || '').replace('#', '');
+  if (h.length !== 6) return COR.cinzento;
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+}
+
 /**
  * Um relatório novo. O jsPDF só é carregado aqui — e só quando alguém carrega
  * em "Exportar": são umas centenas de kilobytes que o arranque da app não
@@ -562,6 +604,155 @@ export class Relatorio {
     this.doc.setDrawColor(...cor);
     this.doc.setLineWidth(0.15);
     this.doc.lines(deltas, x0, y0, [1, 1], 'FD', true);
+  }
+
+  /* ------------------------------------------------------------ campo */
+
+  /**
+   * O campo dos registos (o `CampoSvg` da app) com os pontos marcados: 40 m ×
+   * 20 m na horizontal, atacamos para a direita. Desenha numa caixa de `w` mm
+   * de largura a começar em (`x`, `y`) e devolve a altura usada
+   * (`Relatorio.alturaCampo(w)`). Cada ponto tem a forma da app: bola, anel
+   * nos remates do adversário, quadrado nas defesas, losango nos foras.
+   *
+   * @param {{registo: string, cor: string, x: number, y: number, resultado?: string}[]} pontos
+   */
+  campo(pontos, { x, y, w }) {
+    const { doc } = this;
+    const k = w / CAMPO.caixaW;
+    const ox = x + CAMPO.margemX * k;
+    const oy = y + CAMPO.margemY * k;
+    const P = (ux, uy) => [ox + ux * k, oy + uy * k];
+    const { W, H } = CAMPO;
+
+    // Rótulos das metades, por cima.
+    this.fonte(5.6, true).cor(COR.muted);
+    this.texto(t('registos.meioCampoNosso').toUpperCase(), ...P(W * 0.25, -4), { alinhar: 'center' });
+    this.cor(COR.verdeTinta);
+    this.texto(`${t('registos.meioCampoAdversario').toUpperCase()} ->`, ...P(W * 0.75, -4), { alinhar: 'center' });
+
+    // A relva: as duas metades, a do adversário um pouco mais clara.
+    doc.setFillColor(...CAMPO.relva);
+    doc.rect(...P(0, 0), (W / 2) * k, H * k, 'F');
+    doc.setFillColor(...CAMPO.relvaDeles);
+    doc.rect(...P(W / 2, 0), (W / 2) * k, H * k, 'F');
+
+    // As linhas.
+    doc.setDrawColor(...CAMPO.linha);
+    doc.setLineWidth(Math.max(0.15, 1.6 * k));
+    doc.rect(...P(0, 0), W * k, H * k, 'S');
+    doc.line(...P(W / 2, 0), ...P(W / 2, H));
+    doc.circle(...P(W / 2, H / 2), 30 * k, 'S');
+    doc.rect(...P(-10, 85), 10 * k, 30 * k, 'S');
+    doc.rect(...P(W, 85), 10 * k, 30 * k, 'S');
+    for (const lado of ['esq', 'dir']) {
+      const pts = areaDoCampo(lado).map(([ux, uy]) => P(ux, uy));
+      const deltas = pts.slice(1).map((p, i) => [p[0] - pts[i][0], p[1] - pts[i][1]]);
+      doc.lines(deltas, pts[0][0], pts[0][1], [1, 1], 'S', false);
+    }
+    doc.setFillColor(...CAMPO.linha);
+    for (const ux of [W / 2, 60, 100, W - 60, W - 100]) doc.circle(...P(ux, H / 2), Math.max(0.25, 2 * k), 'F');
+
+    // Os pontos (os golos por cima dos outros, para não ficarem tapados).
+    const ordenados = [...pontos].sort((a, b) => (a.resultado === 'GOLO') - (b.resultado === 'GOLO'));
+    for (const m of ordenados) {
+      const [px, py] = P(m.x * W, m.y * H);
+      this.marca(m, px, py, k);
+    }
+    return Relatorio.alturaCampo(w);
+  }
+
+  /** Um ponto do campo, em (`px`, `py`) mm, com a escala `k` (mm por unidade). */
+  marca(m, px, py, k) {
+    const { doc } = this;
+    const cor = rgb(m.cor);
+    const golo = m.resultado === 'GOLO';
+    if (m.registo === 'defesa_gr') {
+      doc.setFillColor(...cor);
+      doc.rect(px - 5 * k, py - 5 * k, 10 * k, 10 * k, 'F');
+      return;
+    }
+    if (m.registo === 'fora') {
+      this.poligono([[px, py - 6 * k], [px + 6 * k, py], [px, py + 6 * k], [px - 6 * k, py]], cor);
+      return;
+    }
+    const raio = (golo ? 7 : 5.5) * k;
+    if (m.registo === 'remate_adv' && !golo) {
+      // Anel da cor do resultado, para não se confundir com os nossos.
+      doc.setFillColor(...CAMPO.anelFundo);
+      doc.setDrawColor(...cor);
+      doc.setLineWidth(2.6 * k);
+      doc.circle(px, py, raio - 1.3 * k, 'FD');
+      return;
+    }
+    doc.setFillColor(...cor);
+    if (golo) {
+      doc.setDrawColor(...COR.branco);
+      doc.setLineWidth(2 * k);
+      doc.circle(px, py, raio, 'FD');
+    } else {
+      doc.circle(px, py, raio, 'F');
+    }
+  }
+
+  static alturaCampo(w) {
+    return (w * CAMPO.caixaH) / CAMPO.caixaW;
+  }
+
+  /**
+   * A legenda dos pontos, em linhas que não passam de `largura`: cada item
+   * com a forma do ponto (`bola`, `anel`, `quadrado`, `losango`), o texto e,
+   * se houver, o número a negrito. Devolve a altura usada.
+   *
+   * @param {{cor: string|number[], texto: string, n?: number, forma?: string}[]} itens
+   */
+  legendaPontos(itens, { x = this.M, y = this.y, largura = this.largura } = {}) {
+    const { doc } = this;
+    const alt = 4.4;
+    let cx = x;
+    let ly = y + 3;
+    for (const it of itens) {
+      const txt = limpar(it.texto);
+      const num = it.n == null ? '' : ` ${it.n}`;
+      this.fonte(7.2, true);
+      const wNum = num ? this.largTexto(num) : 0;
+      this.fonte(7.2);
+      const wTxt = this.largTexto(txt);
+      const wItem = 3.2 + wTxt + wNum;
+      if (cx > x && cx + wItem > x + largura) {
+        cx = x;
+        ly += alt;
+      }
+      const cor = rgb(it.cor);
+      const bx = cx + 1.3;
+      const by = ly - 1.1;
+      if (it.forma === 'quadrado') {
+        doc.setFillColor(...cor);
+        doc.rect(bx - 1.1, by - 1.1, 2.2, 2.2, 'F');
+      } else if (it.forma === 'losango') {
+        this.poligono([[bx, by - 1.4], [bx + 1.4, by], [bx, by + 1.4], [bx - 1.4, by]], cor);
+        // Contorno para o losango claro (fora nosso) se ver no papel.
+        doc.setDrawColor(...COR.cinzento);
+        doc.setLineWidth(0.1);
+        doc.lines([[1.4, 1.4], [-1.4, 1.4], [-1.4, -1.4], [1.4, -1.4]], bx, by - 1.4, [1, 1], 'S', true);
+      } else if (it.forma === 'anel') {
+        doc.setFillColor(...COR.branco);
+        doc.setDrawColor(...cor);
+        doc.setLineWidth(0.55);
+        doc.circle(bx, by, 0.95, 'FD');
+      } else {
+        doc.setFillColor(...cor);
+        doc.circle(bx, by, 1.2, 'F');
+      }
+      this.fonte(7.2).cor(COR.texto);
+      this.texto(txt, cx + 3.2, ly);
+      if (num) {
+        this.fonte(7.2, true);
+        this.texto(num, cx + 3.2 + wTxt, ly);
+      }
+      cx += wItem + 4;
+    }
+    return ly - y + 2;
   }
 
   /**
