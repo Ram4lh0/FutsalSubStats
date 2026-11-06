@@ -150,14 +150,13 @@
 .regpainel__linha { cursor: pointer; }
 .regpainel__linha.is-on td { background: rgba(56, 189, 248, 0.12); }
 .regpainel__nota { font-size: 0.78rem; margin: 6px 0 0; }
-/* Mapa de calor dos remates: o nosso e o do adversário, lado a lado. */
+/* Mapa dos remates: o nosso e o do adversário, lado a lado. */
 .regcalor { display: flex; flex-direction: column; gap: 10px; }
 .regpainel__subtitulo { margin: 4px 0 8px; font-size: 0.95rem; }
 .regcalor__campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
 .regcalor__campo { margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .regcalor__titulo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-weight: 700; }
 .regcalor__conta { flex-basis: 100%; font-weight: 400; font-size: 0.8rem; color: var(--muted); }
-.regcalor__n { fill: #fff; font-size: 15px; font-weight: 800; text-anchor: middle; dominant-baseline: central; paint-order: stroke; stroke: rgba(0, 0, 0, 0.45); stroke-width: 3px; }
 /* Corrigir registos no intervalo: a lista fica fechada por omissão. */
 .registos__corrigir { margin-top: 10px; }
 .registos__corrigir > summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
