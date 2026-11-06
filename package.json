@@ -1,6 +1,6 @@
 {
   "name": "futsal-web",
-  "version": "1.32.6",
+  "version": "1.32.8",
   "private": true,
   "type": "module",
   "scripts": {
