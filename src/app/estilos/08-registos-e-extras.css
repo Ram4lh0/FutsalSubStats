@@ -157,6 +157,16 @@
 .regcalor__campo { margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .regcalor__titulo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-weight: 700; }
 .regcalor__conta { flex-basis: 100%; font-weight: 400; font-size: 0.8rem; color: var(--muted); }
+/* A legenda filtra: cada categoria é um botão (escolher várias, tocar outra vez para tirar). */
+.regcalor__dica { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 28px; }
+.regcalor__legenda { gap: 6px; }
+.regcalor__cat {
+  font: inherit; color: var(--text); background: transparent; cursor: pointer;
+  border: 1px solid transparent; border-radius: 999px; padding: 4px 10px; transition: opacity 0.15s;
+}
+.regcalor__cat:hover { background: var(--card-2); }
+.regcalor__cat.is-on { border-color: var(--cor); background: color-mix(in srgb, var(--cor) 18%, transparent); }
+.regcalor__cat.is-apagado { opacity: 0.4; }
 /* Corrigir registos no intervalo: a lista fica fechada por omissão. */
 .registos__corrigir { margin-top: 10px; }
 .registos__corrigir > summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
