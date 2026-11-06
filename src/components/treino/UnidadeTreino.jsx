@@ -7,7 +7,7 @@
 // Cada exercício pode levar jogadas do quadro tático do escalão: ficam como
 // etiquetas (tocar abre a jogada) e entram no PDF da UT com imagem e link.
 
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Field } from '@/components/bits.jsx';
 import { Dialog, useUI } from '@/lib/ui.jsx';
@@ -98,20 +98,20 @@ export default function UnidadeTreino({ ut, onMudar, duracaoTreino, soLeitura, j
               </div>
               {daParte.map((ex, i) => (
                 <div key={ex.id} className="ut__ex">
-                  <span className="ut__exnum">{i + 1}</span>
-                  <div className="ut__excorpo">
-                    <div className="ut__exlinha">
-                      <input
-                        className="input input--tiny ut__exnome"
-                        type="text"
-                        maxLength={100}
-                        placeholder={t('ut.exNomeExemplo')}
-                        value={ex.nome}
-                        disabled={soLeitura}
-                        onChange={(e) => mudarEx(ex.id, { nome: e.target.value })}
-                      />
+                  <div className="ut__exhead">
+                    <span className="ut__exnum">{i + 1}</span>
+                    <input
+                      className="input input--tiny ut__exnome"
+                      type="text"
+                      maxLength={100}
+                      placeholder={t('ut.exNomeExemplo')}
+                      value={ex.nome}
+                      disabled={soLeitura}
+                      onChange={(e) => mudarEx(ex.id, { nome: e.target.value })}
+                    />
+                    <div className="ut__exctl">
                       <select
-                        className="input input--tiny"
+                        className="input input--tiny ut__exmin"
                         value={ex.duracao}
                         disabled={soLeitura}
                         aria-label={t('treino.duracao')}
@@ -123,10 +123,18 @@ export default function UnidadeTreino({ ut, onMudar, duracaoTreino, soLeitura, j
                           </option>
                         ))}
                       </select>
+                      {soLeitura ? null : (
+                        <div className="ut__exacoes">
+                          <button type="button" className="tpbtn" aria-label={t('ut.subir')} onClick={() => moverEx(ex.id, -1)}>↑</button>
+                          <button type="button" className="tpbtn" aria-label={t('ut.descer')} onClick={() => moverEx(ex.id, 1)}>↓</button>
+                          <button type="button" className="tpbtn ut__tirar" aria-label={t('ut.tirar')} onClick={() => tirarEx(ex.id)}>×</button>
+                        </div>
+                      )}
                     </div>
-                    <textarea
+                  </div>
+                  <div className="ut__excorpo">
+                    <TextoQueCresce
                       className="input ut__exdesc"
-                      rows={2}
                       maxLength={1500}
                       placeholder={t('ut.exDescExemplo')}
                       value={ex.descricao}
@@ -168,13 +176,6 @@ export default function UnidadeTreino({ ut, onMudar, duracaoTreino, soLeitura, j
                       </div>
                     ) : null}
                   </div>
-                  {soLeitura ? null : (
-                    <div className="ut__exacoes">
-                      <button type="button" className="tpbtn" aria-label={t('ut.subir')} onClick={() => moverEx(ex.id, -1)}>↑</button>
-                      <button type="button" className="tpbtn" aria-label={t('ut.descer')} onClick={() => moverEx(ex.id, 1)}>↓</button>
-                      <button type="button" className="tpbtn ut__tirar" aria-label={t('ut.tirar')} onClick={() => tirarEx(ex.id)}>×</button>
-                    </div>
-                  )}
                 </div>
               ))}
               {soLeitura ? null : (
@@ -241,4 +242,25 @@ function EscolherJogadas({ jogadas, inicial, onFechar }) {
       </footer>
     </Dialog>
   );
+}
+
+/**
+ * Uma caixa de texto que cresce com o que lá está escrito: no telemóvel a
+ * descrição do exercício via-se cortada a meio, com duas linhas fixas.
+ */
+function TextoQueCresce({ value, ...props }) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const acertar = () => {
+      const el = ref.current;
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight + 2}px`;
+    };
+    acertar();
+    // Rodar o telemóvel muda a largura e, com ela, o número de linhas.
+    window.addEventListener('resize', acertar);
+    return () => window.removeEventListener('resize', acertar);
+  }, [value]);
+  return <textarea ref={ref} rows={2} value={value} {...props} />;
 }

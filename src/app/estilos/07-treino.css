@@ -306,21 +306,31 @@
 .ut__partehead h3 { margin: 0; font-size: 0.95rem; }
 .ut__partehead .muted { font-size: 0.8rem; }
 .ut__ex {
-  display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: start;
+  display: grid; gap: 8px;
   padding: 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
 }
-.ut__exnum { font-weight: 800; color: var(--muted); text-align: center; padding-top: 8px; }
+/* Nome, minutos e botões numa linha; quando não cabe (telemóvel) o nome fica
+   sozinho em cima e os minutos e os botões descem para a linha de baixo. */
+.ut__exhead { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ut__exnum { flex: 0 0 22px; font-weight: 800; color: var(--muted); text-align: center; }
+.ut__exnome { flex: 1 1 200px; min-width: 0; font-weight: 700; }
+.ut__exctl { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.ut__exmin { flex: 0 0 auto; min-width: 88px; padding-right: 28px; }
 .ut__excorpo { display: grid; gap: 6px; min-width: 0; }
-.ut__exlinha { display: flex; gap: 6px; }
-.ut__exnome { flex: 1; min-width: 0; font-weight: 700; }
-.ut__exdesc { min-height: 0; padding: 8px 12px; font: inherit; font-size: 0.88rem; line-height: 1.4; resize: vertical; }
-.ut__exacoes { display: flex; flex-direction: column; gap: 4px; }
-.ut__exacoes .tpbtn { min-width: 32px; height: 30px; }
+.ut__exdesc { min-height: 0; padding: 8px 12px; font: inherit; font-size: 0.88rem; line-height: 1.4; resize: none; overflow: hidden; }
+.ut__exacoes { display: flex; gap: 4px; }
+.ut__exacoes .tpbtn { min-width: 36px; height: 36px; padding: 0; font-size: 1rem; }
 .ut__tirar:hover { color: var(--danger); border-color: var(--danger); }
 .ut__mais { justify-self: start; }
 @media (max-width: 520px) {
-  .ut__ex { grid-template-columns: minmax(0, 1fr) auto; }
-  .ut__exnum { display: none; }
+  .ut__parte { padding-left: 8px; }
+  .ut__ex { padding: 8px; }
+  .ut__exnome { flex-basis: calc(100% - 28px); }
+  .ut__exctl { width: 100%; margin-left: 0; }
+  .ut__exmin { flex: 1 1 auto; }
+  .ut__exacoes .tpbtn { min-width: 40px; height: 40px; }
+  /* 16 px: abaixo disto o iPhone faz zoom ao tocar no campo. */
+  .ut__exnome, .ut__exmin, .ut__exdesc { font-size: 16px; }
 }
 
 /* ------------------------------------------- convocatórias (experiência) */
