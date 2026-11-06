@@ -100,7 +100,11 @@ export const treinos = {
       db.byIndex(db.STORES.trainingSessions, 'by_team', teamId),
     ]);
     const futuros = todosTreinos.filter((t) => t.date >= hoje).map((t) => t.id);
-    const comPresencas = new Set();
+    // Um treino com UT escrita fica, como um com presenças: mudar a rotina não
+    // pode levar o trabalho do treinador.
+    const comPresencas = new Set(
+      todosTreinos.filter((t) => t.date >= hoje && t.plan && (t.plan.tema || t.plan.objetivos || t.plan.exercicios?.length)).map((t) => t.id)
+    );
     for (const id of futuros) {
       if ((await db.byIndex(db.STORES.trainingAttendance, 'by_session', id)).length) comPresencas.add(id);
     }
@@ -158,6 +162,8 @@ export const treinos = {
   cancelar: (id) => treinos.editar(id, { status: ESTADO_TREINO.CANCELADO }),
   repor: (id) => treinos.editar(id, { status: ESTADO_TREINO.AGENDADO }),
   notas: (id, notes) => treinos.editar(id, { notes: notes || null }, { marcarEditado: false }),
+  /** A unidade de treino (UT) deste treino — sincroniza com a linha. */
+  plano: (id, plan) => treinos.editar(id, { plan: plan || null }, { marcarEditado: false }),
 
   async apagar(id) {
     const atual = await db.get(db.STORES.trainingSessions, id);

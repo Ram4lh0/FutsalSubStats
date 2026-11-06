@@ -339,6 +339,9 @@ export const trainingSessionMapper = {
     status: s.status === 'CANCELADO' ? 'CANCELADO' : 'AGENDADO',
     edited: !!s.edited,
     notes: s.notes || null,
+    // A UT só vai quando este aparelho a conhece: uma linha que ainda não a
+    // trouxe do servidor não a apaga lá (o upsert só mexe nas colunas dadas).
+    ...(s.plan !== undefined ? { plan: s.plan ?? null } : {}),
     deleted_at: iso(s.deletedAt),
   }),
   fromRow: (r) => ({
@@ -352,6 +355,7 @@ export const trainingSessionMapper = {
     status: r.status,
     edited: r.edited,
     notes: r.notes,
+    plan: r.plan ?? null,
     deletedAt: ms(r.deleted_at),
     createdAt: ms(r.created_at),
     updatedAt: ms(r.updated_at),

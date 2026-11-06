@@ -23,7 +23,7 @@ import { Badge, Empty } from '@/components/bits.jsx';
 import FormTreino from '@/components/treino/FormTreino.jsx';
 import LegendaPresencas from '@/components/treino/LegendaPresencas.jsx';
 import UnidadeTreino from '@/components/treino/UnidadeTreino.jsx';
-import { useUnidadeTreino, utVazia } from '@/lib/data/unidadeTreino.js';
+import { migrarUTsLocais, useUnidadeTreino, utVazia } from '@/lib/data/unidadeTreino.js';
 import { useUI, Dialog } from '@/lib/ui.jsx';
 import { treinos as repoTreinos, presencas as repoPresencas, jogadas as repoJogadas } from '@/lib/data/treino.js';
 import { normalizar } from '@/domain/jogada.js';
@@ -59,7 +59,6 @@ function Treino({ clubId, teamId, trainingId, roster, club, team }) {
   const dados = useDadosTreino(teamId);
   const [notas, setNotas] = useState(null);
   const [aba, setAba] = useState('ut');
-  const [ut, guardarUT] = useUnidadeTreino(trainingId);
   const [jogadas, setJogadas] = useState([]);
   const [aExportar, setAExportar] = useState(false);
   const { userId, user } = useAuth();
@@ -69,6 +68,12 @@ function Treino({ clubId, teamId, trainingId, roster, club, team }) {
   }, [teamId, dados]);
 
   const treino = dados?.treinos.find((x) => x.id === trainingId) || null;
+  const [ut, guardarUT, gravarUTJa] = useUnidadeTreino(trainingId, treino);
+
+  // UTs escritas antes da 1.32.5 ficaram só no aparelho: passam para o treino.
+  useEffect(() => {
+    migrarUTsLocais();
+  }, [trainingId]);
   const marcadas = useMemo(() => {
     const m = new Map();
     for (const p of dados?.presencas || []) if (p.sessionId === trainingId) m.set(p.playerId, p);
@@ -131,9 +136,10 @@ function Treino({ clubId, teamId, trainingId, roster, club, team }) {
     }
   }
 
-  // A UT grava a cada mudança; as notas gravam ao sair do campo. Este botão
-  // garante as notas ainda por gravar e volta ao calendário.
+  // A UT grava pouco depois de cada mudança; as notas gravam ao sair do
+  // campo. Este botão garante as duas e volta ao calendário.
   async function guardarEVoltar() {
+    await gravarUTJa();
     if ((notas || '') !== (treino.notes || '')) await repoTreinos.notas(treino.id, notas);
     ui.toast(t('treino.guardado'), 'ok');
     router.push(voltar);
@@ -145,6 +151,7 @@ function Treino({ clubId, teamId, trainingId, roster, club, team }) {
     if (aExportar) return;
     setAExportar(true);
     try {
+      await gravarUTJa();
       const ligadas = new Set((ut?.exercicios || []).flatMap((e) => e.jogadas || []));
       let lista = jogadas;
       const semLink = jogadas.filter((j) => ligadas.has(j.id) && !(j.shareToken && j.shareExpiresAt > Date.now()));
