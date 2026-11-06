@@ -299,12 +299,24 @@
 .ut__tempo.is-certo { color: var(--primary); }
 .ut__tempo.is-acima { color: var(--danger); }
 .ut__parte { margin-top: 14px; padding-left: 12px; border-left: 3px solid var(--info); display: grid; gap: 8px; }
-.ut__parte--AQUECIMENTO { border-left-color: var(--warn); }
-.ut__parte--PRINCIPAL { border-left-color: var(--primary); }
-.ut__parte--RETORNO { border-left-color: var(--info); }
-.ut__partehead { display: flex; align-items: baseline; gap: 10px; }
+.ut__partehead { display: flex; align-items: center; gap: 10px; min-height: 36px; }
 .ut__partehead h3 { margin: 0; font-size: 0.95rem; }
-.ut__partehead .muted { font-size: 0.8rem; }
+.ut__partehead .muted { font-size: 0.8rem; white-space: nowrap; }
+/* O nome da parte parece um título; só ao tocar se vê que é um campo. */
+.ut__partenome {
+  flex: 1 1 auto; min-width: 0; height: 36px; padding: 0 8px; margin-left: -8px;
+  background: transparent; border: 1px solid transparent; border-radius: 10px;
+  color: var(--text); font: inherit; font-size: 0.95rem; font-weight: 800;
+}
+.ut__partenome:hover { border-color: var(--line); }
+.ut__partenome:focus { outline: none; border-color: var(--primary); background: var(--bg-2); }
+.ut__partenome::placeholder { color: var(--muted); font-weight: 600; }
+.ut__partetirar {
+  flex: 0 0 auto; width: 32px; height: 32px; border-radius: 10px; border: 1px solid transparent;
+  background: none; color: var(--muted); font: inherit; font-size: 1.1rem; cursor: pointer;
+}
+.ut__partetirar:hover { color: var(--danger); border-color: var(--danger); }
+.ut__novaparte { justify-self: start; margin-top: 14px; }
 .ut__ex {
   display: grid; gap: 8px;
   padding: 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
@@ -330,7 +342,8 @@
   .ut__exmin { flex: 1 1 auto; }
   .ut__exacoes .tpbtn { min-width: 40px; height: 40px; }
   /* 16 px: abaixo disto o iPhone faz zoom ao tocar no campo. */
-  .ut__exnome, .ut__exmin, .ut__exdesc { font-size: 16px; }
+  .ut__exnome, .ut__exmin, .ut__exdesc, .ut__partenome { font-size: 16px; }
+  .ut__partetirar { width: 40px; height: 40px; }
 }
 
 /* ------------------------------------------- convocatórias (experiência) */

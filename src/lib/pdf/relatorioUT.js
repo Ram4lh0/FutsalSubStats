@@ -8,16 +8,13 @@
 
 import { t, localeAtual } from '../i18n/index.js';
 import { COR, novoRelatorio } from './base.js';
-import { PARTES_UT, minutosUT } from '../data/unidadeTreino.js';
+import { minutosUT, nomeDaParte, partesDaUT } from '../data/unidadeTreino.js';
 import { imagemDaJogada } from '../videoJogada.js';
 import { urlDaJogada } from '../partilha.js';
 import { deIsoDia, maiuscula } from '../../domain/treino.js';
 
-const COR_PARTE = {
-  AQUECIMENTO: [245, 158, 11],
-  PRINCIPAL: COR.verde,
-  RETORNO: [56, 189, 248],
-};
+// As cores das partes, pela ordem delas (as mesmas do ecrã).
+const CORES_PARTE = [[245, 158, 11], COR.verde, [56, 189, 248], [167, 139, 250], [244, 63, 94], [20, 184, 166]];
 
 /**
  * @param {object} p
@@ -48,18 +45,18 @@ export async function gerarPdfUT({ treino, ut, club, team, jogadas }) {
   const total = minutosUT(ut);
   r.secao(`${t('ut.exercicios')}  ·  ${t('ut.tempo', { n: total, total: treino.durationMin })}`, 20);
   let n = 0;
-  for (const parte of PARTES_UT) {
-    const lista = ut.exercicios.filter((e) => e.parte === parte);
+  for (const [i, parte] of partesDaUT(ut).entries()) {
+    const lista = ut.exercicios.filter((e) => e.parte === parte.id);
     if (!lista.length) continue;
     const min = lista.reduce((s, e) => s + (Number(e.duracao) || 0), 0);
 
     // A faixa da parte, com a cor dela.
     r.garantir(22);
     r.y += 2;
-    doc.setFillColor(...COR_PARTE[parte]);
+    doc.setFillColor(...CORES_PARTE[i % CORES_PARTE.length]);
     doc.rect(r.M, r.y - 4.2, r.largura, 6.4, 'F');
     r.fonte(9.5, true).cor(COR.branco);
-    r.texto(t(`ut.parte.${parte}`).toUpperCase(), r.M + 2.5, r.y);
+    r.texto((nomeDaParte(parte, t) || t('ut.parteSemNome')).toUpperCase(), r.M + 2.5, r.y);
     r.texto(t('treino.duracaoMin', { n: min }), r.M + r.largura - 2.5, r.y, { alinhar: 'right' });
     r.y += 7;
 

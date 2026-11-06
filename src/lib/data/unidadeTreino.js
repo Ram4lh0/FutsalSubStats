@@ -17,11 +17,33 @@ const CHAVE_ANTIGA = 'fss:ut:';
 const CHAVE_GUARDADA = 'fss:ut-antiga:';
 const ESPERA_MS = 600;
 
-/** As partes de uma UT, pela ordem em que acontecem. */
+/** As partes de origem de uma UT, pela ordem em que acontecem. */
 export const PARTES_UT = ['AQUECIMENTO', 'PRINCIPAL', 'RETORNO'];
+
+/**
+ * As partes desta UT, pela ordem: `[{ id, nome }]`. O treinador pode mudar o
+ * nome, acrescentar e tirar partes (1.32.7); uma UT sem `partes` (as de antes,
+ * ou ainda por mexer) tem as três de origem, com o nome traduzido.
+ */
+export function partesDaUT(ut) {
+  if (Array.isArray(ut?.partes)) return ut.partes;
+  return PARTES_UT.map((id) => ({ id, nome: null }));
+}
+
+/** O nome a mostrar: o que o treinador escreveu, ou o de origem traduzido. */
+export function nomeDaParte(parte, t) {
+  const nome = parte?.nome?.trim();
+  if (nome) return nome;
+  if (parte?.nome == null && PARTES_UT.includes(parte?.id)) return t(`ut.parte.${parte.id}`);
+  return '';
+}
 
 export function utVazia() {
   return { tema: '', objetivos: '', material: '', exercicios: [] };
+}
+
+export function parteNova() {
+  return { id: uid(), nome: '' };
 }
 
 export function exercicioNovo(parte = 'PRINCIPAL') {

@@ -12,10 +12,12 @@ import { useRouter } from 'next/navigation';
 import { Field } from '@/components/bits.jsx';
 import { Dialog, useUI } from '@/lib/ui.jsx';
 import { rotas } from '@/lib/routes.js';
-import { PARTES_UT, exercicioNovo, minutosUT, utVazia } from '@/lib/data/unidadeTreino.js';
+import { exercicioNovo, minutosUT, nomeDaParte, parteNova, partesDaUT, utVazia } from '@/lib/data/unidadeTreino.js';
 import { useT } from '@/lib/i18n/index.js';
 
 const DURACOES_EX = [5, 10, 15, 20, 25, 30, 40, 45];
+// A cor de cada parte vai pela ordem dela (a mesma no PDF).
+const CORES_PARTE = ['var(--warn)', 'var(--primary)', 'var(--info)', '#a78bfa', 'var(--danger)', '#14b8a6'];
 
 export default function UnidadeTreino({ ut, onMudar, duracaoTreino, soLeitura, jogadas = [], clubId, teamId }) {
   const t = useT();
@@ -44,6 +46,29 @@ export default function UnidadeTreino({ ut, onMudar, duracaoTreino, soLeitura, j
     [lista[i], lista[j]] = [lista[j], lista[i]];
     mudar({ exercicios: lista });
   };
+
+  // As partes: mudar o nome, acrescentar ou tirar grava a lista inteira na UT
+  // (a partir daí deixa de usar as três de origem).
+  const partes = partesDaUT(v);
+  const [focarParte, setFocarParte] = useState(null);
+  const gravarPartes = (lista, patch = {}) => mudar({ ...patch, partes: lista.map((p) => ({ id: p.id, nome: p.nome ?? nomeDaParte(p, t) })) });
+  const renomearParte = (id, nome) => gravarPartes(partes.map((p) => (p.id === id ? { ...p, nome } : p)));
+  const acrescentarParte = () => {
+    const nova = parteNova();
+    setFocarParte(nova.id);
+    gravarPartes([...partes, nova]);
+  };
+  async function tirarParte(parte) {
+    const n = v.exercicios.filter((e) => e.parte === parte.id).length;
+    if (n) {
+      const ok = await ui.confirmar(
+        t('ut.tirarPartePergunta', { nome: nomeDaParte(parte, t) || t('ut.parteSemNome'), n }),
+        { okLabel: t('ut.tirarParte') }
+      );
+      if (!ok) return;
+    }
+    gravarPartes(partes.filter((p) => p.id !== parte.id), { exercicios: v.exercicios.filter((e) => e.parte !== parte.id) });
+  }
 
   const total = minutosUT(v);
   const folga = duracaoTreino - total;
@@ -86,15 +111,33 @@ export default function UnidadeTreino({ ut, onMudar, duracaoTreino, soLeitura, j
           </span>
         </div>
 
-        {PARTES_UT.map((parte) => {
-          const daParte = v.exercicios.filter((e) => e.parte === parte);
+        {partes.map((parte, iParte) => {
+          const daParte = v.exercicios.filter((e) => e.parte === parte.id);
           if (soLeitura && !daParte.length) return null;
           const min = daParte.reduce((s, e) => s + (Number(e.duracao) || 0), 0);
           return (
-            <div key={parte} className={`ut__parte ut__parte--${parte}`}>
+            <div key={parte.id} className="ut__parte" style={{ borderLeftColor: CORES_PARTE[iParte % CORES_PARTE.length] }}>
               <div className="ut__partehead">
-                <h3>{t(`ut.parte.${parte}`)}</h3>
+                {soLeitura ? (
+                  <h3>{nomeDaParte(parte, t) || t('ut.parteSemNome')}</h3>
+                ) : (
+                  <input
+                    className="ut__partenome"
+                    type="text"
+                    maxLength={60}
+                    placeholder={t('ut.parteNome')}
+                    aria-label={t('ut.parteNome')}
+                    value={nomeDaParte(parte, t)}
+                    autoFocus={focarParte === parte.id}
+                    onChange={(e) => renomearParte(parte.id, e.target.value)}
+                  />
+                )}
                 {daParte.length ? <span className="muted">{t('treino.duracaoMin', { n: min })}</span> : null}
+                {soLeitura ? null : (
+                  <button type="button" className="ut__partetirar" aria-label={t('ut.tirarParte')} title={t('ut.tirarParte')} onClick={() => tirarParte(parte)}>
+                    ×
+                  </button>
+                )}
               </div>
               {daParte.map((ex, i) => (
                 <div key={ex.id} className="ut__ex">
@@ -182,7 +225,7 @@ export default function UnidadeTreino({ ut, onMudar, duracaoTreino, soLeitura, j
                 <button
                   type="button"
                   className="btn btn--ghost btn--tiny ut__mais"
-                  onClick={() => mudar({ exercicios: [...v.exercicios, exercicioNovo(parte)] })}
+                  onClick={() => mudar({ exercicios: [...v.exercicios, exercicioNovo(parte.id)] })}
                 >
                   {t('ut.acrescentar')}
                 </button>
@@ -190,6 +233,11 @@ export default function UnidadeTreino({ ut, onMudar, duracaoTreino, soLeitura, j
             </div>
           );
         })}
+        {soLeitura ? null : (
+          <button type="button" className="btn btn--ghost btn--tiny ut__novaparte" onClick={acrescentarParte}>
+            {t('ut.novaParte')}
+          </button>
+        )}
       </section>
 
       <section className="card">
