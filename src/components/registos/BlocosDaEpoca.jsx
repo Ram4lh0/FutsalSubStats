@@ -15,6 +15,7 @@ import { StatCard } from '@/components/bits.jsx';
 import { BarrasH } from '@/components/stats/graficos.jsx';
 import { CampoSvg } from './CampoToque.jsx';
 import { LegendaMapa, TabelaExtrasEquipa } from './ExtrasRegistos.jsx';
+import MapasCalorRemates from './MapasCalorRemates.jsx';
 import { REGISTO } from '@/domain/registos.js';
 import {
   REGISTOS_BOLA_PARADA,
@@ -64,6 +65,9 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
   const [escolhido, setFiltro] = useState(null);
   const filtro = filtros.includes(escolhido) ? escolhido : filtros[0] || null;
   const pontos = useMemo(() => (filtro ? mapaDaEpoca(entries, filtro) : []), [entries, filtro]);
+  // Mapa de calor: um campo para os nossos remates e outro para os deles.
+  const calorNos = useMemo(() => mapaDaEpoca(entries, REGISTO.REMATE), [entries]);
+  const calorEles = useMemo(() => mapaDaEpoca(entries, REGISTO.REMATE_ADV), [entries]);
 
   if (!tipos.size) return null;
 
@@ -282,6 +286,17 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
             }))}
           />
           <p className="muted small">{t('registos.bp.nota')}</p>
+        </Bloco>
+      ) : null}
+
+      {calorNos.length || calorEles.length ? (
+        <Bloco titulo={t('registos.calor.titulo')}>
+          <MapasCalorRemates
+            nossos={calorNos}
+            deles={calorEles}
+            rotuloNos={t('registos.calor.nos')}
+            rotuloEles={t('registos.calor.eles')}
+          />
         </Bloco>
       ) : null}
 

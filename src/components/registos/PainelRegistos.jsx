@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import { Dialog } from '@/lib/ui.jsx';
 import { CampoSvg } from './CampoToque.jsx';
+import MapasCalorRemates from './MapasCalorRemates.jsx';
 import {
   COR_REGISTO,
   COR_RESULTADO,
@@ -37,6 +38,8 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
   if (!r.total) return <p className="muted">{t('registos.nadaApontado')}</p>;
 
   const tem = (id) => r.tipos.has(id);
+  const calorNos = marcadores(state, { registos: [REGISTO.REMATE] });
+  const calorEles = marcadores(state, { registos: [REGISTO.REMATE_ADV] });
   const marcas = filtro
     ? marcadores(state, { registos: [filtro] }).filter((m) => !jogador || m.playerId === jogador)
     : [];
@@ -154,6 +157,18 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
           </div>
           <Legenda filtro={filtro} r={r} />
         </>
+      ) : null}
+
+      {calorNos.length || calorEles.length ? (
+        <div className="regpainel__calor">
+          <h4 className="regpainel__subtitulo">{t('registos.calor.titulo')}</h4>
+          <MapasCalorRemates
+            nossos={calorNos}
+            deles={calorEles}
+            rotuloNos={ourName || t('registos.calor.nos')}
+            rotuloEles={opponentName || t('registos.calor.eles')}
+          />
+        </div>
       ) : null}
 
       {porJogador ? (

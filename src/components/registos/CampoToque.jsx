@@ -61,7 +61,7 @@ function Marca({ m }) {
   );
 }
 
-export function CampoSvg({ markers = [], onPick = null, destaque = null, lateral = false }) {
+export function CampoSvg({ markers = [], onPick = null, destaque = null, lateral = false, children = null }) {
   const ref = useRef(null);
 
   function tocar(e) {
@@ -107,6 +107,8 @@ export function CampoSvg({ markers = [], onPick = null, destaque = null, lateral
         height={H}
         className={`regcampo__metade regcampo__metade--deles ${destaque === 'deles' ? 'is-on' : ''}`}
       />
+      {/* Uma camada por baixo das linhas (o mapa de calor). */}
+      {children}
       <g className="regcampo__linhas">
         <rect x={0} y={0} width={W} height={H} />
         <line x1={W / 2} y1={0} x2={W / 2} y2={H} />

@@ -747,6 +747,32 @@ export function marcadores(state, { registos } = {}) {
   return paraMarcadores(registosDoJogo(state), { registos });
 }
 
+/**
+ * Mapa de calor: os pontos contados por zona. O campo divide-se numa grelha
+ * de `colunas` ao comprimento (8 = 5 m cada) e `linhas` à largura (4 = 5 m
+ * cada); `col` 0 é a nossa linha de fundo e `lin` 0 a lateral de cima, como
+ * nas coordenadas. Os pontos sem sítio não contam. As zonas são só de leitura:
+ * mudar a grelha não mexe em nenhum evento.
+ */
+export function zonasDeCalor(pontos, { colunas = 8, linhas = 4 } = {}) {
+  const celulas = [];
+  for (let lin = 0; lin < linhas; lin++) {
+    for (let col = 0; col < colunas; col++) celulas.push({ col, lin, n: 0, golos: 0 });
+  }
+  let total = 0;
+  for (const p of pontos || []) {
+    if (p?.x == null || p?.y == null) continue;
+    const col = Math.min(colunas - 1, Math.max(0, Math.floor(p.x * colunas)));
+    const lin = Math.min(linhas - 1, Math.max(0, Math.floor(p.y * linhas)));
+    const c = celulas[lin * colunas + col];
+    c.n += 1;
+    if (p.resultado === RESULTADO_REMATE.GOLO) c.golos += 1;
+    total += 1;
+  }
+  const max = celulas.reduce((m, c) => Math.max(m, c.n), 0);
+  return { colunas, linhas, celulas, max, total };
+}
+
 /** O mesmo, a partir de uma lista já lida (o painel da época junta vários jogos). */
 export function paraMarcadores(lista, { registos } = {}) {
   const out = [];
