@@ -34,6 +34,8 @@ import { dayLabel, positionLabel, footLabel } from '@/lib/format.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import { useT } from '@/lib/i18n/index.js';
+import { useUI } from '@/lib/ui.jsx';
+import { entregarFicheiro } from '@/lib/ficheiros.js';
 
 const VAZIO = {
   matches: 0, courtMs: 0, goals: 0, assists: 0, goalShare: 0, concededShare: 0,
@@ -41,6 +43,26 @@ const VAZIO = {
 };
 
 const um = (n) => (Number.isFinite(n) ? n.toFixed(1) : '—');
+
+/**
+ * A foto guarda-se em WebP, que o jsPDF não lê: passa-se para PNG num canvas.
+ * Sem foto, ou se a conversão falhar, o PDF sai sem ela.
+ */
+async function fotoParaPdf(dataUrl) {
+  if (!dataUrl) return null;
+  try {
+    const img = new Image();
+    img.src = dataUrl;
+    await img.decode();
+    const tela = document.createElement('canvas');
+    tela.width = img.naturalWidth || 128;
+    tela.height = img.naturalHeight || 128;
+    tela.getContext('2d').drawImage(img, 0, 0, tela.width, tela.height);
+    return tela.toDataURL('image/png');
+  } catch {
+    return null;
+  }
+}
 
 export default function PlayerPage() {
   return (
@@ -69,6 +91,8 @@ function Ficha() {
   const [dados, setDados] = useState(null);
   const soLeitura = useSoLeitura(teamId);
   const foto = useFotoDoJogador(playerId);
+  const ui = useUI();
+  const [aGerarPdf, setAGerarPdf] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -97,6 +121,7 @@ function Ficha() {
         club,
         team,
         entries,
+        roster: roster || [],
         meus,
         agg,
         extras: extrasDoAtleta(entries, playerId),
@@ -115,6 +140,40 @@ function Ficha() {
   const perdas = painel?.perdas;
   const porJogo = (n) => (agg.matches ? n / agg.matches : 0);
 
+  const subtitulo = t('ficha.subtitulo', {
+    clube: [club?.name, team?.name].filter(Boolean).join(' · '),
+    posicao: positionLabel(player.preferredPosition),
+    pe: footLabel(player.strongFoot || FOOT.UNKNOWN).toLowerCase(),
+    estado: player.isActive ? t('plantel.etiquetaAtivo') : t('plantel.etiquetaInativo'),
+  });
+
+  /**
+   * O PDF da ficha: o mesmo que se vê aqui, com os blocos dos registos que o
+   * escalão aponta. O jsPDF só carrega ao carregar no botão.
+   */
+  async function exportarPdf() {
+    if (aGerarPdf) return;
+    setAGerarPdf(true);
+    try {
+      const { gerarPdfAtleta, nomePdfAtleta } = await import('@/lib/pdf/relatorioPainel.js');
+      const blob = await gerarPdfAtleta({
+        player,
+        club,
+        team,
+        entries,
+        roster: dados.roster,
+        subtitulo,
+        foto: player.photoUrl ? await fotoParaPdf(foto) : null,
+      });
+      const nome = nomePdfAtleta(player);
+      await entregarFicheiro(blob, nome, 'application/pdf', { titulo: nome });
+    } catch (e) {
+      ui.toast(t('pdf.falhou', { erro: e?.message || String(e) }), 'error');
+    } finally {
+      setAGerarPdf(false);
+    }
+  }
+
   const abrirJogo = (matchId) =>
     router.push(
       comOrigem(rotas.jogoResumo(matchId), { atras: rotas.jogador(clubId, teamId, playerId) })
@@ -129,24 +188,22 @@ function Ficha() {
             <span>{`#${player.shirtNumber} ${player.name}`}</span>
           </span>
         }
-        subtitle={t('ficha.subtitulo', {
-          clube: [club?.name, team?.name].filter(Boolean).join(' · '),
-          posicao: positionLabel(player.preferredPosition),
-          pe: footLabel(player.strongFoot || FOOT.UNKNOWN).toLowerCase(),
-          estado: player.isActive
-            ? t('plantel.etiquetaAtivo')
-            : t('plantel.etiquetaInativo'),
-        })}
+        subtitle={subtitulo}
         backTo={rotas.plantel(clubId, teamId)}
         actions={
-          soLeitura ? null : (
-            <button
-              className="btn btn--ghost"
-              onClick={() => router.push(rotas.jogadorEditar(clubId, teamId, playerId))}
-            >
-              {t('comum.editar')}
+          <>
+            <button className="btn btn--ghost" disabled={aGerarPdf} onClick={exportarPdf}>
+              {aGerarPdf ? t('pdf.aGerar') : t('pdf.exportar')}
             </button>
-          )
+            {soLeitura ? null : (
+              <button
+                className="btn btn--ghost"
+                onClick={() => router.push(rotas.jogadorEditar(clubId, teamId, playerId))}
+              >
+                {t('comum.editar')}
+              </button>
+            )}
+          </>
         }
       />
 

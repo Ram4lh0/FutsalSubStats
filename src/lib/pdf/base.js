@@ -177,15 +177,18 @@ export function rgb(cor) {
  * @param {string[]} [p.info]      linhas pequenas (filtros, período…)
  * @param {'portrait'|'landscape'} [p.orientacao]
  */
-export async function novoRelatorio({ titulo, subtitulo = '', info = [], orientacao = 'portrait' }) {
+export async function novoRelatorio({ titulo, subtitulo = '', info = [], orientacao = 'portrait', foto = null }) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: orientacao, compress: true });
-  return new Relatorio(doc, { titulo, subtitulo, info });
+  return new Relatorio(doc, { titulo, subtitulo, info, foto });
 }
 
 export class Relatorio {
-  constructor(doc, { titulo, subtitulo, info }) {
+  constructor(doc, { titulo, subtitulo, info, foto = null }) {
     this.doc = doc;
+    // Foto (data URL PNG/JPEG) à direita no cabeçalho da 1.ª página: a do
+    // atleta, no relatório da ficha.
+    this.foto = foto;
     this.titulo = titulo;
     this.subtitulo = subtitulo;
     this.info = info.filter(Boolean);
@@ -248,15 +251,26 @@ export class Relatorio {
       this.texto('FUTSAL SUBSTATS', M, 9);
       this.fonte(7.5).cor(COR.cinzento);
       this.texto(this.gerado, W - M, 9, { alinhar: 'right' });
+      // Com foto, o texto encolhe para não passar por baixo dela.
+      const ladoFoto = this.foto ? CAB_GRANDE - 15 : 0;
+      const largTexto = this.largura - (ladoFoto ? ladoFoto + 4 : 0);
+      if (this.foto) {
+        try {
+          const tipo = String(this.foto).startsWith('data:image/jpeg') ? 'JPEG' : 'PNG';
+          doc.addImage(this.foto, tipo, W - M - ladoFoto, 12, ladoFoto, ladoFoto);
+        } catch {
+          // Uma foto que o jsPDF não lê não pode deitar o relatório abaixo.
+        }
+      }
       this.fonte(17, true).cor(COR.branco);
-      this.texto(this.titulo, M, 18, { maximo: this.largura });
+      this.texto(this.titulo, M, 18, { maximo: largTexto });
       this.fonte(10).cor([234, 241, 255]);
-      if (this.subtitulo) this.texto(this.subtitulo, M, 24.5, { maximo: this.largura });
+      if (this.subtitulo) this.texto(this.subtitulo, M, 24.5, { maximo: largTexto });
       this.fonte(7.5).cor(COR.cinzento);
       // As linhas de informação (filtros, período) cabem duas no cabeçalho;
       // as que sobram vão logo por baixo, no corpo.
       const noCab = this.info.slice(0, 1);
-      noCab.forEach((l, i) => this.texto(l, M, 30 + i * 4, { maximo: this.largura }));
+      noCab.forEach((l, i) => this.texto(l, M, 30 + i * 4, { maximo: largTexto }));
       this.y = CAB_GRANDE + 7;
       const resto = this.info.slice(1);
       if (resto.length) {

@@ -37,7 +37,9 @@ import {
   extrasDoAtleta,
   mapaDaEpoca,
   mapaDoAtleta,
+  parteDosJogos,
 } from '../../domain/dashboard.js';
+import { clubAggregate } from '../../domain/stats.js';
 import { REGISTO } from '../../domain/registos.js';
 import { dayLabel } from '../format.js';
 import { t } from '../i18n/index.js';
@@ -97,6 +99,75 @@ export async function gerarPdfPainel({ club, team, entries, roster = [], parteMs
   } else {
     relatorioDaEquipa(r, { entries, roster, parteMs, jogos });
   }
+  return r.terminar();
+}
+
+/* ------------------------------------------------------- ficha do atleta */
+
+/** O nome do ficheiro: `atleta-tomas-ferreira-2026-11-07.pdf`. */
+export function nomePdfAtleta(player) {
+  return `atleta-${nomeLimpo(player?.name, 'atleta')}-${dataParaNome()}.pdf`;
+}
+
+/**
+ * O PDF da ficha do jogador: tudo o que a ficha mostra, pela mesma ordem.
+ *
+ * Primeiro o resumo do topo (jogos, tempo, golos, assistências, saldo em campo
+ * e, no guarda-redes, os sofridos), depois o relatório do atleta do painel —
+ * minutos, utilização, impacto, períodos, disciplina, os registos extra que o
+ * escalão aponta (tabela, eficácia dos remates, mapa) e os jogos. Os registos
+ * só entram quando há dados deles, por isso o PDF muda de clube para clube
+ * como a ficha.
+ *
+ * @param {object} p
+ * @param {object} p.player
+ * @param {object} p.club
+ * @param {object} p.team
+ * @param {Array}  p.entries   todos os jogos do escalão
+ * @param {Array}  p.roster
+ * @param {string} [p.subtitulo] posição, pé e estado, já em texto
+ * @param {string} [p.foto]    data URL PNG/JPEG da foto do atleta
+ * @returns {Promise<Blob>}
+ */
+export async function gerarPdfAtleta({ player, club, team, entries, roster = [], subtitulo = '', foto = null }) {
+  const atletaId = player.id;
+  const parteMs = parteDosJogos(entries);
+  const atleta = painelDoAtleta(entries, roster.length ? roster : [player], atletaId, { parteMs, quantos: 1000 });
+  const agg = clubAggregate(entries, [player]).perPlayer[atletaId] || null;
+  const jogos = formaRecente(entries, { quantos: Infinity });
+
+  const r = await novoRelatorio({
+    titulo: `#${player.shirtNumber} ${player.name}`,
+    subtitulo: subtitulo || [club?.name, team?.name].filter(Boolean).join(' · '),
+    info: [linhaDeFiltros([[t('pdf.jogos'), t('pdf.jogosTerminados', { n: jogos.length })]])],
+    foto,
+  });
+
+  if (agg && agg.matches) {
+    const gr = Boolean(atleta?.guardaRedes) || agg.conceded > 0;
+    const porJogo = (n) => t('pdf.porJogo', { n: (agg.matches ? n / agg.matches : 0).toFixed(1) });
+    const saldo = agg.goalShare - agg.concededShare;
+    r.secao(t('pdf.resumo'), 20);
+    r.cartoes(
+      [
+        { rotulo: t('stats.jogos'), valor: agg.matches },
+        { rotulo: t('ficha.tempoDeJogo'), valor: fmt(agg.courtMs), detalhe: t('ficha.mediaPorJogo', { tempo: fmt(agg.avgCourtPerMatchMs) }) },
+        gr ? { rotulo: t('stats.sofridos'), valor: agg.conceded, detalhe: porJogo(agg.conceded) } : null,
+        { rotulo: t('stats.golos'), valor: agg.goals, detalhe: porJogo(agg.goals) },
+        { rotulo: t('stats.assistencias'), valor: agg.assists, detalhe: porJogo(agg.assists) },
+        {
+          rotulo: t('ficha.saldoEmCampo'),
+          valor: comSinal(saldo),
+          tom: saldo > 0 ? 'win' : saldo < 0 ? 'loss' : undefined,
+          detalhe: `${agg.goalShare} / ${agg.concededShare}`,
+        },
+      ],
+      { porLinha: gr ? 3 : 5 }
+    );
+  }
+
+  if (atleta && atleta.utilizacao.convocado) relatorioDoAtleta(r, atleta, { entries, atletaId });
+  else r.paragrafo(t('ficha.semConvocatorias'));
   return r.terminar();
 }
 
