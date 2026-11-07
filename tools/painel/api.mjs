@@ -640,9 +640,13 @@ export async function desassociarClube(sb, { userId, clubeId }) {
  * `app` são os feedbacks que se mandam pelo ícone da app (`feedback_app`), com
  * o texto como foi escrito, a conta, a data, a versão, a plataforma e o ecrã.
  * Ficam à parte: não são respostas a popups.
+ *
+ * `contacto` são as contas convidadas para falar pelo WhatsApp (tabela
+ * `contacto_whatsapp`, postas à mão): se já viram o popup, o que escolheram e
+ * em que língua o viram.
  */
 export async function feedbacks(sb) {
-  const [respostas, perfis, demo, appFb] = await Promise.all([
+  const [respostas, perfis, demo, appFb, contactoWpp] = await Promise.all([
     sb
       .from('feedback_inicial')
       .select('user_id, momento, respondido, origem, email, opiniao, created_at')
@@ -653,6 +657,10 @@ export async function feedbacks(sb) {
       .from('feedback_app')
       .select('id, user_id, texto, ecra, versao, plataforma, created_at')
       .order('created_at', { ascending: false }),
+    sb
+      .from('contacto_whatsapp')
+      .select('user_id, nota, criado_em, mostrado_em, resposta, idioma')
+      .order('criado_em', { ascending: false }),
   ]);
   const erro = [respostas, perfis].find((r) => r.error);
   if (erro) throw new Error(erro.error.message);
@@ -710,8 +718,25 @@ export async function feedbacks(sb) {
     };
   });
 
+  // O convite para falar pelo WhatsApp. Sem a tabela, a secção fica vazia.
+  const contacto = (contactoWpp?.error ? [] : contactoWpp?.data || []).map((c) => {
+    const perfil = perfilPorId.get(c.user_id);
+    return {
+      userId: c.user_id,
+      conta: perfil?.email || c.user_id,
+      nome: perfil?.name || null,
+      interna: eInterno(perfil?.email),
+      nota: c.nota || null,
+      pedido: c.criado_em,
+      visto: c.mostrado_em || null,
+      resposta: c.resposta || null,
+      idioma: c.idioma || null,
+    };
+  });
+
   return {
     app,
+    contacto,
     recebidos: linhas,
     respostas: linhas.filter((l) => l.respondido),
     fechadosSemResposta: linhas.filter((l) => !l.respondido).length,

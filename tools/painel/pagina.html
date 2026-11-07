@@ -265,6 +265,17 @@
 </section>
 
 <section>
+  <h2>Convite WhatsApp</h2>
+  <p class="muted small" style="margin:-4px 0 12px" id="contacto-nota"></p>
+  <div class="cartao">
+    <table id="contacto-wpp">
+      <thead><tr><th>Conta</th><th>Clube</th><th>Pedido em</th><th>Estado</th><th>Língua</th><th>Visto em</th></tr></thead>
+      <tbody><tr><td colspan="6" class="muted">A carregar…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
   <h2>Feedback inicial</h2>
   <p class="muted small" style="margin:-4px 0 12px" id="feedback-nota"></p>
   <div class="cartao feedback">
@@ -763,8 +774,34 @@ function desenharApp(app) {
     </tr>`).join('') || '<tr><td colspan="6" class="muted">Ainda não há feedback da app.</td></tr>';
 }
 
-function desenharFeedback({ app = [], recebidos = [], respostas, fechadosSemResposta }) {
+// As contas convidadas (à mão) para falar pelo WhatsApp: o popup aparece uma
+// vez, na língua da app, e fica marcado o que escolheram.
+const LINGUAS = { pt: 'PT', es: 'ES', en: 'EN' };
+
+function desenharContacto(contacto) {
+  const vistos = contacto.filter((c) => c.visto);
+  const wpp = contacto.filter((c) => c.resposta === 'whatsapp').length;
+  $('#contacto-nota').textContent =
+    `${contacto.length} conta(s) convidada(s) · ${vistos.length} já viram o popup · ` +
+    `${wpp} carregaram no WhatsApp · ${vistos.length - wpp} disseram "agora não".`;
+  $('#contacto-wpp tbody').innerHTML = contacto.map((c) => `
+    <tr>
+      ${contaCelula(c)}
+      <td class="small">${texto(c.nota || '—')}</td>
+      <td class="nowrap small">${texto(dataHora(c.pedido))}</td>
+      <td>${!c.visto
+        ? ETIQUETA('por ver', 'ver')
+        : c.resposta === 'whatsapp'
+          ? ETIQUETA('carregou no WhatsApp', 'activo')
+          : ETIQUETA('agora não', 'treinador')}</td>
+      <td class="nowrap small">${texto(LINGUAS[c.idioma] || '—')}</td>
+      <td class="nowrap small">${texto(c.visto ? dataHora(c.visto) : '—')}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="muted">Ainda não há contas convidadas.</td></tr>';
+}
+
+function desenharFeedback({ app = [], contacto = [], recebidos = [], respostas, fechadosSemResposta }) {
   desenharApp(app);
+  desenharContacto(contacto);
   desenharRecebidos(recebidos);
   const reais = respostas.filter((r) => !r.interna).length;
   $('#feedback-nota').textContent =
