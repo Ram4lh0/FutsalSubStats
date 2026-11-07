@@ -420,3 +420,9 @@
   .modal.fbpop { padding: 24px 18px 18px; }
   .fbpop__title { font-size: 1.15rem; }
 }
+
+/* Convite para falar pelo WhatsApp (ContactoWhatsApp.jsx) */
+.wpppop__badge { color: #25d366; background: rgba(37, 211, 102, 0.12); border-color: rgba(37, 211, 102, 0.4); }
+.wpppop__btn { margin-top: 20px; min-height: 48px; gap: 10px; font-size: 1rem; font-weight: 700; color: #fff; background: #1faa53; border-color: #1faa53; }
+.wpppop__btn:hover { background: #22c35e; border-color: #22c35e; }
+.wpppop__depois { margin-top: 8px; color: var(--muted); border-color: transparent; }
