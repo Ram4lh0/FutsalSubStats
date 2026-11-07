@@ -75,7 +75,16 @@
 }
 .segmentado__opcao.is-on { background: var(--primary); color: var(--primary-ink); }
 
-.plantel__cartoes { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); }
+/* Cada posição é um bloco com o seu título; os blocos correm lado a lado e
+   quebram de linha só quando não cabem. Os cartões têm largura fixa para os
+   blocos se encaixarem uns nos outros. */
+.plantel__grupos { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-start; }
+.plantel__grupo { min-width: 0; max-width: 100%; }
+.plantel__grupo-titulo {
+  margin: 0 0 6px; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.plantel__cartoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.plantel__cartoes > .jcard { width: 215px; }
 
 .jcard {
   display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; margin: 0;
@@ -108,7 +117,9 @@
   .ficha__kpis .stat__value { font-size: 1.5rem; }
   .ficha__kpis > :last-child:nth-child(odd) { grid-column: 1 / -1; }
   /* Duas colunas no telemóvel: um plantel de 16 cabe em 8 linhas. */
-  .plantel__cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .plantel__grupo { width: 100%; }
+  .plantel__cartoes { gap: 6px; }
+  .plantel__cartoes > .jcard { width: calc(50% - 3px); }
   .jcard { padding: 8px 9px; gap: 6px; }
   .jcard__topo { gap: 8px; }
   .jcard__nome { font-size: 0.85rem; }

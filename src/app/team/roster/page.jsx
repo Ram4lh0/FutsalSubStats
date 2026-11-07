@@ -464,64 +464,74 @@ function ResumoPlantel({ roster, ativos, inativos, versao }) {
 }
 
 /**
- * Os jogadores em cartões, numa só grelha que corre de seguida: pela ordem do
- * campo (GR, fixos, alas, pivots, universais) e os inativos no fim. Uma linha
- * por posição deixava meio ecrã vazio (2 GR e 3 fixos ocupavam duas linhas);
- * a posição já vai escrita em cada cartão.
+ * Os jogadores em cartões, com o título de cada posição — mas as posições vão
+ * lado a lado enquanto couberem: 2 GR e 3 fixos ficam na mesma linha, em vez
+ * de cada posição abrir uma linha nova com meio ecrã vazio. Os inativos no fim.
  */
 function CartoesPlantel({ linhas, agg, teamId, abrir }) {
   const t = useT();
   const fotos = useFotosDoEscalao(teamId);
-  const grupo = (p) => {
-    if (!p.isActive) return GRUPOS.length;
-    const i = GRUPOS.findIndex((g) => g.posicoes.includes(normalizePosition(p.preferredPosition)));
-    return i < 0 ? GRUPOS.length - 1 : i;
+  const grupos = [
+    ...GRUPOS.map((g) => ({
+      id: g.id,
+      jogadores: linhas.filter(
+        (p) => p.isActive && g.posicoes.includes(normalizePosition(p.preferredPosition))
+      ),
+    })),
+    { id: 'INATIVOS', jogadores: linhas.filter((p) => !p.isActive) },
+  ].filter((g) => g.jogadores.length);
+
+  const cartao = (p) => {
+    const a = agg.perPlayer[p.id];
+    return (
+      <button
+        key={p.id}
+        type="button"
+        className={`card jcard ${p.isActive ? '' : 'is-muted'}`}
+        onClick={() => abrir(p.id)}
+      >
+        <span className="jcard__topo">
+          <FotoJogador jogador={p} foto={fotos.get(p.id)} tamanho={null} className="jcard__num" />
+          <span className="jcard__quem">
+            <strong className="jcard__nome">{p.name}</strong>
+            <span className="jcard__pos">
+              {positionShort(p.preferredPosition)}
+              {p.strongFoot && p.strongFoot !== FOOT.UNKNOWN ? ` · ${footLabel(p.strongFoot)}` : ''}
+            </span>
+          </span>
+        </span>
+        <span className="jcard__stats">
+          <span>
+            <strong className="mono">{a?.matches || 0}</strong>
+            <small>{t('plantel.jogos')}</small>
+          </span>
+          <span>
+            <strong className="mono">{minutos(a?.courtMs)}</strong>
+            <small>{t('plantel.minutos')}</small>
+          </span>
+          <span>
+            <strong className="mono">{a?.goals || 0}</strong>
+            <small>{t('stats.golos')}</small>
+          </span>
+          <span>
+            <strong className="mono">{a?.assists || 0}</strong>
+            <small>{t('plantel.assistCurto')}</small>
+          </span>
+        </span>
+      </button>
+    );
   };
-  // `sort` é estável: dentro de cada posição fica a ordem escolhida nos filtros.
-  const jogadores = [...linhas].sort((a, b) => grupo(a) - grupo(b));
 
   return (
-    <div className="plantel__cartoes">
-            {jogadores.map((p) => {
-              const a = agg.perPlayer[p.id];
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`card jcard ${p.isActive ? '' : 'is-muted'}`}
-                  onClick={() => abrir(p.id)}
-                >
-                  <span className="jcard__topo">
-                    <FotoJogador jogador={p} foto={fotos.get(p.id)} tamanho={null} className="jcard__num" />
-                    <span className="jcard__quem">
-                      <strong className="jcard__nome">{p.name}</strong>
-                      <span className="jcard__pos">
-                        {positionShort(p.preferredPosition)}
-                        {p.strongFoot && p.strongFoot !== FOOT.UNKNOWN ? ` · ${footLabel(p.strongFoot)}` : ''}
-                      </span>
-                    </span>
-                  </span>
-                  <span className="jcard__stats">
-                    <span>
-                      <strong className="mono">{a?.matches || 0}</strong>
-                      <small>{t('plantel.jogos')}</small>
-                    </span>
-                    <span>
-                      <strong className="mono">{minutos(a?.courtMs)}</strong>
-                      <small>{t('plantel.minutos')}</small>
-                    </span>
-                    <span>
-                      <strong className="mono">{a?.goals || 0}</strong>
-                      <small>{t('stats.golos')}</small>
-                    </span>
-                    <span>
-                      <strong className="mono">{a?.assists || 0}</strong>
-                      <small>{t('plantel.assistCurto')}</small>
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
+    <div className="plantel__grupos">
+      {grupos.map((g) => (
+        <section key={g.id} className="plantel__grupo">
+          <h2 className="plantel__grupo-titulo">
+            {t(`plantel.grupo.${g.id}`)} <span className="muted">{g.jogadores.length}</span>
+          </h2>
+          <div className="plantel__cartoes">{g.jogadores.map(cartao)}</div>
+        </section>
+      ))}
     </div>
   );
 }
