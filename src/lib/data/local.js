@@ -137,13 +137,56 @@ export function open() {
         db.createObjectStore(STORES.teamStatConfig, { keyPath: 'teamId' });
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      // Outro separador precisa de subir a versão da base (uma versão nova da
+      // app): este fecha a ligação e recarrega, já com o código novo. Sem isto,
+      // o outro separador ficava parado em "A carregar" à espera deste.
+      db.onversionchange = () => {
+        db.close();
+        if (typeof window !== 'undefined') window.location.reload();
+      };
+      esconderAvisoBloqueio();
+      resolve(db);
+    };
+    // Um separador antigo (ainda sem o `onversionchange` acima) não larga a
+    // base. O pedido fica à espera até ele fechar; avisa-se quem está a olhar.
+    req.onblocked = () => mostrarAvisoBloqueio();
     req.onerror = () => {
       initMemory();
       resolve(null);
     };
   });
   return dbPromise;
+}
+
+/* Aviso de base bloqueada. Em DOM simples, e não em React: aparece antes de a
+   app ter dados para desenhar o que quer que seja. O texto vive aqui (e não nos
+   dicionários) porque este ficheiro corre antes de tudo o resto. */
+const AVISO_BLOQUEIO = {
+  pt: 'A app está aberta noutro separador com uma versão antiga. Fecha ou recarrega os outros separadores da Futsal SubStats para continuar.',
+  en: 'The app is open in another tab with an older version. Close or reload the other Futsal SubStats tabs to continue.',
+  es: 'La app está abierta en otra pestaña con una versión antigua. Cierra o recarga las otras pestañas de Futsal SubStats para continuar.',
+};
+
+function mostrarAvisoBloqueio() {
+  if (typeof document === 'undefined' || document.getElementById('aviso-base-bloqueada')) return;
+  const lingua = String(document.documentElement.lang || 'pt').slice(0, 2);
+  const aviso = document.createElement('div');
+  aviso.id = 'aviso-base-bloqueada';
+  aviso.setAttribute('role', 'alert');
+  aviso.textContent = AVISO_BLOQUEIO[lingua] || AVISO_BLOQUEIO.pt;
+  Object.assign(aviso.style, {
+    position: 'fixed', left: '16px', right: '16px', top: '16px', zIndex: '9999',
+    padding: '14px 16px', borderRadius: '14px', font: '600 15px/1.4 system-ui, sans-serif',
+    background: '#f59e0b', color: '#1f1300', boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+  });
+  document.body.appendChild(aviso);
+}
+
+function esconderAvisoBloqueio() {
+  if (typeof document === 'undefined') return;
+  document.getElementById('aviso-base-bloqueada')?.remove();
 }
 
 export function isMemoryMode() {
