@@ -1,0 +1,111 @@
+/* ===================================================================
+   Ficha do jogador (app/team/player) e aba Plantel (app/team/roster)
+   =================================================================== */
+
+/* ------------------------------------------------- ficha do jogador */
+
+.ficha__kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom: 10px; }
+.ficha__kpis .stat__value { font-size: 1.9rem; }
+
+.ficha__chips { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ficha__chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
+  font-size: 0.85rem; color: var(--muted);
+}
+.ficha__chip strong { color: var(--text); }
+
+.ficha__cartao { display: inline-block; width: 10px; height: 14px; border-radius: 2px; vertical-align: middle; margin-right: 3px; }
+.ficha__cartao--amarelo { background: #facc15; }
+.ficha__cartao--vermelho { background: var(--danger); }
+
+/* Os blocos do painel do atleta: duas colunas largas no PC, uma no telemóvel. */
+.ficha__paineis {
+  display: grid; gap: 16px; align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+}
+.ficha__paineis .grid--stats { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.ficha__paineis .stat__value { font-size: 1.3rem; }
+.ficha__paineis .regpainel__mapa { max-width: 520px; }
+
+.ficha__ultimos { list-style: none; margin: 0; padding: 0; display: grid; }
+.ficha__ultimos button {
+  width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center;
+  padding: 8px 4px; border: 0; border-top: 1px solid var(--line); background: none; color: inherit; font: inherit;
+  text-align: left; cursor: pointer;
+}
+.ficha__ultimos li:first-child button { border-top: 0; }
+.ficha__ultimos button:hover { background: rgba(148, 163, 184, 0.08); }
+.ficha__ultimos-adv { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ficha__ultimos-num { color: var(--primary); font-weight: 700; }
+
+.ficha__resultado {
+  display: inline-block; min-width: 3.2em; padding: 2px 8px; border-radius: 999px; text-align: center;
+  font-variant-numeric: tabular-nums; font-weight: 700; background: rgba(148, 163, 184, 0.14);
+}
+.ficha__resultado.is-w { background: rgba(34, 197, 94, 0.18); color: var(--primary); }
+.ficha__resultado.is-d { background: rgba(245, 158, 11, 0.18); color: var(--warn); }
+.ficha__resultado.is-l { background: rgba(239, 68, 68, 0.18); color: #ff8080; }
+.ficha__pos { color: var(--primary); font-weight: 700; }
+.ficha__neg { color: #ff8080; font-weight: 700; }
+.ficha__seta { color: var(--muted); font-size: 1.3rem; line-height: 1; }
+.ficha__historico th { white-space: nowrap; }
+/* Com a coluna elástica a 100%, o `max-content` da tabela base dava uma largura
+   absurda; aqui a tabela só precisa de caber no conteúdo das células. */
+.ficha__historico .table { min-width: 0; }
+
+/* ------------------------------------------------------------- plantel */
+
+.plantel__resumo { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom: 14px; }
+.plantel__resumo .stat__hint { overflow: hidden; text-overflow: ellipsis; }
+.plantel__posicoes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.plantel__posicao {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; color: var(--muted);
+  padding: 2px 7px; border-radius: 999px; background: rgba(148, 163, 184, 0.12);
+}
+.plantel__posicao strong { color: var(--text); }
+
+/* Escolha Cartões | Tabela. */
+.segmentado { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.segmentado__opcao {
+  border: 0; background: none; color: var(--muted); font: inherit; font-size: 0.85rem; font-weight: 700;
+  padding: 5px 12px; border-radius: 999px; cursor: pointer;
+}
+.segmentado__opcao.is-on { background: var(--primary); color: var(--primary-ink); }
+
+.plantel__grupos { display: grid; gap: 18px; }
+.plantel__grupo h2 { margin-bottom: 8px; }
+.plantel__cartoes { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+
+.jcard {
+  display: flex; flex-direction: column; gap: 12px; padding: 14px; margin: 0;
+  text-align: left; color: inherit; font: inherit; cursor: pointer;
+  border: 1px solid var(--line); transition: border-color 0.12s, transform 0.12s;
+}
+.jcard:hover { border-color: var(--primary); }
+.jcard:active { transform: scale(0.99); }
+.jcard:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.jcard.is-muted { opacity: 0.55; }
+.jcard__topo { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.jcard__num {
+  flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+  font-size: 1.15rem; font-weight: 800; background: rgba(34, 197, 94, 0.14); color: var(--primary);
+}
+.jcard__quem { display: flex; flex-direction: column; min-width: 0; }
+.jcard__nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; }
+.jcard__pos { font-size: 0.8rem; color: var(--muted); }
+.jcard__stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  padding-top: 10px; border-top: 1px solid var(--line);
+}
+.jcard__stats > span { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.jcard__stats strong { font-size: 1.05rem; }
+.jcard__stats small { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+
+@media (max-width: 560px) {
+  .ficha__kpis, .plantel__resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ficha__kpis .stat__value { font-size: 1.5rem; }
+  .ficha__kpis > :last-child:nth-child(odd),
+  .plantel__resumo > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .plantel__cartoes { grid-template-columns: 1fr; }
+}

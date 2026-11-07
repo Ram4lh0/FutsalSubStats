@@ -1,14 +1,20 @@
 'use client';
 
-// Aba Plantel do escalão: filtros, ordenação e a lista de jogadores.
+// Aba Plantel do escalão: um resumo da equipa, filtros, ordenação e a lista de
+// jogadores — em cartões agrupados por posição (por omissão) ou em tabela.
+//
+// A tabela de oito colunas logo à entrada era muita coisa para a pergunta mais
+// comum ("quem tenho e como estão a ser usados?"). O resumo responde a isso em
+// meia dúzia de cartões; os cartões dos jogadores mostram só o essencial e
+// abrem a ficha. Quem prefere a tabela troca a vista e a escolha fica gravada.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import TeamShell from '@/components/TeamShell.jsx';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import DataTable from '@/components/DataTable.jsx';
-import { Badge, Empty } from '@/components/bits.jsx';
+import { Badge, Empty, StatCard } from '@/components/bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { players } from '@/lib/data/repository.js';
@@ -18,12 +24,34 @@ import { plantelCsv, plantelExemploCsv, lerPlantelCsv } from '@/lib/data/plantel
 import ImportarPlantel from '@/components/ImportarPlantel.jsx';
 import ConflitoImportacao from '@/components/ConflitoImportacao.jsx';
 import { clubAggregate } from '@/domain/stats.js';
+import { minutosPorJogador } from '@/domain/dashboard.js';
 import { fmt } from '@/domain/clock.js';
 import { POSITIONS_ALL, normalizePosition, FOOT } from '@/domain/constants.js';
-import { positionLabel, footLabel } from '@/lib/format.js';
+import { positionLabel, positionShort, footLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import { useT, useIdioma } from '@/lib/i18n/index.js';
+
+const CHAVE_VISTA = 'plantel.vista';
+
+/** Os grupos dos cartões, pela ordem do campo. As alas vão juntas. */
+const GRUPOS = [
+  { id: 'GR', posicoes: ['GOALKEEPER'] },
+  { id: 'FIXO', posicoes: ['FIXO'] },
+  { id: 'ALA', posicoes: ['LEFT_WINGER', 'RIGHT_WINGER'] },
+  { id: 'PIVOT', posicoes: ['PIVOT'] },
+  { id: 'UNIVERSAL', posicoes: ['UNIVERSAL'] },
+];
+
+const minutos = (ms) => Math.round((ms || 0) / 60_000);
+
+function lerVista() {
+  try {
+    return localStorage.getItem(CHAVE_VISTA) === 'tabela' ? 'tabela' : 'cartoes';
+  } catch {
+    return 'cartoes';
+  }
+}
 
 function textoPesquisavel(valor) {
   return String(valor ?? '')
@@ -65,6 +93,16 @@ function Roster({ team, entries, roster, clubId, teamId }) {
   });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [versao, setVersao] = useState(0);
+  const [vista, setVista] = useState('cartoes');
+  useEffect(() => setVista(lerVista()), []);
+  function trocarVista(v) {
+    setVista(v);
+    try {
+      localStorage.setItem(CHAVE_VISTA, v);
+    } catch {
+      /* sem armazenamento: a escolha vale só para esta visita */
+    }
+  }
 
   const agg = useMemo(() => clubAggregate(entries), [entries]);
   // `versao` entra na conta para os totais acompanharem ativar/desativar.
@@ -203,6 +241,17 @@ function Roster({ team, entries, roster, clubId, teamId }) {
 
   return (
     <>
+      {roster.length ? (
+        <ResumoPlantel
+          roster={roster}
+          entries={entries}
+          agg={agg}
+          ativos={ativos}
+          inativos={inativos}
+          versao={versao}
+          abrir={(id) => router.push(rotas.jogador(clubId, teamId, id))}
+        />
+      ) : null}
       <div className="toolbar">
         {/* Quantos são ao todo e quantos contam para os jogos. A diferença
             interessa: um plantel de 20 com 12 ativos não é um plantel de 20. */}
@@ -225,6 +274,24 @@ function Roster({ team, entries, roster, clubId, teamId }) {
         >
           {t('plantel.filtros')}
         </button>
+        <div className="segmentado" role="group" aria-label={t('plantel.vista')}>
+          <button
+            type="button"
+            className={`segmentado__opcao ${vista === 'cartoes' ? 'is-on' : ''}`}
+            aria-pressed={vista === 'cartoes'}
+            onClick={() => trocarVista('cartoes')}
+          >
+            {t('plantel.vistaCartoes')}
+          </button>
+          <button
+            type="button"
+            className={`segmentado__opcao ${vista === 'tabela' ? 'is-on' : ''}`}
+            aria-pressed={vista === 'tabela'}
+            onClick={() => trocarVista('tabela')}
+          >
+            {t('plantel.vistaTabela')}
+          </button>
+        </div>
         <span className="toolbar__spacer" />
         <button
           className="btn btn--ghost btn--tiny"
@@ -301,6 +368,12 @@ function Roster({ team, entries, roster, clubId, teamId }) {
         >
           {roster.length ? t('plantel.semCorrespondencia') : t('plantel.vazio')}
         </Empty>
+      ) : vista === 'cartoes' ? (
+        <CartoesPlantel
+          linhas={linhas}
+          agg={agg}
+          abrir={(id) => router.push(rotas.jogador(clubId, teamId, id))}
+        />
       ) : (
         <DataTable players tight>
           <thead>
@@ -357,5 +430,175 @@ function Roster({ team, entries, roster, clubId, teamId }) {
         </DataTable>
       )}
     </>
+  );
+}
+
+/**
+ * O resumo da equipa, por cima da lista: quantos são e de que posições, quem
+ * marca, quem assiste, quem joga mais e quem está a ficar sem minutos.
+ *
+ * "Poucos minutos" usa o mesmo limiar do painel (60% da média dos convocados):
+ * é a conversa que um treinador quer ter antes de a ter com o pai.
+ */
+function ResumoPlantel({ roster, entries, agg, ativos, inativos, versao, abrir }) {
+  const t = useT();
+  // `versao` entra para o resumo acompanhar ativar/desativar.
+  const ativosLista = useMemo(() => roster.filter((p) => p.isActive), [roster, versao]);
+
+  const porPosicao = useMemo(
+    () =>
+      GRUPOS.map((g) => ({
+        id: g.id,
+        n: ativosLista.filter((p) => g.posicoes.includes(normalizePosition(p.preferredPosition))).length,
+      })).filter((g) => g.n),
+    [ativosLista]
+  );
+
+  const lider = (chave) => {
+    let melhor = null;
+    for (const p of roster) {
+      const v = agg.perPlayer[p.id]?.[chave] || 0;
+      if (v > 0 && (!melhor || v > melhor.v)) melhor = { p, v };
+    }
+    return melhor;
+  };
+  const marcador = lider('goals');
+  const assistente = lider('assists');
+  const maisMinutos = lider('courtMs');
+
+  const poucos = useMemo(() => {
+    const ids = new Set(ativosLista.map((p) => p.id));
+    return minutosPorJogador(entries, roster).linhas.filter((l) => l.abaixo && ids.has(l.playerId));
+  }, [entries, roster, ativosLista]);
+
+  const cartaoLider = (etiqueta, l, valor) =>
+    l ? (
+      <StatCard
+        label={etiqueta}
+        value={valor}
+        hint={`#${l.p.shirtNumber} ${l.p.name}`}
+        onClick={() => abrir(l.p.id)}
+      />
+    ) : (
+      <StatCard
+        label={etiqueta}
+        value="—"
+        hint={entries.length ? t('plantel.ninguemAinda') : t('plantel.semJogos')}
+      />
+    );
+
+  return (
+    <div className="grid grid--stats plantel__resumo">
+      <div className="stat">
+        <span className="stat__label">{t('plantel.resumoPlantel')}</span>
+        <span className="stat__value">{ativos}</span>
+        <span className="stat__hint">
+          {inativos ? t('plantel.resumoAtivosInativos', { n: inativos }) : t('plantel.resumoAtivos')}
+        </span>
+        {porPosicao.length ? (
+          <span className="plantel__posicoes">
+            {porPosicao.map((g) => (
+              <span key={g.id} className="plantel__posicao" title={t(`plantel.grupo.${g.id}`)}>
+                {t(`plantel.grupoCurto.${g.id}`)} <strong>{g.n}</strong>
+              </span>
+            ))}
+          </span>
+        ) : null}
+      </div>
+      {cartaoLider(t('plantel.melhorMarcador'), marcador, marcador?.v)}
+      {cartaoLider(t('plantel.maisAssistencias'), assistente, assistente?.v)}
+      {cartaoLider(
+        t('plantel.maisMinutos'),
+        maisMinutos,
+        maisMinutos ? t('plantel.minN', { n: minutos(maisMinutos.v) }) : null
+      )}
+      {poucos.length ? (
+        <StatCard
+          label={t('plantel.poucosMinutos')}
+          value={poucos.length}
+          kind="draw"
+          hint={
+            poucos
+              .slice(0, 3)
+              .map((l) => l.name)
+              .join(', ') + (poucos.length > 3 ? ` +${poucos.length - 3}` : '')
+          }
+        />
+      ) : (
+        <StatCard
+          label={t('plantel.poucosMinutos')}
+          value="0"
+          hint={maisMinutos ? t('plantel.minutosEquilibrados') : t('plantel.semJogos')}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Os jogadores em cartões, agrupados por posição; os inativos no fim. */
+function CartoesPlantel({ linhas, agg, abrir }) {
+  const t = useT();
+  const grupos = [
+    ...GRUPOS.map((g) => ({
+      id: g.id,
+      jogadores: linhas.filter(
+        (p) => p.isActive && g.posicoes.includes(normalizePosition(p.preferredPosition))
+      ),
+    })),
+    { id: 'INATIVOS', jogadores: linhas.filter((p) => !p.isActive) },
+  ].filter((g) => g.jogadores.length);
+
+  return (
+    <div className="plantel__grupos">
+      {grupos.map((g) => (
+        <section key={g.id} className="plantel__grupo">
+          <h2 className="section section--tight">
+            {t(`plantel.grupo.${g.id}`)} <span className="muted">{g.jogadores.length}</span>
+          </h2>
+          <div className="plantel__cartoes">
+            {g.jogadores.map((p) => {
+              const a = agg.perPlayer[p.id];
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`card jcard ${p.isActive ? '' : 'is-muted'}`}
+                  onClick={() => abrir(p.id)}
+                >
+                  <span className="jcard__topo">
+                    <span className="jcard__num mono">{p.shirtNumber}</span>
+                    <span className="jcard__quem">
+                      <strong className="jcard__nome">{p.name}</strong>
+                      <span className="jcard__pos">
+                        {positionShort(p.preferredPosition)}
+                        {p.strongFoot && p.strongFoot !== FOOT.UNKNOWN ? ` · ${footLabel(p.strongFoot)}` : ''}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="jcard__stats">
+                    <span>
+                      <strong className="mono">{a?.matches || 0}</strong>
+                      <small>{t('plantel.jogos')}</small>
+                    </span>
+                    <span>
+                      <strong className="mono">{minutos(a?.courtMs)}</strong>
+                      <small>{t('plantel.minutos')}</small>
+                    </span>
+                    <span>
+                      <strong className="mono">{a?.goals || 0}</strong>
+                      <small>{t('stats.golos')}</small>
+                    </span>
+                    <span>
+                      <strong className="mono">{a?.assists || 0}</strong>
+                      <small>{t('plantel.assistCurto')}</small>
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
