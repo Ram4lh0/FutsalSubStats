@@ -14,7 +14,7 @@ import TeamShell from '@/components/TeamShell.jsx';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import DataTable from '@/components/DataTable.jsx';
-import { Badge, Empty, StatCard } from '@/components/bits.jsx';
+import { Badge, Empty } from '@/components/bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { players } from '@/lib/data/repository.js';
@@ -24,7 +24,6 @@ import { plantelCsv, plantelExemploCsv, lerPlantelCsv } from '@/lib/data/plantel
 import ImportarPlantel from '@/components/ImportarPlantel.jsx';
 import ConflitoImportacao from '@/components/ConflitoImportacao.jsx';
 import { clubAggregate } from '@/domain/stats.js';
-import { minutosPorJogador } from '@/domain/dashboard.js';
 import { fmt } from '@/domain/clock.js';
 import { POSITIONS_ALL, normalizePosition, FOOT } from '@/domain/constants.js';
 import { positionLabel, positionShort, footLabel } from '@/lib/format.js';
@@ -242,15 +241,7 @@ function Roster({ team, entries, roster, clubId, teamId }) {
   return (
     <>
       {roster.length ? (
-        <ResumoPlantel
-          roster={roster}
-          entries={entries}
-          agg={agg}
-          ativos={ativos}
-          inativos={inativos}
-          versao={versao}
-          abrir={(id) => router.push(rotas.jogador(clubId, teamId, id))}
-        />
+        <ResumoPlantel roster={roster} ativos={ativos} inativos={inativos} versao={versao} />
       ) : null}
       <div className="toolbar">
         {/* Quantos são ao todo e quantos contam para os jogos. A diferença
@@ -434,103 +425,38 @@ function Roster({ team, entries, roster, clubId, teamId }) {
 }
 
 /**
- * O resumo da equipa, por cima da lista: quantos são e de que posições, quem
- * marca, quem assiste, quem joga mais e quem está a ficar sem minutos.
- *
- * "Poucos minutos" usa o mesmo limiar do painel (60% da média dos convocados):
- * é a conversa que um treinador quer ter antes de a ter com o pai.
+ * O resumo do plantel, por cima da lista: quantos estão ativos e de que
+ * posições. Um cartão só — os líderes e os minutos estão nas estatísticas.
  */
-function ResumoPlantel({ roster, entries, agg, ativos, inativos, versao, abrir }) {
+function ResumoPlantel({ roster, ativos, inativos, versao }) {
   const t = useT();
   // `versao` entra para o resumo acompanhar ativar/desativar.
-  const ativosLista = useMemo(() => roster.filter((p) => p.isActive), [roster, versao]);
-
-  const porPosicao = useMemo(
-    () =>
-      GRUPOS.map((g) => ({
-        id: g.id,
-        n: ativosLista.filter((p) => g.posicoes.includes(normalizePosition(p.preferredPosition))).length,
-      })).filter((g) => g.n),
-    [ativosLista]
-  );
-
-  const lider = (chave) => {
-    let melhor = null;
-    for (const p of roster) {
-      const v = agg.perPlayer[p.id]?.[chave] || 0;
-      if (v > 0 && (!melhor || v > melhor.v)) melhor = { p, v };
-    }
-    return melhor;
-  };
-  const marcador = lider('goals');
-  const assistente = lider('assists');
-  const maisMinutos = lider('courtMs');
-
-  const poucos = useMemo(() => {
-    const ids = new Set(ativosLista.map((p) => p.id));
-    return minutosPorJogador(entries, roster).linhas.filter((l) => l.abaixo && ids.has(l.playerId));
-  }, [entries, roster, ativosLista]);
-
-  const cartaoLider = (etiqueta, l, valor) =>
-    l ? (
-      <StatCard
-        label={etiqueta}
-        value={valor}
-        hint={`#${l.p.shirtNumber} ${l.p.name}`}
-        onClick={() => abrir(l.p.id)}
-      />
-    ) : (
-      <StatCard
-        label={etiqueta}
-        value="—"
-        hint={entries.length ? t('plantel.ninguemAinda') : t('plantel.semJogos')}
-      />
-    );
+  const porPosicao = useMemo(() => {
+    const ativosLista = roster.filter((p) => p.isActive);
+    return GRUPOS.map((g) => ({
+      id: g.id,
+      n: ativosLista.filter((p) => g.posicoes.includes(normalizePosition(p.preferredPosition))).length,
+    })).filter((g) => g.n);
+  }, [roster, versao]);
 
   return (
-    <div className="grid grid--stats plantel__resumo">
-      <div className="stat">
-        <span className="stat__label">{t('plantel.resumoPlantel')}</span>
+    <div className="stat plantel__resumo">
+      <span className="stat__label">{t('plantel.resumoPlantel')}</span>
+      <span className="plantel__resumo-linha">
         <span className="stat__value">{ativos}</span>
         <span className="stat__hint">
           {inativos ? t('plantel.resumoAtivosInativos', { n: inativos }) : t('plantel.resumoAtivos')}
         </span>
-        {porPosicao.length ? (
-          <span className="plantel__posicoes">
-            {porPosicao.map((g) => (
-              <span key={g.id} className="plantel__posicao" title={t(`plantel.grupo.${g.id}`)}>
-                {t(`plantel.grupoCurto.${g.id}`)} <strong>{g.n}</strong>
-              </span>
-            ))}
-          </span>
-        ) : null}
-      </div>
-      {cartaoLider(t('plantel.melhorMarcador'), marcador, marcador?.v)}
-      {cartaoLider(t('plantel.maisAssistencias'), assistente, assistente?.v)}
-      {cartaoLider(
-        t('plantel.maisMinutos'),
-        maisMinutos,
-        maisMinutos ? t('plantel.minN', { n: minutos(maisMinutos.v) }) : null
-      )}
-      {poucos.length ? (
-        <StatCard
-          label={t('plantel.poucosMinutos')}
-          value={poucos.length}
-          kind="draw"
-          hint={
-            poucos
-              .slice(0, 3)
-              .map((l) => l.name)
-              .join(', ') + (poucos.length > 3 ? ` +${poucos.length - 3}` : '')
-          }
-        />
-      ) : (
-        <StatCard
-          label={t('plantel.poucosMinutos')}
-          value="0"
-          hint={maisMinutos ? t('plantel.minutosEquilibrados') : t('plantel.semJogos')}
-        />
-      )}
+      </span>
+      {porPosicao.length ? (
+        <span className="plantel__posicoes">
+          {porPosicao.map((g) => (
+            <span key={g.id} className="plantel__posicao" title={t(`plantel.grupo.${g.id}`)}>
+              {t(`plantel.grupoCurto.${g.id}`)} <strong>{g.n}</strong>
+            </span>
+          ))}
+        </span>
+      ) : null}
     </div>
   );
 }
