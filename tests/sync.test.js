@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import * as db from '../src/lib/data/local.js';
-import { clubs, teams, competitions, players, matches, squad, events, loadMatch, statConfig } from '../src/lib/data/repository.js';
+import { clubs, teams, competitions, players, matches, squad, events, loadMatch, statConfig, fotosJogadores } from '../src/lib/data/repository.js';
 import {
   flush,
   push,
@@ -35,7 +35,7 @@ const LEGACY_FOUL_ATTRIBUTION_ID = '99999999-aaaa-4aaa-8aaa-999999999999';
 const STABLE_FOUL_ATTRIBUTION_ID = '88888888-bbbb-4bbb-8bbb-888888888888';
 
 /** Servidor de mentira: guarda o que recebe e conta as chamadas. */
-function servidorFalso({ falhaEm, semUpdatedAtEventos = false, semConfigDosRegistos = false } = {}) {
+function servidorFalso({ falhaEm, semUpdatedAtEventos = false, semConfigDosRegistos = false, semFotos = false } = {}) {
   const tabelas = {
     profiles: [], clubs: [], teams: [], competitions: [],
     players: [], matches: [], match_squad: [], match_events: [],
@@ -46,12 +46,20 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false, semConfigDosRegis
     training_routines: [], training_sessions: [], training_attendance: [], plays: [],
     // Os registos extra ligados por escalão (só desce).
     team_stat_config: [],
+    // As fotos dos atletas (chave `player_id`, não `id`).
+    player_photos: [],
   };
+  const chave = (r) => r.id ?? r.player_id;
+  const semTabelaFotos = () =>
+    Object.assign(new Error('Could not find the table public.player_photos in the schema cache'), {
+      code: 'PGRST205',
+    });
   const chamadas = { upserts: 0, rpc: 0, selects: 0 };
 
   const query = (nome) => ({
     upsert(rows) {
       if (falhaEm === nome) return Promise.resolve({ error: new Error('sem rede') });
+      if (nome === 'player_photos' && semFotos) return Promise.resolve({ error: semTabelaFotos() });
       chamadas.upserts += 1;
       // O Supabase aceita uma linha ou uma lista; o duplo faz o mesmo.
       for (const bruta of Array.isArray(rows) ? rows : [rows]) {
@@ -59,7 +67,7 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false, semConfigDosRegis
         // Sem isto aqui, a descarga incremental não teria por onde se guiar e os
         // testes passariam a medir outra coisa.
         const r = { updated_at: new Date().toISOString(), ...bruta };
-        const i = tabelas[nome].findIndex((x) => x.id === r.id);
+        const i = tabelas[nome].findIndex((x) => chave(x) === chave(r));
         if (i >= 0) tabelas[nome][i] = r;
         else tabelas[nome].push(r);
       }
@@ -75,6 +83,7 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false, semConfigDosRegis
       let ate = null;
       let erro = null;
       // Servidor sem a migração dos registos: a tabela não existe.
+      if (nome === 'player_photos' && semFotos) erro = semTabelaFotos();
       if (nome === 'team_stat_config' && semConfigDosRegistos) {
         erro = Object.assign(new Error('Could not find the table public.team_stat_config in the schema cache'), {
           code: 'PGRST205',
@@ -1965,4 +1974,62 @@ test('importar o plantel: o número de quem sai sem jogos e passa a outro é um 
   assert.equal(r.desativados, 1);
   assert.equal(r.apagados, 0);
   assert.equal((await players.get(velho.id)).isActive, false);
+});
+
+/* ---------------------------------------------------------- fotos dos atletas */
+
+const FOTO = 'data:image/webp;base64,UklGRg==';
+
+test('a foto de um atleta sobe depois do jogador e desce num aparelho novo', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { jogador, escalao } = await cenario();
+  await fotosJogadores.guardar(jogador.id, FOTO);
+  assert.match((await players.get(jogador.id)).photoUrl, /^foto:/, 'o jogador fica marcado');
+
+  await push(UTILIZADOR);
+  assert.equal(servidor.tabelas.player_photos.length, 1);
+  assert.equal(servidor.tabelas.player_photos[0].player_id, jogador.id);
+  assert.equal(servidor.tabelas.player_photos[0].data, FOTO);
+  assert.equal((await db.all(db.STORES.playerPhotos)).filter((f) => f.dirty).length, 0);
+
+  await limpar();
+  await pull(UTILIZADOR);
+  assert.equal(await fotosJogadores.get(jogador.id), FOTO, 'a foto desceu');
+  assert.equal((await fotosJogadores.doEscalao(escalao.id)).get(jogador.id), FOTO);
+});
+
+test('tirar a foto apaga-a no servidor e tira a marca ao jogador', async () => {
+  await limpar();
+  const servidor = servidorFalso();
+  setRemote(servidor);
+  const { jogador } = await cenario();
+  await fotosJogadores.guardar(jogador.id, FOTO);
+  await push(UTILIZADOR);
+
+  await fotosJogadores.guardar(jogador.id, null);
+  assert.equal((await players.get(jogador.id)).photoUrl, null);
+  assert.equal(await fotosJogadores.get(jogador.id), null);
+  await push(UTILIZADOR);
+  assert.equal(servidor.tabelas.player_photos.length, 0, 'saiu do servidor');
+  assert.ok(!(await db.get(db.STORES.playerPhotos, jogador.id)), 'e da base local');
+  assert.equal(servidor.tabelas.players[0].photo_url, null, 'outro aparelho vê a marca a sair');
+});
+
+// Fica em último: depois de ver o servidor sem tabela, a fila deixa as fotos em
+// paz até a app voltar a abrir.
+test('sem a tabela das fotos no servidor, a foto fica no aparelho e o resto sobe', async () => {
+  await limpar();
+  const servidor = servidorFalso({ semFotos: true });
+  setRemote(servidor);
+  const { jogador } = await cenario();
+  await fotosJogadores.guardar(jogador.id, FOTO);
+
+  await push(UTILIZADOR);
+  assert.equal(servidor.tabelas.players.length, 1, 'o jogador subiu na mesma');
+  assert.equal(servidor.tabelas.match_events.length, 1, 'e o jogo também');
+  assert.equal(await fotosJogadores.get(jogador.id), FOTO, 'a foto continua no aparelho');
+  assert.equal((await db.get(db.STORES.playerPhotos, jogador.id)).dirty, true, 'por enviar');
+  await pull(UTILIZADOR);
 });

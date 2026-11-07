@@ -27,6 +27,7 @@ import { clubs, teams, players, loadTeamMatchStates } from '@/lib/data/repositor
 import { clubAggregate, matchStatsTable, matchResult } from '@/domain/stats.js';
 import { extrasDoAtleta, painelDoAtleta } from '@/domain/dashboard.js';
 import { BlocosExtrasAtleta } from '@/components/registos/ExtrasRegistos.jsx';
+import FotoJogador, { useFotoDoJogador } from '@/components/FotoJogador.jsx';
 import { fmt } from '@/domain/clock.js';
 import { FOOT, normalizePosition } from '@/domain/constants.js';
 import { dayLabel, positionLabel, footLabel } from '@/lib/format.js';
@@ -67,6 +68,7 @@ function Ficha() {
   const t = useT();
   const [dados, setDados] = useState(null);
   const soLeitura = useSoLeitura(teamId);
+  const foto = useFotoDoJogador(playerId);
 
   useEffect(() => {
     (async () => {
@@ -121,7 +123,12 @@ function Ficha() {
   return (
     <div className="ficha">
       <PageHead
-        title={`#${player.shirtNumber} ${player.name}`}
+        title={
+          <span className="ficha__titulo">
+            {foto && player.photoUrl ? <FotoJogador jogador={player} foto={foto} tamanho={56} /> : null}
+            <span>{`#${player.shirtNumber} ${player.name}`}</span>
+          </span>
+        }
         subtitle={t('ficha.subtitulo', {
           clube: [club?.name, team?.name].filter(Boolean).join(' · '),
           posicao: positionLabel(player.preferredPosition),

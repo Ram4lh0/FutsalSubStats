@@ -86,7 +86,7 @@ export const QUALIDADES = [0.86, 0.72, 0.6, 0.48, 0.36];
  * Devolve um `data:` URL ou atira com uma chave de tradução. Só corre no
  * browser: precisa de `createImageBitmap` e de um `canvas`.
  */
-export async function prepararEmblema(ficheiro) {
+export async function prepararEmblema(ficheiro, { lado: ladoFinal = LADO, maxBytes = MAX_BYTES } = {}) {
   if (!ficheiro) return null;
   if (!TIPOS.includes(ficheiro.type)) {
     const erro = new Error('formato não aceite');
@@ -105,14 +105,14 @@ export async function prepararEmblema(ficheiro) {
 
   const { x, y, lado } = recorteCentral(bitmap.width, bitmap.height);
   const tela = document.createElement('canvas');
-  tela.width = LADO;
-  tela.height = LADO;
+  tela.width = ladoFinal;
+  tela.height = ladoFinal;
   const pincel = tela.getContext('2d');
   // Sem isto, encolher uma foto de 4000 px para 256 dá serrilhado nas linhas
   // finas — que é exactamente o que um emblema tem.
   pincel.imageSmoothingEnabled = true;
   pincel.imageSmoothingQuality = 'high';
-  pincel.drawImage(bitmap, x, y, lado, lado, 0, 0, LADO, LADO);
+  pincel.drawImage(bitmap, x, y, lado, lado, 0, 0, ladoFinal, ladoFinal);
   bitmap.close?.();
 
   // WebP quando existe: para o mesmo aspecto, ocupa menos de metade do JPEG. Os
@@ -123,7 +123,7 @@ export async function prepararEmblema(ficheiro) {
 
   for (const qualidade of QUALIDADES) {
     const url = tela.toDataURL(formato, qualidade);
-    if (tamanhoEmBytes(url) <= MAX_BYTES) return url;
+    if (tamanhoEmBytes(url) <= maxBytes) return url;
   }
 
   const erro = new Error('imagem grande de mais');

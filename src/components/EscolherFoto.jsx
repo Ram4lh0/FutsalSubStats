@@ -17,7 +17,11 @@ import { useUI } from '@/lib/ui.jsx';
 import { useT } from '@/lib/i18n/index.js';
 import { prepararEmblema, TIPOS } from '@/lib/imagem.js';
 
-export default function EscolherFoto({ nome, cor, valor, onChange }) {
+/**
+ * `titulo`, `dica` e `opcoes` (lado e tamanho máximo) deixam usar o mesmo
+ * componente para a foto de um atleta, mais pequena do que um emblema.
+ */
+export default function EscolherFoto({ nome, cor, valor, onChange, titulo, dica, opcoes }) {
   const t = useT();
   const { toast } = useUI();
   const input = useRef(null);
@@ -32,7 +36,7 @@ export default function EscolherFoto({ nome, cor, valor, onChange }) {
 
     setATratar(true);
     try {
-      onChange(await prepararEmblema(ficheiro));
+      onChange(await prepararEmblema(ficheiro, opcoes));
     } catch (err) {
       toast(err.chave ? t(err.chave) : String(err.message), 'error');
     } finally {
@@ -42,7 +46,7 @@ export default function EscolherFoto({ nome, cor, valor, onChange }) {
 
   return (
     <div className="field">
-      <span className="field__label">{t('foto.titulo')}</span>
+      <span className="field__label">{titulo || t('foto.titulo')}</span>
       <div className="form__actions form__actions--left" style={{ alignItems: 'center' }}>
         <Emblema nome={nome} foto={valor} cor={cor} tamanho={64} />
         <input
@@ -66,7 +70,7 @@ export default function EscolherFoto({ nome, cor, valor, onChange }) {
           </button>
         ) : null}
       </div>
-      <span className="field__hint">{t('foto.dica')}</span>
+      <span className="field__hint">{dica || t('foto.dica')}</span>
     </div>
   );
 }

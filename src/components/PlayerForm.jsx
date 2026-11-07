@@ -11,7 +11,8 @@ import PageHead from './PageHead.jsx';
 import { SoLeitura } from './bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
-import { clubs, teams, players } from '@/lib/data/repository.js';
+import { clubs, teams, players, fotosJogadores } from '@/lib/data/repository.js';
+import EscolherFoto from './EscolherFoto.jsx';
 import * as sync from '@/lib/data/sync.js';
 import { validatePlayer } from '@/domain/validation.js';
 import { rotas } from '@/lib/routes.js';
@@ -19,6 +20,12 @@ import useSoLeitura from '@/lib/useSoLeitura.js';
 import { useT } from '@/lib/i18n/index.js';
 import { positionLabel, footLabel, mensagemErro } from '@/lib/format.js';
 import { POSITIONS_ALL, normalizePosition, FOOT, FOOT_ALL } from '@/domain/constants.js';
+
+/**
+ * A foto do atleta: 128 px chegam para os quadrados dos cartões e da ficha
+ * (até 96 px em ecrãs de alta densidade) e ficam por volta de 5–12 KB.
+ */
+const FOTO_ATLETA = { lado: 128, maxBytes: 16 * 1024 };
 
 export default function PlayerForm({ clubId, teamId, playerId }) {
   const router = useRouter();
@@ -39,6 +46,10 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
     strongFoot: FOOT.UNKNOWN,
     isActive: true,
   });
+  // A foto vai à parte do jogador (store `player_photos`): guarda-se depois
+  // dele, e só se mudou.
+  const [foto, setFoto] = useState(null);
+  const [fotoInicial, setFotoInicial] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -57,6 +68,9 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
             strongFoot: p.strongFoot || FOOT.UNKNOWN,
             isActive: p.isActive,
           });
+        const f = p?.photoUrl ? await fotosJogadores.get(playerId) : null;
+        setFoto(f);
+        setFotoInicial(f);
       }
       setPronto(true);
     })();
@@ -87,9 +101,11 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
     }
     setAGuardar(true);
     try {
+      let id = playerId;
       if (dono) await players.swapNumbers(playerId, dono.id, form);
       else if (playerId) await players.update(playerId, form);
-      else await players.create(teamId, form);
+      else id = (await players.create(teamId, form)).id;
+      if (foto !== fotoInicial) await fotosJogadores.guardar(id, foto);
       sync.saveNow(userId, user?.email);
       toast(t('jogador.guardado'), 'ok');
       if (playerId) router.push(rotas.plantel(clubId, teamId));
@@ -178,6 +194,15 @@ export default function PlayerForm({ clubId, teamId, playerId }) {
             </select>
           </label>
         </div>
+
+        <EscolherFoto
+          nome={form.name}
+          valor={foto}
+          onChange={setFoto}
+          titulo={t('jogador.foto')}
+          dica={t('jogador.fotoDica')}
+          opcoes={FOTO_ATLETA}
+        />
 
         <label className="field field--check">
           <input

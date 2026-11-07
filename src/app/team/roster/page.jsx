@@ -23,6 +23,7 @@ import { download, pickFolha, slug } from '@/lib/data/exporter.js';
 import { plantelCsv, plantelExemploCsv, lerPlantelCsv } from '@/lib/data/plantelCsv.js';
 import ImportarPlantel from '@/components/ImportarPlantel.jsx';
 import ConflitoImportacao from '@/components/ConflitoImportacao.jsx';
+import FotoJogador, { useFotosDoEscalao } from '@/components/FotoJogador.jsx';
 import { clubAggregate } from '@/domain/stats.js';
 import { fmt } from '@/domain/clock.js';
 import { POSITIONS_ALL, normalizePosition, FOOT } from '@/domain/constants.js';
@@ -363,6 +364,7 @@ function Roster({ team, entries, roster, clubId, teamId }) {
         <CartoesPlantel
           linhas={linhas}
           agg={agg}
+          teamId={teamId}
           abrir={(id) => router.push(rotas.jogador(clubId, teamId, id))}
         />
       ) : (
@@ -462,8 +464,9 @@ function ResumoPlantel({ roster, ativos, inativos, versao }) {
 }
 
 /** Os jogadores em cartões, agrupados por posição; os inativos no fim. */
-function CartoesPlantel({ linhas, agg, abrir }) {
+function CartoesPlantel({ linhas, agg, teamId, abrir }) {
   const t = useT();
+  const fotos = useFotosDoEscalao(teamId);
   const grupos = [
     ...GRUPOS.map((g) => ({
       id: g.id,
@@ -492,7 +495,7 @@ function CartoesPlantel({ linhas, agg, abrir }) {
                   onClick={() => abrir(p.id)}
                 >
                   <span className="jcard__topo">
-                    <span className="jcard__num mono">{p.shirtNumber}</span>
+                    <FotoJogador jogador={p} foto={fotos.get(p.id)} className="jcard__num" />
                     <span className="jcard__quem">
                       <strong className="jcard__nome">{p.name}</strong>
                       <span className="jcard__pos">

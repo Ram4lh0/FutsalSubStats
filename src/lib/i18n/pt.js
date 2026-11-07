@@ -1339,10 +1339,8 @@ export default {
   'priv.aTuaContaTexto':
     'O email e a palavra-passe com que entras. A palavra-passe nunca é guardada em texto — fica cifrada no serviço de autenticação, e ninguém, incluindo quem faz a app, lhe consegue chegar.',
   'priv.oQueEscreves': 'O que escreves na app.',
-  'priv.oQueEscrevesTexto':
-    'Os clubes, os escalões, as competições, os nomes e números dos jogadores, os jogos e tudo o que se passa dentro deles: golos, substituições, faltas, cartões, tempos. É isto que a app existe para guardar.',
-  'priv.naoRecolhe':
-    'Não há recolha de localização, de contactos, de fotografias, do microfone, nem de nada que o teu aparelho tenha e a app não precise. Não há publicidade, nem rastreio, nem identificadores para fins publicitários.',
+  "priv.oQueEscrevesTexto": "Os clubes, os escalões, as competições, os nomes e números dos jogadores e, se quiseres, uma foto de cada atleta, os jogos e tudo o que se passa dentro deles: golos, substituições, faltas, cartões, tempos. É isto que a app existe para guardar.",
+  "priv.naoRecolhe": "A app não mexe na tua galeria: só lê a imagem que tu escolheres para um emblema ou para um atleta. Não há recolha de localização, de contactos, do microfone, nem de nada que o teu aparelho tenha e a app não precise. Não há publicidade, nem rastreio, nem identificadores para fins publicitários.",
   'priv.ondeFica': 'Onde fica',
   'priv.ondeFicaTexto':
     'Primeiro no teu aparelho, sempre — é o que permite apontar um jogo inteiro num pavilhão sem rede. Depois, quando houver ligação, é enviado para um servidor Supabase alojado na União Europeia, para poderes abrir os mesmos dados noutro dispositivo.',
@@ -1364,15 +1362,14 @@ export default {
   'priv.direitosTexto':
     'Pelo RGPD podes pedir uma cópia dos teus dados, corrigi-los, apagá-los ou opor-te ao tratamento. A cópia e a eliminação estão à distância de um botão na app; para o resto, escreve para ',
   'priv.criancas': 'Crianças',
-  'priv.criancasTexto':
-    'A app é para treinadores. Os nomes e números de camisola de jogadores — que podem ser menores — são escritos por quem treina, e é dessa pessoa a responsabilidade de ter autorização para os registar. Guarda-se apenas o nome, o número, a posição e o pé preferido: o suficiente para uma ficha de jogo, e nada que identifique alguém fora dela.',
+  "priv.criancasTexto": "A app é para treinadores. Os nomes, números de camisola e fotos de jogadores — que podem ser menores — são postos por quem treina, e é dessa pessoa a responsabilidade de ter autorização para os registar (no caso da foto de um menor, a autorização de quem tem a responsabilidade parental). Guarda-se o nome, o número, a posição, o pé preferido e, só se quem treina a escolher, uma foto pequena: o suficiente para uma ficha de jogo.",
   'priv.alteracoes': 'Alterações',
   'priv.alteracoesTexto':
     'Se isto mudar, a data no topo muda com ele. Alterações que afetem o que é recolhido serão avisadas dentro da app.',
   'priv.contacto': 'Contacto',
   'priv.contactoTexto': 'Qualquer dúvida ou pedido: ',
   'priv.irParaLogin': 'Ir para o início de sessão',
-  'priv.data': '8 de agosto de 2026',
+  "priv.data": "7 de novembro de 2026",
 
   /* ---------------------------------------- página pública de eliminação */
   'apagar.titulo': 'Apagar a conta',
@@ -2335,4 +2332,9 @@ export default {
   "plantel.semJogos": "ainda sem jogos",
   "plantel.minutos": "Min.",
   "plantel.assistCurto": "Assist.",
+  /* --------------------------------------------- fotos dos atletas */
+  "priv.fotos": "Fotos dos atletas",
+  "priv.fotosTexto": "A foto de um atleta é opcional e só existe se quem treina a escolher. Antes de ser guardada é recortada num quadrado pequeno (128 px). Fica no teu aparelho e no mesmo servidor Supabase, na União Europeia, só para aparecer na app a ti e aos treinadores com acesso a esse escalão. Não a usamos para mais nada: não a vendemos, não a partilhamos, e não serve para publicidade nem para reconhecimento facial. Tirar a foto, apagar o jogador, o escalão ou a conta apaga-a também do servidor.",
+  "jogador.foto": "Foto do atleta",
+  "jogador.fotoDica": "Opcional. Fica recortada num quadrado pequeno e aparece no plantel e na ficha, também sem rede. Num menor, pede autorização a quem tem a responsabilidade parental.",
 };

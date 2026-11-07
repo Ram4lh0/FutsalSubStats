@@ -137,6 +137,24 @@ export const playerMapper = {
   }),
 };
 
+/**
+ * A foto de um jogador. Localmente a chave é o id do jogador (`id`), como nas
+ * outras tabelas; no servidor é `player_id`. O `team_id` que sobe é só
+ * informativo: o servidor põe sempre o do jogador.
+ */
+export const playerPhotoMapper = {
+  table: 'player_photos',
+  toRow: (f) => ({ player_id: f.id, team_id: f.teamId, data: f.data }),
+  fromRow: (r) => ({
+    id: r.player_id,
+    teamId: r.team_id,
+    data: r.data,
+    apagar: false,
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};
+
 /* ------------------------------------------------------------------ jogos */
 
 export const matchMapper = {

@@ -9,7 +9,7 @@
 // sempre, e só depois se tenta enviar. Um pavilhão sem rede não muda nada.
 
 const DB_NAME = 'futsal-live';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 export const STORES = {
   profile: 'profile',
@@ -29,6 +29,9 @@ export const STORES = {
   // Registos extra ligados por escalão (versão 5). Só de leitura: vem do
   // servidor e nunca sobe. Uma linha por escalão, chave `teamId`.
   teamStatConfig: 'team_stat_config',
+  // Fotos dos atletas (versão 6): uma linha por jogador, chave = id do jogador.
+  // À parte dos jogadores para o plantel não arrastar as imagens a cada envio.
+  playerPhotos: 'player_photos',
 };
 
 /* Linhas por enviar: quem tem `dirty` ainda não chegou ao servidor. */
@@ -125,6 +128,10 @@ export function open() {
       if (!db.objectStoreNames.contains(STORES.trainingAttendance)) {
         const s = db.createObjectStore(STORES.trainingAttendance, { keyPath: 'id' });
         s.createIndex('by_session', 'sessionId');
+      }
+      if (!db.objectStoreNames.contains(STORES.playerPhotos)) {
+        const s = db.createObjectStore(STORES.playerPhotos, { keyPath: 'id' });
+        s.createIndex('by_team', 'teamId');
       }
       if (!db.objectStoreNames.contains(STORES.teamStatConfig)) {
         db.createObjectStore(STORES.teamStatConfig, { keyPath: 'teamId' });

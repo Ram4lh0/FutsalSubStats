@@ -1336,10 +1336,8 @@ export default {
   'priv.aTuaContaTexto':
     'El correo y la contraseña con los que entras. La contraseña nunca se guarda en texto — queda cifrada en el servicio de autenticación, y nadie, incluida la persona que hace la app, puede llegar a ella.',
   'priv.oQueEscreves': 'Lo que escribes en la app.',
-  'priv.oQueEscrevesTexto':
-    'Los clubes, las categorías, las competiciones, los nombres y dorsales de los jugadores, los partidos y todo lo que pasa dentro de ellos: goles, cambios, faltas, tarjetas, tiempos. Es esto lo que la app existe para guardar.',
-  'priv.naoRecolhe':
-    'No se recoge la ubicación, ni los contactos, ni las fotos, ni el micrófono, ni nada que tu dispositivo tenga y la app no necesite. No hay publicidad, ni rastreo, ni identificadores publicitarios.',
+  "priv.oQueEscrevesTexto": "Los clubes, las categorías, las competiciones, los nombres y dorsales de los jugadores y, si quieres, una foto de cada jugador, los partidos y todo lo que pasa dentro de ellos: goles, cambios, faltas, tarjetas, tiempos. Es esto lo que la app existe para guardar.",
+  "priv.naoRecolhe": "La app no toca tu galería: solo lee la imagen que tú elijas para un escudo o un jugador. No se recoge la ubicación, ni los contactos, ni el micrófono, ni nada que tu dispositivo tenga y la app no necesite. No hay publicidad, ni rastreo, ni identificadores publicitarios.",
   'priv.ondeFica': 'Dónde está',
   'priv.ondeFicaTexto':
     'Primero en tu dispositivo, siempre — es lo que permite apuntar un partido entero en un pabellón sin cobertura. Después, cuando haya conexión, se envía a un servidor Supabase alojado en la Unión Europea, para que puedas abrir los mismos datos en otro dispositivo.',
@@ -1361,15 +1359,14 @@ export default {
   'priv.direitosTexto':
     'Por el RGPD puedes pedir una copia de tus datos, corregirlos, borrarlos u oponerte al tratamiento. La copia y la eliminación están a un botón de distancia en la app; para lo demás, escribe a ',
   'priv.criancas': 'Menores',
-  'priv.criancasTexto':
-    'La app es para entrenadores. Los nombres y dorsales de los jugadores — que pueden ser menores — los escribe quien entrena, y es responsabilidad de esa persona tener autorización para registrarlos. Solo se guarda el nombre, el dorsal, la posición y el pie bueno: lo suficiente para un acta, y nada que identifique a nadie fuera de ella.',
+  "priv.criancasTexto": "La app es para entrenadores. Los nombres, dorsales y fotos de los jugadores — que pueden ser menores — los pone quien entrena, y es responsabilidad de esa persona tener autorización para registrarlos (en el caso de la foto de un menor, la autorización de quien tenga la patria potestad). Solo se guarda el nombre, el dorsal, la posición, el pie bueno y, solo si quien entrena la elige, una foto pequeña: lo suficiente para un acta.",
   'priv.alteracoes': 'Cambios',
   'priv.alteracoesTexto':
     'Si esto cambia, la fecha de arriba cambia con ello. Los cambios que afecten a lo que se recoge se avisarán dentro de la app.',
   'priv.contacto': 'Contacto',
   'priv.contactoTexto': 'Cualquier duda o petición: ',
   'priv.irParaLogin': 'Ir al inicio de sesión',
-  'priv.data': '8 de agosto de 2026',
+  "priv.data": "7 de noviembre de 2026",
 
   /* -------------------------------------- página pública de eliminación */
   'apagar.titulo': 'Eliminar la cuenta',
@@ -2331,4 +2328,9 @@ export default {
   "plantel.semJogos": "aún sin partidos",
   "plantel.minutos": "Min.",
   "plantel.assistCurto": "Asist.",
+  /* --------------------------------------------- fotos dos atletas */
+  "priv.fotos": "Fotos de los jugadores",
+  "priv.fotosTexto": "La foto de un jugador es opcional y solo existe si quien entrena la elige. Antes de guardarse se recorta en un cuadrado pequeño (128 px). Queda en tu dispositivo y en el mismo servidor Supabase, en la Unión Europea, solo para que aparezca en la app para ti y para los entrenadores con acceso a esa categoría. No la usamos para nada más: no la vendemos, no la compartimos y no sirve para publicidad ni para reconocimiento facial. Quitar la foto, o borrar el jugador, la categoría o la cuenta, la borra también del servidor.",
+  "jogador.foto": "Foto del jugador",
+  "jogador.fotoDica": "Opcional. Se recorta en un cuadrado pequeño y aparece en la plantilla y en la ficha, también sin conexión. En un menor, pide autorización a quien tenga la patria potestad.",
 };

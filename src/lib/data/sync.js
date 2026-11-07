@@ -21,6 +21,7 @@ import {
   attendanceMapper,
   playMapper,
   teamStatConfigMapper,
+  playerPhotoMapper,
 } from './mappers.js';
 import { EVENT } from '../../domain/constants.js';
 import { emDemo } from '../demoEstado.js';
@@ -393,6 +394,8 @@ export async function push(userId, email) {
     const { error } = await sb.from('players').delete().eq('id', p.id);
     if (error) throw etiqueta(error, `players (apagar ${p.name || p.id.slice(0, 8)})`);
     await db.del(db.STORES.players, p.id);
+    // A foto do servidor foi com ele (on delete cascade); a local vai agora.
+    await db.del(db.STORES.playerPhotos, p.id);
     total += 1;
   }
 
@@ -421,6 +424,9 @@ export async function push(userId, email) {
     total += linhas.length;
   }
 
+  // Depois dos jogadores: a foto precisa que o jogador já exista lá.
+  total += await pushFotos(sb);
+
   await claimStartedMatches(sb, jogos, eventos);
 
   // Eventos: um a um, pela função que ignora repetições. Reenviar a fila inteira
@@ -448,6 +454,63 @@ export async function push(userId, email) {
   total += await pushTreino(sb);
 
   return { pushed: total };
+}
+
+/* ------------------------------------------------------------------- fotos */
+
+/**
+ * Num servidor sem a tabela `player_photos` (migração por aplicar), as fotos
+ * ficam só no aparelho, por enviar, e volta-se a tentar na próxima abertura da
+ * app. Não podem encravar a fila dos jogos.
+ */
+let fotosNoServidor = true;
+
+async function pushFotos(sb) {
+  if (!fotosNoServidor) return 0;
+  const sujas = await dirtyRows(db.STORES.playerPhotos);
+  if (!sujas.length) return 0;
+  const jogadores = new Map((await db.all(db.STORES.players)).map((p) => [p.id, p]));
+  let total = 0;
+  for (const f of sujas) {
+    const jogador = jogadores.get(f.id);
+    // Jogador por enviar ou a ser apagado: a foto espera (ou vai com ele).
+    if (jogador?.dirty || jogador?.pendingDelete) continue;
+    try {
+      if (f.apagar || !jogador) {
+        const { error } = await sb.from(playerPhotoMapper.table).delete().eq('player_id', f.id);
+        if (error) throw error;
+        await db.del(db.STORES.playerPhotos, f.id);
+      } else {
+        const { error } = await sb.from(playerPhotoMapper.table).upsert(playerPhotoMapper.toRow(f));
+        if (error) throw error;
+        await clean(db.STORES.playerPhotos, [f]);
+      }
+      total += 1;
+    } catch (err) {
+      if (semTabela(err)) {
+        fotosNoServidor = false;
+        return total;
+      }
+      throw etiqueta(err, `player_photos (${jogador?.name || f.id.slice(0, 8)})`);
+    }
+  }
+  return total;
+}
+
+async function pullFotos(sb, trazer) {
+  if (!fotosNoServidor) return 0;
+  const escalaoIds = (await db.all(db.STORES.teams)).map((t) => t.id);
+  if (!escalaoIds.length) return 0;
+  try {
+    const linhas = await trazer('player_photos', () =>
+      sb.from('player_photos').select('*').in('team_id', escalaoIds)
+    );
+    return await merge(db.STORES.playerPhotos, linhas.map(playerPhotoMapper.fromRow));
+  } catch (err) {
+    if (!semTabela(err)) throw err;
+    fotosNoServidor = false;
+    return 0;
+  }
 }
 
 /* ------------------------------------------------------------------ treino */
@@ -780,6 +843,7 @@ export async function pull(userId, { repararJogosIncompletos = false } = {}) {
     sb.from('players').select('*').in('club_id', ids)
   );
   total += await merge(db.STORES.players, jogadores.map(playerMapper.fromRow));
+  total += await pullFotos(sb, trazer);
 
   total += await pullTreino(sb, trazer);
   total += await pullConfigDosRegistos(sb, trazer);

@@ -51,6 +51,9 @@ export default function PrivacyPage() {
         <h2 className="section">{t('priv.ondeFica')}</h2>
         <p>{t('priv.ondeFicaTexto')}</p>
 
+        <h2 className="section">{t('priv.fotos')}</h2>
+        <p>{t('priv.fotosTexto')}</p>
+
         <h2 className="section">{t('priv.quemToca')}</h2>
         <p>{t('priv.quemTocaTexto')}</p>
         <p className="muted">

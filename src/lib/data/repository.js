@@ -393,6 +393,55 @@ function casarPorNome(atuais, jogadores) {
   });
 }
 
+/**
+ * Fotos dos atletas.
+ *
+ * Ficam numa tabela própria (`player_photos`) e numa store local com o mesmo
+ * nome. O jogador só leva uma marca em `photoUrl` ("foto:<quando>") a dizer
+ * que tem foto: é ela que outro aparelho vê mudar e que esconde a foto quando é
+ * removida (uma remoção não desce numa descarga incremental, a marca sim).
+ */
+export const fotosJogadores = {
+  /** A foto de um jogador, ou null. */
+  async get(playerId) {
+    const f = await db.get(db.STORES.playerPhotos, playerId);
+    return f && !f.apagar && f.data ? f.data : null;
+  },
+  /** As fotos do escalão: Map id do jogador → data URL. */
+  async doEscalao(teamId) {
+    const linhas = await db.byIndex(db.STORES.playerPhotos, 'by_team', teamId);
+    return new Map(linhas.filter((f) => !f.apagar && f.data).map((f) => [f.id, f.data]));
+  },
+  /** Guardar (data URL) ou tirar (null) a foto de um jogador. */
+  async guardar(playerId, data) {
+    const jogador = await db.get(db.STORES.players, playerId);
+    if (!jogador) return;
+    const atual = await db.get(db.STORES.playerPhotos, playerId);
+    if (data) {
+      await db.put(db.STORES.playerPhotos, {
+        id: playerId,
+        teamId: jogador.teamId,
+        data,
+        apagar: false,
+        updatedAt: now(),
+        dirty: true,
+      });
+      await players.update(playerId, { photoUrl: `foto:${now()}` });
+    } else {
+      if (!atual && !jogador.photoUrl) return;
+      await db.put(db.STORES.playerPhotos, {
+        id: playerId,
+        teamId: jogador.teamId,
+        data: null,
+        apagar: true,
+        updatedAt: now(),
+        dirty: true,
+      });
+      await players.update(playerId, { photoUrl: null });
+    }
+  },
+};
+
 export const players = {
   // Um jogador marcado para apagar (`pendingDelete`) já saiu da vida do
   // escalão, mas continua na base local até o servidor confirmar a

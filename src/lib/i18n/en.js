@@ -1336,10 +1336,8 @@ export default {
   'priv.aTuaContaTexto':
     'The email and password you sign in with. The password is never stored as text — it is hashed in the authentication service, and nobody, including the person who makes the app, can get to it.',
   'priv.oQueEscreves': 'What you write in the app.',
-  'priv.oQueEscrevesTexto':
-    'The clubs, the age groups, the competitions, the players’ names and numbers, the matches and everything that happens inside them: goals, substitutions, fouls, cards, times. This is what the app exists to keep.',
-  'priv.naoRecolhe':
-    'There is no collection of location, contacts, photos, the microphone, or anything else your device has that the app does not need. There is no advertising, no tracking, and no advertising identifiers.',
+  "priv.oQueEscrevesTexto": "The clubs, the age groups, the competitions, the players’ names and numbers and, if you want, a photo of each player, the matches and everything that happens inside them: goals, substitutions, fouls, cards, times. This is what the app exists to keep.",
+  "priv.naoRecolhe": "The app does not touch your photo library: it only reads the image you choose for a crest or a player. There is no collection of location, contacts, the microphone, or anything else your device has that the app does not need. There is no advertising, no tracking, and no advertising identifiers.",
   'priv.ondeFica': 'Where it lives',
   'priv.ondeFicaTexto':
     'On your device first, always — that is what lets you track a whole match in a sports hall with no signal. Then, when there is a connection, it is sent to a Supabase server hosted in the European Union, so you can open the same data on another device.',
@@ -1361,15 +1359,14 @@ export default {
   'priv.direitosTexto':
     'Under the GDPR you can ask for a copy of your data, correct it, delete it or object to its processing. The copy and the deletion are one button away in the app; for anything else, write to ',
   'priv.criancas': 'Children',
-  'priv.criancasTexto':
-    'The app is for coaches. Players’ names and shirt numbers — who may be minors — are entered by the coach, and it is that person’s responsibility to have permission to record them. Only the name, the number, the position and the preferred foot are stored: enough for a team sheet, and nothing that identifies anyone outside one.',
+  "priv.criancasTexto": "The app is for coaches. Players’ names, shirt numbers and photos — who may be minors — are added by the coach, and it is that person’s responsibility to have permission to record them (for a photo of a minor, the permission of whoever holds parental responsibility). Only the name, the number, the position, the preferred foot and, only if the coach chooses one, a small photo are stored: enough for a team sheet.",
   'priv.alteracoes': 'Changes',
   'priv.alteracoesTexto':
     'If this changes, the date at the top changes with it. Changes that affect what is collected will be announced inside the app.',
   'priv.contacto': 'Contact',
   'priv.contactoTexto': 'Any question or request: ',
   'priv.irParaLogin': 'Go to sign in',
-  'priv.data': '8 August 2026',
+  "priv.data": "7 November 2026",
 
   /* ------------------------------------------- public deletion page */
   'apagar.titulo': 'Delete your account',
@@ -2330,4 +2327,9 @@ export default {
   "plantel.semJogos": "no games yet",
   "plantel.minutos": "Min.",
   "plantel.assistCurto": "Ast.",
+  /* --------------------------------------------- fotos dos atletas */
+  "priv.fotos": "Player photos",
+  "priv.fotosTexto": "A player photo is optional and only exists if the coach chooses one. Before it is saved it is cropped to a small square (128 px). It stays on your device and on the same Supabase server, in the European Union, only so that it shows in the app to you and to the coaches with access to that age group. We do not use it for anything else: we do not sell it, we do not share it, and it is not used for advertising or facial recognition. Removing the photo, or deleting the player, the age group or the account, also deletes it from the server.",
+  "jogador.foto": "Player photo",
+  "jogador.fotoDica": "Optional. It is cropped to a small square and shows in the squad and on the player page, offline too. For a minor, ask whoever holds parental responsibility first.",
 };
