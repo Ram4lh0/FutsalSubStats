@@ -75,12 +75,10 @@
 }
 .segmentado__opcao.is-on { background: var(--primary); color: var(--primary-ink); }
 
-.plantel__grupos { display: grid; gap: 18px; }
-.plantel__grupo h2 { margin-bottom: 8px; }
-.plantel__cartoes { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.plantel__cartoes { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); }
 
 .jcard {
-  display: flex; flex-direction: column; gap: 12px; padding: 14px; margin: 0;
+  display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; margin: 0;
   text-align: left; color: inherit; font: inherit; cursor: pointer;
   border: 1px solid var(--line); transition: border-color 0.12s, transform 0.12s;
 }
@@ -88,28 +86,34 @@
 .jcard:active { transform: scale(0.99); }
 .jcard:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .jcard.is-muted { opacity: 0.55; }
-.jcard__topo { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.jcard__topo { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .jcard__num {
-  flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
-  font-size: 1.15rem; font-weight: 800; background: rgba(34, 197, 94, 0.14); color: var(--primary);
+  flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+  font-size: 1rem; font-weight: 800; background: rgba(34, 197, 94, 0.14); color: var(--primary);
 }
 .jcard__quem { display: flex; flex-direction: column; min-width: 0; }
-.jcard__nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; }
-.jcard__pos { font-size: 0.8rem; color: var(--muted); }
+.jcard__nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.95rem; }
+.jcard__pos { font-size: 0.75rem; color: var(--muted); }
 .jcard__stats {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
-  padding-top: 10px; border-top: 1px solid var(--line);
+  padding-top: 7px; border-top: 1px solid var(--line);
 }
 .jcard__stats > span { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-.jcard__stats strong { font-size: 1.05rem; }
-.jcard__stats small { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.jcard__stats strong { font-size: 0.95rem; }
+.jcard__stats small { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 
 @media (max-width: 560px) {
   .ficha__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .plantel__resumo { display: flex; }
   .ficha__kpis .stat__value { font-size: 1.5rem; }
   .ficha__kpis > :last-child:nth-child(odd) { grid-column: 1 / -1; }
-  .plantel__cartoes { grid-template-columns: 1fr; }
+  /* Duas colunas no telemóvel: um plantel de 16 cabe em 8 linhas. */
+  .plantel__cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .jcard { padding: 8px 9px; gap: 6px; }
+  .jcard__topo { gap: 8px; }
+  .jcard__nome { font-size: 0.85rem; }
+  .jcard__stats strong { font-size: 0.85rem; }
+  .jcard__stats small { font-size: 0.55rem; letter-spacing: 0.02em; }
 }
 
 /* ------------------------------------------------- fotos dos atletas */
@@ -126,6 +130,9 @@
   display: grid; place-items: center; border-radius: 999px; font-size: 0.7rem; font-weight: 800;
   background: var(--primary); color: var(--primary-ink); border: 2px solid var(--card);
 }
-.jcard__num.fotojog { width: 42px; height: 42px; font-size: 1.15rem; }
+.jcard__num.fotojog { width: 36px; height: 36px; font-size: 1rem; }
+@media (max-width: 560px) {
+  .jcard__num.fotojog { width: 30px; height: 30px; font-size: 0.85rem; }
+}
 .ficha__titulo { display: inline-flex; align-items: center; gap: 14px; }
 .ficha__titulo .fotojog__num { display: none; }

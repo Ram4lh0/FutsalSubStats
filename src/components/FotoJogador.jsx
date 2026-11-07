@@ -57,14 +57,15 @@ export function useFotoDoJogador(playerId) {
 
 /**
  * O quadrado do jogador: a foto, com o número num canto; sem foto, o número.
- * `foto` vem de `useFotosDoEscalao` / `useFotoDoJogador`.
+ * `foto` vem de `useFotosDoEscalao` / `useFotoDoJogador`. Com `tamanho={null}`
+ * o tamanho fica todo a cargo do CSS (os cartões do plantel mudam no telemóvel).
  */
 export default function FotoJogador({ jogador, foto, tamanho = 42, className = '' }) {
   const comFoto = Boolean(foto && jogador?.photoUrl);
   return (
     <span
       className={`fotojog ${comFoto ? 'fotojog--foto' : ''} ${className}`.trim()}
-      style={{ width: tamanho, height: tamanho, fontSize: Math.round(tamanho * 0.42) }}
+      style={tamanho ? { width: tamanho, height: tamanho, fontSize: Math.round(tamanho * 0.42) } : undefined}
     >
       {comFoto ? (
         <>
