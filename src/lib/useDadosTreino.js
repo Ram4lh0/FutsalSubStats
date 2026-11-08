@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DATA_UPDATED_EVENT, pedirDescarga } from './data/sync.js';
 import { rotinas, treinos as repoTreinos, presencas as repoPresencas } from './data/treino.js';
+import useTreinosAoVivo from './useTreinosAoVivo.js';
 
 /**
  * @param {string} teamId
@@ -14,6 +15,7 @@ import { rotinas, treinos as repoTreinos, presencas as repoPresencas } from './d
  */
 export default function useDadosTreino(teamId, { acertar = false } = {}) {
   const [dados, setDados] = useState(null);
+  useTreinosAoVivo(teamId);
 
   const carregar = useCallback(async () => {
     const [r, s, p] = await Promise.all([

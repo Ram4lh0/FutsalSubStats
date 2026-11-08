@@ -1180,6 +1180,30 @@ export async function guardarDoRealtime(tabela, linha) {
   return 0;
 }
 
+/**
+ * Um treino ou uma presença que o Realtime disse que mudou noutro aparelho.
+ * Não se usa a linha que veio no aviso: com a identidade de réplica por
+ * omissão, uma coluna grande que não mudou (a UT) pode não vir, e guardar a
+ * linha assim apagava a UT do aparelho. Pede-se a linha inteira ao servidor.
+ */
+export async function trazerLinhaDoTreino(tabela, id) {
+  const sb = supabase();
+  if (!sb || !id || emDemo() || !treinoNoServidor) return 0;
+  const par =
+    tabela === 'training_sessions'
+      ? [db.STORES.trainingSessions, trainingSessionMapper]
+      : tabela === 'training_attendance'
+        ? [db.STORES.trainingAttendance, attendanceMapper]
+        : null;
+  if (!par) return 0;
+  const [store, mapper] = par;
+  const { data, error } = await sb.from(tabela).select('*').eq('id', id).maybeSingle();
+  if (error || !data) return 0;
+  const n = await merge(store, [mapper.fromRow(data)]);
+  if (n) notifyDataUpdated();
+  return n;
+}
+
 async function merge(store, rows) {
   if (!rows.length) return 0;
   const locais = new Map((await db.all(store)).map((r) => [r.id, r]));
