@@ -305,6 +305,9 @@ export function painelDoAtleta(
       const assistiu = g.assistId === playerId;
       const sofreuComoGuardaRedes = guardaRedes && g.team === 'THEM' && g.goalkeeperId === playerId;
       if (!marcou && !assistiu && !sofreuComoGuardaRedes) continue;
+      // O prolongamento não tem faixas próprias aqui: entraria como os últimos
+      // minutos da 1.ª parte, que é mentira.
+      if (g.period >= 3) continue;
       const parte = g.period === 2 ? 2 : 1;
       const naParte = parte === 2 ? g.matchElapsedMs - primeira : g.matchElapsedMs;
       const i = Math.min(nFaixas - 1, Math.max(0, Math.floor(naParte / faixaMs)));
@@ -432,12 +435,20 @@ export function golosPorFaixa(entries, { faixaMs = 5 * 60_000, parteMs = 20 * 60
       sofridos: 0,
     }));
   const partes = { 1: vazio(), 2: vazio() };
+  // Golos no prolongamento: contados à parte (não são minutos de nenhuma das
+  // duas partes), para o gráfico os mostrar numa linha própria.
+  const prolongamento = { marcados: 0, sofridos: 0, jogos: 0 };
   let comDados = false;
   const jogos = terminados(entries).length;
 
   for (const { state } of terminados(entries)) {
     const primeira = state.firstHalfMs || 0;
+    if (state.periodStarts?.[3] != null) prolongamento.jogos += 1;
     for (const g of state.goals || []) {
+      if (g.period >= 3) {
+        prolongamento[g.team === 'US' ? 'marcados' : 'sofridos'] += 1;
+        continue;
+      }
       const parte = g.period === 2 ? 2 : 1;
       // Do início do jogo para o início da parte.
       const naParte = parte === 2 ? g.matchElapsedMs - primeira : g.matchElapsedMs;
@@ -466,8 +477,66 @@ export function golosPorFaixa(entries, { faixaMs = 5 * 60_000, parteMs = 20 * 60
     jogos,
     primeira: partes[1].map(comMedia),
     segunda: partes[2].map(comMedia),
+    prolongamento,
     comDados,
   };
+}
+
+/**
+ * Prolongamentos e penáltis da época (07/11/2026): quantos jogos foram a
+ * prolongamento, quantos desempates por penáltis e com que resultado, a
+ * conversão dos nossos e dos deles, as defesas dos nossos guarda-redes e quem
+ * bateu (e marcou) da nossa parte.
+ */
+export function penaltisDaEpoca(entries) {
+  const out = {
+    prolongamentos: 0,
+    jogos: 0,
+    ganhos: 0,
+    perdidos: 0,
+    nossos: { batidos: 0, golos: 0, defendidos: 0, fora: 0 },
+    deles: { batidos: 0, golos: 0, defendidos: 0, fora: 0 },
+    porJogador: [],
+    porGuardaRedes: [],
+  };
+  const jog = new Map();
+  const grs = new Map();
+  const conta = (alvo, k) => {
+    alvo.batidos += 1;
+    if (k.resultado === 'GOLO') alvo.golos += 1;
+    else if (k.resultado === 'DEFENDIDO') alvo.defendidos += 1;
+    else alvo.fora += 1;
+  };
+  for (const { state } of terminados(entries)) {
+    if (state.periodStarts?.[3] != null) out.prolongamentos += 1;
+    const kicks = state.penaltis?.kicks || [];
+    if (!kicks.length) continue;
+    out.jogos += 1;
+    const nos = kicks.filter((k) => k.team === 'US' && k.resultado === 'GOLO').length;
+    const eles = kicks.filter((k) => k.team === 'THEM' && k.resultado === 'GOLO').length;
+    if (nos > eles) out.ganhos += 1;
+    else if (eles > nos) out.perdidos += 1;
+    for (const k of kicks) {
+      if (k.team === 'US') {
+        conta(out.nossos, k);
+        const p = state.players?.[k.playerId];
+        if (!p) continue;
+        const a = jog.get(p.playerId) || { playerId: p.playerId, name: p.name, number: p.number, batidos: 0, golos: 0, defendidos: 0, fora: 0 };
+        conta(a, k);
+        jog.set(p.playerId, a);
+      } else {
+        conta(out.deles, k);
+        const p = state.players?.[k.goalkeeperId];
+        if (!p) continue;
+        const a = grs.get(p.playerId) || { playerId: p.playerId, name: p.name, number: p.number, batidos: 0, golos: 0, defendidos: 0, fora: 0 };
+        conta(a, k);
+        grs.set(p.playerId, a);
+      }
+    }
+  }
+  out.porJogador = [...jog.values()].sort((a, b) => b.golos - a.golos || b.batidos - a.batidos);
+  out.porGuardaRedes = [...grs.values()].sort((a, b) => b.defendidos - a.defendidos || b.batidos - a.batidos);
+  return out;
 }
 
 /* --------------------------------------------------- forma e resultados */
@@ -1077,8 +1146,11 @@ export function recortarPorPeriodo(entries, janela, { parteMs = 20 * 60_000 } = 
     if (state.status !== MATCH_STATUS.FINISHED) return e;
     const primeira = state.firstHalfMs || 0;
     const total = state.elapsedMatchMs || 0;
+    // O prolongamento fica fora de qualquer janela das duas partes.
     const nominal = (period, ms) =>
-      period === 2
+      period >= 3
+        ? FIM
+        : period === 2
         ? parteMs + Math.min(parteMs - 1, Math.max(0, ms - primeira))
         : Math.min(parteMs - 1, Math.max(0, ms));
     const dentro = (period, ms) => {

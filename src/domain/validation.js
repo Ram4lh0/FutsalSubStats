@@ -137,6 +137,23 @@ export function canStartSecondHalf(state) {
   return null;
 }
 
+/** Ir a prolongamento ou a penáltis: só a partir da 2.ª parte (ou do prolongamento). */
+export function canFinishPeriod(state, seguinte) {
+  if (state.status === MATCH_STATUS.FINISHED) return erro('validacao.jogoJaTerminou');
+  if (state.status === MATCH_STATUS.HALFTIME || state.penaltis) return erro('validacao.semParteADecorrer');
+  if (state.currentPeriod < 2) return erro('validacao.aindaNaSegunda');
+  if (seguinte === 'PROLONGAMENTO' && state.currentPeriod >= 4) return erro('validacao.prolongamentoJaAcabou');
+  return null;
+}
+
+/** Começar uma parte do prolongamento: as mesmas regras do cinco da 2.ª parte. */
+export function canStartExtraTime(state) {
+  if (state.penaltis || state.currentPeriod < 2 || state.currentPeriod >= 4) {
+    return erro('validacao.semProlongamento');
+  }
+  return canStartSecondHalf(state);
+}
+
 export function canFinishMatch(state, { allowAbandon = false } = {}) {
   if (state.status === MATCH_STATUS.FINISHED) return erro('validacao.jogoJaTerminou');
   if (state.currentPeriod < 2 && !allowAbandon) return erro('validacao.aindaNaSegunda');

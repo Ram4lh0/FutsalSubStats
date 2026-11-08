@@ -7,7 +7,7 @@
 
 import { fmt } from '@/domain/clock.js';
 import { registosDoJogo } from '@/domain/registos.js';
-import { registoLabel } from '@/lib/format.js';
+import { registoLabel, parteCurtaLabel } from '@/lib/format.js';
 import { useT } from '@/lib/i18n/index.js';
 
 export default function ListaRegistos({ state, ourName, opponentName, onEdit }) {
@@ -37,7 +37,7 @@ export default function ListaRegistos({ state, ourName, opponentName, onEdit }) 
             {editavel ? (
               <span className="goalline__edit">{t('golos.editar')}</span>
             ) : (
-              <span className="goalline__period">{t('golos.parteCurta', { n: r.period })}</span>
+              <span className="goalline__period">{parteCurtaLabel(r.period)}</span>
             )}
           </Tag>
         );

@@ -13,7 +13,8 @@ import { amarelosAdversario, faltasPorJogador, golosPorTipoNoJogo, mediaEmCampo 
 import { foulsInPeriod, foulsTotal } from '../../domain/reducer.js';
 import { matchResult, matchStatsTable, powerPlayTotals } from '../../domain/stats.js';
 import { REGISTO, RESULTADO_REMATE, marcadores, resumoRegistos, temRegistos } from '../../domain/registos.js';
-import { clubShort, dateLabel, homeAwayLabel, opponentShort, statusLabel } from '../format.js';
+import { clubShort, dateLabel, homeAwayLabel, opponentShort, statusLabel, sufixoDesempate, parteCurtaLabel } from '../format.js';
+import { resumoPenaltis } from '../../domain/prolongamento.js';
 import { t } from '../i18n/index.js';
 import { dataParaNome, nomeLimpo } from '../ficheiros.js';
 import { COR, novoRelatorio } from './base.js';
@@ -39,7 +40,7 @@ export async function gerarPdfJogo({ club, match, state, team, competition }) {
   const eles = opponentShort(match);
 
   const r = await novoRelatorio({
-    titulo: `${nos} ${state.teamScore} – ${state.opponentScore} ${eles}`,
+    titulo: `${nos} ${state.teamScore} – ${state.opponentScore} ${eles}${sufixoDesempate(state)}`,
     subtitulo: [t('jogo.vs', { adversario: match.opponentName }), dateLabel(match.scheduledAt), homeAwayLabel(match.homeOrAway)]
       .filter(Boolean)
       .join(' · '),
@@ -48,13 +49,15 @@ export async function gerarPdfJogo({ club, match, state, team, competition }) {
 
   // --------------------------------------------------------------- resumo
   r.secao(t('pdf.resumo'), 20);
-  const textoRes =
-    res === 'W' ? t('resultado.vitoria') : res === 'L' ? t('resultado.derrota') : res === 'D' ? t('resultado.empate') : t('resumo.emCurso');
+  const pen = state.penaltis?.kicks?.length ? resumoPenaltis(state.penaltis) : null;
+  const textoRes = pen?.vencedor
+    ? t(pen.vencedor === 'US' ? 'penaltis.vitoria' : 'penaltis.derrota')
+    : res === 'W' ? t('resultado.vitoria') : res === 'L' ? t('resultado.derrota') : res === 'D' ? t('resultado.empate') : t('resumo.emCurso');
   r.cartoes(
     [
       {
         rotulo: t('resumo.resultado'),
-        valor: `${state.teamScore} – ${state.opponentScore}`,
+        valor: `${state.teamScore} – ${state.opponentScore}${sufixoDesempate(state)}`,
         detalhe: textoRes,
         tom: res === 'W' ? 'win' : res === 'L' ? 'loss' : res === 'D' ? 'draw' : undefined,
       },
@@ -107,7 +110,7 @@ export async function gerarPdfJogo({ club, match, state, team, competition }) {
         const marcador = [nome(g.scorerId), g.ownGoal ? `(${t('csv.autogolo')})` : ''].filter(Boolean).join(' ');
         return [
           i + 1,
-          g.period,
+          parteCurtaLabel(g.period),
           fmt(g.matchElapsedMs),
           { texto: nosso ? nos : eles, cor: nosso ? COR.verdeTinta : COR.vermelho, negrito: true },
           marcador,
@@ -118,6 +121,36 @@ export async function gerarPdfJogo({ club, match, state, team, competition }) {
     });
   } else {
     r.paragrafo(state.status === MATCH_STATUS.FINISHED ? t('resumo.semGolos') : t('golos.semGolos'));
+  }
+
+  // ------------------------------------------------------------- penáltis
+  // Desempate: não conta para o resultado, mas é o que decide a eliminatória.
+  if (pen) {
+    r.secao(`${t('penaltis.titulo')} · ${nos} ${pen.nos} – ${pen.eles} ${eles}`, 15);
+    const zona = (z) => (z ? t(`penaltis.zona.${z}`) : '');
+    r.tabela({
+      colunas: [
+        { titulo: '#', largura: 8, alinhar: 'right' },
+        { titulo: t('csv.equipa'), peso: 1.4 },
+        { titulo: t('penaltis.marcadorOuGr'), peso: 2 },
+        { titulo: t('penaltis.zonaBola'), peso: 1.4 },
+        { titulo: t('penaltis.zonaGr'), peso: 1.4 },
+        { titulo: t('penaltis.resultado'), peso: 1.2 },
+      ],
+      linhas: state.penaltis.kicks.map((k, i) => {
+        const nosso = k.team === 'US';
+        return [
+          i + 1,
+          { texto: nosso ? nos : eles, cor: nosso ? COR.verdeTinta : COR.vermelho, negrito: true },
+          nosso
+            ? nome(k.playerId)
+            : [k.number ? `#${k.number}` : '', k.goalkeeperId ? `${t('penaltis.gr')} ${nome(k.goalkeeperId)}` : ''].filter(Boolean).join(' · '),
+          zona(k.zona),
+          nosso ? '' : zona(k.mergulho),
+          k.resultado ? t(`penaltis.res.${k.resultado}`) : '',
+        ];
+      }),
+    });
   }
 
   // ------------------------------------------------------------------ 5v4

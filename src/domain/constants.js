@@ -101,6 +101,16 @@ export const EVENT = {
   // metadata.registo — ver domain/registos.js.
   STAT_RECORDED: 'STAT_RECORDED',
   STAT_CORRECTED: 'STAT_CORRECTED',
+  // Prolongamento e penáltis (07/11/2026) — ver domain/prolongamento.js.
+  // Fim da 2.ª parte (ou de uma parte do prolongamento) a caminho de mais
+  // jogo: metadata.seguinte = 'PROLONGAMENTO' | 'PENALTIS'.
+  PERIOD_FINISHED: 'PERIOD_FINISHED',
+  // Começa uma parte do prolongamento (período 3 ou 4).
+  EXTRA_TIME_STARTED: 'EXTRA_TIME_STARTED',
+  // Ordem dos nossos marcadores e quem bate primeiro (o último vale).
+  SHOOTOUT_STARTED: 'SHOOTOUT_STARTED',
+  // Um penálti do desempate: metadata { team, playerId, goalkeeperId, zona, mergulho, resultado }.
+  SHOOTOUT_KICK: 'SHOOTOUT_KICK',
 };
 
 
@@ -129,6 +139,7 @@ export const UNDOABLE_EVENTS = new Set([
   EVENT.OPPONENT_EXPULSION_REMOVED,
   EVENT.OPPONENT_YELLOW_CARD,
   EVENT.STAT_RECORDED,
+  EVENT.SHOOTOUT_KICK,
 ]);
 
 export const CARD = { YELLOW: 'YELLOW', RED: 'RED' };
@@ -246,5 +257,28 @@ export function maxSquadOf(entity) {
 export const MIN_SQUAD = 3;
 export const MAX_ON_COURT = 5;
 export const DEFAULT_PERIOD_MS = 20 * 60 * 1000;
+
+/**
+ * Desempate de uma competição, quando o jogo acaba empatado (07/11/2026).
+ * - NENHUM: o empate é resultado (campeonato).
+ * - PENALTIS: empatado no fim da 2.ª parte, vai direto a penáltis.
+ * - PROLONGAMENTO: empatado no fim da 2.ª parte, há prolongamento (2 × 5 min);
+ *   se continuar empatado, penáltis.
+ * Mesmo com NENHUM, a 2.ª parte deixa ir a prolongamento ou a penáltis à mão
+ * (eliminatórias a duas mãos, em que o empate é no agregado).
+ */
+export const DESEMPATE = { NENHUM: 'NENHUM', PENALTIS: 'PENALTIS', PROLONGAMENTO: 'PROLONGAMENTO' };
+
+export function desempateOf(entity) {
+  const v = entity?.desempate;
+  return v === DESEMPATE.PENALTIS || v === DESEMPATE.PROLONGAMENTO ? v : DESEMPATE.NENHUM;
+}
+
+/**
+ * Cada parte do prolongamento: 5 minutos (Leis do Jogo de Futsal, lei 7 — duas
+ * partes iguais de 5 minutos, sem intervalo longo entre elas). Como a duração
+ * da parte normal, é uma referência: o relógio não pára sozinho.
+ */
+export const EXTRA_TIME_PERIOD_MS = 5 * 60 * 1000;
 
 export const HOME_AWAY = { HOME: 'HOME', AWAY: 'AWAY' };

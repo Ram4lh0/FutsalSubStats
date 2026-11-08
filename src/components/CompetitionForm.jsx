@@ -11,11 +11,11 @@ import { teams, competitions } from '@/lib/data/repository.js';
 import { rotas } from '@/lib/routes.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import { useT } from '@/lib/i18n/index.js';
-import { MATCH_TIMING, maxSquadOf, timingOf } from '@/domain/constants.js';
+import { MATCH_TIMING, DESEMPATE, desempateOf, maxSquadOf, timingOf } from '@/domain/constants.js';
 import { timingLabel } from '@/lib/format.js';
 import { useImportarCalendario } from './ImportarCalendario.jsx';
 
-const VAZIO = { name: '', shortName: '', timing: MATCH_TIMING.UNTIMED, maxSquad: '14' };
+const VAZIO = { name: '', shortName: '', timing: MATCH_TIMING.UNTIMED, maxSquad: '14', desempate: DESEMPATE.NENHUM };
 
 export default function CompetitionForm({ clubId, teamId, competitionId }) {
   const router = useRouter();
@@ -34,7 +34,7 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
       setTeam(loadedTeam);
       if (competitionId) {
         const c = await competitions.get(competitionId);
-        if (c) setForm({ ...VAZIO, ...c, maxSquad: c.maxSquad === null ? '' : String(maxSquadOf(c)) });
+        if (c) setForm({ ...VAZIO, ...c, maxSquad: c.maxSquad === null ? '' : String(maxSquadOf(c)), desempate: desempateOf(c) });
         setPronto(true);
       } else {
         setForm((f) => ({ ...f, timing: timingOf(loadedTeam) }));
@@ -61,6 +61,7 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
       shortName: (form.shortName || '').trim() || null,
       timing: form.timing,
       maxSquad: form.maxSquad === '' ? null : Number(form.maxSquad),
+      desempate: desempateOf(form),
     };
     if (competitionId) await competitions.update(competitionId, payload);
     else {
@@ -131,6 +132,19 @@ export default function CompetitionForm({ clubId, teamId, competitionId }) {
               <option value="">{t('competicao.semLimite')}</option>
               {Array.from({ length: 18 }, (_, index) => index + 5).map((value) => (
                 <option key={value} value={value}>{value}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        {/* Taças e eliminatórias: o que acontece a um empate no fim da 2.ª
+            parte. Mesmo em "Nenhum", o jogo deixa ir a prolongamento ou a
+            penáltis à mão (eliminatórias a duas mãos). */}
+        <div className="form__row">
+          <Field label={t('competicao.desempate')} hint={t('competicao.desempateDica')}>
+            <select className="input" {...campo('desempate')}>
+              {Object.values(DESEMPATE).map((value) => (
+                <option key={value} value={value}>{t(`competicao.desempate.${value}`)}</option>
               ))}
             </select>
           </Field>

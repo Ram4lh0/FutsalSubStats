@@ -23,6 +23,7 @@ import {
   normalizePosition,
 } from './constants.js';
 import { periodoNoFim } from './fimDoJogo.js';
+import { penaltisVazios } from './prolongamento.js';
 
 function findLastIndex(arr, pred) {
   for (let i = arr.length - 1; i >= 0; i--) if (pred(arr[i])) return i;
@@ -284,6 +285,7 @@ function estenderFim(state, X, endPeriodMs, eventos) {
   state.elapsedMatchMs = X;
   state.periodElapsedMs = periodoX;
   if (state.currentPeriod === 2) state.secondHalfMs = periodoX;
+  if (state.currentPeriod >= 3) state.periodosMs[state.currentPeriod] = periodoX;
   if (wallOriginal != null) state.finishedAt = wallOriginal + extra;
 }
 
@@ -327,6 +329,7 @@ function aplicarAjusteFim(state, eventos) {
   state.elapsedMatchMs = X;
   state.periodElapsedMs = periodoX;
   if (state.currentPeriod === 2) state.secondHalfMs = periodoX;
+  if (state.currentPeriod >= 3) state.periodosMs[state.currentPeriod] = periodoX;
   if (wallX != null && state.finishedAt != null) state.finishedAt = Math.min(wallX, state.finishedAt);
 }
 
@@ -475,6 +478,12 @@ export function buildMatchState(match, squad, events) {
     fimOriginalMs: null,
     // Tempos corrigidos a frio, por jogador (ver domain/tempos.js).
     ajusteTempos: {},
+    // Prolongamento e penáltis (domain/prolongamento.js): o minuto do jogo em
+    // que cada parte começou, a duração das partes do prolongamento, e os
+    // penáltis do desempate (null = não houve).
+    periodStarts: { 1: 0 },
+    periodosMs: {},
+    penaltis: null,
   };
 
   for (const row of squad) {
@@ -706,6 +715,7 @@ function applyEvent(state, ev) {
       state.currentPeriod = 2;
       state.elapsedMatchMs = ev.matchElapsedMs;
       state.periodElapsedMs = 0;
+      state.periodStarts[2] = ev.matchElapsedMs;
       state.timerStatus = TIMER_STATUS.RUNNING;
       state.timerStartedAt = ev.createdAt;
       state.status = MATCH_STATUS.SECOND_HALF_RUNNING;
@@ -1023,7 +1033,12 @@ function applyEvent(state, ev) {
         if (w != null) fim = { ...ev, createdAt: w };
       }
       closeAllStints(state, fim, STINT_END_REASON.MATCH_FINISHED);
-      if (state.currentPeriod === 2) state.secondHalfMs = ev.periodElapsedMs;
+      // Terminado numa pausa (do prolongamento ou dos penáltis), a parte já
+      // tinha fechado: a sua duração fica a que ficou.
+      if (state.status !== MATCH_STATUS.HALFTIME) {
+        if (state.currentPeriod === 2) state.secondHalfMs = ev.periodElapsedMs;
+        if (state.currentPeriod >= 3) state.periodosMs[state.currentPeriod] = ev.periodElapsedMs;
+      }
       state.timerStatus = TIMER_STATUS.STOPPED;
       state.timerStartedAt = null;
       state.status = MATCH_STATUS.FINISHED;
@@ -1102,6 +1117,72 @@ function applyEvent(state, ev) {
       break;
     }
 
+    // Fim da 2.ª parte (ou da 1.ª do prolongamento) a caminho de mais jogo.
+    // Como o fim da 1.ª parte: as entradas fecham, o campo esvazia e escolhe-se
+    // o cinco seguinte. `seguinte` diz se vem prolongamento ou penáltis.
+    case EVENT.PERIOD_FINISHED: {
+      if (state.currentPeriod < 2 || state.status === MATCH_STATUS.HALFTIME) break;
+      state.elapsedMatchMs = ev.matchElapsedMs;
+      state.periodElapsedMs = ev.periodElapsedMs;
+      closeAllStints(state, ev, STINT_END_REASON.HALFTIME);
+      if (state.currentPeriod === 2) state.secondHalfMs = ev.periodElapsedMs;
+      else state.periodosMs[state.currentPeriod] = ev.periodElapsedMs;
+      state.timerStatus = TIMER_STATUS.PAUSED;
+      state.timerStartedAt = null;
+      state.status = MATCH_STATUS.HALFTIME;
+      state.lastFirstHalfCourt = { ...state.court };
+      state.court = emptyCourt();
+      for (const p of Object.values(state.players)) {
+        if (p.status === PLAYER_MATCH_STATUS.ON_COURT) p.status = PLAYER_MATCH_STATUS.ON_BENCH;
+        p.position = null;
+      }
+      state.secondHalfLineupSet = false;
+      state.powerPlayOverride = null;
+      state.powerPlayOverrideGk = null;
+      if (md.seguinte === 'PENALTIS' || state.currentPeriod >= 4) state.penaltis = penaltisVazios();
+      break;
+    }
+
+    case EVENT.EXTRA_TIME_STARTED: {
+      if (state.status !== MATCH_STATUS.HALFTIME || state.penaltis) break;
+      if (state.currentPeriod < 2 || state.currentPeriod >= 4) break;
+      state.currentPeriod += 1;
+      state.elapsedMatchMs = ev.matchElapsedMs;
+      state.periodElapsedMs = 0;
+      state.periodStarts[state.currentPeriod] = ev.matchElapsedMs;
+      state.timerStatus = TIMER_STATUS.RUNNING;
+      state.timerStartedAt = ev.createdAt;
+      state.status = MATCH_STATUS.SECOND_HALF_RUNNING;
+      for (const pos of POSITIONS) {
+        const pid = state.court[pos];
+        if (pid) openStint(state, pid, ev, pos);
+      }
+      break;
+    }
+
+    case EVENT.SHOOTOUT_STARTED: {
+      if (!state.penaltis) state.penaltis = penaltisVazios();
+      if (Array.isArray(md.ordem)) state.penaltis.ordem = md.ordem.filter((id) => state.players[id]);
+      if (md.primeiro === 'US' || md.primeiro === 'THEM') state.penaltis.primeiro = md.primeiro;
+      state.penaltis.iniciados = true;
+      break;
+    }
+
+    case EVENT.SHOOTOUT_KICK: {
+      if (!state.penaltis) break;
+      state.penaltis.kicks.push({
+        eventId: ev.id,
+        team: md.team === 'THEM' ? 'THEM' : 'US',
+        playerId: md.team === 'THEM' ? null : md.playerId || null,
+        number: md.number ?? null,
+        goalkeeperId: md.team === 'THEM' ? md.goalkeeperId || null : null,
+        zona: md.zona || null,
+        mergulho: md.mergulho || null,
+        resultado: md.resultado || null,
+      });
+      break;
+    }
+
     // Registos extra (remates, recuperações, …): não mexem no resultado, nos
     // tempos nem nas faltas. Lêem-se de `state.events` (domain/registos.js).
     case EVENT.STAT_RECORDED:
@@ -1126,8 +1207,15 @@ export function benchPlayers(state) {
     });
 }
 
-/** Faltas de uma equipa na parte indicada (por omissão, a que está a decorrer). */
+/**
+ * Faltas de uma equipa na parte indicada (por omissão, a que está a decorrer).
+ * No prolongamento (3 e 4) as faltas da 2.ª parte continuam a acumular — é a
+ * regra —, por isso a conta vai da 2.ª parte até à indicada.
+ */
 export function foulsInPeriod(state, team, period = state.currentPeriod) {
+  if (period >= 3) {
+    return state.fouls.filter((f) => f.team === team && f.period >= 2 && f.period <= period).length;
+  }
   return state.fouls.filter((f) => f.team === team && f.period === period).length;
 }
 

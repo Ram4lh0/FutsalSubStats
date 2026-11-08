@@ -43,6 +43,15 @@ export default function Halftime({
   onEditCard,
   onEditTempos,
   onStart,
+  // As pausas do prolongamento usam este ecrã com outro título e botão, a
+  // contagem de faltas que continua (2.ª parte + prolongamento) e o minuto do
+  // jogo em vez do tempo da 1.ª parte.
+  titulo = null,
+  botao = null,
+  periodoFaltas = 1,
+  tempoParte = null,
+  notaFaltas = null,
+  emProlongamento = false,
 }) {
   const t = useT();
   // Pré-preenche com quem terminou a 1.ª parte, para poupar toques.
@@ -78,29 +87,33 @@ export default function Halftime({
     <section className="halftime">
       <div className="halftime__bloco">
         <div className="halftime__title">
-          <h2 className="section section--tight">{t('intervalo.titulo')}</h2>
+          <h2 className="section section--tight">{titulo || t('intervalo.titulo')}</h2>
           <span className="live__spacer" />
           <button className="btn btn--ghost btn--tiny" onClick={onCorrectScore}>
             {t('intervalo.corrigirResultado')}
           </button>
         </div>
         <p className="halftime__score">
-          {t('intervalo.placar', {
+          {t(emProlongamento ? 'prolong.placar' : 'intervalo.placar', {
             nos: state.teamScore,
             eles: state.opponentScore,
-            tempo: fmt(state.firstHalfMs || 0),
+            tempo: fmt(tempoParte ?? (state.firstHalfMs || 0)),
           })}
         </p>
       </div>
 
       <div className="halftime__bloco">
-        <h2 className="section section--tight">{t('intervalo.formacao')}</h2>
+        <h2 className="section section--tight">
+          {t(emProlongamento ? 'prolong.formacao' : 'intervalo.formacao')}
+        </h2>
         <CourtPicker candidates={candidatos} lineup={lineup} onChange={setLineup} />
-        <p className="muted">{t('intervalo.escolhidos', { n: countFilled(lineup) })}</p>
+        <p className="muted">
+          {t(emProlongamento ? 'prolong.escolhidos' : 'intervalo.escolhidos', { n: countFilled(lineup) })}
+        </p>
         <div className="halftime__actions">
           <button className="btn btn--primary floatbtn" onClick={() => onStart(lineup)}>
-            <span>{t('intervalo.comecar')}</span>
-            <span>{t('intervalo.segundaParte')}</span>
+            <span>{botao ? botao[0] : t('intervalo.comecar')}</span>
+            <span>{botao ? botao[1] : t('intervalo.segundaParte')}</span>
           </button>
         </div>
         {/* Uma pista de que há mais por baixo: com o campo a ocupar o ecrã
@@ -134,8 +147,8 @@ export default function Halftime({
             {t('faltas.titulo')}{' '}
             <span className="muted">
               {t('faltas.contagem', {
-                nos: foulsInPeriod(state, 'US', 1),
-                eles: foulsInPeriod(state, 'THEM', 1),
+                nos: foulsInPeriod(state, 'US', periodoFaltas),
+                eles: foulsInPeriod(state, 'THEM', periodoFaltas),
               })}
             </span>
           </h3>
@@ -146,6 +159,7 @@ export default function Halftime({
             </button>
           ) : null}
         </div>
+        {notaFaltas ? <p className="muted small">{notaFaltas}</p> : null}
         <FoulsTimeline
           state={state}
           ourName={ourName}

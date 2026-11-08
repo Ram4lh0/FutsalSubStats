@@ -29,6 +29,7 @@ import { BlocosExtrasAtleta } from '@/components/registos/ExtrasRegistos.jsx';
 import {
   minutosPorJogador,
   golosPorFaixa,
+  penaltisDaEpoca,
   golosPorTipo,
   formaRecente,
   casaEFora,
@@ -615,6 +616,7 @@ function Painel({ club, team, entries, roster, competitions }) {
   const lados = useMemo(() => casaEFora(filtrados), [filtrados]);
   const disc = useMemo(() => disciplina(filtrados), [filtrados]);
   const faixas = useMemo(() => golosPorFaixa(base, { parteMs }), [base, parteMs]);
+  const desempates = useMemo(() => penaltisDaEpoca(filtrados), [filtrados]);
   const tiposDeGolo = useMemo(() => golosPorTipo(filtrados), [filtrados]);
   const tiposDeGoloSofrido = useMemo(() => golosPorTipo(filtrados, 'THEM'), [filtrados]);
   const atleta = useMemo(
@@ -861,6 +863,16 @@ function Painel({ club, team, entries, roster, competitions }) {
                   />
                   {detalheDaFaixa(2, faixas.segunda)}
                 </div>
+                {faixas.prolongamento.marcados || faixas.prolongamento.sofridos ? (
+                  <p className="small">
+                    <strong>{t('prolong.noProlongamento')}</strong>{' '}
+                    {t('prolong.golosProlongamento', {
+                      marcados: faixas.prolongamento.marcados,
+                      sofridos: faixas.prolongamento.sofridos,
+                      jogos: faixas.prolongamento.jogos,
+                    })}
+                  </p>
+                ) : null}
                 <p className="muted small no-print">{t('painelv.dicaFiltro')}</p>
                 {janela ? (
                   <button type="button" className="btn btn--ghost btn--tiny no-print" onClick={limparJanela}>
@@ -876,6 +888,61 @@ function Painel({ club, team, entries, roster, competitions }) {
               <p className="muted">{t('painelv.semGolos')}</p>
             )}
           </Bloco>
+
+          {/* ------------------------------- prolongamentos e penáltis */}
+          {desempates.jogos || desempates.prolongamentos ? (
+            <Bloco titulo={t('penaltis.painelTitulo')}>
+              <div className="grid grid--stats">
+                <StatCard label={t('penaltis.painelProlongamentos')} value={desempates.prolongamentos} />
+                <StatCard
+                  label={t('penaltis.painelDesempates')}
+                  value={desempates.jogos}
+                  hint={t('penaltis.painelGanhosPerdidos', { g: desempates.ganhos, p: desempates.perdidos })}
+                />
+                <StatCard
+                  label={t('penaltis.painelNossos')}
+                  value={`${desempates.nossos.golos}/${desempates.nossos.batidos}`}
+                  hint={desempates.nossos.batidos ? `${Math.round((100 * desempates.nossos.golos) / desempates.nossos.batidos)}%` : '—'}
+                />
+                <StatCard
+                  label={t('penaltis.painelDefesas')}
+                  value={`${desempates.deles.defendidos}/${desempates.deles.batidos}`}
+                  hint={t('penaltis.painelDelesGolo', { n: desempates.deles.golos })}
+                />
+              </div>
+              {desempates.porJogador.length ? (
+                <DataTable tight>
+                  <thead>
+                    <tr>
+                      <th>{t('stats.jogador')}</th>
+                      <th className="num">{t('penaltis.batidos')}</th>
+                      <th className="num">{t('penaltis.res.GOLO')}</th>
+                      <th className="num">{t('penaltis.res.DEFENDIDO')}</th>
+                      <th className="num">{t('penaltis.res.FORA')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {desempates.porJogador.map((j) => (
+                      <tr key={j.playerId}>
+                        <td>#{j.number} {j.name}</td>
+                        <td className="num mono">{j.batidos}</td>
+                        <td className="num mono">{j.golos}</td>
+                        <td className="num mono">{j.defendidos}</td>
+                        <td className="num mono">{j.fora}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </DataTable>
+              ) : null}
+              {desempates.porGuardaRedes.length ? (
+                <p className="muted small">
+                  {desempates.porGuardaRedes
+                    .map((g) => t('penaltis.painelGr', { nome: `#${g.number} ${g.name}`, d: g.defendidos, n: g.batidos }))
+                    .join(' · ')}
+                </p>
+              ) : null}
+            </Bloco>
+          ) : null}
 
           {/* -------------------------------------------- tipos de golo */}
           <Bloco titulo={t('painelv.tiposDeGolo')}>

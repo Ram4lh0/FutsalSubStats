@@ -11,6 +11,7 @@ import './estilos/06-painel-e-impressao.css';
 import './estilos/07-treino.css';
 import './estilos/08-registos-e-extras.css';
 import './estilos/09-ficha-e-plantel.css';
+import './estilos/10-prolongamento-e-penaltis.css';
 import { Suspense } from 'react';
 import Providers from './providers.jsx';
 import MainNavigation from '@/components/MainNavigation.jsx';

@@ -32,8 +32,9 @@ import { matchStatsTable } from '@/domain/stats.js';
 import { isLive } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
 import { temRegistos } from '@/domain/registos.js';
-import { MATCH_STATUS, PLAYER_MATCH_STATUS, POSITIONS } from '@/domain/constants.js';
-import { clubShort, opponentShort, positionLabel } from '@/lib/format.js';
+import { MATCH_STATUS, PLAYER_MATCH_STATUS, POSITIONS, EXTRA_TIME_PERIOD_MS } from '@/domain/constants.js';
+import { faseDoJogo, resumoPenaltis } from '@/domain/prolongamento.js';
+import { clubShort, opponentShort, positionLabel, parteCurtaLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
 
@@ -96,8 +97,18 @@ function Assistir() {
   const tabela = matchStatsTable(state, now);
   const porJogador = new Map(tabela.map((s) => [s.playerId, s]));
   const terminado = state.status === MATCH_STATUS.FINISHED;
+  const fase = faseDoJogo(state);
+  const pen = state.penaltis ? resumoPenaltis(state.penaltis) : null;
   const periodLabel =
-    state.status === MATCH_STATUS.HALFTIME
+    fase === 'PENALTIS'
+      ? t('penaltis.titulo')
+      : fase === 'PAUSA_PROL' || fase === 'PAUSA_PROL2'
+        ? t('prolong.pausaTitulo')
+        : fase === 'PROL1'
+          ? t('prolong.prol1Rotulo')
+          : fase === 'PROL2'
+            ? t('prolong.prol2Rotulo')
+            : state.status === MATCH_STATUS.HALFTIME
       ? t('acao.intervaloTitulo')
       : state.currentPeriod === 2
         ? t('vivo.segundaParte')
@@ -153,13 +164,19 @@ function Assistir() {
         {state.status === MATCH_STATUS.HALFTIME || terminado ? (
           <div className="clockbox">
             <span className="clockbox__period">{terminado ? t('aoVivo.terminadoCurto') : periodLabel}</span>
-            <span className="clockbox__time">{fmt(terminado ? state.elapsedMatchMs : state.firstHalfMs || 0)}</span>
-            {terminado ? null : <span className="clockbox__hint">{t('acao.primeiraTerminada')}</span>}
+            {pen && (pen.batidosNos || pen.batidosEles) ? (
+              <span className="clockbox__time">{t('prolong.gp', { nos: pen.nos, eles: pen.eles })}</span>
+            ) : (
+              <span className="clockbox__time">
+                {fmt(terminado || state.currentPeriod >= 2 ? state.elapsedMatchMs : state.firstHalfMs || 0)}
+              </span>
+            )}
+            {terminado || state.currentPeriod >= 2 ? null : <span className="clockbox__hint">{t('acao.primeiraTerminada')}</span>}
           </div>
         ) : (
           <ClockBox
             state={state}
-            periodDurationMs={match.periodDurationMs}
+            periodDurationMs={state.currentPeriod >= 3 ? EXTRA_TIME_PERIOD_MS : match.periodDurationMs}
             periodLabel={periodLabel}
             now={now}
           />
@@ -228,7 +245,7 @@ function Assistir() {
                   <li key={s.eventId}>
                     <span className="aovivo-trocas__quando">
                       <span className="mono">{fmt(s.matchElapsedMs)}</span>
-                      <span className="muted">{t('golos.parteCurta', { n: s.period })}</span>
+                      <span className="muted">{parteCurtaLabel(s.period)}</span>
                     </span>
                     <span className="aovivo-trocas__quem">
                       <span className="aovivo-trocas__entra">

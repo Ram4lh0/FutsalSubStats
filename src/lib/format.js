@@ -176,3 +176,39 @@ export function syncLabel(status) {
   };
   return chaves[status] ? t(chaves[status]) : String(status || '');
 }
+
+/* ------------------------------------------- prolongamento e penáltis */
+
+/** "1.ª", "2.ª", "1.º prol.", "2.º prol." — a parte em versão curta. */
+export function parteCurtaLabel(n) {
+  if (n === 3 || n === 4) return t('prolong.parteCurta', { n: n - 2 });
+  return t('golos.parteCurta', { n });
+}
+
+/** "Primeira parte", …, "1.º prolongamento", "2.º prolongamento". */
+export function parteLabel(n) {
+  if (n === 1) return t('golos.primeiraParte');
+  if (n === 2) return t('golos.segundaParte');
+  return t('prolong.parteLonga', { n: n - 2 });
+}
+
+/** As partes que o jogo teve: [1, 2] ou [1, 2, 3, 4]. */
+export function partesDoJogo(state) {
+  return state?.periodStarts?.[3] != null ? [1, 2, 3, 4] : [1, 2];
+}
+
+/**
+ * O que se junta ao resultado: " a.p." (após prolongamento) e " (4–2 g.p.)"
+ * (penáltis, que não contam para o resultado). Vazio num jogo normal.
+ */
+export function sufixoDesempate(state) {
+  if (!state) return '';
+  let s = '';
+  if (state.periodStarts?.[3] != null) s += ` ${t('prolong.ap')}`;
+  const kicks = state.penaltis?.kicks || [];
+  if (kicks.length) {
+    const golos = (team) => kicks.filter((k) => k.team === team && k.resultado === 'GOLO').length;
+    s += ` (${t('prolong.gp', { nos: golos('US'), eles: golos('THEM') })})`;
+  }
+  return s;
+}

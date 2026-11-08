@@ -1,0 +1,98 @@
+/* ------------------------------------------ prolongamento e penáltis (07/11/2026) */
+
+/* "Prolongamento"/"Penáltis" em grande e "Terminar jogo" pequeno por baixo. */
+.live__fimgrupo { display: inline-flex; flex-direction: column; align-items: stretch; gap: 4px; }
+.live__fimpequeno { font-size: 0.75rem; padding: 2px 8px; min-height: 0; opacity: 0.85; }
+
+/* Penáltis: o cabeçalho troca o cronómetro pelo marcador dos penáltis. */
+.pen__head { grid-template-columns: 1fr; justify-items: center; gap: 6px; text-align: center; }
+.pen__titulo { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pen__jogo { font-size: 0.8rem; color: var(--muted); }
+.pen__placar { display: flex; align-items: center; gap: 10px; }
+.pen__equipa { font-size: 0.85rem; color: var(--muted); max-width: 28vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pen__golos { font-size: clamp(2rem, 6vw, 2.6rem); font-weight: 800; font-variant-numeric: tabular-nums; min-width: 34px; text-align: center; }
+.pen__traco { color: var(--muted); font-size: 1.4rem; }
+.pen__sequencias { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.pen__seq { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; justify-content: center; }
+.pen__seqnome { font-size: 0.72rem; color: var(--muted); width: 84px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pen__bola { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 0.75rem; font-weight: 800; border: 2px solid var(--line); }
+.pen__bola--golo { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+.pen__bola--falhou { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+.pen__ordem { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pen__ordemlinha { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--card-2); }
+.pen__ordemnum { width: 26px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pen__ordemnome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pen__fora { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pen__seg { display: flex; gap: 8px; flex-wrap: wrap; }
+.pen__seg .btn { flex: 1; min-width: 120px; }
+.pen__seg--peq .btn { min-width: 0; flex: 0 0 auto; }
+.pen__acoes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.pen__decidido { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.pen__decidido.is-win { border-color: var(--primary); }
+.pen__decidido.is-loss { border-color: var(--danger); }
+
+.pen__campos { display: flex; gap: 10px; flex-wrap: wrap; }
+.pen__campo { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; }
+.pen__campo--num { flex: 0 0 110px; min-width: 0; }
+.pen__balizas { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 6px 0; }
+.pen__resultado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.pen__btn { font-weight: 800; }
+.pen__btn--golo { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+.pen__btn--defendido { background: rgba(56, 189, 248, 0.18); border-color: var(--info); color: var(--text); }
+.pen__btn--fora { background: rgba(239, 68, 68, 0.16); border-color: var(--danger); color: var(--text); }
+
+.pen__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pen__linha { display: grid; grid-template-columns: 28px 1fr auto; grid-template-areas: 'num quem res' 'num zona res'; column-gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--card-2); border-left: 4px solid var(--line); }
+.pen__linha--golo { border-left-color: var(--primary); }
+.pen__linha--defendido { border-left-color: var(--info); }
+.pen__linha--fora { border-left-color: var(--danger); }
+.pen__linhanum { grid-area: num; font-weight: 800; color: var(--muted); }
+.pen__linhaquem { grid-area: quem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pen__linhazona { grid-area: zona; font-size: 0.78rem; }
+.pen__linhares { grid-area: res; align-self: center; font-weight: 700; font-size: 0.85rem; }
+
+/* A baliza: 3 × 3 zonas dentro dos postes, com a faixa "Fora" à volta. */
+.baliza { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.baliza__titulo { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+.baliza__fora { position: relative; padding: 22px 22px 0; border-radius: 12px; background: rgba(239, 68, 68, 0.06); border: 1px dashed rgba(239, 68, 68, 0.35); }
+.baliza--escolher .baliza__fora:not(.baliza__fora--sem) { cursor: pointer; }
+.baliza__fora.is-on { background: rgba(239, 68, 68, 0.22); border-style: solid; }
+.baliza__fora--sem { padding: 0; background: none; border: 0; }
+.baliza__foratexto { position: absolute; top: 3px; left: 0; right: 0; text-align: center; font-size: 0.68rem; color: var(--muted); display: flex; justify-content: center; align-items: center; gap: 3px; }
+.baliza__quadro {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: min(240px, 70vw);
+  aspect-ratio: 3 / 2;
+  border: 6px solid #f1f5f9;
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  background-color: rgba(255, 255, 255, 0.03);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+.baliza__zona { display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 2px; border: 1px dashed rgba(255, 255, 255, 0.14); background: transparent; color: inherit; padding: 2px; min-height: 0; }
+button.baliza__zona { cursor: pointer; }
+button.baliza__zona:hover { background: rgba(255, 255, 255, 0.06); }
+.baliza--bola .baliza__zona.is-on { background: rgba(34, 197, 94, 0.35); border: 2px solid var(--primary); }
+.baliza--gr .baliza__zona.is-on { background: rgba(56, 189, 248, 0.35); border: 2px solid var(--info); }
+.baliza__marca { width: 14px; height: 14px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 0.55rem; font-weight: 800; color: #fff; }
+.baliza__marca--golo { background: var(--primary); color: var(--primary-ink); }
+.baliza__marca--defendido { background: var(--info); color: #04263a; }
+.baliza__marca--fora { background: var(--danger); }
+.baliza__marca--gr { background: transparent; border: 2px solid var(--info); border-radius: 3px; }
+
+/* Resumo: as duas balizas lado a lado e a tabela dos penáltis. */
+.penresumo__balizas { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin: 8px 0 12px; }
+.penresumo__legenda { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; font-size: 0.75rem; color: var(--muted); }
+.penresumo__legenda span { display: inline-flex; align-items: center; gap: 4px; }
+
+@media (max-width: 520px) {
+  .pen__resultado { grid-template-columns: 1fr 1fr 1fr; }
+  .pen__seqnome { width: 64px; }
+}

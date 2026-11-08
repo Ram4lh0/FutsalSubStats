@@ -27,6 +27,7 @@ import {
   timingOf,
   timingConfig,
   maxSquadOf,
+  desempateOf,
 } from '../../domain/constants.js';
 import { localClubLicenseActive } from '../license.js';
 import { t } from '../i18n/index.js';
@@ -309,6 +310,7 @@ export const competitions = {
       shortName: (data.shortName || '').trim() || null,
       timing: timingOf(data?.timing ? data : team),
       maxSquad: data.maxSquad === null ? null : maxSquadOf(data),
+      desempate: desempateOf(data),
       archivedAt: null,
     });
     await db.put(db.STORES.competitions, row);
@@ -322,6 +324,9 @@ export const competitions = {
       ...(patch.timing != null ? { timing: timingOf(patch) } : {}),
       ...(Object.prototype.hasOwnProperty.call(patch, 'maxSquad')
         ? { maxSquad: patch.maxSquad === null ? null : maxSquadOf(patch) }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'desempate')
+        ? { desempate: desempateOf(patch) }
         : {}),
     };
     const row = stamp({ ...cur, ...normalized });

@@ -13,6 +13,7 @@ import { fmt } from '../../domain/clock.js';
 import {
   minutosPorJogador,
   golosPorFaixa,
+  penaltisDaEpoca,
   golosPorTipo,
   formaRecente,
   casaEFora,
@@ -219,8 +220,49 @@ function relatorioDaEquipa(r, { entries, roster, parteMs, jogos }) {
       { cor: COR.vermelho, texto: t('painelv.sofridos') },
     ]);
     r.paragrafo(t('pdf.notaFaixas', { n: faixas.jogos }));
+    if (faixas.prolongamento?.marcados || faixas.prolongamento?.sofridos) {
+      r.paragrafo(
+        `${t('prolong.noProlongamento')} ${t('prolong.golosProlongamento', {
+          marcados: faixas.prolongamento.marcados,
+          sofridos: faixas.prolongamento.sofridos,
+          jogos: faixas.prolongamento.jogos,
+        })}`
+      );
+    }
   } else {
     r.paragrafo(t('painelv.semGolos'));
+  }
+
+  // ------------------------------------------ prolongamentos e penáltis
+  const desempates = penaltisDaEpoca(entries);
+  if (desempates.jogos || desempates.prolongamentos) {
+    r.secao(t('penaltis.painelTitulo'), 30);
+    r.cartoes([
+      { rotulo: t('penaltis.painelProlongamentos'), valor: String(desempates.prolongamentos) },
+      {
+        rotulo: t('penaltis.painelDesempates'),
+        valor: String(desempates.jogos),
+        detalhe: t('penaltis.painelGanhosPerdidos', { g: desempates.ganhos, p: desempates.perdidos }),
+      },
+      { rotulo: t('penaltis.painelNossos'), valor: `${desempates.nossos.golos}/${desempates.nossos.batidos}` },
+      {
+        rotulo: t('penaltis.painelDefesas'),
+        valor: `${desempates.deles.defendidos}/${desempates.deles.batidos}`,
+        detalhe: t('penaltis.painelDelesGolo', { n: desempates.deles.golos }),
+      },
+    ]);
+    if (desempates.porJogador.length) {
+      r.tabela({
+        colunas: [
+          { titulo: t('stats.jogador'), peso: 3 },
+          { titulo: t('penaltis.batidos'), alinhar: 'right' },
+          { titulo: t('penaltis.res.GOLO'), alinhar: 'right' },
+          { titulo: t('penaltis.res.DEFENDIDO'), alinhar: 'right' },
+          { titulo: t('penaltis.res.FORA'), alinhar: 'right' },
+        ],
+        linhas: desempates.porJogador.map((j) => [`#${j.number} ${j.name}`, j.batidos, j.golos, j.defendidos, j.fora]),
+      });
+    }
   }
 
   // -------------------------------------------------------- tipos de golo

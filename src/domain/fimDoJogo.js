@@ -10,6 +10,7 @@
 
 import { EVENT, MATCH_STATUS } from './constants.js';
 import { readClock } from './clock.js';
+import { inicioDoPeriodo } from './prolongamento.js';
 
 // Eventos que provam que o jogo ainda estava a decorrer nesse minuto.
 // Ficam de fora o relógio, as partes, o plantel, as atribuições (que não têm
@@ -38,7 +39,7 @@ const ACCOES = new Set([
 
 /** Minuto do jogo (ms) para um tempo dentro da parte em que o jogo acabou. */
 export function periodoNoFim(state, ms) {
-  if (state.currentPeriod === 2) return Math.max(0, ms - (state.firstHalfMs || 0));
+  if (state.currentPeriod >= 2) return Math.max(0, ms - inicioDoPeriodo(state, state.currentPeriod));
   return ms;
 }
 
@@ -89,7 +90,7 @@ export const FIM_MAX_MS = 120 * 60_000;
  */
 export function limitesDoFim(state, now = Date.now()) {
   const ultimo = ultimoRegisto(state);
-  const base = state.currentPeriod === 2 ? state.firstHalfMs || 0 : 0;
+  const base = state.currentPeriod >= 2 ? inicioDoPeriodo(state, state.currentPeriod) : 0;
   const minMs = Math.max(ultimo ? ultimo.ms : 0, base);
   const terminado = state.status === MATCH_STATUS.FINISHED;
   const maxMs = terminado

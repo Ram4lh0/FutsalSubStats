@@ -7,6 +7,7 @@
 
 import { fmt } from '@/domain/clock.js';
 import { useT } from '@/lib/i18n/index.js';
+import { parteCurtaLabel, parteLabel, partesDoJogo } from '@/lib/format.js';
 
 export function GoalsTimeline({ state, ourName, opponentName, onEdit, emptyText }) {
   const t = useT();
@@ -57,7 +58,7 @@ export function GoalsTimeline({ state, ourName, opponentName, onEdit, emptyText 
             {editavel ? (
               <span className="goalline__edit">{t('golos.editar')}</span>
             ) : (
-              <span className="goalline__period">{t('golos.parteCurta', { n: g.period })}</span>
+              <span className="goalline__period">{parteCurtaLabel(g.period)}</span>
             )}
           </Tag>
         );
@@ -75,10 +76,10 @@ export function GoalsByHalf({ state, ...props }) {
   const todos = state.goals || [];
   return (
     <div className="goalhalves">
-      {[1, 2].map((period) => (
+      {partesDoJogo(state).map((period) => (
         <section key={period} className="goalhalves__col">
           <h3 className="goalhalves__title">
-            {period === 1 ? t('golos.primeiraParte') : t('golos.segundaParte')}
+            {parteLabel(period)}
           </h3>
           <GoalsTimeline
             {...props}

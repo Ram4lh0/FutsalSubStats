@@ -14,6 +14,7 @@ import { Empty } from '@/components/bits.jsx';
 import { Dialog, useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import Halftime from '@/components/live/Halftime.jsx';
+import Penaltis from '@/components/live/Penaltis.jsx';
 import DemoHistoria, { historiaJaVista } from '@/components/DemoHistoria.jsx';
 import { emDemo } from '@/lib/demo.js';
 import { Scoreboard, ClockBox, RivalOut, TeamCards, Court, Bench, Penalties, clockMsOf } from '@/components/live/pieces.jsx';
@@ -35,7 +36,7 @@ import * as FE from '@/lib/foulEditing.jsx';
 import * as RE from '@/lib/registoEditing.jsx';
 import * as CE from '@/lib/cardEditing.jsx';
 import { editarTempos } from '@/lib/temposEditing.jsx';
-import { clubs, events, matches, loadMatch } from '@/lib/data/repository.js';
+import { clubs, competitions, events, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import * as A from '@/domain/actions.js';
 import * as V from '@/domain/validation.js';
@@ -56,7 +57,11 @@ import {
   timingConfig,
   goalTypesFor,
   GOAL_TYPE,
+  DESEMPATE,
+  desempateOf,
+  EXTRA_TIME_PERIOD_MS,
 } from '@/domain/constants.js';
+import { faseDoJogo } from '@/domain/prolongamento.js';
 import { clubShort, opponentShort, mensagemErro, eventLabel } from '@/lib/format.js';
 import { t } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
@@ -90,6 +95,8 @@ function Live() {
 
   const [carregado, setCarregado] = useState(null);
   const [club, setClub] = useState(null);
+  // A competição diz se um empate vai a prolongamento ou a penáltis.
+  const [competicao, setCompeticao] = useState(null);
   const [sel, setSel] = useState(null); // { kind: 'court'|'bench', playerId }
   // A história da demonstração, por cima do intervalo (components/DemoHistoria).
   // Lida depois de montar: no servidor não há sessionStorage.
@@ -162,6 +169,7 @@ function Live() {
       }
       setCarregado(novo || { vazio: true });
       if (novo) setClub(await clubs.get(novo.match.clubId));
+      if (novo?.match?.competitionId) setCompeticao(await competitions.get(novo.match.competitionId));
     })();
   }, [matchId, userId, router]);
 
@@ -927,6 +935,30 @@ function Live() {
               {t('acao.terminarJogo')}
             </button>
           )}
+          {/* Prolongamento e penáltis à mão, mesmo sem estarem previstos na
+              competição (eliminatórias a duas mãos: empate no agregado). */}
+          {state.currentPeriod === 2 ? (
+            <button
+              className="menu__item"
+              onClick={() => {
+                close(null);
+                irPara('PROLONGAMENTO');
+              }}
+            >
+              {t('prolong.irAProlongamento')}
+            </button>
+          ) : null}
+          {state.currentPeriod === 2 || state.currentPeriod === 4 ? (
+            <button
+              className="menu__item"
+              onClick={() => {
+                close(null);
+                irPara('PENALTIS');
+              }}
+            >
+              {t('prolong.irAPenaltis')}
+            </button>
+          ) : null}
           {addons.has(ADDON_AO_VIVO) ? (
             <button
               className="menu__item"
@@ -987,6 +1019,49 @@ function Live() {
     await events.append(A.startSecondHalf(novo.state), { sync: 'defer' });
     await recarregar();
     setGuidedTutorialStepById('liveSecond');
+  }
+
+  /**
+   * Fim da parte a caminho do prolongamento ou dos penáltis. Na 1.ª parte do
+   * prolongamento é só o fim dessa parte (pausa curta, troca de campo).
+   */
+  async function irPara(seguinte) {
+    const erro = V.canFinishPeriod(state, seguinte);
+    if (erro) return toast(mensagemErro(erro), 'error');
+    const fimDaProl1 = state.currentPeriod === 3;
+    const ok = await confirmar(
+      t(
+        fimDaProl1
+          ? 'prolong.confirmaFimProl1'
+          : seguinte === 'PENALTIS'
+            ? 'prolong.confirmaPenaltis'
+            : 'prolong.confirmaProlongamento'
+      ),
+      {
+        okLabel: fimDaProl1
+          ? t('prolong.terminarProl1')
+          : seguinte === 'PENALTIS'
+            ? t('prolong.penaltis')
+            : t('prolong.prolongamento'),
+        danger: false,
+      }
+    );
+    if (!ok) return;
+    await commit(A.finishPeriod(state, seguinte), { sync: 'defer' });
+  }
+
+  /** Começa a parte seguinte do prolongamento com o cinco escolhido na pausa. */
+  async function startExtraTime(lineup) {
+    const erro0 = V.validateLineup(lineup, Object.keys(state.players));
+    if (erro0) return toast(mensagemErro(erro0), 'error');
+    if (!Object.values(lineup).filter(Boolean).length)
+      return toast(t('acao.escolhaEmCampo'), 'error');
+    await events.append(A.setSecondHalfLineup(state, lineup), { sync: 'defer' });
+    const novo = await recarregar();
+    const erro = V.canStartExtraTime(novo.state);
+    if (erro) return toast(mensagemErro(erro), 'error');
+    await events.append(A.startExtraTime(novo.state), { sync: 'defer' });
+    await recarregar();
   }
 
   async function finishGame() {
@@ -1123,9 +1198,41 @@ function Live() {
     ...registos.on,
   };
 
+  const fase = faseDoJogo(state);
+
+  // Penáltis: o mesmo separador, mas uma interface só para eles.
+  if (fase === 'PENALTIS') {
+    return (
+      <Penaltis
+        state={state}
+        ourName={ourName}
+        opponentName={rivalName}
+        commit={(ev) => commit(ev, { sync: 'defer' })}
+        desfazer={async (kick) => {
+          const alvo = state.events.find((e) => e.id === kick.eventId);
+          if (!alvo) return;
+          await events.markUndone(alvo.id, null, { sync: 'defer' });
+          await events.append(A.undoEvent(state, alvo), { sync: 'defer' });
+          await recarregar();
+        }}
+        terminar={async (decidido) => {
+          const ok = await confirmar(
+            t(decidido ? 'penaltis.confirmaTerminar' : 'penaltis.confirmaTerminarSemDecisao'),
+            { okLabel: t('acao.terminarJogo'), danger: false }
+          );
+          if (!ok) return;
+          await endMatch();
+        }}
+        historico={() => router.push(comOrigem(rotas.jogoHistorico(matchId), { de: 'live' }))}
+      />
+    );
+  }
+
   // O intervalo tem ecrã próprio: sem cronómetro e sem forma de "retomar" a
   // primeira parte, que já foi encerrada. A única saída é começar a segunda.
+  // As pausas do prolongamento usam o mesmo ecrã, com outro título e botão.
   if (state.status === MATCH_STATUS.HALFTIME) {
+    const pausaProl = fase === 'PAUSA_PROL' || fase === 'PAUSA_PROL2';
     return (
       <div className="live live--pause">
         <header className="live__head live__head--halftime">
@@ -1139,9 +1246,19 @@ function Live() {
             on={on}
           />
           <div className="clockbox">
-            <span className="clockbox__period">{t('acao.intervaloTitulo')}</span>
-            <span className="clockbox__time">{fmt(state.firstHalfMs || 0)}</span>
-            <span className="clockbox__hint">{t('acao.primeiraTerminada')}</span>
+            <span className="clockbox__period">
+              {pausaProl ? t('prolong.pausaTitulo') : t('acao.intervaloTitulo')}
+            </span>
+            <span className="clockbox__time">
+              {fmt(pausaProl ? state.elapsedMatchMs : state.firstHalfMs || 0)}
+            </span>
+            <span className="clockbox__hint">
+              {fase === 'PAUSA_PROL'
+                ? t('prolong.segundaTerminada')
+                : fase === 'PAUSA_PROL2'
+                  ? t('prolong.prol1Terminada')
+                  : t('acao.primeiraTerminada')}
+            </span>
             <span className="pill pill--paused">{t('vivo.parado')}</span>
           </div>
           <div className="live__controls">
@@ -1167,8 +1284,21 @@ function Live() {
           onEditCard={editarCartao}
           onEditRegisto={editarRegisto}
           onAddRegisto={ligados.size ? acrescentarRegisto : undefined}
-          onEditTempos={editarTemposDaPrimeira}
-          onStart={startSecondHalf}
+          onEditTempos={pausaProl ? undefined : editarTemposDaPrimeira}
+          onStart={pausaProl ? startExtraTime : startSecondHalf}
+          {...(pausaProl
+            ? {
+                titulo: fase === 'PAUSA_PROL' ? t('prolong.pausaAntes') : t('prolong.pausaEntre'),
+                botao: [
+                  t('intervalo.comecar'),
+                  fase === 'PAUSA_PROL' ? t('prolong.prol1Botao') : t('prolong.prol2Botao'),
+                ],
+                periodoFaltas: state.currentPeriod === 2 ? 3 : 4,
+                tempoParte: state.elapsedMatchMs,
+                notaFaltas: t('prolong.faltasContinuam'),
+                emProlongamento: true,
+              }
+            : {})}
         />
         {historia ? <DemoHistoria onFim={() => setHistoria(false)} /> : null}
       </div>
@@ -1180,7 +1310,26 @@ function Live() {
       ? t('vivo.primeiraParte')
       : state.currentPeriod === 2
         ? t('vivo.segundaParte')
-        : '—';
+        : state.currentPeriod === 3
+          ? t('prolong.prol1Rotulo')
+          : state.currentPeriod === 4
+            ? t('prolong.prol2Rotulo')
+            : '—';
+  // Empatado no fim da 2.ª parte (com desempate na competição) ou do
+  // prolongamento: o botão grande passa a ser o passo seguinte, e "Terminar
+  // jogo" fica por baixo, pequeno.
+  const desempate = desempateOf(competicao);
+  const empatado = state.teamScore === state.opponentScore;
+  const proximoPasso = !empatado
+    ? null
+    : state.currentPeriod === 2 && desempate === DESEMPATE.PROLONGAMENTO
+      ? 'PROLONGAMENTO'
+      : state.currentPeriod === 2 && desempate === DESEMPATE.PENALTIS
+        ? 'PENALTIS'
+        : state.currentPeriod === 4
+          ? 'PENALTIS'
+          : null;
+  const duracaoDaParte = state.currentPeriod >= 3 ? EXTRA_TIME_PERIOD_MS : match.periodDurationMs;
   const undoable = state.lastUndoable;
 
   return (
@@ -1202,7 +1351,7 @@ function Live() {
         />
         <ClockBox
           state={state}
-          periodDurationMs={match.periodDurationMs}
+          periodDurationMs={duracaoDaParte}
           periodLabel={periodLabel}
           now={now}
           // Só no jogo cronometrado. No corrido o relógio é uma referência, não
@@ -1228,6 +1377,19 @@ function Live() {
             <button className="btn btn--big btn--fecha" onClick={finishFirst}>
               {t('acao.terminarPrimeira')}
             </button>
+          ) : state.currentPeriod === 3 ? (
+            <button className="btn btn--big btn--fecha" onClick={() => irPara('PROLONGAMENTO')}>
+              {t('prolong.terminarProl1')}
+            </button>
+          ) : proximoPasso ? (
+            <span className="live__fimgrupo">
+              <button className="btn btn--big btn--fecha" onClick={() => irPara(proximoPasso)}>
+                {proximoPasso === 'PENALTIS' ? t('prolong.penaltis') : t('prolong.prolongamento')}
+              </button>
+              <button className="btn btn--ghost btn--tiny live__fimpequeno" onClick={finishGame}>
+                {t('acao.terminarJogo')}
+              </button>
+            </span>
           ) : (
             <button className="btn btn--big btn--fecha" onClick={finishGame}>
               {t('acao.terminarJogo')}

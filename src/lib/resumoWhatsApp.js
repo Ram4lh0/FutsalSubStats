@@ -7,9 +7,9 @@
 // equipa) e se houve expulsões. O resto (tempos, faltas, gráficos) fica na app.
 // Os asteriscos são o negrito do WhatsApp.
 
-import { CARD } from '@/domain/constants.js';
-import { t } from '@/lib/i18n/index.js';
-import { dayLabel } from '@/lib/format.js';
+import { CARD } from '../domain/constants.js';
+import { t } from './i18n/index.js';
+import { dayLabel, sufixoDesempate } from './format.js';
 
 /** "12'" — o minuto em que aconteceu, como se diz no futebol (0:30 é o 1'). */
 function minuto(ms) {
@@ -39,6 +39,8 @@ export function textoResumoWhatsApp({ state, match, ourName, opponentName, team,
       ? `*${ourName} ${state.teamScore} - ${state.opponentScore} ${opponentName}*`
       : `*${opponentName} ${state.opponentScore} - ${state.teamScore} ${ourName}*`
   );
+  // Prolongamento e penáltis: "a.p. (4–2 g.p.)", contado sempre do nosso lado.
+  if (sufixoDesempate(state)) linhas.push(sufixoDesempate(state).trim());
   const contexto = [team?.name, competition?.name, match.scheduledAt ? dayLabel(match.scheduledAt) : null]
     .filter(Boolean)
     .join(' · ');

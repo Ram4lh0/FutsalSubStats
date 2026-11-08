@@ -9,7 +9,7 @@
 import { useRouter } from 'next/navigation';
 import DataTable from './DataTable.jsx';
 import { StatusBadge } from './bits.jsx';
-import { dayLabel, homeAwayLabel } from '@/lib/format.js';
+import { dayLabel, homeAwayLabel, sufixoDesempate } from '@/lib/format.js';
 import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
@@ -56,6 +56,7 @@ export default function MatchList({ entries, competitions = [], backPath, limit 
                 <span className={r === 'W' ? 'res res--w' : r === 'L' ? 'res res--l' : r ? 'res res--d' : ''}>
                   {state.teamScore}–{state.opponentScore}
                 </span>
+                {sufixoDesempate(state) ? <span className="muted small">{sufixoDesempate(state)}</span> : null}
               </td>
               <td>{homeAwayLabel(match.homeOrAway)}</td>
               <td className="muted">{nomeDaProva(match.competitionId)}</td>

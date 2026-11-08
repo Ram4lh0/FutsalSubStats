@@ -9,6 +9,7 @@
 import { fmt } from '@/domain/clock.js';
 import { CARD } from '@/domain/constants.js';
 import { useT } from '@/lib/i18n/index.js';
+import { parteCurtaLabel } from '@/lib/format.js';
 
 /** Os cartões nossos e deles numa só lista, pela ordem do jogo. */
 export function cartoesDoJogo(state) {
@@ -76,7 +77,7 @@ export function CardsTimeline({ state, ourName, opponentName, onEdit, emptyText 
             {editavel ? (
               <span className="goalline__edit">{t('golos.editar')}</span>
             ) : (
-              <span className="goalline__period">{t('golos.parteCurta', { n: c.period })}</span>
+              <span className="goalline__period">{parteCurtaLabel(c.period)}</span>
             )}
           </Tag>
         );

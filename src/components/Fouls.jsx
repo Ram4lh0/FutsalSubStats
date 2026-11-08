@@ -8,6 +8,7 @@
 
 import { fmt } from '@/domain/clock.js';
 import { useT } from '@/lib/i18n/index.js';
+import { parteCurtaLabel, parteLabel, partesDoJogo } from '@/lib/format.js';
 
 export function FoulsTimeline({ state, ourName, opponentName, onEdit, emptyText }) {
   const t = useT();
@@ -45,7 +46,7 @@ export function FoulsTimeline({ state, ourName, opponentName, onEdit, emptyText 
             {editavel ? (
               <span className="goalline__edit">{t('golos.editar')}</span>
             ) : (
-              <span className="goalline__period">{t('golos.parteCurta', { n: f.period })}</span>
+              <span className="goalline__period">{parteCurtaLabel(f.period)}</span>
             )}
           </Tag>
         );
@@ -60,12 +61,12 @@ export function FoulsByHalf({ state, ...props }) {
   const todas = state.fouls || [];
   return (
     <div className="goalhalves">
-      {[1, 2].map((period) => {
+      {partesDoJogo(state).map((period) => {
         const daParte = todas.filter((f) => f.period === period);
         return (
           <section key={period} className="goalhalves__col">
             <h3 className="goalhalves__title">
-              {period === 1 ? t('golos.primeiraParte') : t('golos.segundaParte')}
+              {parteLabel(period)}
               {' · '}
               {t('faltas.contagem', {
                 nos: daParte.filter((f) => f.team === 'US').length,

@@ -5,6 +5,7 @@
 
 import { readClock } from './clock.js';
 import { EVENT, PLAYER_MATCH_STATUS, POSITIONS, PENALTY_DURATION_MS } from './constants.js';
+import { inicioDoPeriodo, msNoPeriodo } from './prolongamento.js';
 
 export function uid() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -87,6 +88,47 @@ export const startSecondHalf = (s, now) =>
 export const finishMatch = (s, now) => makeEvent(s, EVENT.MATCH_FINISHED, {}, now);
 
 /**
+ * Fim da 2.ª parte (ou de uma parte do prolongamento) sem acabar o jogo:
+ * `seguinte` = 'PROLONGAMENTO' ou 'PENALTIS' (domain/prolongamento.js).
+ */
+export const finishPeriod = (s, seguinte, now) =>
+  makeEvent(s, EVENT.PERIOD_FINISHED, { metadata: { seguinte } }, now);
+
+/** Começa a parte seguinte do prolongamento, com o cinco já escolhido. */
+export const startExtraTime = (s, now) =>
+  makeEvent(
+    s,
+    EVENT.EXTRA_TIME_STARTED,
+    {
+      period: (s.currentPeriod || 2) + 1,
+      periodElapsedMs: 0,
+      metadata: { lineup: lineupSnapshot(s) },
+    },
+    now
+  );
+
+/** Ordem dos nossos marcadores e quem bate primeiro. */
+export const startShootout = (s, { ordem, primeiro }, now) =>
+  makeEvent(s, EVENT.SHOOTOUT_STARTED, { period: 5, metadata: { ordem, primeiro } }, now);
+
+/**
+ * Um penálti do desempate. Nosso: quem bateu, para onde (zona) e o resultado.
+ * Deles: para onde foi a bola, para onde se atirou o nosso guarda-redes e o
+ * resultado. Não mexe no resultado do jogo.
+ */
+export const shootoutKick = (s, { team, playerId = null, number = null, goalkeeperId = null, zona = null, mergulho = null, resultado }, now) =>
+  makeEvent(
+    s,
+    EVENT.SHOOTOUT_KICK,
+    {
+      period: 5,
+      playerId: team === 'US' ? playerId : goalkeeperId,
+      metadata: { team, playerId, number, goalkeeperId, zona, mergulho, resultado },
+    },
+    now
+  );
+
+/**
  * Terminar o jogo num minuto escolhido (esqueceram-se de o terminar a tempo).
  * `ajustado` diz ao reducer que o instante real do fim é o desse minuto, e não
  * o de agora. As versões antigas ignoram o campo e usam os tempos do evento,
@@ -98,7 +140,7 @@ export const finishMatchAt = (s, ms, now) =>
     EVENT.MATCH_FINISHED,
     {
       matchElapsedMs: ms,
-      periodElapsedMs: s.currentPeriod === 2 ? Math.max(0, ms - (s.firstHalfMs || 0)) : ms,
+      periodElapsedMs: s.currentPeriod >= 2 ? Math.max(0, ms - inicioDoPeriodo(s, s.currentPeriod)) : ms,
       metadata: { ajustado: true },
     },
     now
@@ -110,7 +152,7 @@ export const adjustEnd = (s, ms, now) =>
     s,
     {
       endMatchMs: ms,
-      endPeriodMs: s.currentPeriod === 2 ? Math.max(0, ms - (s.firstHalfMs || 0)) : ms,
+      endPeriodMs: s.currentPeriod >= 2 ? Math.max(0, ms - inicioDoPeriodo(s, s.currentPeriod)) : ms,
     },
     now
   );
@@ -160,7 +202,7 @@ export const lateCard = (s, { type, playerId, matchElapsedMs, period }, now) =>
     {
       period,
       matchElapsedMs,
-      periodElapsedMs: period === 2 ? matchElapsedMs - (s.firstHalfMs || 0) : matchElapsedMs,
+      periodElapsedMs: msNoPeriodo(s, period, matchElapsedMs),
       playerId,
       metadata: { playerId, period, aPosteriori: true },
     },
@@ -175,7 +217,7 @@ export const lateOpponentYellow = (s, { number, matchElapsedMs, period }, now) =
     {
       period,
       matchElapsedMs,
-      periodElapsedMs: period === 2 ? matchElapsedMs - (s.firstHalfMs || 0) : matchElapsedMs,
+      periodElapsedMs: msNoPeriodo(s, period, matchElapsedMs),
       metadata: { number, period, aPosteriori: true },
     },
     now
@@ -231,7 +273,7 @@ export const lateFoul = (s, { team, playerId = null, matchElapsedMs, period }, n
     {
       period,
       matchElapsedMs,
-      periodElapsedMs: period === 2 ? matchElapsedMs - (s.firstHalfMs || 0) : matchElapsedMs,
+      periodElapsedMs: msNoPeriodo(s, period, matchElapsedMs),
       playerId,
       metadata: { playerId, period, aPosteriori: true },
     },

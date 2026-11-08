@@ -41,7 +41,10 @@ import {
   dateLabel,
   positionLabel,
   homeAwayLabel,
+  sufixoDesempate,
 } from '@/lib/format.js';
+import ResumoPenaltis from '@/components/penaltis/ResumoPenaltis.jsx';
+import { resumoPenaltis } from '@/domain/prolongamento.js';
 import { useT } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import { emDemo, limparDemo, iniciarDemo } from '@/lib/demo.js';
@@ -128,6 +131,8 @@ function Resumo() {
   }
   const tabela = matchStatsTable(state, Date.now());
   const r = matchResult(state);
+  // Penáltis: o jogo fica empatado, mas há um vencedor.
+  const pen = state.penaltis?.kicks?.length ? resumoPenaltis(state.penaltis) : null;
   const totalConvocados = Object.keys(state.players).length;
 
   async function corrigirResultado() {
@@ -437,7 +442,7 @@ function Resumo() {
       ) : null}
 
       <PageHead
-        title={`${clubShort(club)} ${state.teamScore} — ${state.opponentScore} ${opponentShort(match)}`}
+        title={`${clubShort(club)} ${state.teamScore} — ${state.opponentScore} ${opponentShort(match)}${sufixoDesempate(state)}`}
         subtitle={[
           t('jogo.vs', { adversario: match.opponentName }),
           dateLabel(match.scheduledAt),
@@ -514,7 +519,11 @@ function Resumo() {
             label={t('resumo.resultado')}
             value={`${state.teamScore} — ${state.opponentScore}`}
             hint={
-              r === 'W'
+              pen?.vencedor
+                ? `${sufixoDesempate(state).trim()} · ${t(pen.vencedor === 'US' ? 'penaltis.vitoria' : 'penaltis.derrota')}`
+                : sufixoDesempate(state)
+                  ? `${sufixoDesempate(state).trim()} · ${t(r === 'W' ? 'resultado.vitoria' : r === 'L' ? 'resultado.derrota' : 'resultado.empate')}`
+                  : r === 'W'
                 ? t('resultado.vitoria')
                 : r === 'L'
                   ? t('resultado.derrota')
@@ -598,6 +607,15 @@ function Resumo() {
           onEdit={state.startedAt ? editarFalta : undefined}
         />
       </div>
+
+      {pen ? (
+        <>
+          <div className="halftime__title">
+            <h2 className="section">{t('penaltis.titulo')}</h2>
+          </div>
+          <ResumoPenaltis state={state} ourName={clubShort(club)} opponentName={opponentShort(match)} />
+        </>
+      ) : null}
 
       <div className="halftime__title">
         <h2 className="section">{t('cartoes.titulo')}</h2>

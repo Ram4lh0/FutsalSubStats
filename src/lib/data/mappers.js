@@ -3,6 +3,8 @@
 // o do PostgreSQL (snake_case, tempos em ISO). Fica tudo isolado aqui: nenhuma
 // vista nem o domínio sabem que existe um servidor do outro lado.
 
+import { desempateOf } from '../../domain/constants.js';
+
 const iso = (ms) => (ms == null ? null : new Date(ms).toISOString());
 const ms = (txt) => {
   if (txt == null) return null;
@@ -89,6 +91,7 @@ export const competitionMapper = {
     short_name: c.shortName || null,
     timing: c.timing === 'TIMED' ? 'TIMED' : 'UNTIMED',
     max_squad: c.maxSquad === null ? null : Number(c.maxSquad ?? 14),
+    desempate: desempateOf(c),
     archived_at: iso(c.archivedAt),
   }),
   fromRow: (r) => ({
@@ -99,6 +102,7 @@ export const competitionMapper = {
     timing: r.timing,
     maxSquad:
       r.max_squad === undefined ? 14 : r.max_squad === null ? null : Number(r.max_squad),
+    desempate: desempateOf(r),
     archivedAt: ms(r.archived_at),
     createdAt: ms(r.created_at),
     updatedAt: ms(r.updated_at),
