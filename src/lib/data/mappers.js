@@ -357,9 +357,11 @@ export const trainingSessionMapper = {
     status: s.status === 'CANCELADO' ? 'CANCELADO' : 'AGENDADO',
     edited: !!s.edited,
     notes: s.notes || null,
-    // A UT só vai quando este aparelho a conhece: uma linha que ainda não a
-    // trouxe do servidor não a apaga lá (o upsert só mexe nas colunas dadas).
-    ...(s.plan !== undefined ? { plan: s.plan ?? null } : {}),
+    // A UT só vai quando foi mudada neste aparelho (`planSujo`). Uma linha que
+    // é enviada por outra razão (notas, rotina, cancelar) leva a UT que tinha
+    // quando foi descarregada, que pode já ser velha: mandá-la apagava a que
+    // outro aparelho escreveu entretanto.
+    ...(s.planSujo ? { plan: s.plan ?? null } : {}),
     deleted_at: iso(s.deletedAt),
   }),
   fromRow: (r) => ({
@@ -374,6 +376,7 @@ export const trainingSessionMapper = {
     edited: r.edited,
     notes: r.notes,
     plan: r.plan ?? null,
+    planSujo: false,
     deletedAt: ms(r.deleted_at),
     createdAt: ms(r.created_at),
     updatedAt: ms(r.updated_at),

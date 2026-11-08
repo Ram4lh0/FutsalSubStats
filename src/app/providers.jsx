@@ -191,6 +191,7 @@ function SyncBridge() {
     window.addEventListener('focus', aoVoltar);
     document.addEventListener('visibilitychange', aoFocar);
     window.addEventListener(sync.DATA_CHANGED_EVENT, aoMudarLocal);
+    window.addEventListener(sync.PEDIR_DESCARGA_EVENT, aoVoltar);
 
     return () => {
       vivo = false;
@@ -198,6 +199,7 @@ function SyncBridge() {
       window.removeEventListener('focus', aoVoltar);
       document.removeEventListener('visibilitychange', aoFocar);
       window.removeEventListener(sync.DATA_CHANGED_EVENT, aoMudarLocal);
+      window.removeEventListener(sync.PEDIR_DESCARGA_EVENT, aoVoltar);
     };
   }, [userId, user?.email, isLive, markInitialSyncReady]);
 

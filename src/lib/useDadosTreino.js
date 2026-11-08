@@ -4,7 +4,7 @@
 // sempre frescos: volta a ler quando a sincronização traz alguma coisa nova.
 
 import { useCallback, useEffect, useState } from 'react';
-import { DATA_UPDATED_EVENT } from './data/sync.js';
+import { DATA_UPDATED_EVENT, pedirDescarga } from './data/sync.js';
 import { rotinas, treinos as repoTreinos, presencas as repoPresencas } from './data/treino.js';
 
 /**
@@ -32,6 +32,9 @@ export default function useDadosTreino(teamId, { acertar = false } = {}) {
     })();
     const aoAtualizar = () => vivo && carregar();
     window.addEventListener(DATA_UPDATED_EVENT, aoAtualizar);
+    // Ao abrir os treinos (ou um treino), ver se outro aparelho mudou alguma
+    // coisa: entre ecrãs da app não há "foco" que dispare a descarga.
+    pedirDescarga();
     return () => {
       vivo = false;
       window.removeEventListener(DATA_UPDATED_EVENT, aoAtualizar);

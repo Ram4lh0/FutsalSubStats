@@ -163,7 +163,8 @@ export const treinos = {
   repor: (id) => treinos.editar(id, { status: ESTADO_TREINO.AGENDADO }),
   notas: (id, notes) => treinos.editar(id, { notes: notes || null }, { marcarEditado: false }),
   /** A unidade de treino (UT) deste treino — sincroniza com a linha. */
-  plano: (id, plan) => treinos.editar(id, { plan: plan || null }, { marcarEditado: false }),
+  plano: (id, plan) =>
+    treinos.editar(id, { plan: plan || null, planSujo: true }, { marcarEditado: false }),
 
   async apagar(id) {
     const atual = await db.get(db.STORES.trainingSessions, id);

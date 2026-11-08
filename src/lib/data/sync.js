@@ -40,6 +40,12 @@ export const SYNC = {
 
 export const DATA_CHANGED_EVENT = 'futsal:data-changed';
 export const DATA_UPDATED_EVENT = 'futsal:data-updated';
+/** Um ecrã pede para ver se há novidades no servidor (ex.: ao abrir um treino). */
+export const PEDIR_DESCARGA_EVENT = 'futsal:pedir-descarga';
+
+export function pedirDescarga() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(PEDIR_DESCARGA_EVENT));
+}
 
 /**
  * O servidor entra por aqui, não por importação.
@@ -103,12 +109,19 @@ async function dirtyRows(store) {
   return (await db.all(store)).filter((r) => r.dirty);
 }
 
+/**
+ * Dá como enviadas as linhas que foram ao servidor. Uma linha que mudou aqui
+ * enquanto o envio estava no ar (a UT grava a cada pausa na escrita) fica por
+ * enviar: escrever por cima dela a cópia de antes do envio apagava essa última
+ * mudança no aparelho e ela nunca chegava ao servidor.
+ */
 async function clean(store, rows) {
   if (!rows.length) return;
-  await db.putMany(
-    store,
-    rows.map((r) => ({ ...r, dirty: false }))
-  );
+  const atuais = await Promise.all(rows.map((r) => db.get(store, r.id)));
+  const limpas = rows
+    .filter((r, i) => !atuais[i] || atuais[i].updatedAt === r.updatedAt)
+    .map((r) => ({ ...r, dirty: false, ...(r.planSujo ? { planSujo: false } : {}) }));
+  if (limpas.length) await db.putMany(store, limpas);
 }
 
 /**
@@ -545,13 +558,32 @@ export function treinoSoLocal() {
   return !treinoNoServidor;
 }
 
+/**
+ * Upsert em grupos com as mesmas colunas. Num lote, o supabase-js manda a
+ * união das colunas de todas as linhas e uma linha sem uma delas (um treino
+ * sem `plan`, por exemplo) gravava-a a NULL no servidor.
+ */
+async function upsertPorColunas(sb, tabela, rows) {
+  const grupos = new Map();
+  for (const row of rows) {
+    const chave = Object.keys(row).sort().join(',');
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(row);
+  }
+  for (const grupo of grupos.values()) {
+    const { error } = await sb.from(tabela).upsert(grupo);
+    if (error) return error;
+  }
+  return null;
+}
+
 async function pushTreino(sb) {
   if (!treinoNoServidor) return 0;
   let total = 0;
   for (const [store, mapper] of TREINO) {
     const linhas = await dirtyRows(store);
     if (!linhas.length) continue;
-    const { error } = await sb.from(mapper.table).upsert(linhas.map((r) => mapper.toRow(r)));
+    const error = await upsertPorColunas(sb, mapper.table, linhas.map((r) => mapper.toRow(r)));
     if (error) {
       if (semTabela(error)) {
         treinoNoServidor = false;
@@ -1151,12 +1183,28 @@ export async function guardarDoRealtime(tabela, linha) {
 async function merge(store, rows) {
   if (!rows.length) return 0;
   const locais = new Map((await db.all(store)).map((r) => [r.id, r]));
-  const guardar = rows.filter((r) => {
+  const guardar = [];
+  for (const r of rows) {
     const local = locais.get(r.id);
-    if (!local) return true;
-    if (local.dirty || (store === db.STORES.matchEvents && !local.syncedAt)) return false;
-    return true;
-  });
+    if (!local) {
+      guardar.push(r);
+      continue;
+    }
+    if (local.dirty || (store === db.STORES.matchEvents && !local.syncedAt)) {
+      // Um treino por enviar por outra razão (notas, rotina) não tem a UT
+      // mexida aqui: a do servidor, escrita noutro aparelho, entra já.
+      if (
+        store === db.STORES.trainingSessions &&
+        local.dirty &&
+        !local.planSujo &&
+        JSON.stringify(local.plan ?? null) !== JSON.stringify(r.plan ?? null)
+      ) {
+        guardar.push({ ...local, plan: r.plan ?? null });
+      }
+      continue;
+    }
+    guardar.push(r);
+  }
   if (guardar.length) await db.putMany(store, guardar);
   return guardar.length;
 }
