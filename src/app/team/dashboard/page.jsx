@@ -26,6 +26,7 @@ import { ListaGolos } from '@/components/stats/CartaoGolos.jsx';
 import BlocosDaEpoca from '@/components/registos/BlocosDaEpoca.jsx';
 import JanelaTempo from '@/components/JanelaTempo.jsx';
 import { BlocosExtrasAtleta } from '@/components/registos/ExtrasRegistos.jsx';
+import PenaltisAtleta from '@/components/penaltis/PenaltisAtleta.jsx';
 import {
   minutosPorJogador,
   golosPorFaixa,
@@ -533,6 +534,9 @@ function PainelAtleta({ periodosBase, faixasDe, alternarFaixa, limparJanela, dad
       {extras?.comDados ? (
         <BlocosExtrasAtleta extras={extras} entries={entries} playerId={atletaId} Bloco={Bloco} />
       ) : null}
+
+      {/* A baliza dos penáltis do desempate (só se ele bateu ou defendeu algum). */}
+      <PenaltisAtleta entries={entries} playerId={atletaId} Bloco={Bloco} />
     </>
   );
 }

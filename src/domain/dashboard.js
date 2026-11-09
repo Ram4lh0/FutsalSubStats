@@ -1215,3 +1215,43 @@ export function recortarPorPeriodo(entries, janela, { parteMs = 20 * 60_000 } = 
     };
   });
 }
+
+/**
+ * Os penáltis do desempate de um jogador, para a baliza individual (09/11/2026).
+ * - `batidos`: os que ele bateu (zona e resultado), pela ordem dos jogos.
+ * - `comoGr`: os do adversário com ele na baliza (zona da bola, mergulho, resultado).
+ */
+export function penaltisDoAtleta(entries, playerId) {
+  const out = {
+    batidos: [],
+    comoGr: [],
+    golos: 0,
+    defendidos: 0,
+    fora: 0,
+    grDefendidos: 0,
+    grGolos: 0,
+    grFora: 0,
+    jogos: 0,
+  };
+  for (const { match, state } of terminados(entries)) {
+    const kicks = state.penaltis?.kicks || [];
+    let entrou = false;
+    for (const k of kicks) {
+      if (k.team === 'US' && k.playerId === playerId) {
+        entrou = true;
+        out.batidos.push({ zona: k.zona, resultado: k.resultado, matchId: match?.id || null });
+        if (k.resultado === 'GOLO') out.golos += 1;
+        else if (k.resultado === 'DEFENDIDO') out.defendidos += 1;
+        else out.fora += 1;
+      } else if (k.team === 'THEM' && k.goalkeeperId === playerId) {
+        entrou = true;
+        out.comoGr.push({ zona: k.zona, mergulho: k.mergulho, resultado: k.resultado, matchId: match?.id || null });
+        if (k.resultado === 'GOLO') out.grGolos += 1;
+        else if (k.resultado === 'DEFENDIDO') out.grDefendidos += 1;
+        else out.grFora += 1;
+      }
+    }
+    if (entrou) out.jogos += 1;
+  }
+  return out;
+}

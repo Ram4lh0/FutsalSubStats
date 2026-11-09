@@ -2440,4 +2440,13 @@ export default {
   "prolong.placar": "{nos} — {eles} · {tempo} de jogo",
   "prolong.formacao": "Formação do prolongamento",
   "prolong.escolhidos": "{n}/5 escolhidos. Cada jogador que começa esta parte inicia uma nova entrada.",
+  "penaltis.atletaTitulo": "Penáltis (desempate)",
+  "penaltis.atletaBatidos": "Marcados / batidos",
+  "penaltis.atletaDetalhe": "{d} defendidos · {f} fora",
+  "penaltis.atletaDefesas": "Defendidos (como GR)",
+  "penaltis.atletaGrDetalhe": "{g} golos sofridos · {f} fora",
+  "penaltis.atletaJogos": "Desempates",
+  "penaltis.atletaOndeBateu": "Para onde bateu",
+  "penaltis.atletaComoGr": "Na baliza: bola e mergulho",
+  "penaltis.atletaMergulho": "Para onde se atirou",
 };

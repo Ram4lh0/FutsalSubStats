@@ -14,6 +14,7 @@ import {
   minutosPorJogador,
   golosPorFaixa,
   penaltisDaEpoca,
+  penaltisDoAtleta,
   golosPorTipo,
   formaRecente,
   casaEFora,
@@ -617,6 +618,7 @@ function relatorioDoAtleta(r, dados, { entries, atletaId }) {
   }
 
   registosDoAtleta(r, entries, atletaId);
+  penaltisDoAtletaPdf(r, entries, atletaId);
 
   r.secao(t('pdf.jogos'), 20);
   if (dados.ultimos.length) {
@@ -685,6 +687,61 @@ function registosDoAtleta(r, entries, atletaId) {
     registos: [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR],
     pontosDe: (id) => (por[id]?.jogos > 0 ? mapaDoAtleta(entries, id, atletaId) : []),
   });
+}
+
+/**
+ * A baliza dos penáltis do desempate do atleta: para onde bateu e, se foi
+ * guarda-redes, para onde remataram e para onde se atirou (09/11/2026).
+ */
+function penaltisDoAtletaPdf(r, entries, atletaId) {
+  const p = penaltisDoAtleta(entries, atletaId);
+  if (!p.batidos.length && !p.comoGr.length) return;
+  const tipoDe = (res) => (res === 'GOLO' ? 'golo' : res === 'DEFENDIDO' ? 'defendido' : 'fora');
+  const gap = 10;
+  const w = Math.min(80, (r.largura - gap) / 2);
+  r.secao(t('penaltis.atletaTitulo'), 20 + Relatorio.alturaBaliza(w));
+  const cartoes = [];
+  if (p.batidos.length) {
+    cartoes.push({
+      rotulo: t('penaltis.atletaBatidos'),
+      valor: `${p.golos}/${p.batidos.length}`,
+      detalhe: t('penaltis.atletaDetalhe', { d: p.defendidos, f: p.fora }),
+    });
+  }
+  if (p.comoGr.length) {
+    cartoes.push({
+      rotulo: t('penaltis.atletaDefesas'),
+      valor: `${p.grDefendidos}/${p.comoGr.length}`,
+      detalhe: t('penaltis.atletaGrDetalhe', { g: p.grGolos, f: p.grFora }),
+    });
+  }
+  cartoes.push({ rotulo: t('penaltis.atletaJogos'), valor: String(p.jogos) });
+  r.cartoes(cartoes);
+  const balizas = [];
+  if (p.batidos.length) {
+    balizas.push([t('penaltis.atletaOndeBateu'), p.batidos.map((k, i) => ({ zona: k.zona, tipo: tipoDe(k.resultado), texto: i + 1 }))]);
+  }
+  if (p.comoGr.length) {
+    balizas.push([
+      t('penaltis.atletaComoGr'),
+      [
+        ...p.comoGr.map((k, i) => ({ zona: k.zona, tipo: tipoDe(k.resultado), texto: i + 1 })),
+        ...p.comoGr.map((k, i) => (k.mergulho ? { zona: k.mergulho, tipo: 'gr', texto: i + 1 } : null)).filter(Boolean),
+      ],
+    ]);
+  }
+  const alt = Relatorio.alturaBaliza(w);
+  r.garantir(alt + 10);
+  balizas.forEach(([titulo, marcas], i) => {
+    r.baliza(marcas, { x: r.M + i * (w + gap), y: r.y, w, titulo });
+  });
+  r.y += alt + 2;
+  r.legenda([
+    { cor: COR.verde, texto: t('penaltis.res.GOLO') },
+    { cor: COR.info, texto: t('penaltis.res.DEFENDIDO') },
+    { cor: COR.vermelho, texto: t('penaltis.res.FORA') },
+  ]);
+  r.paragrafo(t('penaltis.vistaDeQuemRemata'));
 }
 
 /* ------------------------------------------------------------- comuns */

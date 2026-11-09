@@ -249,3 +249,41 @@ test('os PDF do jogo e do painel saem com o prolongamento e os penáltis', async
   const texto = textoResumoWhatsApp({ state, match: m, ourName: 'Nós', opponentName: 'Minerva' });
   assert.match(texto, /a\.p\. \(1–0 g\.p\.\)/);
 });
+
+test('penáltis de um jogador: os que bateu e, se foi GR, os que enfrentou', async () => {
+  const { penaltisDoAtleta } = await import('../src/domain/dashboard.js');
+  const ctx = ateAoFimDaSegunda();
+  step(ctx, (s) => A.finishPeriod(s, 'PENALTIS', T0 + 50 * MIN), T0 + 50 * MIN);
+  step(ctx, (s) => A.startShootout(s, { ordem: ['p5', 'p4'], primeiro: 'US' }), T0 + 51 * MIN);
+  step(ctx, (s) => A.shootoutKick(s, { team: 'US', playerId: 'p5', zona: 'BE', resultado: 'GOLO' }), T0 + 51 * MIN);
+  step(ctx, (s) => A.shootoutKick(s, { team: 'THEM', goalkeeperId: 'p1', zona: 'AD', mergulho: 'BE', resultado: 'GOLO' }), T0 + 51 * MIN);
+  step(ctx, (s) => A.shootoutKick(s, { team: 'US', playerId: 'p4', zona: 'FORA', resultado: 'FORA' }), T0 + 52 * MIN);
+  step(ctx, (s) => A.shootoutKick(s, { team: 'THEM', goalkeeperId: 'p1', zona: 'BD', mergulho: 'BD', resultado: 'DEFENDIDO' }), T0 + 52 * MIN);
+  const st = step(ctx, (s) => A.finishMatch(s, T0 + 60 * MIN), T0 + 60 * MIN);
+  const entries = [{ match: { id: 'm1' }, state: st }];
+  const p5 = penaltisDoAtleta(entries, 'p5');
+  assert.deepEqual(p5.batidos.map((k) => k.zona), ['BE']);
+  assert.equal(p5.golos, 1);
+  const gr = penaltisDoAtleta(entries, 'p1');
+  assert.equal(gr.comoGr.length, 2);
+  assert.equal(gr.grDefendidos, 1);
+  assert.equal(gr.jogos, 1);
+  assert.equal(penaltisDoAtleta(entries, 'p7').jogos, 0);
+});
+
+test('PDF do atleta sai com a baliza dos penáltis (marcador e GR)', async () => {
+  const { gerarPdfAtleta } = await import('../src/lib/pdf/relatorioPainel.js');
+  const ctx = ateAoFimDaSegunda();
+  step(ctx, (s) => A.finishPeriod(s, 'PENALTIS', T0 + 50 * MIN), T0 + 50 * MIN);
+  step(ctx, (s) => A.startShootout(s, { ordem: ['p5'], primeiro: 'US' }), T0 + 51 * MIN);
+  step(ctx, (s) => A.shootoutKick(s, { team: 'US', playerId: 'p5', zona: 'BE', resultado: 'GOLO' }), T0 + 51 * MIN);
+  step(ctx, (s) => A.shootoutKick(s, { team: 'THEM', goalkeeperId: 'p1', zona: 'FORA', mergulho: 'BD', resultado: 'FORA' }), T0 + 51 * MIN);
+  step(ctx, (s) => A.shootoutKick(s, { team: 'US', playerId: 'p5', zona: 'BE', resultado: 'DEFENDIDO' }), T0 + 52 * MIN);
+  const state = step(ctx, (s) => A.finishMatch(s, T0 + 60 * MIN), T0 + 60 * MIN);
+  const m = { ...match, opponentName: 'Minerva', homeOrAway: 'HOME', status: 'FINISHED' };
+  const entries = [{ match: m, state }];
+  for (const [id, nome, num] of [['p5', 'E', 5], ['p1', 'A', 1]]) {
+    const pdf = await gerarPdfAtleta({ player: { id, name: nome, shirtNumber: num }, club: { name: 'Clube' }, team: { name: 'Sub-15' }, entries });
+    assert.ok(pdf.size > 3000);
+  }
+});

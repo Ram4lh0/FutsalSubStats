@@ -709,6 +709,100 @@ export class Relatorio {
     }
   }
 
+  /**
+   * A baliza dos penáltis (09/11/2026): 3 × 3 zonas vistas de quem remata,
+   * com a faixa "fora" por cima e dos lados. Cada marca é um círculo numerado
+   * na cor do resultado; `gr` é um quadrado só com contorno (mergulho do GR).
+   * Devolve a altura usada.
+   *
+   * @param {{zona: string, tipo: 'golo'|'defendido'|'fora'|'gr', texto?: string|number}[]} marcas
+   */
+  baliza(marcas, { x, y, w, titulo = '' }) {
+    const { doc } = this;
+    const ZONAS = ['AE', 'AC', 'AD', 'ME', 'MC', 'MD', 'BE', 'BC', 'BD'];
+    const COR_TIPO = { golo: COR.verde, defendido: COR.info, fora: COR.vermelho, gr: COR.info };
+    const topo = titulo ? 5 : 0;
+    if (titulo) {
+      this.fonte(7, true).cor(COR.muted);
+      this.texto(titulo, x + w / 2, y + 3, { alinhar: 'center' });
+    }
+    const margem = w * 0.09;
+    const gx = x + margem;
+    const gy = y + topo + margem;
+    const gw = w - 2 * margem;
+    const gh = (gw * 2) / 3;
+    // Faixa de fora.
+    doc.setFillColor(254, 242, 242);
+    doc.rect(x, y + topo, w, gh + margem, 'F');
+    this.fonte(5.6, true).cor(COR.muted);
+    this.texto(t('penaltis.zona.FORA'), x + w / 2, y + topo + margem * 0.7, { alinhar: 'center' });
+    // A baliza: fundo, zonas e postes.
+    doc.setFillColor(...COR.fundo);
+    doc.rect(gx, gy, gw, gh, 'F');
+    doc.setDrawColor(...COR.linha);
+    doc.setLineWidth(0.2);
+    for (let i = 1; i < 3; i++) {
+      doc.line(gx + (gw * i) / 3, gy, gx + (gw * i) / 3, gy + gh);
+      doc.line(gx, gy + (gh * i) / 3, gx + gw, gy + (gh * i) / 3);
+    }
+    doc.setDrawColor(...COR.texto);
+    doc.setLineWidth(1.1);
+    doc.line(gx, gy + gh, gx, gy);
+    doc.line(gx, gy, gx + gw, gy);
+    doc.line(gx + gw, gy, gx + gw, gy + gh);
+    // As marcas: espalhadas dentro de cada zona.
+    const r = Math.min(gw / 3, gh / 3) * 0.14;
+    const porZona = {};
+    for (const m of marcas) {
+      if (!m.zona) continue;
+      (porZona[m.zona] ||= []).push(m);
+    }
+    for (const [zona, lista] of Object.entries(porZona)) {
+      let cx0;
+      let cy0;
+      let largura;
+      if (zona === 'FORA') {
+        cx0 = x + w / 2;
+        cy0 = y + topo + margem * 0.7 + 3;
+        largura = w * 0.7;
+      } else {
+        const i = ZONAS.indexOf(zona);
+        if (i < 0) continue;
+        cx0 = gx + (gw / 3) * ((i % 3) + 0.5);
+        cy0 = gy + (gh / 3) * (Math.floor(i / 3) + 0.5);
+        largura = gw / 3 - 2 * r;
+      }
+      const passo = 2.4 * r;
+      const porLinha = Math.max(1, Math.floor(largura / passo));
+      lista.forEach((m, k) => {
+        const col = k % porLinha;
+        const lin = Math.floor(k / porLinha);
+        const n = Math.min(porLinha, lista.length - lin * porLinha);
+        const px = cx0 + (col - (n - 1) / 2) * passo;
+        const py = cy0 + lin * passo - (zona === 'FORA' ? 0 : ((Math.ceil(lista.length / porLinha) - 1) * passo) / 2);
+        const cor = COR_TIPO[m.tipo] || COR.cinzento;
+        if (m.tipo === 'gr') {
+          doc.setDrawColor(...cor);
+          doc.setLineWidth(0.5);
+          doc.rect(px - r, py - r, 2 * r, 2 * r, 'S');
+        } else {
+          doc.setFillColor(...cor);
+          doc.circle(px, py, r, 'F');
+        }
+        if (m.texto != null) {
+          this.fonte(Math.max(4, r * 2.2), true).cor(m.tipo === 'gr' ? cor : COR.branco);
+          this.texto(String(m.texto), px, py + r * 0.45, { alinhar: 'center' });
+        }
+      });
+    }
+    return topo + margem + gh + 2;
+  }
+
+  static alturaBaliza(w, comTitulo = true) {
+    const margem = w * 0.09;
+    return (comTitulo ? 5 : 0) + margem + ((w - 2 * margem) * 2) / 3 + 2;
+  }
+
   static alturaCampo(w) {
     return (w * CAMPO.caixaH) / CAMPO.caixaW;
   }

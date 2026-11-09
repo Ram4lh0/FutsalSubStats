@@ -2436,4 +2436,13 @@ export default {
   "prolong.placar": "{nos} — {eles} · {tempo} de juego",
   "prolong.formacao": "Alineación de la prórroga",
   "prolong.escolhidos": "{n}/5 elegidos. Cada jugador que empieza esta parte inicia una nueva entrada.",
+  "penaltis.atletaTitulo": "Penaltis (tanda)",
+  "penaltis.atletaBatidos": "Marcados / lanzados",
+  "penaltis.atletaDetalhe": "{d} parados · {f} fuera",
+  "penaltis.atletaDefesas": "Parados (como portero)",
+  "penaltis.atletaGrDetalhe": "{g} goles recibidos · {f} fuera",
+  "penaltis.atletaJogos": "Tandas",
+  "penaltis.atletaOndeBateu": "Hacia dónde lanzó",
+  "penaltis.atletaComoGr": "En portería: balón y estirada",
+  "penaltis.atletaMergulho": "Hacia dónde se tiró",
 };

@@ -27,6 +27,7 @@ import { clubs, teams, players, loadTeamMatchStates } from '@/lib/data/repositor
 import { clubAggregate, matchStatsTable, matchResult } from '@/domain/stats.js';
 import { extrasDoAtleta, painelDoAtleta } from '@/domain/dashboard.js';
 import { BlocosExtrasAtleta } from '@/components/registos/ExtrasRegistos.jsx';
+import PenaltisAtleta from '@/components/penaltis/PenaltisAtleta.jsx';
 import FotoJogador, { useFotoDoJogador } from '@/components/FotoJogador.jsx';
 import { fmt } from '@/domain/clock.js';
 import { FOOT, normalizePosition } from '@/domain/constants.js';
@@ -353,6 +354,9 @@ function Ficha() {
             {extras?.comDados ? (
               <BlocosExtrasAtleta extras={extras} entries={entries} playerId={playerId} Bloco={Bloco} />
             ) : null}
+
+            {/* A baliza dos penáltis do desempate. */}
+            <PenaltisAtleta entries={entries} playerId={playerId} Bloco={Bloco} />
           </div>
         </>
       ) : null}

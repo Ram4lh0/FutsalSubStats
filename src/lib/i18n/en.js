@@ -2435,4 +2435,13 @@ export default {
   "prolong.placar": "{nos} — {eles} · {tempo} played",
   "prolong.formacao": "Extra-time line-up",
   "prolong.escolhidos": "{n}/5 chosen. Each player starting this half begins a new stint.",
+  "penaltis.atletaTitulo": "Penalty shoot-outs",
+  "penaltis.atletaBatidos": "Scored / taken",
+  "penaltis.atletaDetalhe": "{d} saved · {f} missed",
+  "penaltis.atletaDefesas": "Saved (as GK)",
+  "penaltis.atletaGrDetalhe": "{g} conceded · {f} missed",
+  "penaltis.atletaJogos": "Shoot-outs",
+  "penaltis.atletaOndeBateu": "Where he shot",
+  "penaltis.atletaComoGr": "In goal: ball and dive",
+  "penaltis.atletaMergulho": "Where he dived",
 };
