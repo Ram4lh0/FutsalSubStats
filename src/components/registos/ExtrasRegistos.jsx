@@ -52,7 +52,9 @@ export function LegendaMapa({ filtro }) {
         ]
       : filtro === REGISTO.DEFESA_GR
         ? [[COR_REGISTO.defesa_gr, t('registos.legenda.defesas')]]
-        : [[COR_REGISTO.recuperacao, t('registos.legenda.recuperacoes')]];
+        : filtro === REGISTO.PERDA_BOLA
+          ? [[COR_REGISTO.perda_bola, t('registos.legenda.perdas')]]
+          : [[COR_REGISTO.recuperacao, t('registos.legenda.recuperacoes')]];
   return (
     <div className="regpainel__legenda">
       {itens.map(([cor, txt]) => (
@@ -109,7 +111,7 @@ export function BlocosExtrasAtleta({ extras, entries, playerId, Bloco }) {
   // O mapa do atleta: remates, recuperações e defesas, que têm ponto no campo.
   const filtros = useMemo(
     () =>
-      [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR].filter(
+      [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR].filter(
         (id) => por[id]?.jogos > 0 && mapaDoAtleta(entries, id, playerId).length
       ),
     [entries, playerId, por]

@@ -138,9 +138,12 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     await commit(registar(state, { registo: REGISTO.DEFESA_GR, playerId: p.playerId, x: r.x, y: r.y }));
   }
 
-  // Sem zona, como as ações: um toque e fica. Engano desfaz-se no DESFAZER.
+  // Sem zona (a omissão) é um toque e fica, como as ações; com a zona ligada
+  // no escalão, pergunta onde perdeu a bola, como a recuperação.
   async function registarPerda(p) {
-    await commit(registar(state, { registo: REGISTO.PERDA_BOLA, playerId: p.playerId }));
+    const r = await perguntar(REGISTO.PERDA_BOLA, { titulo: t('registos.perdaDe', quem(p)) });
+    if (!r) return;
+    await commit(registar(state, { registo: REGISTO.PERDA_BOLA, playerId: p.playerId, x: r.x, y: r.y }));
   }
 
   async function registarPasse(p) {

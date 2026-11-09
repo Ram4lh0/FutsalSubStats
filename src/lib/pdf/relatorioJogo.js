@@ -407,7 +407,7 @@ function registosDoJogo(r, state, match, nos) {
   // ------------------------------- recuperações, defesas e foras no campo
   mapasDosRegistos(r, {
     titulo: t('registos.pdf.mapaJogo'),
-    registos: [REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA],
+    registos: [REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.FORA],
     pontosDe: (id) => (tem(id) ? marcadores(state, { registos: [id] }) : []),
   });
 

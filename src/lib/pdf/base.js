@@ -56,6 +56,7 @@ export const COR_TIPO_GOLO = {
   INDIVIDUAL: COR.vermelho,
   ERRO_INDIVIDUAL: COR.vermelho,
   CINCO_V_QUATRO: [45, 212, 191],
+  RESSALTO: [132, 204, 22],
   BOLA_PARADA: [250, 204, 21],
   OUTRO: COR.cinzento,
 };

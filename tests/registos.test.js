@@ -333,7 +333,7 @@ test('marcadores: só os que têm ponto, com filtro por registo', () => {
   assert.deepEqual(foras.map((m) => m.y).sort(), [0, 1]);
 });
 
-test('perda de bola: do jogador, sem zona, conta no resumo e desfaz-se', async () => {
+test('perda de bola: do jogador, zona opcional, conta no resumo e desfaz-se', async () => {
   const { contagemPorJogador } = await import('../src/domain/registos.js');
   const ctx = novoJogo();
   gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
@@ -342,7 +342,7 @@ test('perda de bola: do jogador, sem zona, conta no resumo e desfaz-se', async (
   perda('p2', T0 + 3 * MIN);
   perda('p4', T0 + 4 * MIN);
   assert.equal(e1.playerId, 'p2');
-  assert.equal('x' in e1.metadata, false, 'a zona não se guarda');
+  assert.equal(e1.metadata.x, 0.4, 'com a zona ligada, guarda-se o ponto');
   assert.throws(() => registar(estado(ctx), { registo: 'perda_bola' }), 'precisa de jogador');
 
   let st = estado(ctx);
@@ -353,7 +353,7 @@ test('perda de bola: do jogador, sem zona, conta no resumo e desfaz-se', async (
   assert.equal(p2.perdas, 2);
   assert.equal(p2.perdas10, 2);
   assert.equal(contagemPorJogador(st).get('p2').perda_bola, 2);
-  assert.deepEqual(marcadores(st), [], 'não vai para o mapa');
+  assert.equal(marcadores(st, { registos: ['perda_bola'] }).length, 3, 'vai para o mapa');
 
   desfazer(ctx, e1, T0 + 5 * MIN);
   st = estado(ctx);
@@ -688,4 +688,26 @@ test('registo acrescentado a frio leva o minuto e a parte escolhidos', () => {
   assert.equal(ev.matchElapsedMs, 3 * MIN);
   assert.equal(ev.period, 1);
   assert.equal(ev.periodElapsedMs, 3 * MIN);
+});
+
+test('perda de bola: a zona vem desligada por omissão, e liga-se por escalão', async () => {
+  const { opcoesDoRegisto } = await import('../src/domain/registos.js');
+  const { catalogoDeAddons } = await import('../src/domain/addons.js');
+  assert.deepEqual(opcoesDoRegisto(null, 'perda_bola'), { zona: false });
+  assert.deepEqual(opcoesDoRegisto({ registos: { perda_bola: { zona: true } } }, 'perda_bola'), { zona: true });
+  assert.deepEqual(opcoesDoRegisto(null, 'recuperacao'), { zona: true }, 'as outras não mudam');
+  const perda = catalogoDeAddons().find((a) => a.id === 'perda_bola');
+  assert.equal(perda.opcoes.find((o) => o.id === 'zona').omissao, false);
+});
+
+test('golo de ressalto: só se oferece com o add-on, mas conta sempre que exista', async () => {
+  const { goalTypesFor, GOAL_TYPES } = await import('../src/domain/constants.js');
+  const { addonsAtivos } = await import('../src/domain/addons.js');
+  assert.equal(GOAL_TYPES.includes('RESSALTO'), false);
+  assert.equal(goalTypesFor('US').includes('RESSALTO'), false);
+  const us = goalTypesFor('US', { ressalto: true });
+  assert.equal(us[us.length - 2], 'RESSALTO', 'antes do Outro');
+  assert.ok(goalTypesFor('THEM', { ressalto: true }).includes('RESSALTO'));
+  assert.equal(addonsAtivos({ addons: ['golo-ressalto'] }).has('golo-ressalto'), true);
+  assert.equal(addonsAtivos({}).has('golo-ressalto'), false);
 });

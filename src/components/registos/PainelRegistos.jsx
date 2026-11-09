@@ -25,7 +25,7 @@ import { fmt } from '@/domain/clock.js';
 import { t } from '@/lib/i18n/index.js';
 
 /** Os registos com ponto no campo, pela ordem dos filtros do mapa. */
-const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA];
+const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.FORA];
 
 export default function PainelRegistos({ state, ourName, opponentName, now }) {
   const r = resumoRegistos(state, now);
@@ -299,7 +299,9 @@ function Legenda({ filtro, r }) {
         ]
       : filtro === REGISTO.DEFESA_GR
         ? [[COR_REGISTO.defesa_gr, t('registos.legenda.defesas')]]
-        : [[COR_REGISTO.recuperacao, t('registos.legenda.recuperacoes')]];
+        : filtro === REGISTO.PERDA_BOLA
+          ? [[COR_REGISTO.perda_bola, t('registos.legenda.perdas')]]
+          : [[COR_REGISTO.recuperacao, t('registos.legenda.recuperacoes')]];
   return (
     <div className="regpainel__legenda">
       {itens.map(([cor, txt]) => (

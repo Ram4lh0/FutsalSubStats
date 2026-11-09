@@ -23,6 +23,7 @@
 import {
   CATALOGO as CATALOGO_REGISTOS,
   OPCOES as OPCOES_REGISTOS,
+  omissaoDaOpcao,
   registosDoPainel,
   registosLigados,
 } from './registos.js';
@@ -84,6 +85,13 @@ export const ADDONS = {
     grupo: 'jogo',
     nome: 'Assistir ao vivo',
   },
+  // "Ressalto" na pergunta "Como foi o golo?" (marcados e sofridos), no jogo e
+  // na ficha do golo. Os gráficos e os PDF mostram-no sempre que haja golos
+  // com esse tipo, mesmo que o add-on se desligue depois.
+  'golo-ressalto': {
+    grupo: 'jogo',
+    nome: 'Golo de ressalto',
+  },
 };
 
 /* ----------------------------------------------------------------- leitura */
@@ -106,7 +114,7 @@ export function catalogoDeAddons(catalogo = ADDONS) {
     opcoes: (CATALOGO_REGISTOS[id].opcoes || []).map((o) => ({
       id: o,
       nome: OPCOES_REGISTOS[o].nome,
-      omissao: OPCOES_REGISTOS[o].omissao,
+      omissao: omissaoDaOpcao(id, o),
     })),
   }));
   const outros = Object.entries(catalogo)

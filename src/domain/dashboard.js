@@ -413,7 +413,10 @@ export function painelDoAtleta(
 export function golosPorTipo(entries, team = 'US') {
   // `team` = 'US' para os marcados, 'THEM' para os sofridos (04/10/2026) —
   // cada um com a sua lista de tipos (ver `goalTypesFor`).
-  const tipos = goalTypesFor(team);
+  const ressalto = terminados(entries).some(({ state }) =>
+    (state.goals || []).some((g) => g.team === team && g.howScored === GOAL_TYPE.RESSALTO)
+  );
+  const tipos = goalTypesFor(team, { ressalto });
   const contagem = Object.fromEntries(tipos.map((tipo) => [tipo, 0]));
   for (const { state } of terminados(entries)) {
     for (const g of state.goals || []) {

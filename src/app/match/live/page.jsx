@@ -351,7 +351,7 @@ function Live() {
     const tipo = await pickGoalType(
       ui,
       team === 'THEM' ? t('acao.comoFoiOGoloSofrido') : t('acao.comoFoiOGolo'),
-      goalTypesFor(team),
+      goalTypesFor(team, { ressalto: addons.has('golo-ressalto') }),
       team === 'US' && powerPlayAtivo(st) ? GOAL_TYPE.CINCO_V_QUATRO : null
     );
     if (tipo === undefined) return;

@@ -8,7 +8,8 @@
 
 import { useState } from 'react';
 import { Dialog } from './ui.jsx';
-import { events, matches, loadMatch } from './data/repository.js';
+import { events, matches, loadMatch, statConfig } from './data/repository.js';
+import { addonsAtivos } from '@/domain/addons.js';
 import * as sync from './data/sync.js';
 import * as A from '@/domain/actions.js';
 import { EVENT, normalizePosition, goalTypesFor } from '@/domain/constants.js';
@@ -88,6 +89,7 @@ function GoalDialog({
   onSave,
   onDelete,
   toast,
+  ressalto = false,
 }) {
   const [equipa, setEquipa] = useState(goal.team);
   const nosso = equipa === 'US';
@@ -249,14 +251,14 @@ function GoalDialog({
           <span className="field__label">{t('golos.comoFoiOGolo')}</span>
           <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)}>
             <option value="">{t('golos.tipoPorRegistar')}</option>
-            {goalTypesFor(nosso ? 'US' : 'THEM').map((g) => (
+            {goalTypesFor(nosso ? 'US' : 'THEM', { ressalto }).map((g) => (
               <option key={g} value={g}>
                 {t(`golos.tipo.${g}`)}
               </option>
             ))}
             {/* Um tipo antigo que já não se oferece (ex.: BOLA_PARADA) continua
                 a aparecer selecionado em vez de desaparecer em silêncio. */}
-            {tipo && !goalTypesFor(nosso ? 'US' : 'THEM').includes(tipo) ? (
+            {tipo && !goalTypesFor(nosso ? 'US' : 'THEM', { ressalto }).includes(tipo) ? (
               <option value={tipo}>{t(`golos.tipo.${tipo}`)}</option>
             ) : null}
           </select>
@@ -297,14 +299,27 @@ function GoalDialog({
  * Abre a ficha de um golo e devolve o que ficou por guardar (ou null). Com
  * `apagavel`, a ficha tem também "Apagar golo", que devolve `{ apagar: true }`.
  */
-export function goalDialog(
+/** O add-on 'golo-ressalto' está ligado no escalão deste jogo? */
+async function ressaltoLigado(matchId) {
+  try {
+    const match = matchId ? await matches.get(matchId) : null;
+    const config = match?.teamId ? await statConfig.get(match.teamId) : null;
+    return addonsAtivos(config).has('golo-ressalto');
+  } catch {
+    return false;
+  }
+}
+
+export async function goalDialog(
   ui,
   state,
   goal,
   { title, nova = false, ourName, opponentName, apagavel = false } = {}
 ) {
+  const ressalto = await ressaltoLigado(state?.matchId);
   return ui.open((close) => (
     <GoalDialog
+      ressalto={ressalto}
       state={state}
       goal={goal}
       title={title}

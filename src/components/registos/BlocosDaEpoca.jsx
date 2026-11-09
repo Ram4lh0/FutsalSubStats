@@ -37,7 +37,7 @@ import {
 } from '@/domain/dashboard.js';
 import { useT } from '@/lib/i18n/index.js';
 
-const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA];
+const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.FORA];
 
 export default function BlocosDaEpoca({ entries, Bloco }) {
   const t = useT();

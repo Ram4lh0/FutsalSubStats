@@ -22,7 +22,7 @@ const ESPACO = 6; // entre dois campos lado a lado
 const um = (n) => (n == null ? '—' : n.toFixed(1));
 
 /** Os registos que têm ponto no campo, pela ordem dos filtros da app. */
-export const REGISTOS_NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA];
+export const REGISTOS_NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.FORA];
 
 /** A legenda de um campo, com o número de pontos de cada categoria. */
 export function itensDaLegenda(registo, pontos) {
@@ -46,6 +46,9 @@ export function itensDaLegenda(registo, pontos) {
   }
   if (registo === REGISTO.DEFESA_GR) {
     return [{ cor: COR_REGISTO.defesa_gr, texto: t('registos.legenda.defesas'), n: pontos.length, forma: 'quadrado' }];
+  }
+  if (registo === REGISTO.PERDA_BOLA) {
+    return [{ cor: COR_REGISTO.perda_bola, texto: t('registos.legenda.perdas'), n: pontos.length }];
   }
   return [{ cor: COR_REGISTO.recuperacao, texto: t('registos.legenda.recuperacoes'), n: pontos.length }];
 }

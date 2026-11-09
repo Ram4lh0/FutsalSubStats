@@ -166,10 +166,14 @@ export const GOAL_TYPE = {
   // marcado é o nosso 5v4; num sofrido, o 5v4 do adversário. Não confundir com
   // os períodos de 5v4 do reducer, que dizem quando NÓS jogámos assim.
   CINCO_V_QUATRO: 'CINCO_V_QUATRO',
+  // Golo de ressalto (09/11/2026, pedido do SQB). É um add-on: só se oferece
+  // nos escalões com 'golo-ressalto' ligado (ver `goalTypesFor`).
+  RESSALTO: 'RESSALTO',
   OUTRO: 'OUTRO',
 };
 
-export const GOAL_TYPES = Object.values(GOAL_TYPE);
+// Sem o RESSALTO, que é um add-on: entra pela opção `ressalto` de `goalTypesFor`.
+export const GOAL_TYPES = Object.values(GOAL_TYPE).filter((g) => g !== GOAL_TYPE.RESSALTO);
 
 // Como foi o golo SOFRIDO (pedido a 04/10/2026). Os mesmos lances, com uma
 // troca: num golo sofrido a "jogada individual" que interessa ao treinador é o
@@ -190,9 +194,16 @@ export const CONCEDED_GOAL_TYPES = [
   GOAL_TYPE.OUTRO,
 ];
 
-/** Os tipos que fazem sentido para um golo nosso ('US') ou sofrido ('THEM'). */
-export function goalTypesFor(team) {
-  return team === 'THEM' ? CONCEDED_GOAL_TYPES : GOAL_TYPES;
+/**
+ * Os tipos que fazem sentido para um golo nosso ('US') ou sofrido ('THEM').
+ * Com `ressalto` (o add-on 'golo-ressalto' ligado, ou um golo que já o tenha)
+ * entra também o RESSALTO, antes do "Outro".
+ */
+export function goalTypesFor(team, { ressalto = false } = {}) {
+  const base = team === 'THEM' ? CONCEDED_GOAL_TYPES : GOAL_TYPES;
+  if (!ressalto) return base;
+  const i = base.indexOf(GOAL_TYPE.OUTRO);
+  return [...base.slice(0, i), GOAL_TYPE.RESSALTO, ...base.slice(i)];
 }
 
 export const STINT_END_REASON = {

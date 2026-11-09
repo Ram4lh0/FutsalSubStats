@@ -64,7 +64,8 @@ export function amarelosAdversario(state) {
  * apontado não entram — tal como no painel da época (`golosPorTipo`).
  */
 export function golosPorTipoNoJogo(state, team = 'US') {
-  const tipos = goalTypesFor(team);
+  const ressalto = (state.goals || []).some((g) => g.team === team && g.howScored === 'RESSALTO');
+  const tipos = goalTypesFor(team, { ressalto });
   const contagem = Object.fromEntries(tipos.map((tipo) => [tipo, 0]));
   for (const g of state.goals || []) {
     if (g.team === team && g.howScored && g.howScored in contagem) contagem[g.howScored] += 1;

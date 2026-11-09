@@ -531,7 +531,7 @@ function registosExtra(r, entries) {
   });
   mapasDosRegistos(r, {
     titulo: t('registos.epoca.mapa'),
-    registos: [REGISTO.RECUPERACAO, REGISTO.DEFESA_GR, REGISTO.FORA],
+    registos: [REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.FORA],
     pontosDe: (id) => (tipos.has(id) ? mapaDaEpoca(entries, id) : []),
   });
 }
@@ -684,7 +684,7 @@ function registosDoAtleta(r, entries, atletaId) {
   }
   mapasDosRegistos(r, {
     titulo: t('registos.ext.mapaAtleta'),
-    registos: [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.DEFESA_GR],
+    registos: [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR],
     pontosDe: (id) => (por[id]?.jogos > 0 ? mapaDoAtleta(entries, id, atletaId) : []),
   });
 }

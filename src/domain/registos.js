@@ -156,7 +156,16 @@ export const CATALOGO = {
     opcoes: ['zona', 'resultado'],
     disponivel: true,
   },
-  [REGISTO.PERDA_BOLA]: { por: 'jogador', ponto: false, resultados: null, disponivel: true },
+  // A zona da perda (09/11/2026, pedido do SQB) é uma opção do escalão e vem
+  // DESLIGADA por omissão: quem já contava as perdas sem zona continua igual.
+  [REGISTO.PERDA_BOLA]: {
+    por: 'jogador',
+    ponto: true,
+    resultados: null,
+    opcoes: ['zona'],
+    omissoes: { zona: false },
+    disponivel: true,
+  },
   [REGISTO.REMATE_ADV_SIMPLES]: {
     por: 'equipa',
     soAdversario: true,
@@ -248,6 +257,7 @@ export const COR_PENALTI_ADV = { ...COR_PENALTI, GOLO: '#f43f5e' };
 
 export const COR_REGISTO = {
   recuperacao: '#f472b6',
+  perda_bola: '#f97316',
   defesa_gr: '#38bdf8',
   fora_US: '#eaf1ff',
   fora_THEM: '#fb7185',
@@ -272,6 +282,12 @@ export function registosLigados(lista) {
   return new Set(registosDoPainel().filter((id) => pedidos.has(id)));
 }
 
+/** O valor por omissão de uma opção num registo (o registo pode mudá-lo). */
+export function omissaoDaOpcao(id, o) {
+  const propria = CATALOGO[id]?.omissoes?.[o];
+  return typeof propria === 'boolean' ? propria : OPCOES[o].omissao;
+}
+
 /**
  * As opções de um registo neste escalão, já com as omissões: por exemplo
  * `{ zona: true, resultado: false }`. Só traz as que o registo admite.
@@ -282,7 +298,7 @@ export function opcoesDoRegisto(opcoes, id) {
   const gravadas = opcoes?.registos?.[id] || {};
   const out = {};
   for (const o of def?.opcoes || []) {
-    out[o] = typeof gravadas[o] === 'boolean' ? gravadas[o] : OPCOES[o].omissao;
+    out[o] = typeof gravadas[o] === 'boolean' ? gravadas[o] : omissaoDaOpcao(id, o);
   }
   return out;
 }

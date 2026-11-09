@@ -88,6 +88,7 @@
   --golo-penalti: #fb923c;
   --golo-10m: #e879f9;
   --golo-5v4: #2dd4bf;
+  --golo-ressalto: #84cc16;
 }
 .pizza { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .graf--pizza { width: 120px; height: 120px; flex: 0 0 auto; }
@@ -103,6 +104,7 @@
 .pizza__fatia--INDIVIDUAL { stroke: var(--danger); }
 .pizza__fatia--ERRO_INDIVIDUAL { stroke: var(--danger); }
 .pizza__fatia--CINCO_V_QUATRO { stroke: var(--golo-5v4); }
+.pizza__fatia--RESSALTO { stroke: var(--golo-ressalto); }
 .pizza__fatia--OUTRO { stroke: var(--muted); }
 .pizza__total { font-size: 28px; font-weight: 800; fill: var(--text); }
 .pizza__legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; }
@@ -119,6 +121,7 @@
 .pizza__dot--INDIVIDUAL { background: var(--danger); }
 .pizza__dot--ERRO_INDIVIDUAL { background: var(--danger); }
 .pizza__dot--CINCO_V_QUATRO { background: var(--golo-5v4); }
+.pizza__dot--RESSALTO { background: var(--golo-ressalto); }
 .pizza__dot--OUTRO { background: var(--muted); }
 
 /* A fita dos últimos jogos. Desliza ao lado quando não couber, em vez de
