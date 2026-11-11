@@ -11,6 +11,7 @@ import DataTable from '@/components/DataTable.jsx';
 import { StatCard, Empty, Ved } from '@/components/bits.jsx';
 import CartaoGolos from '@/components/stats/CartaoGolos.jsx';
 import { clubAggregate, powerPlayAggregate } from '@/domain/stats.js';
+import { filtrar, provasComJogos } from '@/domain/dashboard.js';
 import Destaques from '@/components/stats/Destaques.jsx';
 import { fmt } from '@/domain/clock.js';
 import { rotas } from '@/lib/routes.js';
@@ -35,11 +36,25 @@ function Conteudo() {
   );
 }
 
-function Stats({ club, team, entries, roster, clubId, teamId }) {
+function Stats({ club, team, entries: todas, roster, competitions, clubId, teamId }) {
   const router = useRouter();
   const t = useT();
   const ui = useUI();
   const [aGerarPdf, setAGerarPdf] = useState(false);
+  // As competições escolhidas; vazio quer dizer todas.
+  const [provasEscolhidas, setProvas] = useState([]);
+  const provas = useMemo(() => provasComJogos(todas, competitions || []), [todas, competitions]);
+  // Uma competição que deixou de ter jogos não pode ficar escolhida às escuras.
+  const escolhidas = useMemo(
+    () => provasEscolhidas.filter((id) => provas.some((p) => p.id === id)),
+    [provasEscolhidas, provas]
+  );
+  const entries = useMemo(() => filtrar(todas, { provas: escolhidas }), [todas, escolhidas]);
+  function trocarProva(id) {
+    // `null` é o "todas": limpa a escolha em vez de a acumular.
+    if (id === null) return setProvas([]);
+    setProvas(() => (escolhidas.includes(id) ? escolhidas.filter((x) => x !== id) : [...escolhidas, id]));
+  }
   const agg = useMemo(() => clubAggregate(entries, roster), [entries, roster]);
   const linhas = useMemo(
     () => Object.values(agg.perPlayer).sort((a, b) => b.courtMs - a.courtMs || a.number - b.number),
@@ -56,7 +71,13 @@ function Stats({ club, team, entries, roster, clubId, teamId }) {
     setAGerarPdf(true);
     try {
       const { gerarPdfEstatisticas, nomePdfEstatisticas } = await import('@/lib/pdf/relatorioEstatisticas.js');
-      const blob = await gerarPdfEstatisticas({ club, team, entries, roster });
+      const blob = await gerarPdfEstatisticas({
+        club,
+        team,
+        entries,
+        roster,
+        competicoes: provas.filter((p) => escolhidas.includes(p.id)).map((p) => p.shortName || p.name),
+      });
       const nome = nomePdfEstatisticas(team);
       await entregarFicheiro(blob, nome, 'application/pdf', { titulo: nome });
     } catch (e) {
@@ -69,6 +90,28 @@ function Stats({ club, team, entries, roster, clubId, teamId }) {
   return (
     <div className="tour-page-scope" data-tour="team-stats">
       <div className="stats__acoes no-print">
+        {provas.length > 1 ? (
+          <div className="filtros__grupo stats__provas">
+            <span className="filtros__rotulo">{t('painelv.competicao')}</span>
+            <button
+              type="button"
+              className={`chip ${escolhidas.length === 0 ? 'is-on' : ''}`}
+              onClick={() => trocarProva(null)}
+            >
+              {t('painelv.todas')}
+            </button>
+            {provas.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`chip ${escolhidas.includes(p.id) ? 'is-on' : ''}`}
+                onClick={() => trocarProva(p.id)}
+              >
+                {p.shortName || p.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <button
           type="button"
           className="btn btn--ghost btn--tiny"

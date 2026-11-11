@@ -160,7 +160,8 @@
 .filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
 .filtros__grupo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .filtros__grupo--acao { margin-left: auto; }
-.stats__acoes { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.stats__acoes { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
+.stats__provas { margin-right: auto; }
 .filtros__rotulo { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; }
 .filtros__select { width: min(260px, 100%); min-height: 32px; padding-block: 5px; }
 .chip {

@@ -42,10 +42,11 @@ function top3(linhas, chave) {
 }
 
 /**
- * @param {{club, team, entries, roster}} p  o que a aba recebe do TeamShell
+ * @param {{club, team, entries, roster, competicoes?}} p  o que a aba recebe do TeamShell;
+ *   `competicoes` são os nomes das competições escolhidas no filtro (vazio = todas)
  * @returns {Promise<Blob>}
  */
-export async function gerarPdfEstatisticas({ club, team, entries, roster = [] }) {
+export async function gerarPdfEstatisticas({ club, team, entries, roster = [], competicoes = [] }) {
   const { agg, linhas } = linhasDasEstatisticas(entries, roster);
   const pp = powerPlayAggregate(entries);
 
@@ -54,6 +55,7 @@ export async function gerarPdfEstatisticas({ club, team, entries, roster = [] })
     subtitulo: [club?.name, team?.name].filter(Boolean).join(' · '),
     info: [
       linhaDeFiltros([
+        [t('painelv.competicao'), competicoes.length ? competicoes.join(', ') : null],
         [t('pdf.jogos'), t('pdf.jogosTerminados', { n: agg.finished })],
         [t('pdf.estatisticas.jogadores'), String(linhas.length)],
       ]),
