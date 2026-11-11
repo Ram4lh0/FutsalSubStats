@@ -227,6 +227,21 @@ function Resumo() {
     if (await editarTempos(ui, { matchId, playerId, syncUser: { userId, email: user?.email } })) carregar();
   }
 
+  /**
+   * Mudar o dia/hora do jogo depois de jogado (jogos metidos a posteriori,
+   * datas trocadas). Só mexe em `scheduledAt`, como a preparação do jogo.
+   */
+  async function editarData() {
+    const ts = await ui.open((close) => (
+      <DataDialog quando={match.scheduledAt} onClose={() => close(null)} onSave={(v) => close(v)} />
+    ));
+    if (ts == null) return;
+    await matches.update(matchId, { scheduledAt: ts });
+    sync.saveNow(userId, user?.email);
+    ui.toast(t('resumo.dataGuardada'), 'ok');
+    carregar();
+  }
+
   async function editarNotas() {
     const valor = await ui.open((close) => (
       <NotasDialog notas={match.notes || ''} onClose={() => close(null)} onSave={(v) => close(v)} />
@@ -488,6 +503,9 @@ function Resumo() {
                   : t('resumo.terminarAoMinuto')}
               </button>
             ) : null}
+            <button className="btn btn--ghost" onClick={editarData}>
+              {t('resumo.editarData')}
+            </button>
             <button className="btn btn--ghost" onClick={editarNotas}>
               {t('resumo.notas')}
             </button>
@@ -772,6 +790,47 @@ function Resumo() {
         )}
       </div>
     </>
+  );
+}
+
+/** "2026-11-08T18:30" na hora local, para o input datetime-local. */
+function paraInput(ts) {
+  const d = new Date(ts || Date.now());
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+
+function DataDialog({ quando, onClose, onSave }) {
+  const t = useT();
+  const ui = useUI();
+  const [valor, setValor] = useState(paraInput(quando));
+  function guardar() {
+    const ts = valor ? new Date(valor).getTime() : NaN;
+    if (!Number.isFinite(ts)) return ui.toast(t('resumo.dataInvalida'), 'error');
+    onSave(ts);
+  }
+  return (
+    <Dialog title={t('resumo.dataDoJogo')} onClose={onClose}>
+      <div className="form">
+        <label className="field">
+          <span className="field__label">{t('resumo.dataHora')}</span>
+          <input
+            className="input"
+            type="datetime-local"
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+          />
+        </label>
+      </div>
+      <footer className="modal__actions">
+        <button className="btn btn--ghost" onClick={onClose}>
+          {t('comum.cancelar')}
+        </button>
+        <button className="btn btn--primary" onClick={guardar}>
+          {t('comum.guardar')}
+        </button>
+      </footer>
+    </Dialog>
   );
 }
 

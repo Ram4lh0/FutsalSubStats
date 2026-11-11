@@ -1241,6 +1241,11 @@ export default {
   'resumo.verPeriodos': 'Períodos',
   'resumo.notasDoJogo': 'Notas do jogo',
   'resumo.notasGuardadas': 'Notas guardadas.',
+  'resumo.editarData': 'Editar data',
+  'resumo.dataDoJogo': 'Data do jogo',
+  'resumo.dataHora': 'Data e hora',
+  'resumo.dataGuardada': 'Data do jogo guardada.',
+  'resumo.dataInvalida': 'Escolhe uma data válida.',
   'resumo.confirmaApagar':
     'Apagar este jogo? Vai desaparecer também das estatísticas do escalão, da competição e da ficha de cada jogador. Não há forma de o recuperar.',
 
