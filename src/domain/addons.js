@@ -53,6 +53,7 @@ export const NOME_REGISTO = {
   penalti: 'Penáltis nossos',
   penalti_adv: 'Penáltis do adversário',
   lancamento_baliza: 'Lançamentos de baliza',
+  lancamento_gr: 'Lançamentos do GR',
 };
 
 /**

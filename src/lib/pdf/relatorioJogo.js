@@ -330,6 +330,9 @@ function registosDoJogo(r, state, match, nos) {
   }
   if (tem(REGISTO.RECUPERACAO)) cartoes.push({ rotulo: t('registos.total.recuperacao'), valor: reg.recuperacoes });
   if (tem(REGISTO.DEFESA_GR)) cartoes.push({ rotulo: t('registos.total.defesa_gr'), valor: reg.defesas });
+  if (tem(REGISTO.LANCAMENTO_GR)) {
+    cartoes.push({ rotulo: t('registos.total.lancamento_gr'), valor: reg.lancamentosGR });
+  }
   if (tem(REGISTO.PERDA_BOLA)) cartoes.push({ rotulo: t('registos.total.perda_bola'), valor: reg.perdas });
   if (tem(REGISTO.PASSE_FALHADO)) cartoes.push({ rotulo: t('registos.total.passe_falhado'), valor: reg.passes });
   const golosEm = (b) => t('registos.golosEm', { golos: b.golos, total: b.total });
@@ -407,13 +410,13 @@ function registosDoJogo(r, state, match, nos) {
   // ------------------------------- recuperações, defesas e foras no campo
   mapasDosRegistos(r, {
     titulo: t('registos.pdf.mapaJogo'),
-    registos: [REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.FORA],
+    registos: [REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.LANCAMENTO_GR, REGISTO.FORA],
     pontosDe: (id) => (tem(id) ? marcadores(state, { registos: [id] }) : []),
   });
 
   // ------------------------------------------------- tabela por jogador
   const porJogador = reg.jogadores.some(
-    (j) => j.remates || j.recuperacoes || j.defesas || j.perdas || j.passes || j.positivas || j.negativas
+    (j) => j.remates || j.recuperacoes || j.defesas || j.lancamentosGR || j.perdas || j.passes || j.positivas || j.negativas
   );
   if (!porJogador) return;
   const colunas = [
@@ -442,6 +445,7 @@ function registosDoJogo(r, state, match, nos) {
     por10((j) => um(j.recup10));
   }
   if (tem(REGISTO.DEFESA_GR)) col(t('registos.col.defesas'), (j) => j.defesas || '–');
+  if (tem(REGISTO.LANCAMENTO_GR)) col(t('registos.col.lancamentosGR'), (j) => j.lancamentosGR || '–');
   if (tem(REGISTO.PERDA_BOLA)) {
     col(t('registos.col.perdas'), (j) => j.perdas || '–');
     por10((j) => um(j.perdas10));

@@ -22,6 +22,7 @@ import {
   bolasParadas,
   defesasPorJogador,
   extrasDaEquipa,
+  lancamentosGRPorJogador,
   eficacia,
   mapaDaEpoca,
   passesDaEpoca,
@@ -37,7 +38,7 @@ import {
 } from '@/domain/dashboard.js';
 import { useT } from '@/lib/i18n/index.js';
 
-const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.FORA];
+const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.LANCAMENTO_GR, REGISTO.FORA];
 
 export default function BlocosDaEpoca({ entries, Bloco }) {
   const t = useT();
@@ -55,6 +56,7 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
   const bp = useMemo(() => bolasParadas(entries), [entries]);
   const extras = useMemo(() => extrasDaEquipa(entries), [entries]);
   const defesas = useMemo(() => defesasPorJogador(entries), [entries]);
+  const lancamentosGR = useMemo(() => lancamentosGRPorJogador(entries), [entries]);
   const temBolaParada = REGISTOS_BOLA_PARADA.some((id) => tipos.has(id));
   const golosEm = (x) => t('registos.golosEm', { golos: x.golos, total: x.total });
   // Só os registos com pontos no campo: sem zona (opção do escalão) não há mapa.
@@ -192,6 +194,18 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
               rotulo: `${j.number} ${j.name}`,
               valor: j.defesas,
               texto: t('registos.epoca.perdasDetalhe', { n: j.defesas, porJogo: j.porJogo.toFixed(1) }),
+            }))}
+          />
+        </Bloco>
+      ) : null}
+
+      {lancamentosGR.length ? (
+        <Bloco titulo={t('registos.epoca.lancamentosGR')}>
+          <BarrasH
+            linhas={lancamentosGR.map((j) => ({
+              rotulo: `${j.number} ${j.name}`,
+              valor: j.lancamentos,
+              texto: t('registos.epoca.perdasDetalhe', { n: j.lancamentos, porJogo: j.porJogo.toFixed(1) }),
             }))}
           />
         </Bloco>

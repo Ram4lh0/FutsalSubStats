@@ -12,6 +12,7 @@ import { StatCard } from '@/components/bits.jsx';
 import DataTable from '@/components/DataTable.jsx';
 import { CampoSvg } from './CampoToque.jsx';
 import {
+  CATALOGO,
   COR_REGISTO,
   COR_RESULTADO,
   COR_RESULTADO_ADV,
@@ -52,6 +53,8 @@ export function LegendaMapa({ filtro }) {
         ]
       : filtro === REGISTO.DEFESA_GR
         ? [[COR_REGISTO.defesa_gr, t('registos.legenda.defesas')]]
+        : filtro === REGISTO.LANCAMENTO_GR
+        ? [[COR_REGISTO.lancamento_gr, t('registos.legenda.lancamentosGR')]]
         : filtro === REGISTO.PERDA_BOLA
           ? [[COR_REGISTO.perda_bola, t('registos.legenda.perdas')]]
           : [[COR_REGISTO.recuperacao, t('registos.legenda.recuperacoes')]];
@@ -111,7 +114,7 @@ export function BlocosExtrasAtleta({ extras, entries, playerId, Bloco }) {
   // O mapa do atleta: remates, recuperações e defesas, que têm ponto no campo.
   const filtros = useMemo(
     () =>
-      [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR].filter(
+      [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.LANCAMENTO_GR].filter(
         (id) => por[id]?.jogos > 0 && mapaDoAtleta(entries, id, playerId).length
       ),
     [entries, playerId, por]
@@ -125,7 +128,7 @@ export function BlocosExtrasAtleta({ extras, entries, playerId, Bloco }) {
 
   // Os cartões "total, por jogo, por 10 min" de um registo simples.
   const simples = (id) =>
-    tem(id) && !(id === REGISTO.DEFESA_GR && !por[id].n) ? (
+    tem(id) && !(CATALOGO[id]?.soGR && !por[id].n) ? (
       <Bloco titulo={t(`registos.total.${id}`)}>
         <div className="grid grid--stats">
           <StatCard label={t(`registos.total.${id}`)} value={por[id].n} hint={emJogos(id)} />
@@ -166,6 +169,7 @@ export function BlocosExtrasAtleta({ extras, entries, playerId, Bloco }) {
 
       {simples(REGISTO.RECUPERACAO)}
       {simples(REGISTO.DEFESA_GR)}
+      {simples(REGISTO.LANCAMENTO_GR)}
       {simples(REGISTO.PASSE_FALHADO)}
 
       {tem(REGISTO.ACAO) ? (

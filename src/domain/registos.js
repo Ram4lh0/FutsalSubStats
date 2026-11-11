@@ -57,6 +57,9 @@ export const REGISTO = {
   PENALTI: 'penalti',
   PENALTI_ADV: 'penalti_adv',
   LANCAMENTO_BALIZA: 'lancamento_baliza',
+  // Lançamentos do guarda-redes (11/11/2026, pedido do SQB): quantos faz
+  // cada GR e para onde lançou. O ponto é o DESTINO do lançamento.
+  LANCAMENTO_GR: 'lancamento_gr',
   // O livre de 10 metros, da 6.ª falta da parte em diante. É de TODOS os
   // escalões: não se liga no painel, grava-se sempre que o treinador diz se
   // foi golo. `equipa` é quem bate o livre.
@@ -199,6 +202,16 @@ export const CATALOGO = {
     disponivel: true,
   },
   [REGISTO.LANCAMENTO_BALIZA]: { por: 'equipa', ponto: false, resultados: null, disponivel: true },
+  // Só o guarda-redes tem o botão, como na defesa. O ponto é para onde lançou
+  // (não de onde): a zona vem ligada por omissão, foi o que o clube pediu.
+  [REGISTO.LANCAMENTO_GR]: {
+    por: 'jogador',
+    ponto: true,
+    resultados: null,
+    soGR: true,
+    opcoes: ['zona'],
+    disponivel: true,
+  },
   // `sempre`: não vai ao painel nem precisa de estar ligado. `jogadorOpcional`:
   // num livre nosso guarda-se quem bateu, se o treinador o disser.
   [REGISTO.LIVRE_10M]: {
@@ -259,6 +272,7 @@ export const COR_REGISTO = {
   recuperacao: '#f472b6',
   perda_bola: '#f97316',
   defesa_gr: '#38bdf8',
+  lancamento_gr: '#22d3ee',
   fora_US: '#eaf1ff',
   fora_THEM: '#fb7185',
 };
@@ -626,6 +640,7 @@ export function resumoRegistos(state, now = Date.now()) {
       const recuperacoes = meus.filter((r) => r.registo === REGISTO.RECUPERACAO).length;
       const perdas = meus.filter((r) => r.registo === REGISTO.PERDA_BOLA).length;
       const passes = meus.filter((r) => r.registo === REGISTO.PASSE_FALHADO).length;
+      const lancamentosGR = meus.filter((r) => r.registo === REGISTO.LANCAMENTO_GR).length;
       return {
         playerId: p.playerId,
         number: p.number,
@@ -637,6 +652,7 @@ export function resumoRegistos(state, now = Date.now()) {
         recuperacoes,
         recup10: recuperacoesPor10(recuperacoes, courtMs),
         defesas: meus.filter((r) => r.registo === REGISTO.DEFESA_GR).length,
+        lancamentosGR,
         perdas,
         perdas10: recuperacoesPor10(perdas, courtMs),
         passes,
@@ -655,6 +671,7 @@ export function resumoRegistos(state, now = Date.now()) {
         j.remates ||
         j.recuperacoes ||
         j.defesas ||
+        j.lancamentosGR ||
         j.perdas ||
         j.passes ||
         j.positivas ||
@@ -695,6 +712,7 @@ export function resumoRegistos(state, now = Date.now()) {
       THEM: (state.goals || []).filter((g) => g.team === 'THEM' && g.howScored === 'CANTO').length,
     },
     lancamentos: porEquipa(REGISTO.LANCAMENTO_BALIZA),
+    lancamentosGR: de(REGISTO.LANCAMENTO_GR).length,
     acoes: {
       positivas: acoes.filter((r) => r.resultado === RESULTADO_ACAO.POSITIVA).length,
       negativas: acoes.filter((r) => r.resultado === RESULTADO_ACAO.NEGATIVA).length,
@@ -705,8 +723,8 @@ export function resumoRegistos(state, now = Date.now()) {
 
 /**
  * Quantos de cada registo tem cada jogador, para os números nos botões do
- * cartão: Map playerId → { remate, recuperacao, defesa_gr, perda_bola, passe_falhado,
- * positivas, negativas }.
+ * cartão: Map playerId → { remate, recuperacao, defesa_gr, lancamento_gr, perda_bola,
+ * passe_falhado, positivas, negativas }.
  */
 export function contagemPorJogador(state) {
   const out = new Map();
@@ -717,6 +735,7 @@ export function contagemPorJogador(state) {
         remate: 0,
         recuperacao: 0,
         defesa_gr: 0,
+        lancamento_gr: 0,
         perda_bola: 0,
         passe_falhado: 0,
         positivas: 0,

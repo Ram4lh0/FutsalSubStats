@@ -36,6 +36,7 @@
 .pcard__regbtn--remate { border-color: rgba(56, 189, 248, 0.6); }
 .pcard__regbtn--recup { border-color: rgba(244, 114, 182, 0.6); }
 .pcard__regbtn--defesa { border-color: rgba(250, 204, 21, 0.7); }
+.pcard__regbtn--lanc { border-color: rgba(34, 211, 238, 0.7); }
 .pcard__regbtn--perda { border-color: rgba(251, 146, 60, 0.75); }
 .pcard__regbtn--passe { border-color: rgba(250, 204, 21, 0.75); }
 .pcard__regbtn--positiva, .pcard__regbtn--negativa { padding: 0 6px; }

@@ -17,7 +17,7 @@ const T0 = 1_700_000_000_000;
 const START = { p1: 'GOALKEEPER', p2: 'FIXO', p3: 'LEFT_WINGER', p4: 'RIGHT_WINGER', p5: 'PIVOT' };
 const match = { id: 'm1', clubId: 'c1', periodDurationMs: 20 * MIN, opponentName: 'Rival', scheduledAt: new Date(T0).toISOString() };
 
-function jogoComPontos() {
+function jogoComPontos({ lancamentos = false } = {}) {
   const squad = ['Ana', 'Bruno', 'Carlos', 'Diogo', 'Eduardo', 'Filipe'].map((name, i) => {
     const id = `p${i + 1}`;
     return {
@@ -45,6 +45,10 @@ function jogoComPontos() {
   reg({ registo: 'recuperacao', playerId: 'p2', x: 0.4, y: 0.6 }, T0 + 4 * MIN);
   reg({ registo: 'defesa_gr', playerId: 'p1', x: 0.05, y: 0.5 }, T0 + 5 * MIN);
   reg({ registo: 'fora', equipa: 'THEM', x: 0.5, y: 0 }, T0 + 6 * MIN);
+  if (lancamentos) {
+    reg({ registo: 'lancamento_gr', playerId: 'p1', x: 0.6, y: 0.2 }, T0 + 7 * MIN);
+    reg({ registo: 'lancamento_gr', playerId: 'p1', x: 0.35, y: 0.85 }, T0 + 8 * MIN);
+  }
   gravar((s) => A.finishMatch(s, T0 + 20 * MIN), T0 + 20 * MIN);
   return buildMatchState(match, squad, events);
 }
@@ -59,6 +63,29 @@ test('a legenda do mapa no PDF conta cada categoria', () => {
   assert.ok(deles.some((i) => i.forma === 'anel' && i.n === 1));
   const foras = itensDaLegenda(REGISTO.FORA, marcadores(state, { registos: [REGISTO.FORA] }));
   assert.deepEqual(foras.map((i) => i.n), [0, 1]);
+});
+
+test('lançamentos do GR: legenda com contagem e mais conteúdo nos três PDF', async () => {
+  const sem = jogoComPontos();
+  const com = jogoComPontos({ lancamentos: true });
+  const itens = itensDaLegenda(REGISTO.LANCAMENTO_GR, marcadores(com, { registos: [REGISTO.LANCAMENTO_GR] }));
+  assert.deepEqual(itens.map((i) => i.n), [2]);
+  const club = { name: 'Clube' };
+  const team = { name: 'Sub-15' };
+  const tamanho = async (state) => {
+    const entries = [{ match: { ...match, status: 'FINISHED' }, state }];
+    const roster = [{ id: 'p1', name: 'Ana', number: 1, shirtNumber: 1, preferredPosition: 'GOALKEEPER' }];
+    return {
+      jogo: (await gerarPdfJogo({ club, match, state, team })).size,
+      painel: (await gerarPdfPainel({ club, team, entries, roster, parteMs: 20 * MIN })).size,
+      atleta: (await gerarPdfAtleta({ club, team, entries, roster, player: roster[0] })).size,
+    };
+  };
+  const a = await tamanho(sem);
+  const b = await tamanho(com);
+  assert.ok(b.jogo > a.jogo, 'PDF do jogo');
+  assert.ok(b.painel > a.painel, 'PDF do painel');
+  assert.ok(b.atleta > a.atleta, 'PDF do atleta');
 });
 
 test('os PDF do jogo e do painel saem com os campos dos registos', async () => {

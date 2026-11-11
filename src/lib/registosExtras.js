@@ -3,7 +3,7 @@
 // ExtrasRegistos.jsx) e pelos PDF (lib/pdf/registos.js). Recebem o `t` de
 // quem as chama.
 
-import { REGISTO, REGISTOS } from '../domain/registos.js';
+import { CATALOGO, REGISTO, REGISTOS } from '../domain/registos.js';
 
 /** As linhas da tabela de um jogador: `{id, nome, r: {n, porJogo, por10}, detalhe}`. */
 export function linhasExtrasAtleta(extras, t) {
@@ -13,7 +13,8 @@ export function linhasExtrasAtleta(extras, t) {
   for (const id of REGISTOS) {
     const r = por[id];
     if (!r || !r.jogos) continue;
-    if (id === REGISTO.DEFESA_GR && !r.n) continue;
+    // Os do guarda-redes (defesas, lançamentos) só para quem os fez.
+    if (CATALOGO[id]?.soGR && !r.n) continue;
     let detalhe = '';
     if (id === REGISTO.REMATE && remates.comResultado) {
       detalhe = t('registos.ext.rematesDetalhe', {

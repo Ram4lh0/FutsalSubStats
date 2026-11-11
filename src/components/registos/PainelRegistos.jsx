@@ -25,7 +25,7 @@ import { fmt } from '@/domain/clock.js';
 import { t } from '@/lib/i18n/index.js';
 
 /** Os registos com ponto no campo, pela ordem dos filtros do mapa. */
-const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.FORA];
+const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.LANCAMENTO_GR, REGISTO.FORA];
 
 export default function PainelRegistos({ state, ourName, opponentName, now }) {
   const r = resumoRegistos(state, now);
@@ -44,7 +44,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
     ? marcadores(state, { registos: [filtro] }).filter((m) => !jogador || m.playerId === jogador)
     : [];
   const porJogador = r.jogadores.some(
-    (j) => j.remates || j.recuperacoes || j.defesas || j.perdas || j.passes || j.positivas || j.negativas
+    (j) => j.remates || j.recuperacoes || j.defesas || j.lancamentosGR || j.perdas || j.passes || j.positivas || j.negativas
   );
   // "À baliza" só quer dizer alguma coisa se todos os remates tiverem resultado
   // (o escalão pode não o pedir).
@@ -76,6 +76,9 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
           <Total rotulo={t('registos.total.recuperacao')} valor={r.recuperacoes} />
         ) : null}
         {tem(REGISTO.DEFESA_GR) ? <Total rotulo={t('registos.total.defesa_gr')} valor={r.defesas} /> : null}
+        {tem(REGISTO.LANCAMENTO_GR) ? (
+          <Total rotulo={t('registos.total.lancamento_gr')} valor={r.lancamentosGR} />
+        ) : null}
         {tem(REGISTO.PERDA_BOLA) ? <Total rotulo={t('registos.total.perda_bola')} valor={r.perdas} /> : null}
         {tem(REGISTO.PASSE_FALHADO) ? (
           <Total rotulo={t('registos.total.passe_falhado')} valor={r.passes} />
@@ -192,6 +195,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                   </>
                 ) : null}
                 {tem(REGISTO.DEFESA_GR) ? <th>{t('registos.col.defesas')}</th> : null}
+                {tem(REGISTO.LANCAMENTO_GR) ? <th>{t('registos.col.lancamentosGR')}</th> : null}
                 {tem(REGISTO.PERDA_BOLA) ? (
                   <>
                     <th>{t('registos.col.perdas')}</th>
@@ -230,6 +234,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                     </>
                   ) : null}
                   {tem(REGISTO.DEFESA_GR) ? <td>{j.defesas || '–'}</td> : null}
+                  {tem(REGISTO.LANCAMENTO_GR) ? <td>{j.lancamentosGR || '–'}</td> : null}
                   {tem(REGISTO.PERDA_BOLA) ? (
                     <>
                       <td>{j.perdas || '–'}</td>
@@ -299,6 +304,8 @@ function Legenda({ filtro, r }) {
         ]
       : filtro === REGISTO.DEFESA_GR
         ? [[COR_REGISTO.defesa_gr, t('registos.legenda.defesas')]]
+        : filtro === REGISTO.LANCAMENTO_GR
+        ? [[COR_REGISTO.lancamento_gr, t('registos.legenda.lancamentosGR')]]
         : filtro === REGISTO.PERDA_BOLA
           ? [[COR_REGISTO.perda_bola, t('registos.legenda.perdas')]]
           : [[COR_REGISTO.recuperacao, t('registos.legenda.recuperacoes')]];

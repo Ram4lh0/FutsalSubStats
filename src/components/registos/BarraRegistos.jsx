@@ -86,6 +86,7 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
   const curto = [
     [REGISTO.RECUPERACAO, r.recuperacoes],
     [REGISTO.DEFESA_GR, r.defesas],
+    [REGISTO.LANCAMENTO_GR, r.lancamentosGR],
     [REGISTO.PERDA_BOLA, r.perdas],
     ...(passeNaBarra ? [] : [[REGISTO.PASSE_FALHADO, r.passes]]),
   ]

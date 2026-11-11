@@ -138,6 +138,17 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     await commit(registar(state, { registo: REGISTO.DEFESA_GR, playerId: p.playerId, x: r.x, y: r.y }));
   }
 
+  // Lançamento do guarda-redes: com a zona (a omissão), toca-se para onde
+  // lançou; sem ela, um toque e fica contado.
+  async function registarLancamentoGR(p) {
+    const r = await perguntar(REGISTO.LANCAMENTO_GR, {
+      titulo: t('registos.lancamentoGRDe', quem(p)),
+      subtitulo: opcoesDe(REGISTO.LANCAMENTO_GR).zona !== false ? t('registos.lancamentoGRSub') : null,
+    });
+    if (!r) return;
+    await commit(registar(state, { registo: REGISTO.LANCAMENTO_GR, playerId: p.playerId, x: r.x, y: r.y }));
+  }
+
   // Sem zona (a omissão) é um toque e fica, como as ações; com a zona ligada
   // no escalão, pergunta onde perdeu a bola, como a recuperação.
   async function registarPerda(p) {
@@ -346,6 +357,7 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
       registarRemate,
       registarRecuperacao,
       registarDefesa,
+      registarLancamentoGR,
       registarPerda,
       registarPasse,
       registarPasseBarra,

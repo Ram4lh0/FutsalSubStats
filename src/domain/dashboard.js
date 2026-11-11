@@ -986,6 +986,7 @@ const REGISTOS_DO_ATLETA = [
   REGISTO.REMATE,
   REGISTO.RECUPERACAO,
   REGISTO.DEFESA_GR,
+  REGISTO.LANCAMENTO_GR,
   REGISTO.PERDA_BOLA,
   REGISTO.PASSE_FALHADO,
   REGISTO.ACAO,
@@ -1123,6 +1124,19 @@ export function defesasPorJogador(entries) {
     }))
     .filter((j) => j.defesas > 0)
     .sort((a, b) => b.defesas - a.defesas || (a.number ?? 0) - (b.number ?? 0));
+}
+
+/** Lançamentos do guarda-redes por jogador, com a média por jogo (como as defesas). */
+export function lancamentosGRPorJogador(entries) {
+  return contagemDaEpoca(entries, REGISTO.LANCAMENTO_GR)
+    .map(({ n, ...j }) => ({
+      ...j,
+      lancamentos: n,
+      porJogo: j.jogos ? n / j.jogos : 0,
+      por10: recuperacoesPor10(n, j.courtMs),
+    }))
+    .filter((j) => j.lancamentos > 0)
+    .sort((a, b) => b.lancamentos - a.lancamentos || (a.number ?? 0) - (b.number ?? 0));
 }
 
 /* ------------------------------------------------ filtro por período */

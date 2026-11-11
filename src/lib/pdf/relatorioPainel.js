@@ -35,6 +35,7 @@ import {
   bolasParadas,
   REGISTOS_BOLA_PARADA,
   defesasPorJogador,
+  lancamentosGRPorJogador,
   extrasDaEquipa,
   extrasDoAtleta,
   mapaDaEpoca,
@@ -448,6 +449,18 @@ function registosExtra(r, entries) {
       { cor: COR.info }
     );
   }
+  const lancamentosGR = lancamentosGRPorJogador(entries);
+  if (lancamentosGR.length) {
+    r.secao(t('registos.epoca.lancamentosGR'), 20);
+    r.barrasH(
+      lancamentosGR.map((j) => ({
+        rotulo: `${j.number ?? ''} ${j.name}`.trim(),
+        valor: j.lancamentos,
+        texto: t('registos.epoca.perdasDetalhe', { n: j.lancamentos, porJogo: j.porJogo.toFixed(1) }),
+      })),
+      { cor: COR.info }
+    );
+  }
   if (tipos.has(REGISTO.PERDA_BOLA)) {
     const equipa = perdasDaEpoca(entries);
     r.secao(t('registos.epoca.perdas'), 30);
@@ -531,7 +544,7 @@ function registosExtra(r, entries) {
   });
   mapasDosRegistos(r, {
     titulo: t('registos.epoca.mapa'),
-    registos: [REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.FORA],
+    registos: [REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.LANCAMENTO_GR, REGISTO.FORA],
     pontosDe: (id) => (tipos.has(id) ? mapaDaEpoca(entries, id) : []),
   });
 }
@@ -684,7 +697,7 @@ function registosDoAtleta(r, entries, atletaId) {
   }
   mapasDosRegistos(r, {
     titulo: t('registos.ext.mapaAtleta'),
-    registos: [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR],
+    registos: [REGISTO.REMATE, REGISTO.RECUPERACAO, REGISTO.PERDA_BOLA, REGISTO.DEFESA_GR, REGISTO.LANCAMENTO_GR],
     pontosDe: (id) => (por[id]?.jogos > 0 ? mapaDoAtleta(entries, id, atletaId) : []),
   });
 }

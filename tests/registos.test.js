@@ -70,7 +70,7 @@ function desfazer(ctx, alvo, now) {
 /* ------------------------------------------------------------- catálogo */
 
 test('catálogo: os registos pela ordem certa (fase 1 e remates do adversário)', () => {
-  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'livre_10m']);
+  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'lancamento_gr', 'livre_10m']);
   assert.equal(CATALOGO.fora.por, 'equipa');
   assert.equal(CATALOGO.canto.ponto, false);
 });
@@ -362,6 +362,57 @@ test('perda de bola: do jogador, zona opcional, conta no resumo e desfaz-se', as
   assert.equal(r.jogadores.find((j) => j.playerId === 'p2').perdas, 1);
 });
 
+test('lançamento do GR: só do guarda-redes, zona ligada por omissão, ponto de destino', async () => {
+  const { contagemPorJogador, COR_REGISTO } = await import('../src/domain/registos.js');
+  const { catalogoDeAddons } = await import('../src/domain/addons.js');
+  const def = CATALOGO.lancamento_gr;
+  assert.equal(def.por, 'jogador');
+  assert.ok(def.soGR && def.ponto && def.disponivel);
+  assert.deepEqual(opcoesDoRegisto(null, 'lancamento_gr'), { zona: true });
+  assert.deepEqual(opcoesDoRegisto({ registos: { lancamento_gr: { zona: false } } }, 'lancamento_gr'), { zona: false });
+  assert.ok(registosDoPainel().includes('lancamento_gr'), 'liga-se no painel');
+  const item = catalogoDeAddons().find((a) => a.id === 'lancamento_gr');
+  assert.equal(item.nome, 'Lançamentos do GR');
+  assert.deepEqual(item.opcoes.map((o) => [o.id, o.omissao]), [['zona', true]]);
+  assert.deepEqual(validarListaDeRegistos(['lancamento_gr', 'defesa_gr']).registos, ['defesa_gr', 'lancamento_gr']);
+
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const lanc = (x, y, t) => gravar(ctx, (s) => registar(s, { registo: 'lancamento_gr', playerId: 'p1', x, y }, t), t);
+  const e1 = lanc(0.55, 0.2, T0 + 2 * MIN);
+  lanc(0.3, 0.8, T0 + 3 * MIN);
+  gravar(ctx, (s) => registar(s, { registo: 'lancamento_gr', playerId: 'p1' }, T0 + 4 * MIN), T0 + 4 * MIN);
+  assert.equal(e1.metadata.x, 0.55);
+  assert.equal(e1.metadata.equipa, 'US');
+  assert.throws(() => registar(estado(ctx), { registo: 'lancamento_gr' }), 'precisa de jogador');
+
+  let st = estado(ctx);
+  let r = resumoRegistos(st, T0 + 10 * MIN);
+  assert.equal(r.lancamentosGR, 3);
+  assert.ok(r.tipos.has('lancamento_gr'));
+  assert.equal(r.jogadores.find((j) => j.playerId === 'p1').lancamentosGR, 3);
+  assert.equal(contagemPorJogador(st).get('p1').lancamento_gr, 3);
+  const pontos = marcadores(st, { registos: ['lancamento_gr'] });
+  assert.equal(pontos.length, 2, 'só os que têm zona vão para o mapa');
+  assert.equal(pontos[0].cor, COR_REGISTO.lancamento_gr);
+
+  desfazer(ctx, e1, T0 + 5 * MIN);
+  st = estado(ctx);
+  r = resumoRegistos(st, T0 + 10 * MIN);
+  assert.equal(r.lancamentosGR, 2);
+
+  // CSV: coluna própria no fim da tabela dos jogadores.
+  const { matchSummaryCsv } = await import('../src/lib/data/exporter.js');
+  const csv = matchSummaryCsv({ club: { name: 'C' }, match: { ...match, opponentName: 'X', scheduledAt: T0 }, state: st });
+  const linhas = csv.split(/\r?\n/).map((l) => l.split(';'));
+  const cab = linhas.find((l) => l.includes('Lançamentos do GR'));
+  assert.ok(cab, 'cabeçalho com os lançamentos do GR');
+  const col = cab.indexOf('Lançamentos do GR');
+  const ana = linhas.find((l) => l[1] === 'Ana');
+  assert.equal(ana[col], '2');
+  assert.equal(linhas.find((l) => l[1] === 'Bruno').length, cab.length, 'todas as linhas com as colunas todas');
+});
+
 test('remate do adversário só contado: sem jogador, resultado nem zona; desfaz-se', () => {
   const ctx = novoJogo();
   gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
@@ -641,8 +692,8 @@ test('cada registo tem nome e resultados nas três línguas', async () => {
 test('contagem por jogador para os números dos botões do cartão', async () => {
   const { contagemPorJogador } = await import('../src/domain/registos.js');
   const c = contagemPorJogador(estado(jogoComRegistos()));
-  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, perda_bola: 0, passe_falhado: 0, positivas: 0, negativas: 0 });
-  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, perda_bola: 0, passe_falhado: 0, positivas: 2, negativas: 1 });
+  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, positivas: 0, negativas: 0 });
+  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, positivas: 2, negativas: 1 });
   assert.equal(c.get('p1').defesa_gr, 1);
   assert.equal(c.has('p7'), false);
 });
