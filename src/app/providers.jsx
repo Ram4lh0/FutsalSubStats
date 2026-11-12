@@ -20,6 +20,7 @@ import { prepararOffline } from '@/lib/pwa.js';
 import PlayStoreUpdateNotice from '@/components/PlayStoreUpdateNotice.jsx';
 import FeedbackInicial from '@/components/FeedbackInicial.jsx';
 import ContactoWhatsApp from '@/components/ContactoWhatsApp.jsx';
+import AvisoConta from '@/components/AvisoConta.jsx';
 
 export default function Providers({ children }) {
   // Primeira coisa a acontecer na app, e de propósito: se um pacote novo tiver
@@ -48,6 +49,7 @@ export default function Providers({ children }) {
           <PlayStoreUpdateNotice />
           <FeedbackInicial />
           <ContactoWhatsApp />
+          <AvisoConta />
           <SyncBridge />
           <LiveChrome />
           <Idioma>{children}</Idioma>

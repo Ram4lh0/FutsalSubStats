@@ -1545,6 +1545,7 @@ export default {
   'contactoWpp.botao': 'Falar no WhatsApp',
   'contactoWpp.agoraNao': 'Agora não',
   'contactoWpp.mensagem': 'Olá! Vi a mensagem na app Futsal SubStats e podemos falar. A minha conta é {email}.',
+  'avisoConta.ok': 'Percebi',
   'feedbackRapido.abrir': 'Dar feedback',
   'feedbackRapido.titulo': 'Dar feedback',
   'feedbackRapido.pergunta': 'O que queres dizer-nos?',

@@ -1539,6 +1539,7 @@ export default {
   'contactoWpp.botao': 'Chat on WhatsApp',
   'contactoWpp.agoraNao': 'Not now',
   'contactoWpp.mensagem': "Hi! I saw the message in the Futsal SubStats app and I'm happy to talk. My account is {email}.",
+  'avisoConta.ok': 'Got it',
   'feedbackRapido.abrir': 'Send feedback',
   'feedbackRapido.titulo': 'Send feedback',
   'feedbackRapido.pergunta': 'What would you like to tell us?',

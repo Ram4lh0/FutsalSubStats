@@ -1540,6 +1540,7 @@ export default {
   'contactoWpp.botao': 'Hablar por WhatsApp',
   'contactoWpp.agoraNao': 'Ahora no',
   'contactoWpp.mensagem': '¡Hola! He visto el mensaje en la app Futsal SubStats y podemos hablar. Mi cuenta es {email}.',
+  'avisoConta.ok': 'Entendido',
   'feedbackRapido.abrir': 'Enviar opinión',
   'feedbackRapido.titulo': 'Enviar opinión',
   'feedbackRapido.pergunta': '¿Qué nos quieres decir?',
