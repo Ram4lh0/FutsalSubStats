@@ -1359,6 +1359,7 @@ export default {
   'priv.duranteQuanto': 'Durante quanto tempo',
   'priv.duranteQuantoTexto':
     'Enquanto quiseres. Não há apagamento automático — um histórico de épocas anteriores só tem valor se lá continuar.',
+  'resumo.titulares': 'Titulares',
   'priv.apagarTudo': 'Apagar tudo',
   'priv.apagarTudoAntes': 'Na página ',
   'priv.apagarTudoPagina': 'Definições',

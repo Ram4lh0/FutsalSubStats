@@ -1356,6 +1356,7 @@ export default {
   'priv.duranteQuanto': 'Durante cuánto tiempo',
   'priv.duranteQuantoTexto':
     'El que quieras. No hay borrado automático — un historial de temporadas anteriores solo vale si sigue ahí.',
+  'resumo.titulares': 'Titulares',
   'priv.apagarTudo': 'Borrar todo',
   'priv.apagarTudoAntes': 'En la página ',
   'priv.apagarTudoPagina': 'Ajustes',

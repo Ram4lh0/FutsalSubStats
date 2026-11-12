@@ -35,11 +35,13 @@ import { foulsTotal, foulsInPeriod } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
 import { temRegistos } from '@/domain/registos.js';
+import { titularesPorParte } from '@/domain/titulares.js';
 import {
   clubShort,
   opponentShort,
   dateLabel,
   positionLabel,
+  parteLabel,
   homeAwayLabel,
   sufixoDesempate,
 } from '@/lib/format.js';
@@ -130,6 +132,7 @@ function Resumo() {
     ));
   }
   const tabela = matchStatsTable(state, Date.now());
+  const titulares = titularesPorParte(state);
   const r = matchResult(state);
   // Penáltis: o jogo fica empatado, mas há um vencedor.
   const pen = state.penaltis?.kicks?.length ? resumoPenaltis(state.penaltis) : null;
@@ -586,6 +589,30 @@ function Resumo() {
             />
           ) : null}
         </div>
+
+      {titulares.length ? (
+        <>
+          <h2 className="section">{t('resumo.titulares')}</h2>
+          <div className="card">
+            <div className="goalhalves">
+              {titulares.map(({ parte, jogadores }) => (
+                <section key={parte} className="goalhalves__col">
+                  <h3 className="goalhalves__title">{parteLabel(parte)}</h3>
+                  <ul className="titulares">
+                    {jogadores.map((j) => (
+                      <li key={j.playerId} className="titulares__item">
+                        <span className="titulares__num mono">#{j.number}</span>
+                        <span className="titulares__nome">{j.name}</span>
+                        {j.position ? <span className="muted small">{positionLabel(j.position)}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : null}
 
       <div className="halftime__title">
         <h2 className="section">{t('resumo.golos')}</h2>

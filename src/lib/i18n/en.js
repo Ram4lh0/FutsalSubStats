@@ -1356,6 +1356,7 @@ export default {
   'priv.duranteQuanto': 'For how long',
   'priv.duranteQuantoTexto':
     'As long as you want. There is no automatic deletion — a history of past seasons is only worth having if it stays there.',
+  'resumo.titulares': 'Starting five',
   'priv.apagarTudo': 'Delete everything',
   'priv.apagarTudoAntes': 'On the ',
   'priv.apagarTudoPagina': 'Settings',

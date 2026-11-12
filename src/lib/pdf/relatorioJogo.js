@@ -13,8 +13,9 @@ import { amarelosAdversario, faltasPorJogador, golosPorTipoNoJogo, mediaEmCampo 
 import { foulsInPeriod, foulsTotal } from '../../domain/reducer.js';
 import { matchResult, matchStatsTable, powerPlayTotals } from '../../domain/stats.js';
 import { REGISTO, RESULTADO_REMATE, marcadores, resumoRegistos, temRegistos } from '../../domain/registos.js';
-import { clubShort, dateLabel, homeAwayLabel, opponentShort, statusLabel, sufixoDesempate, parteCurtaLabel } from '../format.js';
+import { clubShort, dateLabel, homeAwayLabel, opponentShort, statusLabel, sufixoDesempate, parteCurtaLabel, parteLabel, positionShort } from '../format.js';
 import { resumoPenaltis } from '../../domain/prolongamento.js';
+import { titularesPorParte } from '../../domain/titulares.js';
 import { t } from '../i18n/index.js';
 import { dataParaNome, nomeLimpo } from '../ficheiros.js';
 import { COR, novoRelatorio } from './base.js';
@@ -85,6 +86,24 @@ export async function gerarPdfJogo({ club, match, state, team, competition }) {
     ],
     { porLinha: pp.count ? 5 : 4 }
   );
+
+  // ------------------------------------------------------------ titulares
+  // Quem começou cada parte, lado a lado (domain/titulares.js).
+  const titulares = titularesPorParte(state);
+  if (titulares.length) {
+    r.secao(t('resumo.titulares'), 15);
+    const maxLinhas = Math.max(...titulares.map((x) => x.jogadores.length));
+    r.tabela({
+      colunas: titulares.map(({ parte }) => ({ titulo: parteLabel(parte), peso: 1 })),
+      linhas: Array.from({ length: maxLinhas }, (_, i) =>
+        titulares.map(({ jogadores }) => {
+          const j = jogadores[i];
+          if (!j) return '';
+          return `#${j.number} ${j.name}${j.position ? ` (${positionShort(j.position)})` : ''}`;
+        })
+      ),
+    });
+  }
 
   // ---------------------------------------------------------------- golos
   const nome = (id) => (id ? state.players[id]?.name || '' : '');
