@@ -396,3 +396,7 @@
   .vcontrolos__grupo:first-child .vbtn { flex: 1; }
   .vcontrolos__tempo { order: 0; text-align: left; padding-left: 4px; }
 }
+
+/* "Guardar" fecha a folha: é o botão que se procura no fim, por isso é o maior. */
+.vfolha__guardar { min-width: 110px; }
+@media (max-width: 520px) { .vfolha__fundo .vfolha__guardar { flex: 1 1 100%; order: 9; } }

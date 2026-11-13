@@ -258,6 +258,11 @@ export default function FolhaClipe({
         <button type="button" className="btn btn--ghost btn--danger btn--tiny" onClick={() => onApagar?.(clipe)}>
           {t('video.apagar')}
         </button>
+        {/* Já está tudo gravado a cada toque; o botão é a saída óbvia: fecha a
+            folha (e grava a nota que ainda estivesse a ser escrita). */}
+        <button type="button" className="btn btn--primary btn--tiny vfolha__guardar" onClick={fechar}>
+          {t('comum.guardar')}
+        </button>
       </footer>
       </>
       )}
