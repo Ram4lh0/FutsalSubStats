@@ -20,6 +20,7 @@ import { uid } from '../../domain/actions.js';
 import { compararEscaloes } from '../../domain/escaloes.js';
 import { buildMatchState } from '../../domain/reducer.js';
 import { registadoPorOutro } from '../../domain/aoVivo.js';
+import { ePartilhado, levaHora } from '../../domain/partilha.js';
 import {
   LOCATION,
   EVENT,
@@ -771,7 +772,17 @@ export const events = {
     const existing = await events.listByMatch(event.matchId);
     if (existing.some((e) => e.clientEventId === event.clientEventId)) return null;
     const seq = existing.reduce((m, e) => Math.max(m, e.seq || 0), 0) + 1;
-    const row = { ...event, seq, syncedAt: null };
+    // Jogo com registo partilhado: os eventos do relógio e os registos levam a
+    // hora real deste aparelho. A que o servidor guarda é a do envio, e é pela
+    // hora real que a fusão põe cada registo no minuto certo.
+    const comHora =
+      levaHora(event.eventType) && event.metadata?.hora == null && ePartilhado(existing);
+    const row = {
+      ...event,
+      ...(comHora ? { metadata: { ...(event.metadata || {}), hora: event.createdAt ?? now() } } : {}),
+      seq,
+      syncedAt: null,
+    };
     await db.put(db.STORES.matchEvents, row);
     if (syncMode !== 'defer') notifyLocalChange();
     return row;

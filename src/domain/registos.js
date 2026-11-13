@@ -28,6 +28,7 @@
 import { makeEvent } from './actions.js';
 import { EVENT } from './constants.js';
 import { matchStatsTable } from './stats.js';
+import { fusaoEmVigor } from './partilha.js';
 
 /** Versão da forma do `metadata`. Sobe só se um campo mudar de significado. */
 export const VERSAO = 1;
@@ -539,13 +540,22 @@ function lerRegisto(ev) {
  *  - com as correções aplicadas, pela ordem em que foram feitas;
  *  - sem os remates `GOLO` cujo golo foi desfeito ou tirado;
  *  - sem registos que esta versão não conheça (os da fase 2 e seguintes).
+ *  - sem os registos copiados por uma fusão que não esteja em vigor (jogo
+ *    com registo partilhado).
  */
 export function registosDoJogo(state) {
   const evs = state?.events || [];
   const porId = new Map();
+  // Jogo partilhado (domain/partilha.js): um registo copiado por uma fusão só
+  // conta enquanto essa fusão estiver em vigor.
+  let emVigor;
   for (const ev of evs) {
     if (ev.eventType !== EVENT.STAT_RECORDED) continue;
     if (!eRegistoConhecido(ev.metadata?.registo)) continue;
+    if (ev.metadata?.fusao) {
+      if (emVigor === undefined) emVigor = fusaoEmVigor(evs);
+      if (Number(ev.metadata.fusao.n) !== emVigor) continue;
+    }
     porId.set(ev.id, lerRegisto(ev));
   }
   if (!porId.size) return [];
