@@ -466,6 +466,9 @@ function Resumo() {
         </div>
       ) : null}
 
+      {/* Jogo com registo partilhado: no topo, o papel, se já subiu, e o "Juntar". */}
+      <FaixaPartilhado matchId={matchId} events={dados.events} state={state} aoMudar={() => carregar()} />
+
       <PageHead
         title={`${clubShort(club)} ${state.teamScore} — ${state.opponentScore} ${opponentShort(match)}${sufixoDesempate(state)}`}
         subtitle={[
@@ -540,9 +543,6 @@ function Resumo() {
           </div>
         }
       />
-
-      {/* Jogo com registo partilhado: o papel, se já subiu, e o "Juntar". */}
-      <FaixaPartilhado matchId={matchId} events={dados.events} state={state} aoMudar={() => carregar()} />
 
       <div className="tour-page-scope" data-tour="match-summary">
         <div className="grid grid--stats">

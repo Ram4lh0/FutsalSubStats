@@ -62,7 +62,7 @@
 .regultimo__texto { min-width: 0; line-height: 1.4; }
 
 .regcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
-.regcard { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: grid; gap: 8px; align-content: start; }
+.regcard { min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: grid; gap: 8px; align-content: start; }
 .regcard__quem { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .regcard__num {
   flex: none; min-width: 44px; height: 44px; padding: 0 6px; border-radius: 12px; display: grid; place-items: center;
@@ -70,10 +70,10 @@
   background: var(--primary); color: var(--primary-ink);
 }
 .regcard__nome { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.regcard__botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.regcard__botoes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
 .regcard__btn {
-  display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: var(--touch);
-  padding: 6px 10px; border-radius: 10px; font-size: 0.85rem; font-weight: 700; text-align: left; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: var(--touch); min-width: 0;
+  padding: 6px 8px; line-height: 1.15; border-radius: 10px; font-size: 0.85rem; font-weight: 700; text-align: left; cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.05); color: var(--text);
   user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }

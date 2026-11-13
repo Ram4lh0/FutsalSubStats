@@ -59,8 +59,9 @@ export default function MatchList({ entries, competitions = [], backPath, limit 
               <td className="mono">{dayLabel(match.scheduledAt)}</td>
               <td>{match.opponentName}</td>
               <td className="num mono">
+                {/* O jogo dos Registos não tem resultado: esse é do jogo dos Tempos. */}
                 <span className={r === 'W' ? 'res res--w' : r === 'L' ? 'res res--l' : r ? 'res res--d' : ''}>
-                  {state.teamScore}–{state.opponentScore}
+                  {partilha.papel === PAPEL.REGISTOS ? '—' : `${state.teamScore}–${state.opponentScore}`}
                 </span>
                 {sufixoDesempate(state) ? <span className="muted small">{sufixoDesempate(state)}</span> : null}
               </td>
