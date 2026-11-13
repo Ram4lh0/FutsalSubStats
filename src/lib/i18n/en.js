@@ -2035,6 +2035,7 @@ export default {
   "registos.nome.livre_10m": "10m free kick",
   "registos.total.livre_10m": "10m free kicks",
   "registos.quemFalhouPasse": "Who missed the pass?",
+  "registos.quemRematou": "Who took the shot?",
   "registos.quemBateuPenalti": "Who took the penalty?",
   "registos.penaltiDe": "Penalty by #{numero} {nome}",
   "registos.penaltiAdvDe": "Opponent penalty — {equipa}",

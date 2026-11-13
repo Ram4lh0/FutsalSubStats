@@ -7,8 +7,8 @@
 //
 // Cada célula é um contador "− n +": o "+" regista (com as perguntas que o
 // escalão pedir), o "−" tira o último registo desse tipo, para um engano (ver
-// `tirarUltimo`). Uma célula só com o número é informação que se regista
-// noutro sítio (os nossos remates, nos cartões dos jogadores).
+// `tirarUltimo`). Os nossos remates também se somam aqui: o "+" pergunta
+// primeiro quem rematou, dos que estão em campo.
 //
 // No telemóvel a grelha vira-se: uma linha por registo e as colunas nós e
 // eles, para caber sem deslizar. São as mesmas células, desenhadas duas vezes
@@ -51,7 +51,9 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
   const colunas = [
     (ligados.has(REGISTO.REMATE) || ligados.has(REGISTO.REMATE_ADV)) && {
       id: 'remates',
-      US: ligados.has(REGISTO.REMATE) ? { valor: r.remates } : null,
+      US: ligados.has(REGISTO.REMATE)
+        ? contador(REGISTO.REMATE, r.remates, on.registarRemateBarra)
+        : null,
       THEM: ligados.has(REGISTO.REMATE_ADV)
         ? contador(REGISTO.REMATE_ADV, r.rematesAdv, on.registarRemateAdv)
         : null,

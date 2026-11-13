@@ -123,6 +123,13 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     await commit(registar(state, dados));
   }
 
+  /** O remate nosso da barra de cima: primeiro quem rematou, dos que estão em campo. */
+  async function registarRemateBarra() {
+    const playerId = await pickPlayer(ui, state, t('registos.quemRematou'));
+    if (!playerId || !state.players[playerId]) return;
+    await registarRemate(state.players[playerId]);
+  }
+
   async function registarRecuperacao(p) {
     const r = await perguntar(REGISTO.RECUPERACAO, { titulo: t('registos.recuperacaoDe', quem(p)) });
     if (!r) return;
@@ -355,6 +362,7 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     ligados,
     on: {
       registarRemate,
+      registarRemateBarra,
       registarRecuperacao,
       registarDefesa,
       registarLancamentoGR,

@@ -2136,6 +2136,7 @@ export default {
   "registos.nome.livre_10m": "Livre de 10m",
   "registos.total.livre_10m": "Livres de 10m",
   "registos.quemFalhouPasse": "Quem falhou o passe?",
+  "registos.quemRematou": "Quem rematou?",
   "registos.quemBateuPenalti": "Quem bateu o penálti?",
   "registos.penaltiDe": "Penálti de #{numero} {nome}",
   "registos.penaltiAdvDe": "Penálti do adversário — {equipa}",
