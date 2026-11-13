@@ -1283,6 +1283,12 @@ export default {
   'novo.posicoesPreenchidas':
     '{n} de 5 posições preenchidas. Os restantes {banco} convocados começam no banco.',
   'novo.continuar': 'Continuar',
+  'novo.numerosDoJogo': 'Números neste jogo',
+  'novo.numerosDoJogoAjuda': 'Só mudam neste jogo; o número no plantel fica como está.',
+  'novo.confirmarNumeros': 'Confirmar números e continuar',
+  'novo.continuarEditarNumeros': 'Continuar e editar números',
+  'novo.numeroInvalido': '{nome} precisa de um número entre 0 e 99.',
+  'novo.numeroRepetido': 'O número {n} está repetido.',
 
   /* ---------------------------------------------------------- servidor */
   'auth.semServidor': 'A app não está ligada a nenhum servidor.',

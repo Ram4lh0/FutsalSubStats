@@ -121,12 +121,14 @@ function Preparacao() {
   // Um jogador inativo que já esteja convocado continua a aparecer: tirá-lo da
   // lista escondia uma convocatória feita antes de ele ser desativado.
   const elegiveis = roster.filter((p) => p.isActive || escolhidos.includes(p.id));
+  // O número de camisola deste jogo (pode diferir do plantel) fica como foi escolhido.
+  const numeroNoJogo = (p) => state.players[p.id]?.number ?? p.shirtNumber;
   const candidatos = elegiveis
     .filter((p) => escolhidos.includes(p.id))
     .map((p) => ({
       playerId: p.id,
       name: p.name,
-      number: p.shirtNumber,
+      number: numeroNoJogo(p),
       preferredPosition: p.preferredPosition,
     }));
 
@@ -216,7 +218,7 @@ function Preparacao() {
         .map((p) => ({
           playerId: p.id,
           playerNameSnapshot: p.name,
-          shirtNumberSnapshot: p.shirtNumber,
+          shirtNumberSnapshot: numeroNoJogo(p),
           preferredPosition: p.preferredPosition,
           initialPosition: inverso[p.id] || null,
           initialLocation: inverso[p.id] ? LOCATION.COURT : LOCATION.BENCH,
@@ -385,7 +387,7 @@ function Preparacao() {
                 if (!arraste.acabouDeArrastar()) alternar(p);
               }}
             >
-              <span className="pick__num">{p.shirtNumber}</span>
+              <span className="pick__num">{numeroNoJogo(p)}</span>
               <span className="pick__name">{p.name}</span>
               <span className="pick__pos">{positionLabel(p.preferredPosition)}</span>
             </button>

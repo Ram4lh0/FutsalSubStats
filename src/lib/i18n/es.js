@@ -1280,6 +1280,12 @@ export default {
   'novo.posicoesPreenchidas':
     '{n} de 5 posiciones cubiertas. Los otros {banco} convocados empiezan en el banquillo.',
   'novo.continuar': 'Continuar',
+  'novo.numerosDoJogo': 'Números en este partido',
+  'novo.numerosDoJogoAjuda': 'Solo cambian en este partido; el número de la plantilla no cambia.',
+  'novo.confirmarNumeros': 'Confirmar números y continuar',
+  'novo.continuarEditarNumeros': 'Continuar y editar números',
+  'novo.numeroInvalido': '{nome} necesita un número entre 0 y 99.',
+  'novo.numeroRepetido': 'El número {n} está repetido.',
 
   /* ---------------------------------------------------------- servidor */
   'auth.semServidor': 'La app no está conectada a ningún servidor.',

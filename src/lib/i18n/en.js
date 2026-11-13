@@ -1280,6 +1280,12 @@ export default {
   'novo.posicoesPreenchidas':
     '{n} of 5 positions filled. The other {banco} called up start on the bench.',
   'novo.continuar': 'Continue',
+  'novo.numerosDoJogo': 'Numbers for this match',
+  'novo.numerosDoJogoAjuda': 'They only change for this match; the squad number stays as it is.',
+  'novo.confirmarNumeros': 'Confirm numbers and continue',
+  'novo.continuarEditarNumeros': 'Continue and edit numbers',
+  'novo.numeroInvalido': '{nome} needs a number between 0 and 99.',
+  'novo.numeroRepetido': 'Number {n} is repeated.',
 
   /* ------------------------------------------------------------- server */
   'auth.semServidor': 'The app is not connected to any server.',

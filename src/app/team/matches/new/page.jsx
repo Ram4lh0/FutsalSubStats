@@ -86,6 +86,11 @@ function Assistente() {
   const [escolhidos, setEscolhidos] = useState([]);
   const [lineup, setLineup] = useState({});
   const [procura, setProcura] = useState('');
+  // Números de camisola só para este jogo (o plantel não muda): equipamentos do
+  // clube partilhados, em que o número depende de quem é convocado.
+  const [numeros, setNumeros] = useState({});
+  const [editandoNumeros, setEditandoNumeros] = useState(false);
+  const [rascunhoNumeros, setRascunhoNumeros] = useState({});
 
   useEffect(() => {
     setGuidedTutorialStepById(['match', 'matchSquad', 'matchLineup', 'matchConfirm'][etapa]);
@@ -108,9 +113,13 @@ function Assistente() {
     })();
   }, [clubId, teamId]);
 
+  const rosterJogo = useMemo(
+    () => (roster || []).map((p) => (numeros[p.id] != null ? { ...p, shirtNumber: numeros[p.id] } : p)),
+    [roster, numeros]
+  );
   const candidatos = useMemo(
     () =>
-      (roster || [])
+      rosterJogo
         .filter((p) => escolhidos.includes(p.id))
         .map((p) => ({
           playerId: p.id,
@@ -118,7 +127,7 @@ function Assistente() {
           number: p.shirtNumber,
           preferredPosition: p.preferredPosition,
         })),
-    [roster, escolhidos]
+    [rosterJogo, escolhidos]
   );
   const provaEscolhida = provas.find((c) => c.id === info.competitionId) || null;
   const limiteConvocados = maxSquadOf(provaEscolhida);
@@ -268,7 +277,7 @@ function Assistente() {
 
       await squad.replace(
         jogo.id,
-        roster
+        rosterJogo
           .filter((p) => escolhidos.includes(p.id))
           .map((p) => ({
             playerId: p.id,
@@ -476,6 +485,7 @@ function Assistente() {
 
         {etapa === 1 ? (
           <div className="card" data-tour="match-squad">
+            <div hidden={editandoNumeros}>
             <div className="toolbar">
               <input
                 className="input input--search"
@@ -490,7 +500,7 @@ function Assistente() {
             </div>
 
             <div className="pickgrid" {...arraste.grelha}>
-              {roster
+              {rosterJogo
                 .filter(
                   (p) =>
                     !procura ||
@@ -513,13 +523,91 @@ function Assistente() {
                   </button>
                 ))}
             </div>
+            </div>
 
-            {nav(t('comum.voltar'), t('novo.continuar'), async () => {
-              const erro = validateSquadSelection(escolhidos, limiteConvocados);
-              if (erro) return toast(mensagemErro(erro), 'error');
-              if (!(await confirmarPoucosConvocados(confirmar, escolhidos.length))) return;
-              setEtapa(2);
-            })}
+            {editandoNumeros ? (
+              <>
+                <h3 className="section section--tight">{t('novo.numerosDoJogo')}</h3>
+                <p className="muted">{t('novo.numerosDoJogoAjuda')}</p>
+                <div className="pickgrid">
+                  {rosterJogo
+                    .filter((p) => escolhidos.includes(p.id))
+                    .map((p) => (
+                      <label key={p.id} className="pick pick--editar">
+                        <input
+                          className="input pick__num"
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={99}
+                          value={rascunhoNumeros[p.id] ?? ''}
+                          onChange={(e) => setRascunhoNumeros((r) => ({ ...r, [p.id]: e.target.value }))}
+                        />
+                        <span className="pick__name">{p.name}</span>
+                        <span className="pick__pos">{positionLabel(p.preferredPosition)}</span>
+                      </label>
+                    ))}
+                </div>
+                <div className="wizard__nav">
+                  <button className="btn btn--ghost" type="button" onClick={() => setEditandoNumeros(false)}>
+                    {t('comum.voltar')}
+                  </button>
+                  <button
+                    className="btn btn--manual"
+                    type="button"
+                    onClick={() => {
+                      const novos = {};
+                      const vistos = new Set();
+                      for (const p of rosterJogo.filter((x) => escolhidos.includes(x.id))) {
+                        const n = Number(rascunhoNumeros[p.id]);
+                        if (rascunhoNumeros[p.id] === '' || !Number.isInteger(n) || n < 0 || n > 99) {
+                          return toast(t('novo.numeroInvalido', { nome: p.name }), 'error');
+                        }
+                        if (vistos.has(n)) return toast(t('novo.numeroRepetido', { n }), 'error');
+                        vistos.add(n);
+                        novos[p.id] = n;
+                      }
+                      setNumeros((atual) => ({ ...atual, ...novos }));
+                      setEditandoNumeros(false);
+                      setEtapa(2);
+                    }}
+                  >
+                    {t('novo.confirmarNumeros')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="wizard__nav">
+                <button className="btn btn--ghost" type="button" onClick={() => setEtapa(0)}>
+                  {t('comum.voltar')}
+                </button>
+                <button
+                  className="btn btn--manual"
+                  type="button"
+                  onClick={async () => {
+                    const erro = validateSquadSelection(escolhidos, limiteConvocados);
+                    if (erro) return toast(mensagemErro(erro), 'error');
+                    if (!(await confirmarPoucosConvocados(confirmar, escolhidos.length))) return;
+                    setRascunhoNumeros(Object.fromEntries(rosterJogo.filter((p) => escolhidos.includes(p.id)).map((p) => [p.id, String(p.shirtNumber)])));
+                    setEditandoNumeros(true);
+                  }}
+                >
+                  {t('novo.continuarEditarNumeros')}
+                </button>
+                <button
+                  className="btn btn--primary"
+                  type="button"
+                  onClick={async () => {
+                    const erro = validateSquadSelection(escolhidos, limiteConvocados);
+                    if (erro) return toast(mensagemErro(erro), 'error');
+                    if (!(await confirmarPoucosConvocados(confirmar, escolhidos.length))) return;
+                    setEtapa(2);
+                  }}
+                >
+                  {t('novo.continuar')}
+                </button>
+              </div>
+            )}
           </div>
         ) : null}
 
@@ -546,7 +634,7 @@ function Assistente() {
             competicaoNome={provas.find((c) => c.id === info.competitionId)?.name}
             info={info}
             lineup={lineup}
-            escolhidos={roster.filter((p) => escolhidos.includes(p.id))}
+            escolhidos={rosterJogo.filter((p) => escolhidos.includes(p.id))}
             aGuardar={aGuardar}
             onVoltar={() => setEtapa(2)}
             onGuardar={guardar}
