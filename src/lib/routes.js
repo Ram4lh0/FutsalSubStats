@@ -122,7 +122,12 @@ export const rotas = {
     const base = comIds('/team/video', { club, team });
     return vista ? `${base}${base.includes('?') ? '&' : '?'}vista=${vista}` : base;
   },
-  analiseVideo: (club, team, video) => comIds('/team/video/analysis', { club, team, video }),
+  // `inicioSeg` é o `&t=` do link que o treinador colou: a análise abre nesse
+  // segundo. Vai como `inicio` — `t` já é o escalão (ver PARAM).
+  analiseVideo: (club, team, video, inicioSeg = 0) => {
+    const base = comIds('/team/video/analysis', { club, team, video });
+    return inicioSeg > 0 ? `${base}&inicio=${Math.floor(inicioSeg)}` : base;
+  },
   sessaoVideo: (club, team, videoSession) =>
     comIds('/team/video/session', { club, team, videoSession }),
   jogadorVideo: (club, team, player) => comIds('/team/video/player', { club, team, player }),

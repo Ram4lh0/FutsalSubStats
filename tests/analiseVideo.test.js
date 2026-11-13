@@ -46,6 +46,7 @@ import {
   videoTalkMapper,
 } from '../src/lib/data/mappers.js';
 import pt from '../src/lib/i18n/pt.js';
+import { PARAM, rotas } from '../src/lib/routes.js';
 
 const ID = 'pEZLkEneQPE';
 
@@ -445,4 +446,14 @@ test('"já falámos" marca e desmarca sem apagar a linha', async () => {
   assert.equal(desmarcada.talkedAt, null);
   assert.equal((await conversas.listByTeam('equipa-3')).length, 1);
   assert.equal(await conversas.marcar(clipe, 'p9', false), null, 'desmarcar o que nunca foi marcado não cria nada');
+});
+
+test('o tempo do link colado não colide com os ids na barra de endereço', () => {
+  const url = new URL(rotas.analiseVideo('clube', 'escalao', 'video', 262.7), 'https://x');
+  assert.equal(url.searchParams.get(PARAM.team), 'escalao');
+  assert.equal(url.searchParams.getAll(PARAM.team).length, 1);
+  assert.equal(url.searchParams.get(PARAM.video), 'video');
+  assert.equal(url.searchParams.get('inicio'), '262');
+  assert.equal(new URL(rotas.analiseVideo('c', 'e', 'v'), 'https://x').searchParams.has('inicio'), false);
+  assert.ok(!Object.values(PARAM).includes('inicio'));
 });

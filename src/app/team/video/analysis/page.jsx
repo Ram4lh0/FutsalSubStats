@@ -81,8 +81,8 @@ function Analise({ clubId, teamId, videoId }) {
   const soLeitura = useSoLeitura(teamId);
   const dados = useDadosVideo(teamId);
   const fotos = useFotosDoEscalao(teamId);
-  // O `&t=` do link colado: a análise abre onde o treinador a queria.
-  const inicioSeg = Number(useSearchParams().get('t')) || 0;
+  // O tempo do link colado: a análise abre onde o treinador a queria.
+  const inicioSeg = Number(useSearchParams().get('inicio')) || 0;
 
   const [plantel, setPlantel] = useState([]);
   const [jogos, setJogos] = useState([]);

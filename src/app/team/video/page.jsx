@@ -82,8 +82,7 @@ function Lista({ clubId, teamId, plantel }) {
   async function nova() {
     const resposta = await ui.open((close) => <NovaAnalise teamId={teamId} jogos={jogos} onFechar={close} />);
     if (!resposta) return;
-    const destino = rotas.analiseVideo(clubId, teamId, resposta.analise.id);
-    router.push(resposta.inicioSeg ? `${destino}&t=${resposta.inicioSeg}` : destino);
+    router.push(rotas.analiseVideo(clubId, teamId, resposta.analise.id, resposta.inicioSeg));
   }
 
   async function novaSessao() {
