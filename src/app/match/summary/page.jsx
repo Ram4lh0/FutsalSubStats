@@ -51,6 +51,8 @@ import { useT } from '@/lib/i18n/index.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import { emDemo, limparDemo, iniciarDemo } from '@/lib/demo.js';
 import FeedbackDemo from '@/components/FeedbackDemo.jsx';
+import FaixaPartilhado from '@/components/partilhado/FaixaPartilhado.jsx';
+import { PAPEL, lerPartilha } from '@/domain/partilha.js';
 
 export default function SummaryPage() {
   return (
@@ -78,13 +80,18 @@ function Resumo() {
   const carregar = useCallback(async () => {
     const carregado = await loadMatch(matchId);
     if (!carregado) return setDados({ vazio: true });
+    // Jogo com registo partilhado, papel Registos: tem o seu próprio ecrã.
+    if (lerPartilha(carregado.events).papel === PAPEL.REGISTOS) {
+      router.replace(rotas.jogoRegistos(matchId));
+      return;
+    }
     const [club, team, prova] = await Promise.all([
       clubs.get(carregado.match.clubId),
       teams.get(carregado.match.teamId),
       carregado.match.competitionId ? competitions.get(carregado.match.competitionId) : null,
     ]);
     setDados({ ...carregado, club, team, competition: prova });
-  }, [matchId]);
+  }, [matchId, router]);
 
   useEffect(() => {
     carregar();
@@ -533,6 +540,9 @@ function Resumo() {
           </div>
         }
       />
+
+      {/* Jogo com registo partilhado: o papel, se já subiu, e o "Juntar". */}
+      <FaixaPartilhado matchId={matchId} events={dados.events} state={state} aoMudar={() => carregar()} />
 
       <div className="tour-page-scope" data-tour="match-summary">
         <div className="grid grid--stats">

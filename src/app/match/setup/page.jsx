@@ -16,6 +16,7 @@ import { confirmarPoucosConvocados } from '@/lib/squad.js';
 import { linkLimpo } from '@/lib/convocatoria.js';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
+import { PAPEL, lerPartilha } from '@/domain/partilha.js';
 import { clubs, teams, competitions, players, matches, squad, events, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { startFirstHalf } from '@/domain/actions.js';
@@ -61,6 +62,11 @@ function Preparacao() {
       const carregado = await loadMatch(matchId);
       if (!carregado) return setDados({ vazio: true });
       const { match, state } = carregado;
+
+      // Jogo com registo partilhado, papel Registos: não tem cinco nem relógio.
+      if (lerPartilha(carregado.events).papel === PAPEL.REGISTOS) {
+        return router.replace(rotas.jogoRegistos(matchId));
+      }
 
       if (state.status !== MATCH_STATUS.DRAFT && state.status !== MATCH_STATUS.READY) {
         return router.replace(

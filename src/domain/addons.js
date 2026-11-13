@@ -93,6 +93,14 @@ export const ADDONS = {
     grupo: 'jogo',
     nome: 'Golo de ressalto',
   },
+  // "Registo partilhado" ao criar um jogo: duas pessoas, dois aparelhos, um
+  // regista os tempos e o outro os registos, e no fim juntam-se num jogo só
+  // (botão "Juntar" no resumo). Ver domain/partilha.js. Um jogo criado como
+  // partilhado continua a sê-lo mesmo que o add-on se desligue depois.
+  'jogo-partilhado': {
+    grupo: 'jogo',
+    nome: 'Jogo com registo partilhado (Tempos + Registos)',
+  },
 };
 
 /* ----------------------------------------------------------------- leitura */

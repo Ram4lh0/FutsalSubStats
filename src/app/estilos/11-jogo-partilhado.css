@@ -1,0 +1,96 @@
+/* Jogo com registo partilhado (add-on 'jogo-partilhado'): a escolha do papel
+   ao criar o jogo, o ecrã do papel Registos, a faixa do "Juntar" e a janela
+   de juntar. */
+
+.badge--partilha { color: #c4b5fd; border-color: rgba(167, 139, 250, 0.5); background: rgba(167, 139, 250, 0.1); }
+
+/* ------------------------------------------------- criar o jogo: o papel */
+.partilha { border: 1px dashed var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; justify-items: start; }
+.partilha.is-on { border-style: solid; border-color: rgba(167, 139, 250, 0.55); background: rgba(167, 139, 250, 0.06); }
+.partilha > p { margin: 0; }
+.partilha__papeis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.partilha__papel {
+  display: grid; gap: 4px; text-align: left; padding: 12px 14px; min-height: var(--touch);
+  background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; color: var(--text); cursor: pointer;
+}
+.partilha__papel strong { font-size: 1rem; }
+.partilha__papel span { color: var(--muted); font-size: 0.82rem; line-height: 1.35; }
+.partilha__papel.is-on { border-color: var(--primary); background: rgba(34, 197, 94, 0.1); }
+@media (max-width: 560px) {
+  .partilha__papeis { grid-template-columns: 1fr; }
+}
+
+/* -------------------------------------------------- a faixa do "Juntar" */
+.faixa-partilha {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 12px 14px; margin-bottom: 16px; border-radius: 14px;
+  border: 1px solid rgba(167, 139, 250, 0.45); background: rgba(167, 139, 250, 0.07);
+}
+.faixa-partilha--aviso { border-color: rgba(245, 158, 11, 0.6); background: rgba(245, 158, 11, 0.08); }
+.faixa-partilha__info { display: flex; align-items: center; gap: 10px; flex: 1 1 260px; min-width: 0; line-height: 1.4; }
+.faixa-partilha__info .badge { margin-left: 0; flex: none; }
+.faixa-partilha__acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ------------------------------------------------ a janela de juntar */
+.juntar__item { flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; color: var(--text); }
+.juntar__item:disabled { opacity: 0.6; cursor: not-allowed; }
+.juntar__itemtopo { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.juntar__motivo { color: var(--warn); font-size: 0.85rem; font-weight: 600; }
+.juntar__lados { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.juntar__lado { background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.juntar__lado h3 { margin: 0 0 6px; font-size: 0.95rem; color: #c4b5fd; }
+.juntar__lado p { margin: 0 0 4px; }
+.juntar__tipos { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; font-size: 0.88rem; }
+.juntar__tipos li { display: flex; justify-content: space-between; gap: 10px; }
+.juntar__aviso {
+  margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; font-size: 0.88rem; line-height: 1.4;
+  border: 1px solid rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.08);
+}
+.juntar__erro {
+  margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; font-size: 0.9rem;
+  border: 1px solid rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.08);
+}
+@media (max-width: 560px) {
+  .juntar__lados { grid-template-columns: 1fr; }
+}
+
+/* ------------------------------------------------ o ecrã dos Registos */
+.regultimo {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin: 12px 0; padding: 8px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line);
+}
+.regultimo__texto { min-width: 0; line-height: 1.4; }
+
+.regcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.regcard { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: grid; gap: 8px; align-content: start; }
+.regcard__quem { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.regcard__num {
+  flex: none; min-width: 44px; height: 44px; padding: 0 6px; border-radius: 12px; display: grid; place-items: center;
+  font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  background: var(--primary); color: var(--primary-ink);
+}
+.regcard__nome { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.regcard__botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.regcard__btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: var(--touch);
+  padding: 6px 10px; border-radius: 10px; font-size: 0.85rem; font-weight: 700; text-align: left; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.05); color: var(--text);
+  user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.regcard__btn b {
+  flex: none; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center;
+  font-size: 0.8rem; background: rgba(255, 255, 255, 0.1); font-variant-numeric: tabular-nums;
+}
+.regcard__btn:hover { background: rgba(255, 255, 255, 0.1); }
+.regcard__btn:active { transform: scale(0.97); }
+.regcard__btn--remate { border-color: rgba(56, 189, 248, 0.6); }
+.regcard__btn--recup { border-color: rgba(244, 114, 182, 0.6); }
+.regcard__btn--perda { border-color: rgba(251, 146, 60, 0.75); }
+.regcard__btn--passe { border-color: rgba(250, 204, 21, 0.75); }
+.regcard__btn--defesa { border-color: rgba(250, 204, 21, 0.7); }
+.regcard__btn--lanc { border-color: rgba(34, 211, 238, 0.7); }
+.regcard__btn--positiva { border-color: rgba(34, 197, 94, 0.75); color: #4ade80; }
+.regcard__btn--negativa { border-color: rgba(239, 68, 68, 0.75); color: #f87171; }
+@media (max-width: 560px) {
+  .regcards { grid-template-columns: 1fr; }
+}

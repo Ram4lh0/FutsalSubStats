@@ -6,7 +6,7 @@
 // grava um evento e o estado é recalculado a partir de todos os eventos. É o que
 // permite desfazer, corrigir e sobreviver a um recarregamento a meio.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
@@ -79,8 +79,13 @@ import useAddons from '@/lib/useAddons.js';
 import useEnviarAoVivo from '@/lib/useEnviarAoVivo.js';
 import { deveAssistir } from '@/lib/aoVivo.js';
 import { ADDON_AO_VIVO } from '@/domain/aoVivo.js';
+import { PAPEL, lerPartilha } from '@/domain/partilha.js';
+import { jogoSincronizado } from '@/lib/partilhado.js';
 
 const OWN_GOAL = '__OWN_GOAL__';
+
+/** Nenhum registo ligado (o papel Tempos de um jogo partilhado). */
+const SEM_REGISTOS = Object.assign(new Set(), { opcoes: {} });
 
 export default function LivePage() {
   return (
@@ -122,7 +127,12 @@ function Live() {
   // nenhum, o ecrã fica exactamente como sempre. Os handlers vivem num hook
   // próprio; `commit` e `scoreFor` são declarados mais abaixo e só se chamam
   // depois de o ecrã estar desenhado.
-  const ligados = useRegistos(match?.teamId);
+  const ligadosDoEscalao = useRegistos(match?.teamId);
+  // Jogo com registo partilhado, papel Tempos: os registos fazem-se no outro
+  // aparelho, por isso aqui não há botões deles. Golos, cartões, faltas (e o
+  // livre de 10 m que vem com elas) ficam, que é deste papel que sai o resultado.
+  const papel = useMemo(() => lerPartilha(carregado?.events).papel, [carregado]);
+  const ligados = papel === PAPEL.TEMPOS ? SEM_REGISTOS : ligadosDoEscalao;
   const registos = useAcoesRegistos({
     state,
     ligados,
@@ -1120,6 +1130,10 @@ function Live() {
       { sync: 'defer' }
     );
     await sync.saveNow(userId, user?.email);
+    // Jogo com registo partilhado: só se junta depois de chegar ao servidor.
+    if (papel && !(await jogoSincronizado(matchId))) {
+      toast(t('partilhado.faixa.porSincronizar'), 'error', 6000);
+    }
     setGuidedTutorialStepById('summary');
     router.push(rotas.jogoResumo(matchId));
   }

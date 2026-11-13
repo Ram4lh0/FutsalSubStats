@@ -39,6 +39,8 @@ import { canCreateMatch } from '@/lib/entitlements.js';
 import LicenseLimitDialog from '@/components/LicenseLimitDialog.jsx';
 import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 import useSelecaoArraste from '@/lib/selecaoArraste.js';
+import useAddons from '@/lib/useAddons.js';
+import { ADDON_PARTILHADO, PAPEL, metadataDeCriacao } from '@/domain/partilha.js';
 
 function textoPesquisavel(valor) {
   return String(valor ?? '')
@@ -91,6 +93,14 @@ function Assistente() {
   const [numeros, setNumeros] = useState({});
   const [editandoNumeros, setEditandoNumeros] = useState(false);
   const [rascunhoNumeros, setRascunhoNumeros] = useState({});
+  // Jogo com registo partilhado (add-on 'jogo-partilhado'): este aparelho
+  // regista só os tempos ou só os registos, e no fim os dois jogos juntam-se.
+  const addons = useAddons(teamId);
+  const [partilhado, setPartilhado] = useState(false);
+  const [papel, setPapel] = useState(null);
+  const papelDoJogo = partilhado && addons.has(ADDON_PARTILHADO) ? papel : null;
+  // Quem só regista não escolhe o cinco inicial: não tem campo nem banco.
+  const semCinco = papelDoJogo === PAPEL.REGISTOS;
 
   useEffect(() => {
     setGuidedTutorialStepById(['match', 'matchSquad', 'matchLineup', 'matchConfirm'][etapa]);
@@ -273,7 +283,7 @@ function Assistente() {
       });
 
       const inverso = {};
-      for (const [pos, pid] of Object.entries(lineup)) if (pid) inverso[pid] = pos;
+      if (!semCinco) for (const [pos, pid] of Object.entries(lineup)) if (pid) inverso[pid] = pos;
 
       await squad.replace(
         jogo.id,
@@ -289,18 +299,20 @@ function Assistente() {
           }))
       );
 
-      await events.append(
-        matchCreated({
-          matchId: jogo.id,
-          currentPeriod: 0,
-          timerStatus: 'STOPPED',
-          timerStartedAt: null,
-          elapsedMatchMs: 0,
-          periodElapsedMs: 0,
-          teamScore: 0,
-          opponentScore: 0,
-        })
-      );
+      const criado = matchCreated({
+        matchId: jogo.id,
+        currentPeriod: 0,
+        timerStatus: 'STOPPED',
+        timerStartedAt: null,
+        elapsedMatchMs: 0,
+        periodElapsedMs: 0,
+        teamScore: 0,
+        opponentScore: 0,
+      });
+      // O papel vai no próprio evento de criação: é ele que diz, em qualquer
+      // aparelho, que este jogo é partilhado e o que se regista nele.
+      if (papelDoJogo) criado.metadata = metadataDeCriacao(papelDoJogo);
+      await events.append(criado);
 
       if (modo === 'manual') {
         await registarJaJogado(jogo.id);
@@ -310,7 +322,13 @@ function Assistente() {
       sync.saveNow(userId, user?.email);
       toast(t('novo.criado'), 'ok');
       if (abrir) setGuidedTutorialStepById('setup');
-      router.push(abrir ? rotas.jogoPreparar(jogo.id) : rotas.jogos(clubId, teamId));
+      router.push(
+        !abrir
+          ? rotas.jogos(clubId, teamId)
+          : semCinco
+            ? rotas.jogoRegistos(jogo.id)
+            : rotas.jogoPreparar(jogo.id)
+      );
     } catch (err) {
       toast(t('novo.naoCriou', { erro: err.message }), 'error');
     } finally {
@@ -370,15 +388,15 @@ function Assistente() {
       <PageHead title={t('escalao.novoJogo')} subtitle={[club?.name, team?.name].filter(Boolean).join(" · ")} backTo={rotas.jogos(clubId, teamId)} />
 
       <ol className="stepper">
-        {ETAPAS.map((chave, i) => (
+        {ETAPAS.map((chave, i) => (i === 2 && semCinco ? null : (
           <li
             key={chave}
             className={`stepper__item ${i === etapa ? 'is-active' : ''} ${i < etapa ? 'is-done' : ''}`}
           >
-            <span className="stepper__n">{i + 1}</span>
+            <span className="stepper__n">{semCinco && i > 2 ? i : i + 1}</span>
             {t(chave)}
           </li>
-        ))}
+        )))}
       </ol>
 
       <div className="wizard" data-tour="create-match">
@@ -469,6 +487,36 @@ function Assistente() {
             <Field label={t('prep.notas')}>
               <textarea className="input input--area" rows={3} {...campo('notes')} />
             </Field>
+            {addons.has(ADDON_PARTILHADO) ? (
+              <div className={`partilha ${partilhado ? 'is-on' : ''}`}>
+                <button
+                  type="button"
+                  className={`btn ${partilhado ? 'btn--primary' : 'btn--ghost'}`}
+                  aria-pressed={partilhado}
+                  onClick={() => setPartilhado((v) => !v)}
+                >
+                  {t('partilhado.botao')}
+                </button>
+                <p className="muted small">{t('partilhado.explica')}</p>
+                {partilhado ? (
+                  <div className="partilha__papeis" role="radiogroup" aria-label={t('partilhado.papelDesteAparelho')}>
+                    {[PAPEL.TEMPOS, PAPEL.REGISTOS].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        role="radio"
+                        aria-checked={papel === p}
+                        className={`partilha__papel ${papel === p ? 'is-on' : ''}`}
+                        onClick={() => setPapel(p)}
+                      >
+                        <strong>{t(`partilhado.papel.${p}`)}</strong>
+                        <span>{t(`partilhado.papelDica.${p}`)}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             {nav(t('comum.cancelar'), t('novo.continuar'), () => {
               const erro = validateMatchInfo({
                 opponentName: info.opponentName,
@@ -478,6 +526,7 @@ function Assistente() {
               if (!info.competitionId) return toast(t('novo.escolhaCompeticao'), 'error');
               if (info.homeOrAway === 'AWAY' && !info.venue.trim()) return toast(t('conv.faltaPavilhao'), 'error');
               if (info.homeOrAway === 'AWAY' && info.venueUrl.trim() && !linkLimpo(info.venueUrl)) return toast(t('conv.linkInvalido'), 'error');
+              if (partilhado && addons.has(ADDON_PARTILHADO) && !papel) return toast(t('partilhado.escolhaPapel'), 'error');
               setEtapa(1);
             })}
           </div>
@@ -569,7 +618,7 @@ function Assistente() {
                       }
                       setNumeros((atual) => ({ ...atual, ...novos }));
                       setEditandoNumeros(false);
-                      setEtapa(2);
+                      setEtapa(semCinco ? 3 : 2);
                     }}
                   >
                     {t('novo.confirmarNumeros')}
@@ -601,7 +650,7 @@ function Assistente() {
                     const erro = validateSquadSelection(escolhidos, limiteConvocados);
                     if (erro) return toast(mensagemErro(erro), 'error');
                     if (!(await confirmarPoucosConvocados(confirmar, escolhidos.length))) return;
-                    setEtapa(2);
+                    setEtapa(semCinco ? 3 : 2);
                   }}
                 >
                   {t('novo.continuar')}
@@ -636,7 +685,8 @@ function Assistente() {
             lineup={lineup}
             escolhidos={rosterJogo.filter((p) => escolhidos.includes(p.id))}
             aGuardar={aGuardar}
-            onVoltar={() => setEtapa(2)}
+            papel={papelDoJogo}
+            onVoltar={() => setEtapa(semCinco ? 1 : 2)}
             onGuardar={guardar}
           />
         ) : null}
@@ -652,11 +702,13 @@ function Confirmacao({
   lineup,
   escolhidos,
   aGuardar,
+  papel = null,
   onVoltar,
   onGuardar,
 }) {
   const t = useT();
-  const emCampo = Object.entries(lineup).filter(([, v]) => v);
+  const semCinco = papel === PAPEL.REGISTOS;
+  const emCampo = semCinco ? [] : Object.entries(lineup).filter(([, v]) => v);
   const idsEmCampo = new Set(emCampo.map(([, v]) => v));
 
   return (
@@ -686,9 +738,15 @@ function Confirmacao({
           <dt>{t('prep.convocados')}</dt>
           <dd>{t('novo.nJogadores', { n: escolhidos.length })}</dd>
         </div>
+        {papel ? (
+          <div>
+            <dt>{t('partilhado.botao')}</dt>
+            <dd>{t(`partilhado.papel.${papel}`)}</dd>
+          </div>
+        ) : null}
       </dl>
 
-      <h3 className="section">{t('novo.emCampo')}</h3>
+      {semCinco ? null : <h3 className="section">{t('novo.emCampo')}</h3>}
       <div className="chiprow">
         {emCampo.map(([pos, pid]) => {
           const p = escolhidos.find((c) => c.id === pid);
@@ -700,10 +758,10 @@ function Confirmacao({
         })}
       </div>
 
-      <h3 className="section">{t('novo.noBanco')}</h3>
+      <h3 className="section">{semCinco ? t('prep.convocados') : t('novo.noBanco')}</h3>
       <div className="chiprow">
         {escolhidos
-          .filter((p) => !idsEmCampo.has(p.id))
+          .filter((p) => semCinco || !idsEmCampo.has(p.id))
           .map((p) => (
             <span key={p.id} className="chip chip--static">
               <strong>{p.shirtNumber}</strong> {p.name}
@@ -733,16 +791,19 @@ function Confirmacao({
           {aGuardar ? t('comum.aGuardar') : t('novo.guardarEAbrir')}
         </button>
       </div>
-      <div className="wizard__manual">
-        <button
-          className="btn btn--manual"
-          type="button"
-          disabled={aGuardar}
-          onClick={() => onGuardar('manual')}
-        >
-          {t('novo.registoManual')}
-        </button>
-      </div>
+      {/* Um jogo partilhado regista-se ao vivo, nos dois aparelhos. */}
+      {papel ? null : (
+        <div className="wizard__manual">
+          <button
+            className="btn btn--manual"
+            type="button"
+            disabled={aGuardar}
+            onClick={() => onGuardar('manual')}
+          >
+            {t('novo.registoManual')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
