@@ -190,7 +190,7 @@ function Filtros({
         </div>
       ) : null}
 
-      {/* Competição vem sempre antes (por cima) do período. */}
+      {/* Competição e tipo de jogo vêm sempre antes (por cima) do período. */}
       {provas.length > 1 ? (
         <div className="filtros__grupo">
           <span className="filtros__rotulo">{t('painelv.competicao')}</span>
@@ -214,11 +214,6 @@ function Filtros({
         </div>
       ) : null}
 
-      <div className="filtros__grupo filtros__grupo--janela no-print">
-        <span className="filtros__rotulo">{t('painelv.periodo')}</span>
-        <JanelaTempo parteMin={Math.round(parteMs / 60_000)} janela={janela} aoMudar={aoTrocarJanela} />
-      </div>
-
       {tipos.length > 1 ? (
         <div className="filtros__grupo">
           <span className="filtros__rotulo">{t('painelv.tipoDeJogo')}</span>
@@ -237,6 +232,11 @@ function Filtros({
           ))}
         </div>
       ) : null}
+
+      <div className="filtros__grupo filtros__grupo--janela no-print">
+        <span className="filtros__rotulo">{t('painelv.periodo')}</span>
+        <JanelaTempo parteMin={Math.round(parteMs / 60_000)} janela={janela} aoMudar={aoTrocarJanela} />
+      </div>
 
       <div className="filtros__grupo filtros__grupo--acao no-print">
         {jogos.length ? (
