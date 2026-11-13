@@ -92,6 +92,9 @@
 .regbar__acao:active { transform: scale(0.96); }
 .regbar--fina { flex-direction: row; align-items: center; gap: 10px; padding: 6px 10px; }
 .regbar--fina .regbar__acao:last-child { margin-left: auto; }
+/* Contadores nos cards dos cartões: aqui fica só o acesso às estatísticas (e o
+   resumo do que se regista nos cartões), sem caixa, para não parecer um painel. */
+.regbar--compacta { margin: 2px 0 4px; padding: 0 4px; border: 0; background: transparent; }
 /* No telemóvel: uma linha por registo, colunas nós e eles. */
 .regbar__lista { display: none; grid-template-columns: 1fr auto auto; align-items: center; gap: 6px 8px; }
 .regbar__lista .regbar__eq { justify-self: center; max-width: 11ch; font-size: 0.72rem; }

@@ -70,7 +70,11 @@ import useArrasto from '@/lib/arrastar.js';
 import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 import useRegistos from '@/lib/useRegistos.js';
 import useAcoesRegistos from '@/components/registos/useAcoesRegistos.js';
-import BarraRegistos from '@/components/registos/BarraRegistos.jsx';
+import BarraRegistos, {
+  colunasRegistos,
+  registoUnicoPorEquipa,
+  RegistoNoCard,
+} from '@/components/registos/BarraRegistos.jsx';
 import useAddons from '@/lib/useAddons.js';
 import useEnviarAoVivo from '@/lib/useEnviarAoVivo.js';
 import { deveAssistir } from '@/lib/aoVivo.js';
@@ -1332,10 +1336,16 @@ function Live() {
   const duracaoDaParte = state.currentPeriod >= 3 ? EXTRA_TIME_PERIOD_MS : match.periodDurationMs;
   const undoable = state.lastUndoable;
 
+  // Só um contador de cada lado (p. ex. remates nossos e deles): vai para
+  // debaixo dos cartões de cada equipa e a barra fica uma linha fina.
+  const unico = ligados.size ? registoUnicoPorEquipa(colunasRegistos(state, ligados, on).colunas) : null;
+  const regNosso = unico ? <RegistoNoCard unico={unico.US} nome={ourName} on={on} /> : null;
+  const regDeles = unico ? <RegistoNoCard unico={unico.THEM} nome={rivalName} on={on} /> : null;
+
   return (
     <div className="live">
       <header
-        className={`live__head ${timing === MATCH_TIMING.TIMED ? 'live__head--cronometrado' : ''}`}
+        className={`live__head ${timing === MATCH_TIMING.TIMED ? 'live__head--cronometrado' : ''} ${unico ? 'live__head--com-registo' : ''}`}
         data-tour="live-clock"
       >
         <Scoreboard
@@ -1346,8 +1356,8 @@ function Live() {
           opponentFull={match.opponentName}
           interactive
           on={on}
-          opponentExtra={<RivalOut state={state} on={on} variant="inline" />}
-          ourExtra={<TeamCards state={state} on={on} variant="inline" />}
+          opponentExtra={<RivalOut state={state} on={on} variant="inline" extra={regDeles} />}
+          ourExtra={<TeamCards state={state} on={on} variant="inline" extra={regNosso} />}
         />
         <ClockBox
           state={state}
@@ -1358,8 +1368,8 @@ function Live() {
           // uma contagem oficial, e não há paragens onde alguém se possa enganar.
           on={timing === MATCH_TIMING.TIMED ? on : null}
         />
-        <RivalOut state={state} on={on} />
-        <TeamCards state={state} on={on} />
+        <RivalOut state={state} on={on} extra={regDeles} />
+        <TeamCards state={state} on={on} extra={regNosso} />
         <div className="live__controls">
           {/* No jogo cronometrado a pausa vive no canto inferior direito, ao
               alcance do polegar; aqui em cima seria um segundo botão igual. */}
@@ -1409,6 +1419,7 @@ function Live() {
           ourName={ourName}
           opponentName={rivalName}
           on={on}
+          compacta={!!unico}
         />
       ) : null}
 

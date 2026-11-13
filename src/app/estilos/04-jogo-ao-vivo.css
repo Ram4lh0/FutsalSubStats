@@ -687,3 +687,114 @@
 .titulares__item { display: flex; align-items: baseline; gap: 8px; }
 .titulares__num { min-width: 2.4em; text-align: right; color: var(--muted); }
 .titulares__nome { font-weight: 600; flex: 1; min-width: 0; }
+
+/* Registo único de cada equipa (p. ex. remates): quando há só um contador de
+   cada lado, a barra por baixo do marcador seria um painel inteiro para dois
+   números. Vai para um card próprio, separado e por baixo do card dos cartões.
+   O `.rivalout` passa a ser só a pilha dos dois cards (é ela que fica onde o
+   card ficava); a caixa, o fundo e a grelha passam para `.rivalout__caixa`.
+   `.live__head .rivalout.rivalout--pilha` ganha às regras por ecrã do card. */
+.live__head .rivalout.rivalout--pilha {
+  display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+  padding: 0; border: 0; background: none;
+}
+.rivalout__caixa {
+  display: inline-grid; grid-template-columns: auto auto; align-items: center;
+  column-gap: 5px; row-gap: 1px; padding: 4px 7px;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.rivalout.is-on .rivalout__caixa { border-color: var(--info); background: rgba(56, 189, 248, 0.1); }
+.rivalout__registo {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 3px 6px 4px;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.rivalout__registo-rot {
+  font-size: 0.5rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); line-height: 1.1; white-space: nowrap;
+}
+.rivalout__reg__passo { display: inline-flex; align-items: center; gap: 2px; }
+.rivalout__reg__n,
+.rivalout__reg__so {
+  min-width: 1.4ch; text-align: center; font-size: 0.9rem; font-weight: 800; line-height: 1;
+  font-variant-numeric: tabular-nums; color: var(--text);
+}
+.rivalout__reg__menos,
+.rivalout__reg__mais {
+  width: 18px; height: 18px; padding: 0;
+  border: 0; border-radius: 6px; background: transparent;
+  color: var(--muted); font-size: 0.85rem; font-weight: 700; line-height: 1; cursor: pointer;
+}
+.rivalout__reg__mais { color: var(--primary); }
+.rivalout__reg__menos:active,
+.rivalout__reg__mais:active { background: rgba(255, 255, 255, 0.12); }
+.rivalout__reg__menos:disabled { opacity: 0.3; cursor: default; }
+@media (max-width: 520px) {
+  .live__head .rivalout.rivalout--pilha { gap: 3px; }
+  .rivalout__caixa { padding: 3px 4px; column-gap: 3px; row-gap: 0; border-radius: 8px; }
+  .rivalout__registo { padding: 2px 4px 3px; border-radius: 8px; }
+  .rivalout__registo-rot { font-size: 0.46rem; letter-spacing: 0.05em; }
+  .rivalout__reg__menos, .rivalout__reg__mais { width: 16px; height: 16px; font-size: 0.78rem; }
+  .rivalout__reg__n, .rivalout__reg__so { font-size: 0.82rem; }
+}
+@media (max-width: 374px) {
+  .rivalout__caixa { column-gap: 2px; padding: 3px; }
+}
+@media (max-width: 340px) {
+  .rivalout__caixa { grid-template-columns: auto; }
+}
+/* Cada variante só aparece no seu ecrã (a regra da pilha acima define o
+   `display` e passaria por cima do `display: none` de cada uma). */
+@media (max-width: 720px) {
+  .live__head .rivalout--inline.rivalout--pilha { display: none; }
+  /* Telemóvel: os cards deixam de ficar pendurados por cima do cabeçalho e
+     entram na grelha, na linha do relógio (nós | relógio | eles). A linha
+     cresce o que a pilha precisar: nada fica por cima das faltas nem dos
+     botões. */
+  .live__head.live__head--com-registo { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); column-gap: 6px; }
+  .live__head--com-registo > .scoreboard,
+  .live__head--com-registo > .live__controls { grid-column: 1 / -1; justify-self: stretch; }
+  .live__head--com-registo > .clockbox { grid-column: 2; grid-row: 2; }
+  .live__head--com-registo > .rivalout--standalone {
+    position: static; transform: none;
+    grid-row: 2; grid-column: 3; justify-self: end; align-self: center;
+  }
+  .live__head--com-registo > .rivalout--ours.rivalout--standalone { grid-column: 1; justify-self: start; }
+  /* Cronometrado: ao lado do relógio estão os −10s/+10s e não há largura. Os
+     cards descem para a fila do "Terminar" (nós | botão | eles), como o card
+     dos cartões já fazia, mas na grelha em vez de pendurados. */
+  .live__head.live__head--com-registo.live__head--cronometrado { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .live__head--com-registo.live__head--cronometrado > .clockbox { grid-column: 1 / -1; }
+  .live__head--com-registo.live__head--cronometrado > .live__controls {
+    grid-column: 2; grid-row: 3; justify-self: center; min-height: 0;
+  }
+  .live__head--com-registo.live__head--cronometrado > .live__controls::before,
+  .live__head--com-registo.live__head--cronometrado > .live__controls::after { content: none; }
+  .live__head--com-registo.live__head--cronometrado > .rivalout--standalone { grid-row: 3; }
+  .live__head--com-registo.live__head--cronometrado > .live__controls .btn { white-space: normal; line-height: 1.15; }
+}
+@media (min-width: 721px) {
+  .live__head .rivalout--standalone.rivalout--pilha { display: none; }
+  .scoreboard__score > .rivalout--inline.rivalout--pilha { row-gap: 5px; }
+  .scoreboard__score > .rivalout--inline .rivalout__caixa { padding: 8px 8px 9px; row-gap: 7px; }
+  /* A pilha é mais alta do que o resultado: centrada nele saía por cima do
+     cabeçalho e encostava às faltas. Pendura-se do bloco da equipa inteiro
+     (nome, resultado, faltas), do lado de fora, e centra-se nele. */
+  .live__head--com-registo:not(.aovivo__marcador) .scoreboard__team { position: relative; }
+  .live__head--com-registo .scoreboard__score.is-left,
+  .live__head--com-registo .scoreboard__score.is-right { position: static; }
+  .scoreboard__score > .rivalout--inline.rivalout--pilha .rivalout__caixa { padding: 5px 8px 6px; row-gap: 4px; }
+}
+/* Tablet deitado pequeno (1001–1200px), jogo corrido: "Parar tempo" e
+   "Terminar" lado a lado comiam a largura e a pilha saía do cabeçalho ou ia
+   para cima dos botões. Com o registo ligado empilham-se, mais baixos. */
+@media (min-width: 1001px) and (max-width: 1200px) {
+  .live__head--com-registo:not(.live__head--cronometrado) > .live__controls {
+    flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 6px;
+  }
+  .live__head--com-registo:not(.live__head--cronometrado) > .live__controls .btn--big {
+    min-height: 0; padding-top: 9px; padding-bottom: 9px;
+  }
+}
