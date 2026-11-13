@@ -471,3 +471,127 @@ export const playMapper = {
     dirty: false,
   }),
 };
+
+/* ------------------------------------------------------- análise de vídeo */
+
+// Os tempos dos clipes são milissegundos do vídeo (inteiros), não instantes:
+// vão e vêm como números. `recordedOn` é texto `AAAA-MM-DD`, como os treinos.
+
+export const videoAnalysisMapper = {
+  table: 'video_analyses',
+  toRow: (a) => ({
+    id: a.id,
+    team_id: a.teamId,
+    title: a.title,
+    provider: a.provider || 'youtube',
+    youtube_id: a.youtubeId || null,
+    match_id: a.matchId || null,
+    recorded_on: a.recordedOn || null,
+    // Só quando se sabe: em branco, o servidor põe quem está a enviar.
+    ...(a.createdBy ? { created_by: a.createdBy } : {}),
+    deleted_at: iso(a.deletedAt),
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    teamId: r.team_id,
+    title: r.title,
+    provider: r.provider || 'youtube',
+    youtubeId: r.youtube_id,
+    matchId: r.match_id ?? null,
+    recordedOn: r.recorded_on ?? null,
+    createdBy: r.created_by ?? null,
+    deletedAt: ms(r.deleted_at),
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};
+
+export const videoClipMapper = {
+  table: 'video_clips',
+  toRow: (c) => ({
+    id: c.id,
+    analysis_id: c.analysisId,
+    team_id: c.teamId,
+    start_ms: Math.max(0, Math.round(Number(c.startMs) || 0)),
+    end_ms: Math.max(0, Math.round(Number(c.endMs) || 0)),
+    category: c.category || null,
+    subtype: c.subtype || null,
+    valence: c.valence || null,
+    player_ids: Array.isArray(c.playerIds) ? c.playerIds : [],
+    note: c.note || null,
+    ...(c.createdBy ? { created_by: c.createdBy } : {}),
+    deleted_at: iso(c.deletedAt),
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    analysisId: r.analysis_id,
+    teamId: r.team_id,
+    startMs: Number(r.start_ms) || 0,
+    endMs: Number(r.end_ms) || 0,
+    category: r.category ?? null,
+    subtype: r.subtype ?? null,
+    valence: r.valence ?? null,
+    playerIds: Array.isArray(r.player_ids) ? r.player_ids : [],
+    note: r.note ?? null,
+    createdBy: r.created_by ?? null,
+    deletedAt: ms(r.deleted_at),
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};
+
+export const videoSessionMapper = {
+  table: 'video_sessions',
+  toRow: (s) => ({
+    id: s.id,
+    team_id: s.teamId,
+    title: s.title,
+    clip_ids: Array.isArray(s.clipIds) ? s.clipIds : [],
+    // Preenchido quando a sessão é o que se partilhou com um jogador.
+    player_id: s.playerId || null,
+    share_token: s.shareToken || null,
+    share_expires_at: iso(s.shareExpiresAt),
+    ...(s.createdBy ? { created_by: s.createdBy } : {}),
+    deleted_at: iso(s.deletedAt),
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    teamId: r.team_id,
+    title: r.title,
+    clipIds: Array.isArray(r.clip_ids) ? r.clip_ids : [],
+    playerId: r.player_id ?? null,
+    shareToken: r.share_token ?? null,
+    shareExpiresAt: ms(r.share_expires_at),
+    createdBy: r.created_by ?? null,
+    deletedAt: ms(r.deleted_at),
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};
+
+export const videoTalkMapper = {
+  table: 'video_clip_talks',
+  toRow: (k) => ({
+    id: k.id,
+    clip_id: k.clipId,
+    player_id: k.playerId,
+    team_id: k.teamId,
+    // Sem data = "ainda não falámos" (desmarcar não apaga a linha).
+    talked_at: iso(k.talkedAt),
+    note: k.note || null,
+  }),
+  fromRow: (r) => ({
+    id: r.id,
+    clipId: r.clip_id,
+    playerId: r.player_id,
+    teamId: r.team_id,
+    talkedAt: ms(r.talked_at),
+    note: r.note ?? null,
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    dirty: false,
+  }),
+};

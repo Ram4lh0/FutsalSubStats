@@ -56,14 +56,14 @@ function areaFromPath(pathname) {
   // que se vêem os resultados.
   if (naVisaoGeral(pathname)) return 'game';
   if (/^\/jogo\/?$/.test(pathname || '') || /^\/match\//.test(pathname || '') || /^\/team\/matches/.test(pathname || '')) return 'game';
-  if (/^\/team\/(training|tactics)(\/|$)/.test(pathname || '')) return 'training';
+  if (/^\/team\/(training|tactics|callups|video)(\/|$)/.test(pathname || '')) return 'training';
   if (/^\/club/.test(pathname || '') || /^\/team\/(roster|competitions|competition|edit|new|access|players)/.test(pathname || '')) return 'teams';
   if (/^\/team(\/dashboard|\/player)?\/?$/.test(pathname || '')) return 'analysis';
   return 'teams';
 }
 
 function isPublicPath(pathname) {
-  return /^\/login\/?$|^\/privacy\/?$|^\/delete-account\/?$|^\/jogada\/?$/.test(pathname || '');
+  return /^\/login\/?$|^\/privacy\/?$|^\/delete-account\/?$|^\/jogada\/?$|^\/video\/?$/.test(pathname || '');
 }
 
 function targetFor(area, selected) {

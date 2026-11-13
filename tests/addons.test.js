@@ -103,3 +103,15 @@ test('a config lê-se com ou sem a coluna addons no servidor', () => {
   const sem = teamStatConfigMapper.fromRow({ team_id: 't', registos: ['remate'] });
   assert.deepEqual(sem.addons, []);
 });
+
+test('a análise de vídeo é um add-on do treino, desligado por omissão', () => {
+  assert.equal(ADDONS['analise-video'].grupo, 'treino');
+  assert.ok(!ADDONS['analise-video'].paraTodos);
+  assert.equal(addonsAtivos(null).has('analise-video'), false);
+  assert.equal(addonsAtivos({ addons: [] }).has('analise-video'), false);
+  assert.equal(addonsAtivos({ addons: ['analise-video'] }).has('analise-video'), true);
+  assert.deepEqual(validarListaDeAddons(['analise-video']), { addons: ['analise-video'] });
+  const noPainel = catalogoDeAddons().find((a) => a.id === 'analise-video');
+  assert.equal(noPainel.grupo, 'treino');
+  assert.equal(noPainel.campo, 'addons');
+});

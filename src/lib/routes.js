@@ -25,6 +25,9 @@ export const PARAM = {
   // O token do link público de uma jogada. Não é um id da base: é a chave que
   // abre aquela jogada a quem não tem conta.
   share: 's',
+  // Análise de vídeo: a análise (um vídeo) e a sessão (uma lista de clipes).
+  video: 'v',
+  videoSession: 'vs',
 };
 
 function comIds(base, ids = {}) {
@@ -112,6 +115,19 @@ export const rotas = {
   // O link que vai por WhatsApp. Abre sem conta nem app, e por isso fica fora
   // de `/team`.
   jogadaPublica: (share) => comIds('/jogada', { share }),
+  // Análise de vídeo (add-on 'analise-video'): a lista é a subaba; o resto
+  // pendura-se nela para a aba continuar acesa. `vista` escolhe o que a
+  // subaba mostra: as análises (omissão), as sessões ou os jogadores.
+  analisesVideo: (club, team, vista) => {
+    const base = comIds('/team/video', { club, team });
+    return vista ? `${base}${base.includes('?') ? '&' : '?'}vista=${vista}` : base;
+  },
+  analiseVideo: (club, team, video) => comIds('/team/video/analysis', { club, team, video }),
+  sessaoVideo: (club, team, videoSession) =>
+    comIds('/team/video/session', { club, team, videoSession }),
+  jogadorVideo: (club, team, player) => comIds('/team/video/player', { club, team, player }),
+  // O link que o jogador recebe: abre sem conta, só com os clipes escolhidos.
+  videoPublico: (share) => comIds('/video', { share }),
 
   /* --------------------------------------------------------------- jogo */
   jogoPreparar: (match) => comIds('/match/setup', { match }),

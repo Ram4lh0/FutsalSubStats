@@ -1,0 +1,398 @@
+/* ===================================================================== */
+/* Análise de vídeo — leitor, marcação, clipes, sessões e por jogador     */
+/* (add-on 'analise-video'; classes com o prefixo `v`)                     */
+/* ===================================================================== */
+
+/* ------------------------------------------------------------- a lista */
+.vconta {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px;
+  padding: 0 6px; margin-left: 6px; border-radius: 999px; background: var(--warn); color: #1f1300;
+  font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.vconta--grande { min-width: 28px; height: 28px; font-size: 0.9rem; margin-left: 0; }
+.vfeito { color: var(--primary); font-weight: 800; font-size: 1.1rem; }
+.vintro { margin: 0 0 14px; font-size: 0.9rem; }
+
+.vcartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.vcartao {
+  display: flex; flex-direction: column; padding: 0; overflow: hidden; text-align: left; cursor: pointer;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); font: inherit;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.vcartao:hover { border-color: var(--info); transform: translateY(-2px); }
+.vcartao__mini { display: block; aspect-ratio: 16 / 9; background: #000; }
+.vcartao__mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vcartao__texto { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 16px; }
+.vcartao__titulo { font-size: 1.02rem; line-height: 1.3; }
+.vcartao__meta { font-size: 0.82rem; min-height: 1.1em; }
+.vcartao__contas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.vcartao__contas .badge { margin-left: 0; }
+
+.vsessoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.vsessao {
+  display: flex; flex-direction: column; gap: 10px; margin: 0; text-align: left; cursor: pointer;
+  color: var(--text); font: inherit;
+}
+.vsessao:hover { border-color: var(--info); }
+.vsessao__meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.vsessao__meta .badge { margin-left: 0; }
+
+.vplantel { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.vplantel__item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px; text-align: left; cursor: pointer;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; color: var(--text); font: inherit;
+}
+.vplantel__item:hover { border-color: var(--info); }
+.vplantel__item.is-vazio { opacity: 0.6; }
+.vplantel__nome { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.vplantel__nome strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vplantel__nome .muted { font-size: 0.8rem; }
+
+/* --------------------------------------------------------- formulários */
+.vform { display: grid; gap: 14px; }
+.vform__linha { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+.vform__linha > :only-child { grid-column: 1 / -1; }
+.vform__mini { width: 100%; max-width: 240px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; background: #000; }
+.vform__erro { color: var(--danger); }
+.vform .input.is-erro { border-color: var(--danger); }
+.vform__extra { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+.vnova { display: flex; gap: 8px; }
+.vnova .input { flex: 1; min-width: 0; }
+.vmargens { display: grid; gap: 8px; padding: 12px 14px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; }
+.vmargens .field__hint { margin: 0; }
+.vmargens__linha { display: flex; align-items: center; gap: 10px; }
+.vmargens__linha > span:first-child { flex: 1; }
+.vmargens__linha strong { min-width: 3.2em; text-align: center; }
+.vescolha { display: grid; gap: 8px; }
+.vescolha__item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; text-align: left;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; color: var(--text); font: inherit; cursor: pointer;
+}
+.vescolha__item:hover { border-color: var(--info); }
+.vescolher { display: grid; gap: 16px; max-height: 60vh; overflow-y: auto; }
+.vescolher__titulo { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 8px; }
+.vcaixa { width: 22px; height: 22px; flex: none; accent-color: var(--primary); cursor: pointer; }
+
+/* -------------------------------------------------------------- o ecrã */
+.vanalise .page__head { margin-bottom: 14px; }
+.vanalise__grelha { display: grid; gap: 18px; }
+.vanalise__principal { display: grid; gap: 14px; min-width: 0; align-content: start; }
+.vanalise__lado { display: grid; gap: 14px; min-width: 0; align-content: start; }
+.vanalise__palco { display: grid; gap: 8px; }
+.vficha__nome { display: inline-flex; align-items: center; gap: 12px; }
+
+@media (min-width: 1180px) {
+  .vanalise__grelha { grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); align-items: start; }
+  .vanalise__lado {
+    position: sticky; top: 0; max-height: calc(100dvh - 150px); overflow-y: auto; overflow-x: hidden;
+    padding-right: 4px; scrollbar-gutter: stable;
+  }
+}
+
+/* No telemóvel o vídeo fica preso ao topo: marca-se e percorrem-se os clipes
+   sem o perder de vista. */
+@media (max-width: 1179px) {
+  .vanalise__palco {
+    position: sticky; top: 0; z-index: 6; margin: 0 -4px; padding: 0 4px 8px;
+    background: var(--bg); box-shadow: 0 10px 14px -12px rgba(0, 0, 0, 0.7);
+  }
+}
+/* Deitado, um telemóvel não tem altura para o vídeo preso e o resto. */
+@media (max-width: 1179px) and (max-height: 520px) {
+  .vanalise__palco { position: static; }
+}
+
+/* No telemóvel o cabeçalho da análise encolhe para uma linha: o ecrã é do
+   vídeo e dos botões de marcar. */
+@media (max-width: 1179px) {
+  .vanalise--marcar .page__head { flex-wrap: nowrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .vanalise--marcar .page__headmain { flex: 1; min-width: 0; gap: 8px; }
+  .vanalise--marcar .page__headmain > div { min-width: 0; }
+  .vanalise--marcar .page__headmain .btn--icon { width: 40px; min-height: 40px; flex: none; }
+  .vanalise--marcar .page__title {
+    font-size: 1.02rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .vanalise--marcar .page__sub { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vanalise--marcar .page__actions { width: auto; flex: none; }
+}
+
+/* ------------------------------------------------------------ o leitor */
+.vleitor {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius);
+  overflow: hidden; border: 1px solid var(--line);
+}
+.vleitor__iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+.vleitor--aviso { display: grid; place-items: center; padding: 20px; color: var(--muted); text-align: center; }
+.vleitor__erro {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 20px; text-align: center; background: rgba(6, 10, 20, 0.94); color: var(--text);
+}
+.vleitor__erro p { margin: 0; color: var(--muted); max-width: 44ch; font-size: 0.9rem; line-height: 1.45; }
+.vleitor__erroacoes { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* A linha do tempo: uma risca por clipe, com a cor da categoria. */
+.vtempo { position: relative; height: 12px; border-radius: 6px; background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; }
+.vtempo__clipe {
+  position: absolute; top: 0; bottom: 0; min-width: 4px; padding: 0; border: 0; border-radius: 2px;
+  opacity: 0.85; cursor: pointer;
+}
+.vtempo__clipe:hover, .vtempo__clipe.is-ativo { opacity: 1; box-shadow: 0 0 0 1px #fff inset; }
+.vtempo__agora { position: absolute; top: -1px; bottom: -1px; width: 2px; margin-left: -1px; background: #fff; pointer-events: none; }
+
+/* ----------------------------------------------------------- controlos */
+.vcontrolos { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vcontrolos__grupo { display: inline-flex; align-items: center; gap: 4px; }
+.vcontrolos__tempo { flex: 1; text-align: center; font-size: 1rem; font-weight: 700; min-width: 4.5em; }
+.vbtn {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 40px; padding: 0 10px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px; color: var(--text);
+  font: inherit; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.vbtn:hover { border-color: var(--info); }
+.vbtn:active { transform: scale(0.96); }
+.vbtn--fino { color: var(--muted); min-width: 40px; padding: 0 6px; font-size: 0.78rem; }
+.vbtn--tocar { min-width: 56px; background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+.vbtn--tocar:hover { border-color: var(--primary); filter: brightness(1.08); }
+.vbtn--vel { min-width: 40px; padding: 0 6px; color: var(--muted); font-size: 0.78rem; }
+.vbtn--vel.is-on { color: var(--text); border-color: var(--info); background: rgba(56, 189, 248, 0.16); }
+.vbtn--texto { font-weight: 600; white-space: nowrap; }
+.vcontrolos--compacto .vcontrolos__tempo { flex: none; }
+
+@media (max-width: 520px) {
+  .vcontrolos { gap: 6px; }
+  .vcontrolos__grupo { gap: 3px; }
+  .vbtn { min-width: 40px; padding: 0 6px; }
+  .vbtn--fino, .vbtn--vel { min-width: 34px; padding: 0 4px; font-size: 0.72rem; }
+  .vbtn--tocar { min-width: 48px; }
+  .vcontrolos__tempo { order: 3; flex: none; min-width: 0; font-size: 0.9rem; }
+  .vcontrolos__vel { margin-left: auto; }
+}
+
+/* --------------------------------------------------- painel de marcação */
+.vmarcar { display: grid; gap: 10px; }
+.vmarcar__grelha { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 8px; }
+@media (max-width: 380px) { .vmarcar__grelha { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.vmarcar__btn > span { min-width: 0; overflow-wrap: break-word; }
+.vmarcar__btn {
+  position: relative; display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 10px 12px; text-align: left;
+  background: color-mix(in srgb, var(--cor) 12%, var(--card)); border: 1px solid color-mix(in srgb, var(--cor) 45%, var(--line));
+  border-left: 4px solid var(--cor); border-radius: 12px; color: var(--text);
+  font: inherit; font-size: 0.9rem; font-weight: 700; line-height: 1.2; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: transform 0.08s, background 0.15s;
+}
+.vmarcar__btn svg { flex: none; color: var(--cor); }
+.vmarcar__btn:hover { background: color-mix(in srgb, var(--cor) 22%, var(--card)); }
+.vmarcar__btn:active { transform: scale(0.97); background: color-mix(in srgb, var(--cor) 34%, var(--card)); }
+.vmarcar__tecla {
+  position: absolute; top: 5px; right: 7px; font: 600 0.66rem ui-monospace, monospace; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; line-height: 1.4;
+}
+/* As teclas só fazem sentido com teclado. */
+@media (hover: none) { .vmarcar__tecla { display: none; } }
+@media (hover: hover) { .vmarcar__btn { padding-right: 26px; } }
+.vmarcar__manual { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.vmarcar__manual .btn.is-on { border-color: var(--warn); color: var(--warn); }
+.vmarcar__dica { font-size: 0.78rem; margin-left: auto; }
+
+/* --------------------------------------------------------------- lista */
+.vlista { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+.vlista__topo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.vlista__titulo { font-size: 0.95rem; margin: 0; }
+.vlista__modo { margin: 0; }
+.vlista__mais { justify-self: start; }
+.vlista__filtrar.is-on { border-color: var(--info); color: var(--info); }
+.vfiltros { display: grid; gap: 8px; padding: 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; }
+.vfiltros .chiprow { gap: 6px; }
+.vfiltros__acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.vchip { border-color: color-mix(in srgb, var(--cor, var(--line)) 55%, var(--line)); }
+.vchip.is-selected { border-color: var(--cor, var(--info)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor, var(--info)) 30%, transparent); }
+.vchip--bom { --cor: var(--primary); }
+.vchip--corrigir { --cor: var(--danger); }
+.vvazio { margin: 0; padding: 26px 14px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; line-height: 1.5; }
+
+.vclipes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.vclipes > * { min-width: 0; }
+.vclipe {
+  display: flex; align-items: stretch; gap: 0; background: var(--card); border: 1px solid var(--line);
+  border-left: 4px solid var(--cor); border-radius: 12px; overflow: hidden;
+}
+.vclipe.is-ativo { border-color: var(--cor); background: color-mix(in srgb, var(--cor) 14%, var(--card)); }
+.vclipe.is-escolhido { box-shadow: 0 0 0 2px var(--info); }
+.vclipe > .vcaixa, .vclipe > .vordem__pega, .vclipe > .vordem__n { align-self: center; margin-left: 10px; }
+.vclipe__corpo {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 9px 10px; text-align: left;
+  background: none; border: 0; color: var(--text); font: inherit; cursor: pointer;
+}
+.vclipe__icone { flex: none; display: inline-flex; color: var(--cor); }
+.vclipe__texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.vclipe__titulo { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; line-height: 1.25; }
+.vclipe__titulo strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vclipe__meta { display: flex; flex-wrap: wrap; column-gap: 8px; font-size: 0.78rem; color: var(--muted); }
+.vclipe__nota { color: var(--text); opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.vclipe__sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.vclipe__jogadores { flex: none; display: inline-flex; align-items: center; }
+.vclipe__jogadores .fotojog { margin-left: -6px; border: 2px solid var(--card); }
+.vclipe__jogadores .fotojog:first-child { margin-left: 0; }
+.vclipe__jogadores .fotojog__num { display: none; }
+.vclipe__mais { margin-left: 4px; font-size: 0.75rem; color: var(--muted); }
+.vclipe__acoes { flex: none; display: flex; align-items: center; padding-right: 6px; }
+.vclipe__editar {
+  display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px;
+  background: none; border: 0; color: var(--muted); font: inherit; font-size: 1rem; cursor: pointer;
+}
+.vclipe__editar:hover { color: var(--text); background: var(--card-2); }
+
+.vval { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: 0.78rem; font-weight: 800; }
+.vval--bom { color: var(--primary); }
+.vval--corrigir { color: var(--danger); }
+.vval--neutro { color: var(--muted); }
+
+/* ---------------------------------------------------- a folha do clipe */
+.vfolha {
+  display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line);
+  border-top: 3px solid var(--cor); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0;
+}
+.vfolha__topo { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; }
+.vfolha__topo .btn--icon { width: 40px; min-height: 40px; font-size: 1.1rem; }
+.vfolha__cat {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border-radius: 10px;
+  background: color-mix(in srgb, var(--cor) 16%, transparent); border: 0; color: var(--text); font: inherit; cursor: pointer;
+}
+.vfolha__cat svg { color: var(--cor); flex: none; }
+.vfolha__cat strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vfolha__cat { min-width: 0; }
+.vfolha__tempo { white-space: nowrap; }
+.vfolha__tempo { background: none; border: 0; color: var(--muted); font-size: 0.85rem; cursor: pointer; padding: 6px; }
+.vfolha__tempo:hover { color: var(--text); }
+.vfolha__novo { font-size: 0.75rem; font-weight: 700; color: var(--primary); }
+.vfolha__corpo { display: grid; gap: 12px; padding: 4px 12px 12px; overflow-y: auto; }
+.vfolha__bloco { display: grid; gap: 6px; min-width: 0; }
+.vfolha__rotulo { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.vfolha__nota { min-height: 42px; width: 100%; }
+.vfolha__fundo { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.vfolha .chiprow { gap: 6px; }
+
+.vvalencias { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.vvalencia {
+  min-height: 44px; padding: 6px 8px; border-radius: 10px; background: var(--bg-2); border: 2px solid var(--line);
+  color: var(--text); font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.vvalencia--bom.is-on { border-color: var(--primary); background: rgba(34, 197, 94, 0.18); color: var(--primary); }
+.vvalencia--corrigir.is-on { border-color: var(--danger); background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
+.vvalencia--neutro.is-on { border-color: var(--muted); background: var(--card-2); }
+
+.vjogadores { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 6px; }
+.vjogador {
+  display: flex; align-items: center; gap: 8px; min-width: 0; padding: 5px 8px 5px 5px; border-radius: 10px;
+  background: var(--bg-2); border: 2px solid var(--line); color: var(--text); font: inherit; font-size: 0.82rem; cursor: pointer;
+}
+.vjogador.is-on { border-color: var(--info); background: rgba(56, 189, 248, 0.16); }
+.vjogador__nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vjogador .fotojog { flex: none; }
+
+.vfolha__tempos { gap: 8px; }
+.vacerto { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.vacerto .vfolha__rotulo { width: 3.2em; }
+.vacerto__valor { min-width: 3.6em; text-align: center; font-weight: 700; }
+.vacerto .vbtn { min-height: 36px; }
+
+/* No telemóvel a folha desliza de baixo, por cima da barra de navegação, e
+   deixa o vídeo (preso em cima) à vista. Não tem fundo escurecido: nada fica
+   bloqueado. */
+@media (max-width: 1179px) {
+  .vfolha {
+    position: fixed; left: 0; right: 0; bottom: var(--nav-bottom-altura, 0px); z-index: 30;
+    max-height: min(52dvh, 460px); border-radius: 18px 18px 0 0; border-left: 0; border-right: 0; border-bottom: 0;
+    box-shadow: 0 -14px 30px rgba(0, 0, 0, 0.5); animation: vfolha-sobe 0.2s ease-out;
+    padding-left: var(--seguro-esq); padding-right: var(--seguro-dir);
+  }
+}
+.vfolha--recolhida .vfolha__topo { padding-top: 10px; padding-bottom: 10px; }
+@media (max-width: 520px) {
+  .vvalencia { font-size: 0.74rem; padding: 6px 4px; }
+  .vfolha__fundo .btn--tiny { flex: 1 1 auto; }
+}
+@keyframes vfolha-sobe { from { transform: translateY(40%); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (min-width: 1180px) {
+  .vfolha { animation: vfolha-entra 0.16s ease-out; }
+}
+@keyframes vfolha-entra { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .vfolha { animation: none; } }
+
+/* --------------------------------------------------------------- sessão */
+.vordem { border-radius: 12px; }
+.vordem.is-a-arrastar { opacity: 0.45; }
+.vordem__pega {
+  display: inline-flex; align-items: center; gap: 4px; padding: 10px 4px; color: var(--muted); cursor: grab; flex: none;
+}
+.vordem__n { font-size: 0.8rem; font-weight: 800; color: var(--muted); min-width: 1.4em; text-align: center; }
+
+.vlegenda {
+  display: grid; gap: 8px; padding: 12px 14px; background: var(--card); border: 1px solid var(--line);
+  border-left: 4px solid var(--cor); border-radius: 12px;
+}
+.vlegenda__topo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vlegenda__n { font-size: 0.8rem; color: var(--muted); font-weight: 700; }
+.vlegenda__titulo { font-size: 1.02rem; }
+.vlegenda__cat { color: var(--muted); font-size: 0.85rem; }
+.vlegenda__jogadores { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.vlegenda__jogador { display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem; }
+.vlegenda__nota { margin: 0; line-height: 1.45; }
+
+/* --------------------------------------------------------- apresentação */
+.vapresenta {
+  position: fixed; inset: 0; z-index: 90; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px;
+  padding: max(12px, var(--seguro-cima)) max(14px, var(--seguro-dir)) max(12px, var(--seguro-baixo)) max(14px, var(--seguro-esq));
+  background: #05080f; color: var(--text);
+}
+.vapresenta__topo { display: flex; align-items: flex-start; gap: 10px; }
+.vapresenta__topo .vlegenda { flex: 1; background: rgba(22, 35, 59, 0.75); }
+.vapresenta__topo .vlegenda__titulo { font-size: 1.25rem; }
+.vapresenta__topo .vlegenda__nota { font-size: 1.05rem; }
+.vapresenta__palco { display: grid; place-items: center; min-height: 0; }
+/* O vídeo ocupa o que sobrar, sempre em 16:9. */
+.vapresenta__palco .vleitor { width: min(100%, calc((100dvh - 250px) * 16 / 9)); max-height: 100%; border-radius: 10px; }
+.vapresenta__fundo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.vapresenta__fundo .vcontrolos { flex: 1; justify-content: center; }
+.vapresenta__seta { min-width: 130px; }
+@media (max-width: 720px) {
+  .vapresenta__seta { min-width: 0; flex: 1; order: 2; }
+  .vapresenta__fundo .vcontrolos { order: 1; flex: 1 1 100%; }
+  .vapresenta__topo .vlegenda__titulo { font-size: 1.05rem; }
+  .vapresenta__palco .vleitor { width: 100%; }
+}
+
+/* ---------------------------------------------------------- por jogador */
+.vgrupo { display: grid; gap: 8px; padding-top: 6px; }
+.vgrupo__titulo { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.95rem; }
+.vgrupo__titulo svg { color: var(--cor); }
+.vgrupo__valencia { display: grid; gap: 6px; }
+.vfalado {
+  min-height: 36px; padding: 0 10px; border-radius: 999px; background: none; border: 1px solid var(--line);
+  color: var(--muted); font: inherit; font-size: 0.76rem; font-weight: 700; white-space: nowrap; cursor: pointer;
+}
+.vfalado:hover:not(:disabled) { border-color: var(--primary); color: var(--text); }
+.vfalado.is-on { border-color: rgba(34, 197, 94, 0.5); background: rgba(34, 197, 94, 0.14); color: var(--primary); }
+.vfalado:disabled { cursor: default; }
+
+/* ---------------------------------------------------------- link público */
+.publica--video { max-width: 860px; display: grid; gap: 12px; align-content: start; }
+.publica--video .vanalise__palco { position: static; margin: 0; padding: 0; box-shadow: none; }
+.publica__clipes { margin-top: 4px; }
+
+/* Na ficha do jogador, num telemóvel, as fotos dos outros marcados saem: o
+   espaço é para a nota e para o "já falámos". */
+@media (max-width: 520px) {
+  .vgrupo .vclipe__jogadores { display: none; }
+  .vclipe__corpo { padding: 9px 8px; gap: 8px; }
+}
+
+/* Telemóvel: os botões de andar no vídeo ocupam a primeira linha inteira; o
+   tempo e as velocidades ficam na segunda. */
+@media (max-width: 520px) {
+  .vcontrolos__grupo:first-child { flex: 1 1 100%; }
+  .vcontrolos__grupo:first-child .vbtn { flex: 1; }
+  .vcontrolos__tempo { order: 0; text-align: left; padding-left: 4px; }
+}

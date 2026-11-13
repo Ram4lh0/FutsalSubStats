@@ -21,12 +21,24 @@ function nativo() {
   return Boolean(cap.isNative);
 }
 
+function baseDosLinks() {
+  return !nativo() && typeof window !== 'undefined' && /^https?:$/.test(window.location.protocol)
+    ? window.location.origin
+    : URL_WEB;
+}
+
 export function urlDaJogada(token) {
-  const base =
-    !nativo() && typeof window !== 'undefined' && /^https?:$/.test(window.location.protocol)
-      ? window.location.origin
-      : URL_WEB;
-  return `${base}${rotas.jogadaPublica(token)}`;
+  return `${baseDosLinks()}${rotas.jogadaPublica(token)}`;
+}
+
+/** O link público de uma sessão de vídeo (os clipes escolhidos para um jogador). */
+export function urlDoVideo(token) {
+  return `${baseDosLinks()}${rotas.videoPublico(token)}`;
+}
+
+/** Está-se dentro da app nativa (iOS/Android), e não no browser? */
+export function naAppNativa() {
+  return nativo();
 }
 
 /**

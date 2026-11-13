@@ -22,6 +22,10 @@ import {
   playMapper,
   teamStatConfigMapper,
   playerPhotoMapper,
+  videoAnalysisMapper,
+  videoClipMapper,
+  videoSessionMapper,
+  videoTalkMapper,
 } from './mappers.js';
 import { EVENT } from '../../domain/constants.js';
 import { emDemo } from '../demoEstado.js';
@@ -215,9 +219,13 @@ export async function push(userId, email) {
   const treinoSujo = treinoNoServidor
     ? (await Promise.all(TREINO.map(([store]) => dirtyRows(store)))).some((l) => l.length)
     : false;
+  const videoSujo = videoNoServidor
+    ? (await Promise.all(VIDEO.map(([store]) => dirtyRows(store)))).some((l) => l.length)
+    : false;
 
   if (
     !treinoSujo &&
+    !videoSujo &&
     !clubesSujos.length &&
     !escaloesSujos.length &&
     !competicoesSujas.length &&
@@ -465,6 +473,7 @@ export async function push(userId, email) {
   }
 
   total += await pushTreino(sb);
+  total += await pushVideo(sb);
 
   return { pushed: total };
 }
@@ -605,6 +614,88 @@ async function pushTreino(sb) {
   return total;
 }
 
+/* ------------------------------------------------------- análise de vídeo */
+
+/**
+ * As tabelas da Análise de vídeo, por ordem de dependência: a análise antes
+ * dos clipes, os clipes antes das conversas sobre eles.
+ */
+const VIDEO = [
+  [db.STORES.videoAnalyses, videoAnalysisMapper],
+  [db.STORES.videoClips, videoClipMapper],
+  [db.STORES.videoSessions, videoSessionMapper],
+  [db.STORES.videoTalks, videoTalkMapper],
+];
+
+/**
+ * O servidor já tem as tabelas do vídeo? Enquanto a migração não estiver
+ * aplicada, as análises ficam só no aparelho e volta a tentar-se na próxima
+ * abertura da app — como o treino, e sem encravar a fila dos jogos.
+ */
+let videoNoServidor = true;
+
+export function videoSoLocal() {
+  return !videoNoServidor;
+}
+
+async function pushVideo(sb) {
+  if (!videoNoServidor) return 0;
+  let total = 0;
+  for (const [store, mapper] of VIDEO) {
+    const linhas = await dirtyRows(store);
+    if (!linhas.length) continue;
+    const error = await upsertPorColunas(sb, mapper.table, linhas.map((r) => mapper.toRow(r)));
+    if (error) {
+      if (semTabela(error)) {
+        videoNoServidor = false;
+        console.warn('vídeo: o servidor ainda não tem as tabelas — fica só neste aparelho.');
+        return total;
+      }
+      throw etiqueta(error, mapper.table);
+    }
+    await clean(store, linhas);
+    total += linhas.length;
+  }
+  return total;
+}
+
+async function pullVideo(sb, trazer) {
+  if (!videoNoServidor) return 0;
+  const escalaoIds = (await db.all(db.STORES.teams)).map((t) => t.id);
+  if (!escalaoIds.length) return 0;
+  let total = 0;
+  try {
+    for (const [store, mapper] of VIDEO) {
+      const linhas = await trazer(mapper.table, () =>
+        sb.from(mapper.table).select('*').in('team_id', escalaoIds).order('updated_at')
+      );
+      total += await merge(store, linhas.map(mapper.fromRow));
+    }
+  } catch (err) {
+    if (!semTabela(err)) throw err;
+    videoNoServidor = false;
+  }
+  return total;
+}
+
+/**
+ * Uma linha do vídeo que o Realtime disse que mudou noutro aparelho. Como no
+ * treino, o aviso só diz "mudou": a linha vem inteira do servidor e entra
+ * pelo `merge`, que não pisa o que está por enviar daqui.
+ */
+export async function trazerLinhaDoVideo(tabela, id) {
+  const sb = supabase();
+  if (!sb || !id || emDemo() || !videoNoServidor) return 0;
+  const par = VIDEO.find(([, mapper]) => mapper.table === tabela);
+  if (!par) return 0;
+  const [store, mapper] = par;
+  const { data, error } = await sb.from(tabela).select('*').eq('id', id).maybeSingle();
+  if (error || !data) return 0;
+  const n = await merge(store, [mapper.fromRow(data)]);
+  if (n) notifyDataUpdated();
+  return n;
+}
+
 async function claimStartedMatches(sb, jogos, eventos) {
   const startedMatchIds = new Set();
   for (const ev of eventos) {
@@ -723,6 +814,10 @@ const TABELAS_COM_MARCA = [
   'training_attendance',
   'plays',
   'team_stat_config',
+  'video_analyses',
+  'video_clips',
+  'video_sessions',
+  'video_clip_talks',
 ];
 
 /**
@@ -878,6 +973,7 @@ export async function pull(userId, { repararJogosIncompletos = false } = {}) {
   total += await pullFotos(sb, trazer);
 
   total += await pullTreino(sb, trazer);
+  total += await pullVideo(sb, trazer);
   total += await pullConfigDosRegistos(sb, trazer);
 
   const jogos = await trazer('matches', () =>
@@ -1350,6 +1446,7 @@ export async function pendingCount() {
     // Sem servidor para o treino, as linhas dele não são "por enviar": ficam
     // no aparelho, e contá-las deixava o aviso de pendentes aceso para sempre.
     ...(treinoNoServidor ? TREINO.map(([store]) => store) : []),
+    ...(videoNoServidor ? VIDEO.map(([store]) => store) : []),
   ];
   let n = 0;
   for (const s of stores) n += (await dirtyRows(s)).length;

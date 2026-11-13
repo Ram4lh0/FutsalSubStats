@@ -23,6 +23,8 @@ export default function useRouteParams() {
     trainingId: q.get(PARAM.training) || null,
     playId: q.get(PARAM.play) || null,
     share: q.get(PARAM.share) || null,
+    videoId: q.get(PARAM.video) || null,
+    videoSessionId: q.get(PARAM.videoSession) || null,
     // De onde se veio, para o botão "atrás" não atirar sempre para o mesmo
     // sítio. O resumo e o histórico são as duas páginas a que se chega por
     // caminhos diferentes.

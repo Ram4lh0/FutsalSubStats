@@ -93,6 +93,13 @@ export const ADDONS = {
     grupo: 'jogo',
     nome: 'Golo de ressalto',
   },
+  // Subaba "Análise de vídeo" na aba Treino: vídeos do YouTube (só o link),
+  // clipes por categoria, sessões e a fila de conversas por jogador. Ver
+  // domain/analiseVideo.js. Os dados ficam em tabelas próprias (video_*).
+  'analise-video': {
+    grupo: 'treino',
+    nome: 'Análise de vídeo',
+  },
 };
 
 /* ----------------------------------------------------------------- leitura */

@@ -9,7 +9,7 @@
 // sempre, e só depois se tenta enviar. Um pavilhão sem rede não muda nada.
 
 const DB_NAME = 'futsal-live';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 export const STORES = {
   profile: 'profile',
@@ -32,6 +32,12 @@ export const STORES = {
   // Fotos dos atletas (versão 6): uma linha por jogador, chave = id do jogador.
   // À parte dos jogadores para o plantel não arrastar as imagens a cada envio.
   playerPhotos: 'player_photos',
+  // Análise de vídeo (versão 7): análises (um vídeo do YouTube), clipes,
+  // sessões e as conversas com os jogadores. O vídeo não vive aqui: só o link.
+  videoAnalyses: 'video_analyses',
+  videoClips: 'video_clips',
+  videoSessions: 'video_sessions',
+  videoTalks: 'video_clip_talks',
 };
 
 /* Linhas por enviar: quem tem `dirty` ainda não chegou ao servidor. */
@@ -132,6 +138,13 @@ export function open() {
       if (!db.objectStoreNames.contains(STORES.playerPhotos)) {
         const s = db.createObjectStore(STORES.playerPhotos, { keyPath: 'id' });
         s.createIndex('by_team', 'teamId');
+      }
+      for (const nome of [STORES.videoAnalyses, STORES.videoClips, STORES.videoSessions, STORES.videoTalks]) {
+        if (!db.objectStoreNames.contains(nome)) {
+          const s = db.createObjectStore(nome, { keyPath: 'id' });
+          s.createIndex('by_team', 'teamId');
+          if (nome === STORES.videoClips) s.createIndex('by_analysis', 'analysisId');
+        }
       }
       if (!db.objectStoreNames.contains(STORES.teamStatConfig)) {
         db.createObjectStore(STORES.teamStatConfig, { keyPath: 'teamId' });
@@ -252,6 +265,7 @@ export async function byIndex(store, index, value) {
       by_match: 'matchId',
       by_team: 'teamId',
       by_session: 'sessionId',
+      by_analysis: 'analysisId',
     }[index];
     return [...memory[store].values()].filter((r) => r[field] === value);
   }
