@@ -545,6 +545,14 @@
 
 /* Mostrar / esconder os filtros (poupa espaço no telemóvel). */
 .filtros__alternar { margin-bottom: 8px; }
+/* Linha de cima: alternar filtros + (só no telemóvel) o Descarregar PDF. */
+.filtros__topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.filtros__topo .filtros__alternar { margin-bottom: 0; }
+.filtros__pdf--topo { display: none; }
+@media (max-width: 720px) {
+  .filtros__pdf--topo { display: inline-flex; }
+  .filtros__pdf--fundo { display: none; }
+}
 @media (max-width: 560px) {
   .filtros__grupo--janela { flex-direction: column; align-items: stretch; gap: 8px; }
   .filtros__grupo--janela .filtros__rotulo { align-self: flex-start; }

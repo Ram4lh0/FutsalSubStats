@@ -144,16 +144,31 @@ function Filtros({
   const jogadores = [...(roster || [])].sort(
     (a, b) => (a.number ?? a.shirtNumber ?? 999) - (b.number ?? b.shirtNumber ?? 999)
   );
+  const botaoPdf = (extra) => (
+    <button
+      type="button"
+      className={`btn btn--primary btn--tiny ${extra}`}
+      onClick={aoExportarPdf}
+      disabled={aGerarPdf}
+      aria-busy={aGerarPdf}
+    >
+      {aGerarPdf ? t('pdf.aGerar') : t('painelv.exportarPdf')}
+    </button>
+  );
   return (
     <>
-      <button
-        type="button"
-        className="btn btn--ghost btn--tiny filtros__alternar no-print"
-        aria-expanded={!escondidos}
-        onClick={alternar}
-      >
-        {escondidos ? t('painelv.mostrarFiltros') : t('painelv.esconderFiltros')}
-      </button>
+      <div className="filtros__topo no-print">
+        <button
+          type="button"
+          className="btn btn--ghost btn--tiny filtros__alternar"
+          aria-expanded={!escondidos}
+          onClick={alternar}
+        >
+          {escondidos ? t('painelv.mostrarFiltros') : t('painelv.esconderFiltros')}
+        </button>
+        {/* No telemóvel o PDF vem para aqui: lá em baixo, depois dos filtros todos, ninguém o via. */}
+        {botaoPdf('filtros__pdf--topo')}
+      </div>
       {escondidos ? null : (
     <div className="filtros">
       {jogadores.length ? (
@@ -175,11 +190,7 @@ function Filtros({
         </div>
       ) : null}
 
-      <div className="filtros__grupo filtros__grupo--janela no-print">
-        <span className="filtros__rotulo">{t('painelv.periodo')}</span>
-        <JanelaTempo parteMin={Math.round(parteMs / 60_000)} janela={janela} aoMudar={aoTrocarJanela} />
-      </div>
-
+      {/* Competição vem sempre antes (por cima) do período. */}
       {provas.length > 1 ? (
         <div className="filtros__grupo">
           <span className="filtros__rotulo">{t('painelv.competicao')}</span>
@@ -202,6 +213,11 @@ function Filtros({
           ))}
         </div>
       ) : null}
+
+      <div className="filtros__grupo filtros__grupo--janela no-print">
+        <span className="filtros__rotulo">{t('painelv.periodo')}</span>
+        <JanelaTempo parteMin={Math.round(parteMs / 60_000)} janela={janela} aoMudar={aoTrocarJanela} />
+      </div>
 
       {tipos.length > 1 ? (
         <div className="filtros__grupo">
@@ -240,15 +256,7 @@ function Filtros({
             </select>
           </>
         ) : null}
-        <button
-          type="button"
-          className="btn btn--ghost btn--tiny"
-          onClick={aoExportarPdf}
-          disabled={aGerarPdf}
-          aria-busy={aGerarPdf}
-        >
-          {aGerarPdf ? t('pdf.aGerar') : t('painelv.exportarPdf')}
-        </button>
+        {botaoPdf('filtros__pdf--fundo')}
       </div>
     </div>
       )}

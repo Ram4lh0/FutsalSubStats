@@ -114,7 +114,7 @@ function Stats({ club, team, entries: todas, roster, competitions, clubId, teamI
         ) : null}
         <button
           type="button"
-          className="btn btn--ghost btn--tiny"
+          className="btn btn--primary btn--tiny"
           onClick={exportarPdf}
           disabled={aGerarPdf}
           aria-busy={aGerarPdf}
