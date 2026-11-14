@@ -99,6 +99,27 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
   }
 
   /**
+   * Remate com o resultado já dito pelo botão ("enquadrado" ou "fora", no ecrã
+   * dos Registos de um jogo partilhado): só se pergunta a zona, se o escalão a
+   * pedir.
+   */
+  async function registarRemateCom(p, resultado, titulo) {
+    let x = null;
+    let y = null;
+    if (opcoesDe(REGISTO.REMATE).zona !== false) {
+      const r = await perguntarOnde(ui, {
+        titulo: titulo || t('registos.remateDe', quem(p)),
+        markers: pontos(REGISTO.REMATE),
+        destaque: 'deles',
+      });
+      if (!r) return;
+      x = r.x;
+      y = r.y;
+    }
+    await commit(registar(state, { registo: REGISTO.REMATE, playerId: p.playerId, resultado, x, y }));
+  }
+
+  /**
    * Remate do adversário: o que aconteceu (golo, defesa do nosso GR,
    * bloqueado, fora, poste) e de onde rematou, na nossa metade — o que o
    * escalão pedir. Golo é golo sofrido: corre primeiro o fluxo de sempre e o
@@ -362,6 +383,7 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     ligados,
     on: {
       registarRemate,
+      registarRemateCom,
       registarRemateBarra,
       registarRecuperacao,
       registarDefesa,

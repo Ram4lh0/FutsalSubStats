@@ -2555,4 +2555,8 @@ export default {
   "partilhado.relogio.aviso": "Start the 1st half together with the match: each goal, foul, card and stat gets the half and minute of this clock.",
   "partilhado.relogio.ateAqui": "Up to the end of the {parte}",
   "partilhado.aviso.golosNaBase": "The Times match already has {n} goals: they stay and add to the incoming ones. If they should not be there, delete them first in that match summary.",
+  "partilhado.registos.remateEnquadrado": "Shot on target",
+  "partilhado.registos.remateFora": "Shot off target",
+  "partilhado.registos.remateEnquadradoDe": "Shot on target by #{numero} {nome}: from where?",
+  "partilhado.registos.remateForaDe": "Shot off target by #{numero} {nome}: from where?",
 };

@@ -102,6 +102,11 @@ export const OPCOES = {
   resultado: { nome: 'pedir o que aconteceu', omissao: true },
   cartao: { nome: 'botão no cartão do jogador', omissao: true },
   barra: { nome: 'botão na barra de cima (pergunta quem)', omissao: false },
+  // Só no ecrã dos Registos de um jogo com registo partilhado: em vez de um
+  // botão "Remate" que pergunta o que aconteceu, dois botões que já o dizem —
+  // "Remate enquadrado" (grava DEFENDIDO: foi à baliza) e "Remate fora"
+  // (grava FORA) — e só se pergunta a zona. Pedido do Elétrico FC (14/11/2026).
+  enquadrado: { nome: 'registo partilhado: dois botões (enquadrado / fora), só com a zona', omissao: false },
 };
 
 /**
@@ -117,7 +122,7 @@ export const CATALOGO = {
     por: 'jogador',
     ponto: true,
     resultados: Object.values(RESULTADO_REMATE),
-    opcoes: ['zona', 'resultado'],
+    opcoes: ['zona', 'resultado', 'enquadrado'],
     disponivel: true,
   },
   // O ponto é de onde rematou o adversário. Só o guarda-redes tem o botão.

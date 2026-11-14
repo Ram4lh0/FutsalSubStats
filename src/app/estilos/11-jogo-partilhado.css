@@ -151,3 +151,5 @@
 .regcard__btn--golo { border-color: rgba(34, 197, 94, 0.75); }
 .regcard__btn--falta { border-color: rgba(148, 163, 184, 0.7); }
 .regcard__btn--amarelo { border-color: rgba(250, 204, 21, 0.85); color: #fde047; }
+.regcard__btn--enquadrado { border-color: rgba(56, 189, 248, 0.75); }
+.regcard__btn--fora { border-color: rgba(148, 163, 184, 0.8); }

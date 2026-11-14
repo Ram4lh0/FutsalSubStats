@@ -2556,4 +2556,8 @@ export default {
   "partilhado.relogio.aviso": "Empieza la 1.ª parte a la vez que el partido: cada gol, falta, tarjeta y registro queda con la parte y el minuto de este reloj.",
   "partilhado.relogio.ateAqui": "Hasta el final de la {parte}",
   "partilhado.aviso.golosNaBase": "El partido de los Tiempos ya tiene {n} goles: se quedan y se suman a los que llegan. Si no deberían estar, bórralos primero en el resumen de ese partido.",
+  "partilhado.registos.remateEnquadrado": "Remate a puerta",
+  "partilhado.registos.remateFora": "Remate fuera",
+  "partilhado.registos.remateEnquadradoDe": "Remate a puerta de #{numero} {nome}: ¿desde dónde?",
+  "partilhado.registos.remateForaDe": "Remate fuera de #{numero} {nome}: ¿desde dónde?",
 };

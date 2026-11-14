@@ -46,7 +46,15 @@ import {
   relogioDosRegistos,
 } from '@/domain/partilha.js';
 import { foulsInPeriod } from '@/domain/reducer.js';
-import { REGISTO, RESULTADO_ACAO, contagemPorJogador, registosDoJogo } from '@/domain/registos.js';
+import {
+  A_BALIZA,
+  REGISTO,
+  RESULTADO_ACAO,
+  RESULTADO_REMATE,
+  contagemPorJogador,
+  registar,
+  registosDoJogo,
+} from '@/domain/registos.js';
 import { clubShort, dateLabel, eventLabel, opponentShort } from '@/lib/format.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
@@ -139,6 +147,11 @@ function Registos() {
   const addons = useAddons(match?.teamId);
   const ourName = clubShort(club);
   const rivalName = match ? opponentShort(match) : '';
+
+  // Opção do escalão (pedido do Elétrico FC): em vez do botão "Remate", que
+  // pergunta o que aconteceu, dois botões que já o dizem — "Remate enquadrado"
+  // e "Remate fora" — e só se pergunta a zona.
+  const doisRemates = ligados.has(REGISTO.REMATE) && Boolean(ligados.opcoes?.remate?.enquadrado);
 
   const registos = useAcoesRegistos({
     state,
@@ -237,7 +250,17 @@ function Registos() {
     let st = await commit(p ? A.teamGoalBy(de, p.playerId) : A.goal(de, EVENT.TEAM_GOAL_ADDED));
     const g = ultimoGolo(st, 'US');
     if (!g) return;
-    const remate = comRemate || (tipo ? null : registos.remateDoGolo('US', p?.playerId));
+    // Com os dois botões de remate (enquadrado / fora), o golo conta sozinho
+    // como remate enquadrado de quem marcou: não há botão "remate com golo".
+    const remate =
+      comRemate ||
+      (tipo
+        ? null
+        : registos.remateDoGolo('US', p?.playerId) ||
+          (doisRemates && p
+            ? (s, goloEventId) =>
+                registar(s, { registo: REGISTO.REMATE, playerId: p.playerId, resultado: RESULTADO_REMATE.GOLO, goloEventId })
+            : null));
     if (remate) st = (await commit(remate(st, g.eventId))) || st;
     if (tipo) {
       await commit(A.attributeGoal(st, { targetEventId: g.eventId, howScored: tipo }));
@@ -431,7 +454,23 @@ function Registos() {
       ['falta', t('partilhado.registos.falta'), faltasDe(p.playerId), () => falta('US', p)],
       ['amarelo', t('partilhado.registos.amarelo'), amarelosDe(p.playerId), () => amarelo(p)],
     ];
-    if (ligados.has(REGISTO.REMATE)) b.push(['remate', t('registos.nome.remate'), c.remate, () => on.registarRemate(p)]);
+    if (doisRemates) {
+      const meus = lista.filter((r) => r.registo === REGISTO.REMATE && r.playerId === p.playerId);
+      b.push([
+        'enquadrado',
+        t('partilhado.registos.remateEnquadrado'),
+        meus.filter((r) => A_BALIZA.has(r.resultado)).length,
+        () => on.registarRemateCom(p, RESULTADO_REMATE.DEFENDIDO, t('partilhado.registos.remateEnquadradoDe', { numero: p.number, nome: p.name })),
+      ]);
+      b.push([
+        'fora',
+        t('partilhado.registos.remateFora'),
+        meus.filter((r) => r.resultado === RESULTADO_REMATE.FORA).length,
+        () => on.registarRemateCom(p, RESULTADO_REMATE.FORA, t('partilhado.registos.remateForaDe', { numero: p.number, nome: p.name })),
+      ]);
+    } else if (ligados.has(REGISTO.REMATE)) {
+      b.push(['remate', t('registos.nome.remate'), c.remate, () => on.registarRemate(p)]);
+    }
     if (ligados.has(REGISTO.RECUPERACAO)) {
       b.push(['recup', t('registos.nome.recuperacao'), c.recuperacao, () => on.registarRecuperacao(p)]);
     }
@@ -663,7 +702,15 @@ function Registos() {
       ) : null}
 
       {ligados.size ? (
-        <BarraRegistos state={state} ligados={ligados} ourName={ourName} opponentName={rivalName} on={on} />
+        <BarraRegistos
+          state={state}
+          ligados={ligados}
+          ourName={ourName}
+          opponentName={rivalName}
+          // Com os dois botões de remate, os nossos remates somam-se nos cartões
+          // (é lá que se diz se foi enquadrado ou fora); na barra fica só o total.
+          on={doisRemates ? { ...on, registarRemateBarra: null } : on}
+        />
       ) : null}
 
       <div className="regultimo">

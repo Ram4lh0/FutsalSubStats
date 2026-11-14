@@ -2560,4 +2560,8 @@ export default {
   "partilhado.relogio.aviso": "Comece a 1.ª parte ao mesmo tempo que o jogo: cada golo, falta, cartão e registo fica com a parte e o minuto deste relógio.",
   "partilhado.relogio.ateAqui": "Até ao fim da {parte}",
   "partilhado.aviso.golosNaBase": "O jogo dos Tempos já tem {n} golos: ficam, e somam-se aos que chegam. Se não deviam lá estar, apague-os primeiro no resumo desse jogo.",
+  "partilhado.registos.remateEnquadrado": "Remate enquadrado",
+  "partilhado.registos.remateFora": "Remate fora",
+  "partilhado.registos.remateEnquadradoDe": "Remate enquadrado de #{numero} {nome}: de onde?",
+  "partilhado.registos.remateForaDe": "Remate fora de #{numero} {nome}: de onde?",
 };

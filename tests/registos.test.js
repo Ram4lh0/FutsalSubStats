@@ -441,8 +441,11 @@ test('remate do adversário só contado: sem jogador, resultado nem zona; desfaz
 /* ------------------------------------------------- opções e registos novos */
 
 test('opções por registo: omissões, gravadas e validação', () => {
-  assert.deepEqual(opcoesDoRegisto(null, 'remate'), { zona: true, resultado: true });
-  assert.deepEqual(opcoesDoRegisto({ registos: { remate: { zona: false } } }, 'remate'), { zona: false, resultado: true });
+  // `enquadrado` (os dois botões do registo partilhado) vem desligado por omissão.
+  assert.deepEqual(opcoesDoRegisto(null, 'remate'), { zona: true, resultado: true, enquadrado: false });
+  assert.deepEqual(opcoesDoRegisto({ registos: { remate: { zona: false } } }, 'remate'), { zona: false, resultado: true, enquadrado: false });
+  assert.deepEqual(opcoesDoRegisto({ registos: { remate: { enquadrado: true } } }, 'remate'), { zona: true, resultado: true, enquadrado: true });
+  assert.deepEqual(validarOpcoes({ remate: { enquadrado: true } }).registos, { remate: { enquadrado: true } });
   assert.deepEqual(opcoesDoRegisto(null, 'defesa_gr'), { zona: true });
   assert.deepEqual(opcoesDoRegisto(null, 'passe_falhado'), { cartao: true, barra: false });
   assert.deepEqual(opcoesDoRegisto(null, 'canto'), {}, 'o canto não tem opções');
