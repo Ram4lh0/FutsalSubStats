@@ -2507,7 +2507,7 @@ export default {
   "partilhado.naoSincronizou": "Could not sync yet. Try again in a moment.",
   "partilhado.sincronizou": "Match synced.",
   "partilhado.aSincronizar": "Syncing…",
-  "partilhado.sincronizarAgora": "Sync now",
+  "partilhado.sincronizarAgora": "Sync",
   "partilhado.juntar.botao": "Merge",
   "partilhado.juntar.titulo": "Merge the two matches",
   "partilhado.juntar.feito": "Matches merged: the goals, fouls, cards and {n} stats moved into the Times match.",

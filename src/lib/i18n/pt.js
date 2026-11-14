@@ -2512,7 +2512,7 @@ export default {
   "partilhado.naoSincronizou": "Ainda não foi possível sincronizar. Tente outra vez daqui a pouco.",
   "partilhado.sincronizou": "Jogo sincronizado.",
   "partilhado.aSincronizar": "A sincronizar…",
-  "partilhado.sincronizarAgora": "Sincronizar agora",
+  "partilhado.sincronizarAgora": "Sincronizar",
   "partilhado.juntar.botao": "Juntar",
   "partilhado.juntar.titulo": "Juntar os dois jogos",
   "partilhado.juntar.feito": "Jogos juntados: os golos, faltas, cartões e {n} registos passaram para o jogo dos Tempos.",

@@ -2508,7 +2508,7 @@ export default {
   "partilhado.naoSincronizou": "Todavía no se pudo sincronizar. Inténtalo de nuevo en un momento.",
   "partilhado.sincronizou": "Partido sincronizado.",
   "partilhado.aSincronizar": "Sincronizando…",
-  "partilhado.sincronizarAgora": "Sincronizar ahora",
+  "partilhado.sincronizarAgora": "Sincronizar",
   "partilhado.juntar.botao": "Juntar",
   "partilhado.juntar.titulo": "Juntar los dos partidos",
   "partilhado.juntar.feito": "Partidos unidos: los goles, faltas, tarjetas y {n} registros pasaron al partido de los Tiempos.",

@@ -10,6 +10,7 @@ import { Badge } from '@/components/bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import * as sync from '@/lib/data/sync.js';
+import { hasRemote } from '@/lib/supabase/client.js';
 import { desfazerFusao, jogoSincronizado } from '@/lib/partilhado.js';
 import { lerPartilha, partilhaTerminada } from '@/domain/partilha.js';
 import { useT } from '@/lib/i18n/index.js';
@@ -48,7 +49,16 @@ export default function FaixaPartilhado({ matchId, events, state, aoMudar }) {
     if (ocupado) return;
     setOcupado(true);
     try {
+      // Envia o que este aparelho tem e descarrega o resto: é assim que o jogo
+      // do outro aparelho (Tempos ou Registos) chega cá para se poder juntar.
       const r = await sync.saveNow(userId, user?.email);
+      if (r.status !== sync.SYNC.OFFLINE && userId) {
+        try {
+          await sync.pull(userId);
+        } catch {
+          /* sem rede a meio: fica o que já subiu */
+        }
+      }
       await verificar();
       if (!(await jogoSincronizado(matchId))) {
         ui.toast(r.status === sync.SYNC.OFFLINE ? t('partilhado.semRede') : t('partilhado.naoSincronizou'), 'error', 5000);
@@ -109,8 +119,14 @@ export default function FaixaPartilhado({ matchId, events, state, aoMudar }) {
           </button>
         ) : terminado ? (
           <>
-            {porSubir ? (
-              <button type="button" className="btn btn--ghost" onClick={sincronizar} disabled={ocupado} aria-busy={ocupado}>
+            {hasRemote() ? (
+              <button
+                type="button"
+                className={`btn ${porSubir ? 'btn--primary' : 'btn--ghost'}`}
+                onClick={sincronizar}
+                disabled={ocupado}
+                aria-busy={ocupado}
+              >
                 {ocupado ? t('partilhado.aSincronizar') : t('partilhado.sincronizarAgora')}
               </button>
             ) : null}
