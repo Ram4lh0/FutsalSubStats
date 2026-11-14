@@ -89,10 +89,11 @@
 .regcard__btn {
   display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: var(--touch); min-width: 0;
   padding: 6px 8px; line-height: 1.15; border-radius: 10px; font-size: 0.82rem; font-weight: 700; text-align: left; cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.05); color: var(--text);
+  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.05); color: var(--text);
   user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
-.regcard__btn > span { min-width: 0; overflow-wrap: anywhere; }
+/* Rótulo ao centro do botão, com o contador à direita. */
+.regcard__btn > span { flex: 1; min-width: 0; overflow-wrap: anywhere; text-align: center; padding-left: 12px; }
 .regcard__btn b {
   flex: none; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center;
   font-size: 0.8rem; background: rgba(255, 255, 255, 0.1); font-variant-numeric: tabular-nums;
