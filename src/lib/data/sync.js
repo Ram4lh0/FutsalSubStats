@@ -448,6 +448,20 @@ export async function push(userId, email) {
       porJogo.get(c.matchId).push(c);
     }
     for (const [matchId, linhas] of porJogo) {
+      // A convocatória deste aparelho é a verdadeira. Os jogadores que o
+      // treinador tirou nunca eram apagados lá em cima, e o servidor conta-os
+      // para o limite da competição: 12 antigos + 3 trocados = 15, recusado.
+      // Antes de enviar, tiram-se do servidor os que já não estão aqui.
+      const locais = await db.byIndex(db.STORES.matchSquad, 'by_match', matchId);
+      const idsJogadores = locais.map((c) => c.playerId).filter(Boolean);
+      if (idsJogadores.length) {
+        const { error: erroLimpar } = await sb
+          .from(squadMapper.table)
+          .delete()
+          .eq('match_id', matchId)
+          .not('player_id', 'in', `(${idsJogadores.join(',')})`);
+        if (erroLimpar) throw etiqueta(erroLimpar, `${squadMapper.table} (limpar)`);
+      }
       const { error } = await sb.from(squadMapper.table).upsert(linhas.map((r) => squadMapper.toRow(r)));
       if (error) {
         if (String(error.code) === '23514') {
