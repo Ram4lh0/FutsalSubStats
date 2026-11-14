@@ -32,7 +32,7 @@ import { matchStatsTable } from '@/domain/stats.js';
 import { isLive } from '@/domain/reducer.js';
 import { fmt } from '@/domain/clock.js';
 import { temRegistos } from '@/domain/registos.js';
-import { MATCH_STATUS, PLAYER_MATCH_STATUS, POSITIONS, EXTRA_TIME_PERIOD_MS } from '@/domain/constants.js';
+import { MATCH_STATUS, MATCH_TIMING, timingOf, PLAYER_MATCH_STATUS, POSITIONS, EXTRA_TIME_PERIOD_MS } from '@/domain/constants.js';
 import { faseDoJogo, resumoPenaltis } from '@/domain/prolongamento.js';
 import { clubShort, opponentShort, positionLabel, parteCurtaLabel } from '@/lib/format.js';
 import { rotas } from '@/lib/routes.js';
@@ -179,6 +179,7 @@ function Assistir() {
             periodDurationMs={state.currentPeriod >= 3 ? EXTRA_TIME_PERIOD_MS : match.periodDurationMs}
             periodLabel={periodLabel}
             now={now}
+            countdown={timingOf(match) === MATCH_TIMING.TIMED}
           />
         )}
       </header>

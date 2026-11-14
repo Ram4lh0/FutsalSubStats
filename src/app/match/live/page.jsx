@@ -1423,6 +1423,7 @@ function Live() {
           periodDurationMs={duracaoDaParte}
           periodLabel={periodLabel}
           now={now}
+          countdown={timing === MATCH_TIMING.TIMED}
           // Só no jogo cronometrado. No corrido o relógio é uma referência, não
           // uma contagem oficial, e não há paragens onde alguém se possa enganar.
           on={timing === MATCH_TIMING.TIMED ? on : null}

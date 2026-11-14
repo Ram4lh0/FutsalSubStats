@@ -269,8 +269,13 @@ function FoulsCell({ state, team, side, interactive, on }) {
  * configurada — o árbitro é que manda. Passado o limite, o número fica âmbar e a
  * linha de baixo troca a contagem decrescente por quanto tempo já vai a mais.
  */
-export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
+export function ClockBox({ state, periodDurationMs, periodLabel, now, on, countdown = false }) {
   const p = periodProgress(state, periodDurationMs, now);
+  // Jogo cronometrado: o número grande desce de 20:00 a 00:00 em cada parte;
+  // os registos continuam a usar o tempo real (matchMs). Os botões ± seguem o
+  // que se vê: "−1s" tira um segundo ao que está no ecrã.
+  const mostrar = countdown && p.limitMs > 0;
+  const sinal = mostrar ? -1 : 1;
   return (
     <div className="clockbox">
       <span className="clockbox__period">{periodLabel}</span>
@@ -287,7 +292,7 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
               className="clockadj__b"
               title={t('vivo.menosDezSegundos')}
               aria-label={t('vivo.menosDezSegundos')}
-              onClick={() => on.adjustClock(-10_000)}
+              onClick={() => on.adjustClock(sinal * -10_000)}
             >
               −10s
             </button>
@@ -296,7 +301,7 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
               className="clockadj__b"
               title={t('vivo.menosSegundo')}
               aria-label={t('vivo.menosSegundo')}
-              onClick={() => on.adjustClock(-1000)}
+              onClick={() => on.adjustClock(sinal * -1000)}
             >
               −1s
             </button>
@@ -314,7 +319,7 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
             {fmt(p.periodMs)}
           </button>
         ) : (
-          <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(p.periodMs)}</span>
+          <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(mostrar ? p.remainingMs : p.periodMs)}</span>
         )}
 
         {on?.adjustClock ? (
@@ -324,7 +329,7 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
               className="clockadj__b"
               title={t('vivo.maisDezSegundos')}
               aria-label={t('vivo.maisDezSegundos')}
-              onClick={() => on.adjustClock(10_000)}
+              onClick={() => on.adjustClock(sinal * 10_000)}
             >
               +10s
             </button>
@@ -333,7 +338,7 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
               className="clockadj__b"
               title={t('vivo.maisSegundo')}
               aria-label={t('vivo.maisSegundo')}
-              onClick={() => on.adjustClock(1000)}
+              onClick={() => on.adjustClock(sinal * 1000)}
             >
               +1s
             </button>
@@ -341,7 +346,9 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
         ) : null}
       </div>
       <span className="clockbox__hint">
-        {p.over
+        {mostrar
+          ? t('vivo.soTotal', { total: fmt(p.matchMs) })
+          : p.over
           ? t('vivo.alemDe', {
               extra: fmt(p.overtimeMs),
               limite: fmt(p.limitMs),

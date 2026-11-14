@@ -417,7 +417,6 @@ export async function push(userId, email) {
     [db.STORES.competitions, competitionMapper, competicoes],
     [db.STORES.players, playerMapper, jogadores],
     [db.STORES.matches, matchMapper, jogos],
-    [db.STORES.matchSquad, squadMapper, convocadosSujos],
   ]) {
     if (!linhas.length) continue;
     let { error } = await sb.from(mapper.table).upsert(linhas.map((r) => mapper.toRow(r)));
@@ -435,6 +434,37 @@ export async function push(userId, email) {
     if (error) throw etiqueta(error, `${mapper.table} (${detalharLinhas(linhas)})`);
     await clean(store, linhas);
     total += linhas.length;
+  }
+
+  // Convocatórias, jogo a jogo. Uma que passe o limite da competição (erro
+  // 23514 do servidor) não pode travar o resto: ficaria sem sincronizar os
+  // eventos, os resultados e tudo o que vem depois. Fica por enviar, o resto
+  // segue, e o erro é levantado no fim com a explicação.
+  const excedidos = [];
+  {
+    const porJogo = new Map();
+    for (const c of convocadosSujos) {
+      if (!porJogo.has(c.matchId)) porJogo.set(c.matchId, []);
+      porJogo.get(c.matchId).push(c);
+    }
+    for (const [matchId, linhas] of porJogo) {
+      const { error } = await sb.from(squadMapper.table).upsert(linhas.map((r) => squadMapper.toRow(r)));
+      if (error) {
+        if (String(error.code) === '23514') {
+          const jogo = jogos.find((m) => m.id === matchId);
+          const limite = /(d+)/.exec(error.message || '')?.[1] || '?';
+          excedidos.push({
+            jogo: jogo?.opponentName || matchId.slice(0, 8),
+            n: linhas.length,
+            limite,
+          });
+          continue;
+        }
+        throw etiqueta(error, `${squadMapper.table} (${detalharLinhas(linhas)})`);
+      }
+      await clean(db.STORES.matchSquad, linhas);
+      total += linhas.length;
+    }
   }
 
   // Depois dos jogadores: a foto precisa que o jogador já exista lá.
@@ -465,6 +495,13 @@ export async function push(userId, email) {
   }
 
   total += await pushTreino(sb);
+
+  if (excedidos.length) {
+    const e = excedidos[0];
+    const erro = new Error(t('sinc.convocatoriaExcede', { jogo: e.jogo, limite: e.limite }));
+    erro.codigo = '23514';
+    throw erro;
+  }
 
   return { pushed: total };
 }

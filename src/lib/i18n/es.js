@@ -56,6 +56,7 @@ export default {
   'sinc.reenviarTudo': 'Reenviar todo',
   'sinc.aReenviar': 'Reenviando todo.',
   'sinc.agora': 'Sincronizar ahora',
+  'sinc.convocatoriaExcede': 'La convocatoria del partido contra {jogo} tiene más jugadores que el límite de la competición ({limite}). Abre esa convocatoria y quita los que sobran; todo lo demás ya está sincronizado.',
   'sinc.restam': 'Quedan {n} por enviar. Los datos están guardados en este dispositivo; vuelve a intentarlo con red.',
   'sinc.tudoEmDia': 'Todo sincronizado.',
 
@@ -1017,6 +1018,7 @@ export default {
   'vivo.alemDe': '+{extra} más allá de {limite} · total {total}',
   'vivo.parteAcabou': "El reloj se paró a los {limite}. Reanúdalo si el árbitro añade tiempo.",
   'vivo.faltam': 'Quedan {resta} · total {total}',
+  'vivo.soTotal': 'Total {total}',
   'vivo.aCorrer': 'EN MARCHA',
   'vivo.parado': 'PARADO',
   'vivo.inferioridade': '{n} en pista — inferioridad numérica',

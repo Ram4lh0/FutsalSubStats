@@ -57,6 +57,7 @@ export default {
   'sinc.reenviarTudo': 'Send everything again',
   'sinc.aReenviar': 'Sending everything again.',
   'sinc.agora': 'Sync now',
+  'sinc.convocatoriaExcede': 'The squad for the match against {jogo} has more players than the competition limit ({limite}). Open that match squad and remove the extra players; everything else is already synced.',
   'sinc.restam': '{n} still to send. Your data is safe on this device; try again with a connection.',
   'sinc.tudoEmDia': 'Everything is synced.',
 
@@ -1017,6 +1018,7 @@ export default {
   'vivo.alemDe': '+{extra} past {limite} · total {total}',
   'vivo.parteAcabou': "The clock stopped at {limite}. Resume it if the referee adds time.",
   'vivo.faltam': '{resta} left · total {total}',
+  'vivo.soTotal': 'Total {total}',
   'vivo.aCorrer': 'RUNNING',
   'vivo.parado': 'STOPPED',
   'vivo.inferioridade': '{n} on court — short-handed',
