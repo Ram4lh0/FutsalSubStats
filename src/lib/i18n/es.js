@@ -56,6 +56,8 @@ export default {
   'sinc.reenviarTudo': 'Reenviar todo',
   'sinc.aReenviar': 'Reenviando todo.',
   'sinc.agora': 'Sincronizar ahora',
+  'sinc.restam': 'Quedan {n} por enviar. Los datos están guardados en este dispositivo; vuelve a intentarlo con red.',
+  'sinc.tudoEmDia': 'Todo sincronizado.',
 
   /* -------------------------------------------------------- entrada */
   'login.entrar': 'Entrar',

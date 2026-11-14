@@ -57,6 +57,8 @@ export default {
   'sinc.reenviarTudo': 'Send everything again',
   'sinc.aReenviar': 'Sending everything again.',
   'sinc.agora': 'Sync now',
+  'sinc.restam': '{n} still to send. Your data is safe on this device; try again with a connection.',
+  'sinc.tudoEmDia': 'Everything is synced.',
 
   /* --------------------------------------------------------- sign in */
   'login.entrar': 'Sign in',

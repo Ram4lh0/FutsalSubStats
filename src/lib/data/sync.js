@@ -1272,6 +1272,22 @@ export async function flush(userId, email) {
   aCorrer = true;
   try {
     const { pushed } = await push(userId, email);
+    // Só se dá por sincronizado depois de contar o que sobrou. O envio pode
+    // deixar linhas para trás sem erro (jogo sem escalão, sessão ainda por
+    // carregar) e antes isso ficava como "tudo em dia" com os jogos só no aparelho.
+    const restam = await pendingCount();
+    if (restam > 0) {
+      set({
+        status: SYNC.PENDING,
+        pending: restam,
+        online: true,
+        error: { message: t('sinc.restam', { n: restam }), detalhe: null, codigo: null },
+      });
+      retryMs = Math.min(retryMs * 2, 60000);
+      if (proximaTentativa) clearTimeout(proximaTentativa);
+      proximaTentativa = setTimeout(() => flush(userId, email), retryMs);
+      return pushed;
+    }
     set({ status: SYNC.SYNCED, pending: 0, online: true, lastSyncAt: Date.now(), error: null });
     retryMs = 2000;
     return pushed;
@@ -1397,5 +1413,29 @@ export async function saveNow(userId, email) {
     guardado: estado.status === SYNC.SYNCED,
     status: estado.status,
     pendentes: estado.pending,
+  };
+}
+
+/**
+ * Sincronização completa a pedido: descarrega o que há de novo no servidor,
+ * envia o que ficou aqui e diz como acabou. É o que os botões "Sincronizar"
+ * chamam — antes só enviavam e não diziam nada.
+ */
+export async function sincronizarTudo(userId, email) {
+  let erro = null;
+  if (userId && online() && !emDemo()) {
+    try {
+      await pull(userId);
+    } catch (err) {
+      erro = err?.message || String(err);
+    }
+  }
+  const r = await saveNow(userId, email);
+  const msg = estado.error?.message || erro;
+  return {
+    ok: r.guardado && !erro && r.pendentes === 0,
+    status: r.status,
+    pendentes: r.pendentes,
+    erro: r.guardado && !erro ? null : msg,
   };
 }

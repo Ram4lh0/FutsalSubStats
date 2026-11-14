@@ -51,17 +51,10 @@ export default function FaixaPartilhado({ matchId, events, state, aoMudar }) {
     try {
       // Envia o que este aparelho tem e descarrega o resto: é assim que o jogo
       // do outro aparelho (Tempos ou Registos) chega cá para se poder juntar.
-      const r = await sync.saveNow(userId, user?.email);
-      if (r.status !== sync.SYNC.OFFLINE && userId) {
-        try {
-          await sync.pull(userId);
-        } catch {
-          /* sem rede a meio: fica o que já subiu */
-        }
-      }
+      const r = await sync.sincronizarTudo(userId, user?.email);
       await verificar();
       if (!(await jogoSincronizado(matchId))) {
-        ui.toast(r.status === sync.SYNC.OFFLINE ? t('partilhado.semRede') : t('partilhado.naoSincronizou'), 'error', 5000);
+        ui.toast(r.status === sync.SYNC.OFFLINE ? t('partilhado.semRede') : r.erro || t('partilhado.naoSincronizou'), 'error', 6000);
       } else {
         ui.toast(t('partilhado.sincronizou'), 'ok');
       }
