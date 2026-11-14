@@ -526,3 +526,86 @@
 }
 /* Um clone com animação a decorrer ficava a piscar na mão. */
 .fantasma * { animation: none !important; transition: none !important; }
+
+/* Tablet em pé (481–720px): o cabeçalho do jogo ao vivo mais baixo, para o campo
+   e o banco caberem no ecrã sem deslizar.
+   Duas linhas em vez de quatro: em cima nós | relógio | eles; por baixo os
+   cartões de cada equipa com o botão de terminar ao meio. O campo deixa de ter
+   altura fixa em proporção e encolhe com o ecrã, e os cartões ficam mais
+   pequenos. Telemóvel (≤480px) e intervalo ficam como estavam. */
+@media (min-width: 481px) and (max-width: 720px) and (orientation: portrait) {
+  .app.is-live .live { gap: 6px; padding-top: max(36px, calc(var(--seguro-cima) + 6px)); }
+  .app.is-live .live .live__head:not(.live__head--halftime) {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 6px; row-gap: 3px; padding: 4px 8px 5px;
+    justify-items: center; align-items: center;
+  }
+  .app.is-live .live .live__head:not(.live__head--halftime) > .scoreboard { display: contents; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .scoreboard__team {
+    display: flex; flex-direction: column; align-items: center; gap: 1px; grid-row: 1; min-width: 0;
+  }
+  .app.is-live .live .live__head:not(.live__head--halftime) .scoreboard__team.is-left { grid-column: 1; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .scoreboard__team.is-right { grid-column: 3; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .scoreboard__dash { display: none; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .scoreboard__name { font-size: 0.72rem; max-width: 100%; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .scoreboard__score { gap: 5px; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .scoreboard__score > .rivalout--inline { display: none; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .scorebtn { width: 30px; height: 30px; border-radius: 9px; font-size: 1rem; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .scoreboard__value { font-size: 1.5rem; min-width: 22px; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .scoreboard__fouls { padding: 0 4px; gap: 3px; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .foulbtn { width: 24px; height: 22px; }
+  .app.is-live .live .live__head:not(.live__head--halftime) > .clockbox { grid-column: 2; grid-row: 1; margin-top: 0; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .clockbox__time { font-size: 2rem; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .clockbox__period,
+  .app.is-live .live .live__head:not(.live__head--halftime) .clockbox__hint { font-size: 0.62rem; }
+  .app.is-live .live .live__head:not(.live__head--halftime) .clockadj__b { min-width: 30px; font-size: 0.58rem; }
+
+  /* Fila de baixo: cartões à esquerda e à direita, botões ao meio. */
+  .app.is-live .live .live__head:not(.live__head--halftime) > .live__controls {
+    grid-column: 2; grid-row: 2; justify-self: center; min-height: 0; margin: 0;
+    flex-wrap: nowrap; gap: 6px; align-items: center;
+  }
+  .app.is-live .live .live__head:not(.live__head--halftime) > .live__controls::before,
+  .app.is-live .live .live__head:not(.live__head--halftime) > .live__controls::after { content: none; }
+  .app.is-live .live .live__head:not(.live__head--halftime) > .live__controls .btn--big {
+    min-height: 32px; padding: 4px 10px; font-size: 0.78rem; border-radius: 10px; white-space: normal; line-height: 1.1;
+  }
+  .app.is-live .live .live__head > .rivalout--standalone {
+    position: static; transform: none; grid-row: 2; grid-column: 3; justify-self: end; align-self: center;
+  }
+  .app.is-live .live .live__head > .rivalout--ours.rivalout--standalone { grid-column: 1; justify-self: start; }
+  /* O título repetia o que a posição já diz (esquerda = nós, direita = eles) e
+     custava uma linha por card. Fica o cartão e o contador, lado a lado. */
+  .app.is-live .live .live__head > .rivalout .rivalout__titulo { display: none; }
+  .app.is-live .live .live__head > .rivalout:not(.rivalout--pilha),
+  .app.is-live .live .live__head > .rivalout .rivalout__caixa { grid-template-columns: auto auto; column-gap: 6px; padding: 2px 5px; }
+  .app.is-live .live .live__head > .rivalout .rivalout__registo { padding: 1px 5px; flex-direction: row; align-items: center; gap: 4px; }
+
+  /* Campo: acompanha a altura do ecrã (sem registos nos cartões, que precisam
+     de mais altura). Os cartões um pouco mais pequenos. */
+  .app.is-live .court:not(:has(.pcard__registos)) {
+    aspect-ratio: auto; min-height: 0;
+    height: clamp(360px, calc(100dvh - 500px), 573px);
+  }
+  .app.is-live .court .pcard--court,
+  .app.is-live .courtpick__court .slot { width: min(34%, 134px); min-height: 54px; }
+  .app.is-live .court .pcard--court { padding: 4px 7px; gap: 1px; }
+  .app.is-live .court .pcard__name { font-size: 0.8rem; }
+  .app.is-live .court .pcard__num { font-size: 0.95rem; }
+  .app.is-live .court .pcard__goal,
+  .app.is-live .court .pcard__quickfoul,
+  .app.is-live .court .pcard__discipline { width: 22px; height: 22px; }
+  .app.is-live .court .pcard__t { font-size: 0.62rem; }
+
+  /* Banco: mais cartões por linha e mais baixos, para os suplentes aparecerem. */
+  .app.is-live .bench { padding: 5px 8px 6px; }
+  .app.is-live .bench__head { margin-bottom: 4px; }
+  .app.is-live .bench__row { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 5px; }
+  .app.is-live .pcard--bench { padding: 4px 7px; gap: 1px; }
+  .app.is-live .pcard--bench .pcard__name { font-size: 0.76rem; }
+  .app.is-live .pcard--bench .pcard__num { font-size: 0.95rem; }
+  .app.is-live .pcard--bench .pcard__t { font-size: 0.62rem; }
+  .app.is-live .pcard--bench .pcard__discipline,
+  .app.is-live .pcard--bench .pcard__more { width: 22px; height: 22px; }
+}
