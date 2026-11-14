@@ -128,11 +128,13 @@ function Live() {
   // próprio; `commit` e `scoreFor` são declarados mais abaixo e só se chamam
   // depois de o ecrã estar desenhado.
   const ligadosDoEscalao = useRegistos(match?.teamId);
-  // Jogo com registo partilhado, papel Tempos: os registos fazem-se no outro
-  // aparelho, por isso aqui não há botões deles. Golos, cartões, faltas (e o
-  // livre de 10 m que vem com elas) ficam, que é deste papel que sai o resultado.
+  // Jogo com registo partilhado, papel Tempos: este aparelho fica só com o
+  // tempo — campo, banco, substituições, relógio e períodos — e com o cartão
+  // vermelho, porque uma expulsão mexe em quem está em campo. Golos, faltas,
+  // amarelos e registos apontam-se no aparelho dos Registos.
   const papel = useMemo(() => lerPartilha(carregado?.events).papel, [carregado]);
-  const ligados = papel === PAPEL.TEMPOS ? SEM_REGISTOS : ligadosDoEscalao;
+  const soTempos = papel === PAPEL.TEMPOS;
+  const ligados = soTempos ? SEM_REGISTOS : ligadosDoEscalao;
   const registos = useAcoesRegistos({
     state,
     ligados,
@@ -762,6 +764,7 @@ function Live() {
     const temAmarelo = state.cards.some((c) => c.playerId === p.playerId && c.type === CARD.YELLOW);
     return (
       <>
+        {soTempos ? null : (
         <button
           className="menu__item menu__item--yellow"
           onClick={() => {
@@ -775,6 +778,7 @@ function Live() {
             <span className="menu__hint">{t('acao.jaTem', { n: cartoes.yellows })}</span>
           ) : null}
         </button>
+        )}
         <button
           className="menu__item menu__item--danger"
           onClick={() => {
@@ -1252,7 +1256,7 @@ function Live() {
   if (state.status === MATCH_STATUS.HALFTIME) {
     const pausaProl = fase === 'PAUSA_PROL' || fase === 'PAUSA_PROL2';
     return (
-      <div className="live live--pause">
+      <div className={`live live--pause ${soTempos ? 'live--so-tempos' : ''}`}>
         <header className="live__head live__head--halftime">
           <Scoreboard
             state={state}
@@ -1294,11 +1298,11 @@ function Live() {
           ourName={ourName}
           opponentName={rivalName}
           onEditGoal={editarGolo}
-          onAddGoal={acrescentarGolo}
+          onAddGoal={soTempos ? undefined : acrescentarGolo}
           onCorrectScore={corrigirResultado}
-          onAddFoul={acrescentarFalta}
+          onAddFoul={soTempos ? undefined : acrescentarFalta}
           onEditFoul={editarFalta}
-          onAddCard={acrescentarCartao}
+          onAddCard={soTempos ? undefined : acrescentarCartao}
           onEditCard={editarCartao}
           onEditRegisto={editarRegisto}
           onAddRegisto={ligados.size ? acrescentarRegisto : undefined}
@@ -1357,7 +1361,7 @@ function Live() {
   const regDeles = unico ? <RegistoNoCard unico={unico.THEM} nome={rivalName} on={on} /> : null;
 
   return (
-    <div className="live">
+    <div className={`live ${soTempos ? 'live--so-tempos' : ''}`}>
       <header
         className={`live__head ${timing === MATCH_TIMING.TIMED ? 'live__head--cronometrado' : ''} ${unico ? 'live__head--com-registo' : ''}`}
         data-tour="live-clock"
@@ -1368,10 +1372,10 @@ function Live() {
           opponentName={rivalName}
           ourFull={club?.name || ''}
           opponentFull={match.opponentName}
-          interactive
+          interactive={!soTempos}
           on={on}
-          opponentExtra={<RivalOut state={state} on={on} variant="inline" extra={regDeles} />}
-          ourExtra={<TeamCards state={state} on={on} variant="inline" extra={regNosso} />}
+          opponentExtra={soTempos ? null : <RivalOut state={state} on={on} variant="inline" extra={regDeles} />}
+          ourExtra={soTempos ? null : <TeamCards state={state} on={on} variant="inline" extra={regNosso} />}
         />
         <ClockBox
           state={state}

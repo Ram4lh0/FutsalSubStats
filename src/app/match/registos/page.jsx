@@ -3,16 +3,18 @@
 // O ecrã do papel "Registos" de um jogo com registo partilhado (add-on
 // 'jogo-partilhado', ver domain/partilha.js).
 //
-// Quem está neste aparelho só regista estatísticas: não há campo, banco,
-// substituições nem relógio. Os convocados aparecem todos, em cartões com o
-// número, e cada cartão tem os registos de jogador que o escalão tem ligados.
-// Os registos de equipa e do adversário ficam na barra de cima, a mesma do jogo
-// ao vivo. Golos, cartões e substituições são do papel "Tempos".
+// Quem está neste aparelho aponta tudo menos o tempo em campo: os golos (com
+// marcador, assistência e tipo), as faltas, os amarelos e os registos de
+// estatística que o escalão tem ligados. Não há campo, banco nem
+// substituições: os convocados aparecem todos, em cartões com o número. O
+// cartão vermelho é do aparelho dos Tempos, porque expulsa.
 //
-// Cada registo guarda a hora real em que foi tocado; é por ela que a fusão o
-// põe no minuto certo do jogo dos Tempos.
+// Tem relógio próprio, corrido ou cronometrado como o jogo: começa-se a 1.ª
+// parte, pára-se e retoma-se, termina-se a parte (o intervalo mostra o que se
+// apontou até aí) e começa-se a seguinte. Cada ação fica com a parte e o
+// minuto desse relógio; é com eles que a fusão a põe no jogo dos Tempos.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Pagina from '@/components/Pagina.jsx';
 import PageHead from '@/components/PageHead.jsx';
@@ -21,21 +23,56 @@ import { Badge, Empty } from '@/components/bits.jsx';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import useEcraAceso from '@/lib/ecraAceso.js';
+import useNow from '@/lib/useNow.js';
 import useRegistos from '@/lib/useRegistos.js';
+import useAddons from '@/lib/useAddons.js';
 import useAcoesRegistos from '@/components/registos/useAcoesRegistos.js';
 import BarraRegistos from '@/components/registos/BarraRegistos.jsx';
 import PainelRegistos from '@/components/registos/PainelRegistos.jsx';
 import FaixaPartilhado from '@/components/partilhado/FaixaPartilhado.jsx';
+import { opponentYellowCardDialog, pickGoalType, pickPlayer } from '@/components/live/dialogs.jsx';
 import { clubs, events, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { jogoSincronizado, reabrirRegistos, terminarRegistos } from '@/lib/partilhado.js';
 import * as A from '@/domain/actions.js';
-import { EVENT, PLAYER_MATCH_STATUS } from '@/domain/constants.js';
-import { PAPEL, lerPartilha } from '@/domain/partilha.js';
+import { fmt } from '@/domain/clock.js';
+import { CARD, EVENT, FOUL_LIMIT, PLAYER_MATCH_STATUS, goalTypesFor } from '@/domain/constants.js';
+import {
+  MAX_PARTES,
+  PAPEL,
+  RELOGIO,
+  lerPartilha,
+  metadataDoRelogio,
+  relogioDosRegistos,
+} from '@/domain/partilha.js';
+import { foulsInPeriod } from '@/domain/reducer.js';
 import { REGISTO, RESULTADO_ACAO, contagemPorJogador, registosDoJogo } from '@/domain/registos.js';
 import { clubShort, dateLabel, eventLabel, opponentShort } from '@/lib/format.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
+
+const OWN_GOAL = '__OWN_GOAL__';
+
+/** O que se aponta neste ecrã e fica com a parte e o minuto do relógio. */
+const COM_TEMPO = new Set([
+  EVENT.STAT_RECORDED,
+  EVENT.TEAM_GOAL_ADDED,
+  EVENT.OPPONENT_GOAL_ADDED,
+  EVENT.TEAM_FOUL_ADDED,
+  EVENT.OPPONENT_FOUL_ADDED,
+  EVENT.YELLOW_CARD,
+  EVENT.RED_CARD,
+  EVENT.OPPONENT_YELLOW_CARD,
+]);
+
+/** Faltas e cartões leem a parte do `metadata` (o jogo dos Registos não tem períodos próprios). */
+const PARTE_NO_METADATA = new Set([
+  EVENT.TEAM_FOUL_ADDED,
+  EVENT.OPPONENT_FOUL_ADDED,
+  EVENT.YELLOW_CARD,
+  EVENT.RED_CARD,
+  EVENT.OPPONENT_YELLOW_CARD,
+]);
 
 export default function RegistosPage() {
   return (
@@ -47,8 +84,8 @@ export default function RegistosPage() {
 
 /**
  * O estado com todos os convocados "em campo". Neste papel não há campo, mas
- * as perguntas "quem rematou?" e "quem bateu o penálti?" escolhem entre quem
- * está em campo: assim escolhem entre todos.
+ * as perguntas "quem marcou?" e "quem rematou?" escolhem entre quem está em
+ * campo: assim escolhem entre todos.
  */
 function comTodosDisponiveis(state) {
   if (!state) return state;
@@ -69,9 +106,13 @@ function Registos() {
   const [carregado, setCarregado] = useState(null);
   const [club, setClub] = useState(null);
   const [ocupado, setOcupado] = useState(false);
+  // Os eventos mais recentes, para o relógio se ler a meio de uma sequência
+  // de gravações (golo, assistência, tipo) sem esperar pelo desenho seguinte.
+  const eventosAgora = useRef([]);
 
   const recarregar = useCallback(async () => {
     const novo = await loadMatch(matchId);
+    eventosAgora.current = novo?.events || [];
     setCarregado(novo || { vazio: true });
     return novo;
   }, [matchId]);
@@ -87,35 +128,30 @@ function Registos() {
   const state = useMemo(() => comTodosDisponiveis(carregado?.state || null), [carregado]);
   const partilha = useMemo(() => lerPartilha(carregado?.events), [carregado]);
   const terminado = partilha.terminadoEm != null;
+  const aRegistar = Boolean(state) && partilha.papel === PAPEL.REGISTOS && !terminado;
+
+  // O relógio deste aparelho. Só bate enquanto se regista.
+  const aCorrer = aRegistar && relogioDosRegistos(carregado?.events).aCorrer;
+  const now = useNow(aCorrer ? 250 : 1000, aRegistar);
+  const relogio = useMemo(() => relogioDosRegistos(carregado?.events, now), [carregado, now]);
 
   const ligados = useRegistos(match?.teamId);
+  const addons = useAddons(match?.teamId);
   const ourName = clubShort(club);
   const rivalName = match ? opponentShort(match) : '';
 
-  async function commit(ev) {
-    await events.append(ev, { sync: 'defer' });
-    const novo = await recarregar();
-    return comTodosDisponiveis(novo?.state);
-  }
-
-  // Um remate (ou penálti) com GOLO: aqui não há golo para gravar — o resultado
-  // é do papel Tempos. Fica o registo, sem golo preso; a fusão liga-o ao golo
-  // dos Tempos.
-  const semGolo = async (opcoes) => {
-    if (opcoes?.comRemate) await commit(opcoes.comRemate(opcoes.base || state, null));
-  };
   const registos = useAcoesRegistos({
     state,
     ligados,
-    commit,
-    marcarGolo: (p, opcoes) => semGolo(opcoes),
-    marcarGoloAdversario: (opcoes) => semGolo(opcoes),
+    commit: (ev) => commit(ev),
+    marcarGolo: (p, opcoes) => golo(p, opcoes),
+    marcarGoloAdversario: (opcoes) => goloDeles(opcoes),
     nomes: () => ({ nos: ourName, eles: rivalName }),
   });
   const on = registos.on;
 
   // Enquanto se regista, o ecrã não adormece.
-  useEcraAceso(Boolean(state) && partilha.papel === PAPEL.REGISTOS && !terminado);
+  useEcraAceso(aRegistar);
 
   // Um jogo que não é deste papel tem os seus ecrãs de sempre.
   useEffect(() => {
@@ -127,48 +163,196 @@ function Registos() {
   if (carregado.vazio) return <Empty>{t('jogo.naoEncontrado')}</Empty>;
   if (partilha.papel !== PAPEL.REGISTOS) return null;
 
-  const jogadores = Object.values(state.players).sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
-  const contagem = contagemPorJogador(state);
-  const lista = registosDoJogo(state);
-  const ultimo = [...(state.events || [])].reverse().find((e) => e.eventType === EVENT.STAT_RECORDED) || null;
-  // Os registos do guarda-redes vão para quem é guarda-redes no plantel; se
-  // ninguém o for, para todos, para não ficarem sem botão.
-  const haGR = jogadores.some((p) => p.preferredPosition === 'GOALKEEPER');
-  const eGR = (p) => !haGR || p.preferredPosition === 'GOALKEEPER';
+  /* ------------------------------------------------------------ gravar */
 
-  /** Os botões de um cartão: os registos de jogador que o escalão tem ligados. */
-  function botoesDe(p) {
-    const c = contagem.get(p.playerId) || {};
-    const b = [];
-    if (ligados.has(REGISTO.REMATE)) b.push(['remate', t('registos.nome.remate'), c.remate, () => on.registarRemate(p)]);
-    if (ligados.has(REGISTO.RECUPERACAO)) {
-      b.push(['recup', t('registos.nome.recuperacao'), c.recuperacao, () => on.registarRecuperacao(p)]);
-    }
-    if (ligados.has(REGISTO.PERDA_BOLA)) {
-      b.push(['perda', t('registos.nome.perda_bola'), c.perda_bola, () => on.registarPerda(p)]);
-    }
-    if (ligados.has(REGISTO.PASSE_FALHADO)) {
-      b.push(['passe', t('registos.nome.passe_falhado'), c.passe_falhado, () => on.registarPasse(p)]);
-    }
-    if (eGR(p) && ligados.has(REGISTO.DEFESA_GR)) {
-      b.push(['defesa', t('registos.nome.defesa_gr'), c.defesa_gr, () => on.registarDefesa(p)]);
-    }
-    if (eGR(p) && ligados.has(REGISTO.LANCAMENTO_GR)) {
-      b.push(['lanc', t('registos.nome.lancamento_gr'), c.lancamento_gr, () => on.registarLancamentoGR(p)]);
-    }
-    if (ligados.has(REGISTO.ACAO)) {
-      b.push(['positiva', t('registos.acaoPositiva'), c.positivas, () => on.registarAcao(p, RESULTADO_ACAO.POSITIVA)]);
-      b.push(['negativa', t('registos.acaoNegativa'), c.negativas, () => on.registarAcao(p, RESULTADO_ACAO.NEGATIVA)]);
-    }
-    return b;
+  /** Põe no evento a parte e o minuto do relógio deste aparelho. */
+  function comTempo(ev) {
+    if (!COM_TEMPO.has(ev.eventType)) return ev;
+    const r = relogioDosRegistos(eventosAgora.current, ev.createdAt || Date.now());
+    if (!r.parte) return ev;
+    return {
+      ...ev,
+      period: r.parte,
+      matchElapsedMs: r.matchMs,
+      periodElapsedMs: r.periodMs,
+      metadata: PARTE_NO_METADATA.has(ev.eventType) ? { ...(ev.metadata || {}), period: r.parte } : ev.metadata,
+    };
   }
 
+  /** Grava um evento e recalcula. Toda a escrita deste ecrã passa por aqui. */
+  async function commit(ev) {
+    await events.append(comTempo(ev), { sync: 'defer' });
+    const novo = await recarregar();
+    return comTodosDisponiveis(novo?.state);
+  }
+
+  /* ------------------------------------------------------------ relógio */
+
+  const nomeDaParte = (n) => t(`partilhado.relogio.parte${n}`);
+
+  async function tocarRelogio(acao, parte = relogio.parte) {
+    const agora = Date.now();
+    const r = relogioDosRegistos(eventosAgora.current, agora);
+    await events.append(
+      A.correction(
+        state,
+        metadataDoRelogio(acao, { parte, ms: acao === RELOGIO.INICIO ? 0 : r.periodMs, hora: agora }),
+        agora
+      ),
+      { sync: 'defer' }
+    );
+    await recarregar();
+  }
+
+  async function terminarParte() {
+    const ok = await ui.confirmar(t('partilhado.relogio.terminarPergunta', { parte: nomeDaParte(relogio.parte) }), {
+      okLabel: t('partilhado.relogio.terminar', { parte: nomeDaParte(relogio.parte) }),
+      danger: false,
+    });
+    if (ok) await tocarRelogio(RELOGIO.FIM);
+  }
+
+  /* -------------------------------------------------------------- golos */
+
+  const ultimoGolo = (st, team) => [...(st?.goals || [])].reverse().find((g) => g.team === team) || null;
+
+  async function tipoDoGolo(st, g, team) {
+    const tipo = await pickGoalType(
+      ui,
+      team === 'THEM' ? t('acao.comoFoiOGoloSofrido') : t('acao.comoFoiOGolo'),
+      goalTypesFor(team, { ressalto: addons.has('golo-ressalto') })
+    );
+    if (tipo === undefined) return;
+    await commit(A.attributeGoal(st, { targetEventId: g.eventId, howScored: tipo }));
+  }
+
+  /**
+   * Golo nosso, com o marcador já sabido (`p` a null: sem marcador). A seguir
+   * pergunta-se a assistência e como foi. `comRemate`, `tipo` e `base` vêm dos
+   * registos (remate, penálti ou livre de 10 m que deu golo), como no jogo ao
+   * vivo.
+   */
+  async function golo(p, { comRemate = null, tipo = null, base = null } = {}) {
+    const de = base || state;
+    let st = await commit(p ? A.teamGoalBy(de, p.playerId) : A.goal(de, EVENT.TEAM_GOAL_ADDED));
+    const g = ultimoGolo(st, 'US');
+    if (!g) return;
+    const remate = comRemate || (tipo ? null : registos.remateDoGolo('US', p?.playerId));
+    if (remate) st = (await commit(remate(st, g.eventId))) || st;
+    if (tipo) {
+      await commit(A.attributeGoal(st, { targetEventId: g.eventId, howScored: tipo }));
+      return;
+    }
+    if (p) {
+      const assistId = await pickPlayer(ui, st, t('acao.quemAssistiu'), {
+        exclude: p.playerId,
+        allowNone: true,
+        noneLabel: t('golos.semAssistencia'),
+      });
+      if (assistId === undefined) return;
+      if (assistId) st = (await commit(A.attributeGoal(st, { targetEventId: g.eventId, assistId }))) || st;
+    }
+    await tipoDoGolo(st, g, 'US');
+  }
+
+  /** O "+ Golo" do marcador: primeiro quem marcou. Fechar a pergunta não grava nada. */
+  async function goloNosso() {
+    const scorerId = await pickPlayer(ui, state, t('acao.quemMarcou'), {
+      allowNone: true,
+      noneLabel: t('acao.naoRegistar'),
+      extra: [{ id: OWN_GOAL, label: t('golos.autogolo') }],
+    });
+    if (scorerId === undefined) return;
+    if (scorerId === OWN_GOAL) {
+      let st = await commit(A.goal(state, EVENT.TEAM_GOAL_ADDED));
+      const g = ultimoGolo(st, 'US');
+      if (!g) return;
+      st = (await commit(A.attributeGoal(st, { targetEventId: g.eventId, scorerId: null, ownGoal: true }))) || st;
+      await tipoDoGolo(st, g, 'US');
+      return;
+    }
+    await golo(scorerId ? state.players[scorerId] : null);
+  }
+
+  async function goloDeles({ comRemate = null, tipo = null, base = null } = {}) {
+    const de = base || state;
+    let st = await commit(A.goal(de, EVENT.OPPONENT_GOAL_ADDED));
+    const g = ultimoGolo(st, 'THEM');
+    if (!g) return;
+    const remate = comRemate || (tipo ? null : registos.remateDoGolo('THEM'));
+    if (remate) st = (await commit(remate(st, g.eventId))) || st;
+    if (tipo) {
+      await commit(A.attributeGoal(st, { targetEventId: g.eventId, howScored: tipo }));
+      return;
+    }
+    await tipoDoGolo(st, g, 'THEM');
+  }
+
+  /* ------------------------------------------------------------- faltas */
+
+  /**
+   * Uma falta. Nossa: quem a fez (`p`, ou pergunta-se). Deles: quem a sofreu.
+   * Da 6.ª falta da parte em diante vem o livre de 10 metros, como no jogo ao
+   * vivo — precisa do relógio a contar, que é ele que diz em que parte se está.
+   */
+  async function falta(team, p = null) {
+    let st = await commit(A.foul(state, team === 'US' ? EVENT.TEAM_FOUL_ADDED : EVENT.OPPONENT_FOUL_ADDED));
+    const ultima = [...(st?.fouls || [])].reverse().find((f) => f.team === team);
+    if (!ultima) return;
+    let playerId = p?.playerId || null;
+    if (!p) {
+      playerId = await pickPlayer(ui, st, team === 'US' ? t('acao.quemFezFalta') : t('acao.quemSofreuFalta'), {
+        allowNone: true,
+        noneLabel: t('acao.naoRegistar'),
+      });
+    }
+    if (playerId) st = (await commit(A.attributeFoul(st, { targetEventId: ultima.eventId, playerId }))) || st;
+    const parte = relogioDosRegistos(eventosAgora.current).parte;
+    const n = parte ? foulsInPeriod(st, team, parte) : 0;
+    if (n > FOUL_LIMIT) await registos.perguntarLivre10(st, { equipa: team === 'US' ? 'THEM' : 'US', n });
+  }
+
+  /* ------------------------------------------------------------ cartões */
+
+  /**
+   * Amarelo a um jogador nosso. Fica apontado sem expulsar ninguém: num
+   * segundo amarelo, a expulsão marca-se no aparelho dos Tempos.
+   */
+  async function amarelo(p) {
+    const jaTem = (state.cards || []).some((c) => c.playerId === p.playerId && c.type === CARD.YELLOW);
+    await commit(A.lateCard(state, { type: CARD.YELLOW, playerId: p.playerId, matchElapsedMs: 0, period: 0 }));
+    if (jaTem) ui.toast(t('partilhado.registos.segundoAmarelo', { numero: p.number, nome: p.name }), 'error', 7000);
+  }
+
+  async function amareloDeles() {
+    const numero = await opponentYellowCardDialog(ui, state);
+    if (!numero) return;
+    await commit(A.lateOpponentYellow(state, { number: numero, matchElapsedMs: 0, period: 0 }));
+  }
+
+  /* ------------------------------------------------------ desfazer e fim */
+
+  const ultimo = [...(state.events || [])].reverse().find((e) => COM_TEMPO.has(e.eventType)) || null;
+
+  /**
+   * Desfaz a última ação. Um remate que deu golo sai com o seu golo, e um golo
+   * leva consigo o remate que lhe estava preso.
+   */
   async function desfazerUltimo() {
     if (!ultimo || ocupado) return;
     setOcupado(true);
     try {
-      await events.markUndone(ultimo.id, null, { sync: 'defer' });
-      await commit(A.undoEvent(state, ultimo));
+      const alvos = new Map(registos.alvosDoDesfazer(ultimo).map((e) => [e.id, e]));
+      for (const e of state.events || []) {
+        if (e.eventType === EVENT.STAT_RECORDED && e.metadata?.goloEventId && alvos.has(e.metadata.goloEventId)) {
+          alvos.set(e.id, e);
+        }
+      }
+      for (const e of alvos.values()) {
+        await events.markUndone(e.id, null, { sync: 'defer' });
+        await events.append(A.undoEvent(state, e), { sync: 'defer' });
+      }
+      await recarregar();
       ui.toast(t('partilhado.registos.desfeito', { registo: eventLabel(ultimo.eventType, ultimo, state.players) }), 'ok');
     } finally {
       setOcupado(false);
@@ -176,18 +360,21 @@ function Registos() {
   }
 
   /**
-   * Terminar: marca o jogo como terminado e manda-o já para o servidor. Sem
-   * rede fica guardado aqui e avisa-se: só se pode juntar depois de subir.
+   * Terminar o jogo: fecha a parte que estiver aberta, marca o jogo como
+   * terminado e manda-o já para o servidor. Sem rede fica guardado aqui e
+   * avisa-se: só se pode juntar depois de subir.
    */
   async function terminar() {
     if (ocupado) return;
-    const ok = await ui.confirmar(t('partilhado.registos.terminarPergunta', { n: lista.length }), {
-      okLabel: t('partilhado.registos.terminar'),
+    const ok = await ui.confirmar(t('partilhado.registos.terminarPergunta'), {
+      okLabel: t('acao.terminarJogo'),
       danger: false,
     });
     if (!ok) return;
     setOcupado(true);
     try {
+      const r = relogioDosRegistos(eventosAgora.current);
+      if (r.parte && !r.emPausa) await tocarRelogio(RELOGIO.FIM, r.parte);
       await terminarRegistos(matchId);
       await recarregar();
       await sync.saveNow(userId, user?.email);
@@ -219,6 +406,93 @@ function Registos() {
     recarregar();
   }
 
+  /* ------------------------------------------------------------ o que há */
+
+  const jogadores = Object.values(state.players).sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+  const contagem = contagemPorJogador(state);
+  const lista = registosDoJogo(state);
+  const golosDe = (id) => (state.goals || []).filter((g) => g.team === 'US' && g.scorerId === id).length;
+  const faltasDe = (id) => (state.fouls || []).filter((f) => f.team === 'US' && f.playerId === id).length;
+  const amarelosDe = (id) => (state.cards || []).filter((c) => c.playerId === id && c.type === CARD.YELLOW).length;
+  const faltasDaParte = (team) =>
+    relogio.parte ? foulsInPeriod(state, team, relogio.parte) : (state.fouls || []).filter((f) => f.team === team).length;
+  const acoes =
+    lista.length + (state.goals || []).length + (state.fouls || []).length + (state.cards || []).length + (state.opponentCards || []).length;
+  // Os registos do guarda-redes vão para quem é guarda-redes no plantel; se
+  // ninguém o for, para todos, para não ficarem sem botão.
+  const haGR = jogadores.some((p) => p.preferredPosition === 'GOALKEEPER');
+  const eGR = (p) => !haGR || p.preferredPosition === 'GOALKEEPER';
+
+  /** Os botões de um cartão: golo, falta e amarelo, e os registos ligados no escalão. */
+  function botoesDe(p) {
+    const c = contagem.get(p.playerId) || {};
+    const b = [
+      ['golo', t('partilhado.registos.golo'), golosDe(p.playerId), () => golo(p)],
+      ['falta', t('partilhado.registos.falta'), faltasDe(p.playerId), () => falta('US', p)],
+      ['amarelo', t('partilhado.registos.amarelo'), amarelosDe(p.playerId), () => amarelo(p)],
+    ];
+    if (ligados.has(REGISTO.REMATE)) b.push(['remate', t('registos.nome.remate'), c.remate, () => on.registarRemate(p)]);
+    if (ligados.has(REGISTO.RECUPERACAO)) {
+      b.push(['recup', t('registos.nome.recuperacao'), c.recuperacao, () => on.registarRecuperacao(p)]);
+    }
+    if (ligados.has(REGISTO.PERDA_BOLA)) {
+      b.push(['perda', t('registos.nome.perda_bola'), c.perda_bola, () => on.registarPerda(p)]);
+    }
+    if (ligados.has(REGISTO.PASSE_FALHADO)) {
+      b.push(['passe', t('registos.nome.passe_falhado'), c.passe_falhado, () => on.registarPasse(p)]);
+    }
+    if (eGR(p) && ligados.has(REGISTO.DEFESA_GR)) {
+      b.push(['defesa', t('registos.nome.defesa_gr'), c.defesa_gr, () => on.registarDefesa(p)]);
+    }
+    if (eGR(p) && ligados.has(REGISTO.LANCAMENTO_GR)) {
+      b.push(['lanc', t('registos.nome.lancamento_gr'), c.lancamento_gr, () => on.registarLancamentoGR(p)]);
+    }
+    if (ligados.has(REGISTO.ACAO)) {
+      b.push(['positiva', t('registos.acaoPositiva'), c.positivas, () => on.registarAcao(p, RESULTADO_ACAO.POSITIVA)]);
+      b.push(['negativa', t('registos.acaoNegativa'), c.negativas, () => on.registarAcao(p, RESULTADO_ACAO.NEGATIVA)]);
+    }
+    return b;
+  }
+
+  /** O que já se apontou, em poucas linhas: golos, faltas e cartões. */
+  const nomeDe = (id) => {
+    const p = id ? state.players[id] : null;
+    return p ? `#${p.number} ${p.name}` : null;
+  };
+  const resumo = (
+    <div className="regresumo">
+      <p className="regresumo__placar">
+        {ourName} <strong>{state.teamScore} — {state.opponentScore}</strong> {rivalName}
+      </p>
+      {(state.goals || []).length ? (
+        <ul className="regresumo__lista">
+          {state.goals.map((g) => {
+            const ev = state.events.find((e) => e.id === g.eventId);
+            return (
+              <li key={g.eventId}>
+                <span className="mono">{ev?.period ? `${nomeDaParte(ev.period)} · ${fmt(ev.periodElapsedMs)}` : '—'}</span>
+                <span>
+                  {g.team === 'US'
+                    ? `${ourName}${g.ownGoal ? ` · ${t('golos.autogolo')}` : nomeDe(g.scorerId) ? ` · ${nomeDe(g.scorerId)}` : ''}`
+                    : rivalName}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+      <p className="muted">
+        {t('partilhado.registos.resumoLinha', {
+          faltasNos: (state.fouls || []).filter((f) => f.team === 'US').length,
+          faltasEles: (state.fouls || []).filter((f) => f.team === 'THEM').length,
+          amarelos: (state.cards || []).length,
+          amarelosEles: (state.opponentCards || []).length,
+          registos: lista.length,
+        })}
+      </p>
+    </div>
+  );
+
   const cabecalho = (
     <PageHead
       title={`${ourName} — ${rivalName}`}
@@ -230,17 +504,11 @@ function Registos() {
           <Badge kind={terminado ? 'ok' : 'live'}>
             {terminado ? t('estado.FINISHED') : t('partilhado.aRegistar')}
           </Badge>
-          {terminado ? (
-            partilha.fundidoEm ? null : (
-              <button type="button" className="btn btn--ghost" onClick={reabrir} disabled={ocupado}>
-                {t('partilhado.registos.voltarARegistar')}
-              </button>
-            )
-          ) : (
-            <button type="button" className="btn btn--primary" onClick={terminar} disabled={ocupado}>
-              {t('partilhado.registos.terminar')}
+          {terminado && !partilha.fundidoEm ? (
+            <button type="button" className="btn btn--ghost" onClick={reabrir} disabled={ocupado}>
+              {t('partilhado.registos.voltarARegistar')}
             </button>
-          )}
+          ) : null}
         </div>
       }
     />
@@ -267,7 +535,8 @@ function Registos() {
           </div>
         </section>
         <div className="card">
-          <PainelRegistos state={state} ourName={ourName} opponentName={rivalName} />
+          {resumo}
+          {lista.length ? <PainelRegistos state={state} ourName={ourName} opponentName={rivalName} /> : null}
         </div>
       </>
     );
@@ -279,72 +548,157 @@ function Registos() {
         {cabecalho}
         <FaixaPartilhado matchId={matchId} events={carregado.events} state={carregado.state} aoMudar={depoisDeJuntar} />
         <div className="card">
-          {lista.length ? (
-            <PainelRegistos state={state} ourName={ourName} opponentName={rivalName} />
-          ) : (
-            <p className="muted">{t('partilhado.registos.nenhum')}</p>
-          )}
+          {resumo}
+          {lista.length ? <PainelRegistos state={state} ourName={ourName} opponentName={rivalName} /> : null}
         </div>
       </>
     );
   }
 
-  const temBotoes = jogadores.some((p) => botoesDe(p).length);
+  const seguinte = relogio.parte < MAX_PARTES ? relogio.parte + 1 : null;
+  const noFimDeUmaParte = relogio.parte > 0 && relogio.emPausa;
 
   return (
     <>
       {cabecalho}
 
-      {!ligados.size ? (
-        <Empty>{t('partilhado.registos.semRegistosLigados')}</Empty>
-      ) : (
-        <>
-          <BarraRegistos state={state} ligados={ligados} ourName={ourName} opponentName={rivalName} on={on} />
-
-          <div className="regultimo">
-            <span className="regultimo__texto">
-              <strong>{t('partilhado.registos.total', { n: lista.length })}</strong>
-              {ultimo ? (
-                <span className="muted">
-                  {' · '}
-                  {t('partilhado.registos.ultimo', { registo: eventLabel(ultimo.eventType, ultimo, state.players) })}
-                </span>
-              ) : null}
-            </span>
-            <button type="button" className="btn btn--ghost" onClick={desfazerUltimo} disabled={!ultimo || ocupado}>
-              {t('partilhado.registos.desfazer')}
+      <section className="regplacar" aria-label={t('partilhado.registos.marcador')}>
+        <div className="regplacar__lado">
+          <span className="regplacar__nome">{ourName}</span>
+          <strong className="regplacar__golos">{state.teamScore}</strong>
+          <div className="regplacar__botoes">
+            <button type="button" className="btn btn--primary" onClick={goloNosso}>
+              + {t('partilhado.registos.golo')}
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={() => falta('US')}>
+              + {t('partilhado.registos.falta')} <b className="regplacar__n">{faltasDaParte('US')}</b>
             </button>
           </div>
+        </div>
 
-          {temBotoes ? (
-            <div className="regcards">
-              {jogadores.map((p) => (
-                <article key={p.playerId} className="regcard">
-                  <header className="regcard__quem">
-                    <span className="regcard__num">{p.number}</span>
-                    <span className="regcard__nome">{p.name}</span>
-                  </header>
-                  <div className="regcard__botoes">
-                    {botoesDe(p).map(([classe, rotulo, quantos, fazer]) => (
-                      <button
-                        key={classe}
-                        type="button"
-                        className={`regcard__btn regcard__btn--${classe}`}
-                        onClick={fazer}
-                      >
-                        <span>{rotulo}</span>
-                        <b>{quantos || 0}</b>
-                      </button>
-                    ))}
-                  </div>
-                </article>
+        <div className="regplacar__relogio">
+          <span className="regplacar__parte">
+            {relogio.parte === 0
+              ? t('partilhado.relogio.porComecar')
+              : noFimDeUmaParte
+                ? t('partilhado.relogio.fimDe', { parte: nomeDaParte(relogio.parte) })
+                : nomeDaParte(relogio.parte)}
+          </span>
+          <strong className={`regplacar__tempo ${relogio.aCorrer ? 'is-a-correr' : ''}`}>{fmt(relogio.periodMs)}</strong>
+          <span className="muted small">
+            {t('partilhado.relogio.total', { tempo: fmt(relogio.matchMs), parte: fmt(match.periodDurationMs) })}
+          </span>
+          <div className="regplacar__botoes regplacar__botoes--relogio">
+            {relogio.parte === 0 ? (
+              <button type="button" className="btn btn--primary" onClick={() => tocarRelogio(RELOGIO.INICIO, 1)}>
+                {t('partilhado.relogio.comecar', { parte: nomeDaParte(1) })}
+              </button>
+            ) : noFimDeUmaParte ? (
+              <>
+                {seguinte ? (
+                  <button
+                    type="button"
+                    className={`btn ${relogio.parte >= 2 ? 'btn--ghost' : 'btn--primary'}`}
+                    onClick={() => tocarRelogio(RELOGIO.INICIO, seguinte)}
+                  >
+                    {t('partilhado.relogio.comecar', { parte: nomeDaParte(seguinte) })}
+                  </button>
+                ) : null}
+                {relogio.parte >= 2 ? (
+                  <button type="button" className="btn btn--primary" onClick={terminar} disabled={ocupado}>
+                    {t('acao.terminarJogo')}
+                  </button>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={`btn ${relogio.aCorrer ? 'btn--warn' : 'btn--primary'}`}
+                  onClick={() => tocarRelogio(relogio.aCorrer ? RELOGIO.PAUSA : RELOGIO.RETOMA)}
+                >
+                  {relogio.aCorrer ? t('vivo.pararTempo') : t('vivo.retomarTempo')}
+                </button>
+                <button type="button" className="btn btn--ghost" onClick={terminarParte}>
+                  {t('partilhado.relogio.terminar', { parte: nomeDaParte(relogio.parte) })}
+                </button>
+                {relogio.parte >= 2 ? (
+                  <button type="button" className="btn btn--ghost" onClick={terminar} disabled={ocupado}>
+                    {t('acao.terminarJogo')}
+                  </button>
+                ) : null}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="regplacar__lado regplacar__lado--deles">
+          <span className="regplacar__nome">{rivalName}</span>
+          <strong className="regplacar__golos">{state.opponentScore}</strong>
+          <div className="regplacar__botoes">
+            <button type="button" className="btn btn--primary" onClick={() => goloDeles()}>
+              + {t('partilhado.registos.golo')}
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={() => falta('THEM')}>
+              + {t('partilhado.registos.falta')} <b className="regplacar__n">{faltasDaParte('THEM')}</b>
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={amareloDeles}>
+              + {t('partilhado.registos.amarelo')} <b className="regplacar__n">{(state.opponentCards || []).length}</b>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {relogio.parte === 0 ? <p className="regaviso">{t('partilhado.relogio.aviso')}</p> : null}
+
+      {/* No fim de uma parte: o que se apontou até aqui, antes de continuar. */}
+      {noFimDeUmaParte ? (
+        <div className="card">
+          <h2 className="section section--tight">
+            {t('partilhado.relogio.ateAqui', { parte: nomeDaParte(relogio.parte) })}
+          </h2>
+          {resumo}
+          {lista.length ? <PainelRegistos state={state} ourName={ourName} opponentName={rivalName} /> : null}
+        </div>
+      ) : null}
+
+      {ligados.size ? (
+        <BarraRegistos state={state} ligados={ligados} ourName={ourName} opponentName={rivalName} on={on} />
+      ) : null}
+
+      <div className="regultimo">
+        <span className="regultimo__texto">
+          <strong>{t('partilhado.registos.total', { n: acoes })}</strong>
+          {ultimo ? (
+            <span className="muted">
+              {' · '}
+              {t('partilhado.registos.ultimo', { registo: eventLabel(ultimo.eventType, ultimo, state.players) })}
+            </span>
+          ) : null}
+        </span>
+        <button type="button" className="btn btn--ghost" onClick={desfazerUltimo} disabled={!ultimo || ocupado}>
+          {t('partilhado.registos.desfazer')}
+        </button>
+      </div>
+
+      <div className="regcards">
+        {jogadores.map((p) => (
+          <article key={p.playerId} className="regcard">
+            <header className="regcard__quem">
+              <span className="regcard__num">{p.number}</span>
+              <span className="regcard__nome">{p.name}</span>
+            </header>
+            <div className="regcard__botoes">
+              {botoesDe(p).map(([classe, rotulo, quantos, fazer]) => (
+                <button key={classe} type="button" className={`regcard__btn regcard__btn--${classe}`} onClick={fazer}>
+                  <span>{rotulo}</span>
+                  <b>{quantos || 0}</b>
+                </button>
               ))}
             </div>
-          ) : (
-            <p className="muted">{t('partilhado.registos.soDeEquipa')}</p>
-          )}
-        </>
-      )}
+          </article>
+        ))}
+      </div>
     </>
   );
 }

@@ -99,3 +99,55 @@
 @media (max-width: 560px) {
   .regcards { grid-template-columns: 1fr; }
 }
+
+/* --------------------------------- o aparelho dos Tempos: só o tempo
+   Sem resultado, faltas nem cartões no marcador, e sem os botões de golo e de
+   falta nos cartões dos jogadores. Fica o cartão (só o vermelho, no menu). */
+.live--so-tempos .scoreboard__score,
+.live--so-tempos .scoreboard__fouls,
+.live--so-tempos .rivalout,
+.live--so-tempos .pcard__goal,
+.live--so-tempos .pcard__quickfoul,
+.live--so-tempos .halftime__score,
+.live--so-tempos .halftime__title .btn { display: none; }
+
+/* ------------------------- o marcador e o relógio do ecrã dos Registos */
+.regplacar {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: start;
+  padding: 12px; margin-bottom: 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line);
+}
+.regplacar__lado { display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.regplacar__lado--deles { justify-items: end; text-align: right; }
+.regplacar__nome { font-weight: 700; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.regplacar__golos { font-size: 2.4rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.regplacar__botoes { display: flex; gap: 6px; flex-wrap: wrap; }
+.regplacar__lado--deles .regplacar__botoes { justify-content: flex-end; }
+.regplacar__botoes .btn { min-height: var(--touch); }
+.regplacar__n {
+  display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 4px;
+  border-radius: 999px; font-size: 0.8rem; background: rgba(255, 255, 255, 0.12); font-variant-numeric: tabular-nums;
+}
+.regplacar__relogio { display: grid; gap: 4px; justify-items: center; text-align: center; min-width: 190px; }
+.regplacar__parte { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.regplacar__tempo { font-size: 2.6rem; line-height: 1; font-variant-numeric: tabular-nums; color: var(--muted); }
+.regplacar__tempo.is-a-correr { color: var(--primary); }
+.regplacar__botoes--relogio { justify-content: center; margin-top: 4px; }
+.regaviso {
+  margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; font-size: 0.9rem; line-height: 1.4;
+  border: 1px solid rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.08);
+}
+@media (max-width: 760px) {
+  .regplacar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .regplacar__relogio { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
+}
+
+.regresumo { display: grid; gap: 6px; margin-bottom: 12px; }
+.regresumo__placar { margin: 0; font-size: 1.1rem; }
+.regresumo__placar strong { font-size: 1.4rem; margin: 0 6px; font-variant-numeric: tabular-nums; }
+.regresumo__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.regresumo__lista li { display: flex; gap: 12px; }
+.regresumo .muted { margin: 0; }
+
+.regcard__btn--golo { border-color: rgba(34, 197, 94, 0.75); }
+.regcard__btn--falta { border-color: rgba(148, 163, 184, 0.7); }
+.regcard__btn--amarelo { border-color: rgba(250, 204, 21, 0.85); color: #fde047; }

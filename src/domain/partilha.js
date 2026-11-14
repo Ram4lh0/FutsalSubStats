@@ -16,13 +16,23 @@
 //                                          { v, fusao: { com, n, registos } }   (no jogo base)
 //                                          { v, fundidoEm: { jogo, n } }        (no jogo dos Registos)
 //                                          { v, fusaoDesfeita: { n } }          (nos dois)
+//   MATCH_CORRECTED  metadata.partilhado = { v, relogio: { acao, parte, ms, hora } }
+//                    O relógio do aparelho dos Registos (ver `relogioDosRegistos`).
 //   qualquer evento  metadata.hora = a hora real do aparelho (ms), posta pelo
 //                    `events.append` nos jogos partilhados. A hora que o
 //                    servidor guarda é a do envio, e não serve para alinhar.
 //   STAT_RECORDED    metadata.fusao = { de, origem, n } nos registos copiados.
 //
-// O jogo dos Registos nunca "começa" (não tem relógio): não conta como jogo no
-// painel da época nem gasta um jogo grátis. Fundido, fica arquivado (o apagar
+// Quem faz o quê (desde a 1.39.0): o aparelho dos TEMPOS fica só com o tempo —
+// campo, banco, substituições, relógio, períodos — e com o cartão vermelho,
+// porque uma expulsão mexe em quem está em campo. O dos REGISTOS aponta os
+// golos, as faltas, os amarelos e os registos de estatística, e tem o seu
+// próprio relógio (corrido ou cronometrado, com fim da 1.ª parte e início da
+// 2.ª) para cada ação ficar com a parte e o minuto em que aconteceu.
+//
+// O jogo dos Registos nunca "começa" para o resto da app: o relógio dele vive
+// em `MATCH_CORRECTED`, não nos eventos de início e fim de parte. Por isso não
+// conta como jogo no painel da época nem gasta um jogo grátis. Fundido, fica arquivado (o apagar
 // recuperável de sempre) com a marca `fundidoEm`; desfazer a fusão repõe-no.
 //
 // Funções puras, e sem depender de domain/registos.js: é este ficheiro que os
@@ -53,6 +63,15 @@ const COM_HORA = new Set([
   EVENT.EXTRA_TIME_STARTED,
   EVENT.MATCH_FINISHED,
   EVENT.STAT_RECORDED,
+  // O que o aparelho dos Registos aponta além dos registos: golos, faltas e
+  // cartões.
+  EVENT.TEAM_GOAL_ADDED,
+  EVENT.OPPONENT_GOAL_ADDED,
+  EVENT.TEAM_FOUL_ADDED,
+  EVENT.OPPONENT_FOUL_ADDED,
+  EVENT.YELLOW_CARD,
+  EVENT.RED_CARD,
+  EVENT.OPPONENT_YELLOW_CARD,
 ]);
 
 export function levaHora(eventType) {
@@ -148,4 +167,93 @@ export function partilhaTerminada(partilha, state) {
  */
 export function fusaoEmVigor(events) {
   return lerPartilha(events).fusao?.n ?? null;
+}
+
+/* ------------------------------------------- o relógio do aparelho dos Registos */
+
+export const RELOGIO = { INICIO: 'INICIO', PAUSA: 'PAUSA', RETOMA: 'RETOMA', FIM: 'FIM' };
+
+/** Quantas partes pode ter o jogo dos Registos (duas, mais o prolongamento). */
+export const MAX_PARTES = 4;
+
+/**
+ * O `metadata` de um toque no relógio dos Registos. `ms` é o tempo da parte
+ * nesse instante e `hora` a hora real do aparelho.
+ */
+export function metadataDoRelogio(acao, { parte, ms = 0, hora }) {
+  if (!Object.values(RELOGIO).includes(acao)) throw new Error(`Ação de relógio desconhecida: ${acao}`);
+  return {
+    partilhado: {
+      v: VERSAO,
+      relogio: { acao, parte: Number(parte) || 1, ms: Math.max(0, Math.round(Number(ms) || 0)), hora },
+    },
+  };
+}
+
+/**
+ * O relógio do aparelho dos Registos, lido dos eventos.
+ *
+ * @returns {{
+ *   parte: number,        0 = ainda não começou
+ *   aCorrer: boolean,
+ *   emPausa: boolean,     entre partes (ou depois da última)
+ *   periodMs: number,     tempo da parte, agora
+ *   matchMs: number,      tempo do jogo, agora (as partes anteriores somadas)
+ *   duracoes: object      quanto durou cada parte já fechada
+ * }}
+ */
+export function relogioDosRegistos(events, agora = Date.now()) {
+  let parte = 0;
+  let base = 0;
+  let desde = null;
+  let emPausa = false;
+  const duracoes = {};
+  for (const ev of porOrdem(events)) {
+    if (ev.eventType !== EVENT.MATCH_CORRECTED) continue;
+    const r = ev.metadata?.partilhado?.relogio;
+    if (!r) continue;
+    const hora = Number(r.hora) || ev.createdAt || agora;
+    const ms = Math.max(0, Number(r.ms) || 0);
+    if (r.acao === RELOGIO.INICIO) {
+      parte = Math.min(MAX_PARTES, Number(r.parte) || parte + 1);
+      base = 0;
+      desde = hora;
+      emPausa = false;
+    } else if (parte === 0 || emPausa) {
+      // Sem parte a decorrer não há relógio para parar, retomar ou fechar.
+    } else if (r.acao === RELOGIO.PAUSA) {
+      base = ms;
+      desde = null;
+    } else if (r.acao === RELOGIO.RETOMA) {
+      base = ms;
+      desde = hora;
+    } else if (r.acao === RELOGIO.FIM) {
+      base = ms;
+      desde = null;
+      emPausa = true;
+      duracoes[parte] = ms;
+    }
+  }
+  const periodMs = base + (desde != null ? Math.max(0, agora - desde) : 0);
+  let antes = 0;
+  for (let p = 1; p < parte; p += 1) antes += duracoes[p] || 0;
+  return {
+    parte,
+    aCorrer: desde != null,
+    emPausa,
+    periodMs: Math.round(periodMs),
+    matchMs: Math.round(antes + periodMs),
+    duracoes,
+  };
+}
+
+/**
+ * Um evento copiado por uma fusão que não está em vigor? Esses não entram no
+ * jogo: nem uma fusão que ficou a meio nem uma que foi desfeita deixam golos,
+ * faltas ou cartões à vista. Devolve a função que o diz, para o reducer.
+ */
+export function foraDeVigor(events) {
+  if (!(events || []).some((e) => e.metadata?.fusao)) return () => false;
+  const emVigor = fusaoEmVigor(events);
+  return (e) => Boolean(e.metadata?.fusao) && Number(e.metadata.fusao.n) !== emVigor;
 }

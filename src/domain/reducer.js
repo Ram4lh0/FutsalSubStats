@@ -8,6 +8,7 @@
 // Esta função é pura e não toca em browser APIs: no futuro pode correr tal e qual dentro
 // de uma Server Action do Next.js ou de uma função SQL/Edge do Supabase.
 
+import { foraDeVigor } from './partilha.js';
 import {
   EVENT,
   MATCH_STATUS,
@@ -526,13 +527,18 @@ export function buildMatchState(match, squad, events) {
     (e.eventType === EVENT.FOUL_ATTRIBUTED || e.eventType === EVENT.GOAL_ATTRIBUTED) &&
     undone.has(e.metadata?.targetEventId);
 
+  // Jogo com registo partilhado (domain/partilha.js): o que uma fusão copiou
+  // só conta enquanto essa fusão estiver em vigor.
+  const copiadoSemVigor = foraDeVigor(events);
+
   const ordered = events
     .filter(
       (e) =>
         !e.undoneAt &&
         !undone.has(e.id) &&
         e.eventType !== EVENT.EVENT_UNDONE &&
-        !atribuicaoDeDesfeito(e)
+        !atribuicaoDeDesfeito(e) &&
+        !copiadoSemVigor(e)
     )
     .slice()
     .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));

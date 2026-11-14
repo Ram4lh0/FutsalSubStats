@@ -7,6 +7,8 @@
 import { EVENT } from './constants.js';
 import { CATALOGO, RESULTADO_REMATE, levaGolo, registar, registosDoJogo } from './registos.js';
 import { papelContrario, partilhaTerminada, porOrdem } from './partilha.js';
+import { inicioDoPeriodo } from './prolongamento.js';
+import { buildMatchState } from './reducer.js';
 
 export * from './partilha.js';
 
@@ -276,23 +278,72 @@ function equipaDoGolo(r) {
   return r.equipa === 'THEM' ? 'THEM' : 'US';
 }
 
+/** Quanto durou uma parte do jogo base (null se ainda não fechou). */
+function duracaoDaParte(state, parte) {
+  if (parte === 1) return state?.firstHalfMs ?? null;
+  if (parte === 2) return state?.secondHalfMs ?? null;
+  return state?.periodosMs?.[parte] ?? null;
+}
+
+/**
+ * Uma ação apontada no relógio dos Registos (parte e tempo dentro da parte),
+ * posta no relógio do jogo base: a mesma parte, o mesmo tempo dentro dela. Os
+ * dois relógios nunca batem ao segundo, por isso o tempo não passa do fim da
+ * parte no jogo base, e uma parte que o jogo base não teve cai no fim da
+ * última que teve.
+ */
+export function posicaoPelaParte(state, parte, periodMs) {
+  const ultima = Math.max(1, state?.currentPeriod || 1);
+  const p = Math.min(Math.max(1, Number(parte) || 1), ultima);
+  const dur = duracaoDaParte(state, p);
+  let ms = Math.max(0, Number(periodMs) || 0);
+  if (p !== parte && dur != null) ms = dur;
+  if (dur != null) ms = Math.min(ms, dur);
+  return {
+    period: p,
+    matchElapsedMs: Math.round(inicioDoPeriodo(state, p) + ms),
+    periodElapsedMs: Math.round(ms),
+  };
+}
+
+/**
+ * Quem estava à baliza no jogo base a um dado minuto (ou null).
+ *
+ * Volta a correr o jogo só até esse minuto e lê o campo: apanha as
+ * substituições, as trocas de posição e as expulsões, coisa que os períodos em
+ * campo (que só guardam a posição de entrada) não dizem.
+ */
+export function guardaRedesAoMinuto(base, ms) {
+  if (!base?.match || !base.events) return null;
+  const ate = base.events.filter((e) => !e.metadata?.fusao && (Number(e.matchElapsedMs) || 0) <= ms);
+  return buildMatchState(base.match, base.squad || [], ate).court?.GOALKEEPER || null;
+}
+
 /**
  * O que a fusão vai fazer, sem tocar em nada: os eventos a acrescentar ao jogo
  * base (o dos Tempos) e os números para mostrar antes de confirmar.
  *
- * - Só os registos passam (com as correções já aplicadas). Golos, cartões,
- *   substituições e relógio do jogo dos Registos, se os houvesse, ficam lá.
- * - Cada registo fica na parte e no minuto do relógio dos Tempos em que a sua
- *   hora real caiu.
- * - Um remate, penálti ou livre com GOLO é ligado ao golo dos Tempos da mesma
- *   equipa mais próximo (e do mesmo marcador, quando os dois o dizem), dentro
- *   de `JANELA_GOLO_MS`. Sem par, fica contado como remate e não mexe no
- *   resultado: quem manda no resultado é o jogo dos Tempos.
- * - Registos de quem não está na convocatória do jogo base passam na mesma
- *   (contam nos totais da equipa), e vêm listados em `foraDaConvocatoria`.
+ * Do jogo dos Registos passam os golos (com marcador, assistência e tipo), as
+ * faltas, os cartões e os registos de estatística, já com as correções e sem o
+ * que foi desfeito. Entram no jogo base como os que se acrescentam a frio no
+ * resumo: com parte e minuto, sem expulsar ninguém nem mexer nos tempos em
+ * campo, que são do aparelho dos Tempos.
+ *
+ * - O minuto: a parte e o tempo dentro da parte do relógio dos Registos, postos
+ *   no relógio do jogo base (`posicaoPelaParte`). Uma ação apontada sem relógio
+ *   (antes do apito, ou num jogo dos Registos antigo) vai pela hora real
+ *   (`posicaoNoRelogio`).
+ * - Um remate, penálti ou livre com GOLO fica preso ao seu golo, que também
+ *   passa. Se não tiver golo (jogos dos Registos antigos), procura-se o golo
+ *   do jogo base mais próximo, dentro de `JANELA_GOLO_MS`.
+ * - Num golo sofrido, o guarda-redes é quem estava à baliza no jogo base a
+ *   esse minuto.
+ * - Ações de quem não está na convocatória do jogo base vêm listadas em
+ *   `foraDaConvocatoria`: os registos e os golos contam nos totais da equipa,
+ *   os cartões não têm onde ficar.
  *
  * @param {object} o
- * @param {object} o.base   { match, state } do jogo dos Tempos
+ * @param {object} o.base   { match, squad, events, state } do jogo dos Tempos
  * @param {object} o.outro  { match, squad, state } do jogo dos Registos
  * @param {number} o.n      o número desta fusão (1 na primeira)
  */
@@ -300,58 +351,191 @@ export function planoDeFusao({ base, outro, n = 1 }) {
   const pontos = linhaDoTempo(base.state?.events || []);
   const origem = new Map((outro.state?.events || []).map((e) => [e.id, e]));
   const registosDaBase = registosDoJogo(base.state);
+  const golosDaBase = base.state?.goals || [];
   const golosUsados = new Set(registosDaBase.map((r) => r.goloEventId).filter(Boolean));
-  const golos = base.state?.goals || [];
+  const noJogoBase = (playerId) => Boolean(base.state?.players?.[playerId]);
   const nomes = new Map(
     (outro.squad || []).map((s) => [
       s.playerId,
       { playerId: s.playerId, name: s.playerNameSnapshot, number: s.shirtNumberSnapshot },
     ])
   );
+  const baseId = base.match.id;
 
   const eventos = [];
-  const porRegisto = {};
   const fora = new Map();
-  let golosLigados = 0;
-  let golosSemPar = 0;
   let semHora = 0;
-  let ignorados = 0;
 
-  for (const r of registosDoJogo(outro.state)) {
-    const ev = origem.get(r.eventId);
+  const marcarFora = (playerId) => {
+    if (!playerId || noJogoBase(playerId)) return;
+    const j = fora.get(playerId) || {
+      ...(nomes.get(playerId) || { playerId, name: null, number: null }),
+      registos: 0,
+    };
+    j.registos += 1;
+    fora.set(playerId, j);
+  };
+
+  /** Onde cai, no jogo base, o que o evento de origem aponta. */
+  const posicaoDe = (ev) => {
+    if (ev && Number(ev.period) >= 1) {
+      return { ...posicaoPelaParte(base.state, Number(ev.period), ev.periodElapsedMs), hora: horaDe(ev) };
+    }
     const hora = ev ? horaDe(ev) : null;
     if (hora == null) semHora += 1;
-    const pos = posicaoNoRelogio(pontos, hora) || { period: 1, matchElapsedMs: 0, periodElapsedMs: 0 };
+    return {
+      ...(posicaoNoRelogio(pontos, hora) || { period: 1, matchElapsedMs: 0, periodElapsedMs: 0 }),
+      hora,
+    };
+  };
+
+  /** Um evento novo para o jogo base, com a marca da fusão e o id fixo. */
+  const novo = (eventType, origemId, sufixo, pos, { playerId = null, metadata = {} } = {}) => {
+    const id = idDeFusao(`${origemId}${sufixo}`, baseId, n);
+    return {
+      id,
+      matchId: baseId,
+      eventType,
+      period: pos.period,
+      matchElapsedMs: pos.matchElapsedMs,
+      periodElapsedMs: pos.periodElapsedMs,
+      playerId,
+      playerInId: null,
+      playerOutId: null,
+      position: null,
+      teamScoreSnapshot: base.state?.teamScore ?? null,
+      opponentScoreSnapshot: base.state?.opponentScore ?? null,
+      metadata: {
+        ...metadata,
+        ...(pos.hora != null ? { hora: pos.hora } : {}),
+        fusao: { de: outro.match.id, origem: origemId, n },
+      },
+      clientEventId: id,
+      createdBy: null,
+      createdAt: pos.hora ?? Date.now(),
+      undoneAt: null,
+      undoneBy: null,
+      syncedAt: null,
+    };
+  };
+
+  /* ---- golos: o golo e, logo a seguir, a sua atribuição */
+  const golos = { US: 0, THEM: 0 };
+  const idDoGolo = new Map();
+  for (const g of outro.state?.goals || []) {
+    const pos = posicaoDe(origem.get(g.eventId));
+    const nosso = g.team === 'US';
+    const golo = novo(nosso ? EVENT.TEAM_GOAL_ADDED : EVENT.OPPONENT_GOAL_ADDED, g.eventId, '', pos, {
+      playerId: nosso ? g.scorerId || null : null,
+      metadata: { period: pos.period, ...(nosso && g.scorerId ? { scorerId: g.scorerId } : {}) },
+    });
+    const campos = nosso
+      ? { scorerId: g.scorerId || null, assistId: g.assistId || null, ownGoal: Boolean(g.ownGoal) }
+      : { goalkeeperId: guardaRedesAoMinuto(base, pos.matchElapsedMs) };
+    const atribuicao = novo(EVENT.GOAL_ATTRIBUTED, g.eventId, '|atribuicao', pos, {
+      metadata: {
+        targetEventId: golo.id,
+        ...campos,
+        howScored: g.howScored || null,
+        matchElapsedMs: pos.matchElapsedMs,
+        period: pos.period,
+      },
+    });
+    eventos.push(golo, atribuicao);
+    idDoGolo.set(g.eventId, golo.id);
+    golos[nosso ? 'US' : 'THEM'] += 1;
+    if (nosso) {
+      marcarFora(g.scorerId);
+      marcarFora(g.assistId);
+    }
+  }
+
+  /* ---- faltas */
+  const faltas = { US: 0, THEM: 0 };
+  for (const f of outro.state?.fouls || []) {
+    const pos = posicaoDe(origem.get(f.eventId));
+    const nossa = f.team === 'US';
+    eventos.push(
+      novo(nossa ? EVENT.TEAM_FOUL_ADDED : EVENT.OPPONENT_FOUL_ADDED, f.eventId, '', pos, {
+        playerId: f.playerId || null,
+        metadata: { playerId: f.playerId || null, period: pos.period, aPosteriori: true },
+      })
+    );
+    faltas[nossa ? 'US' : 'THEM'] += 1;
+    marcarFora(f.playerId);
+  }
+
+  /* ---- cartões: nossos e do adversário, sem expulsar ninguém */
+  const cartoes = { nossos: 0, adversario: 0, semJogador: 0 };
+  for (const c of outro.state?.cards || []) {
+    if (!noJogoBase(c.playerId)) {
+      // Um cartão precisa do jogador na convocatória do jogo base.
+      cartoes.semJogador += 1;
+      marcarFora(c.playerId);
+      continue;
+    }
+    const pos = posicaoDe(origem.get(c.eventId));
+    eventos.push(
+      novo(c.type === 'RED' ? EVENT.RED_CARD : EVENT.YELLOW_CARD, c.eventId, '', pos, {
+        playerId: c.playerId,
+        metadata: { playerId: c.playerId, period: pos.period, aPosteriori: true },
+      })
+    );
+    cartoes.nossos += 1;
+  }
+  for (const c of outro.state?.opponentCards || []) {
+    const pos = posicaoDe(origem.get(c.eventId));
+    eventos.push(
+      novo(EVENT.OPPONENT_YELLOW_CARD, c.eventId, '', pos, {
+        metadata: { number: c.number, period: pos.period, aPosteriori: true },
+      })
+    );
+    cartoes.adversario += 1;
+  }
+
+  /* ---- registos de estatística */
+  const porRegisto = {};
+  let total = 0;
+  let golosLigados = 0;
+  let golosSemPar = 0;
+  let ignorados = 0;
+  for (const r of registosDoJogo(outro.state)) {
+    const pos = posicaoDe(origem.get(r.eventId));
     const def = CATALOGO[r.registo];
 
     let goloEventId = null;
     if (levaGolo(r.registo) && r.resultado === RESULTADO_REMATE.GOLO) {
-      const equipa = equipaDoGolo(r);
-      const par = golos
-        .filter(
-          (g) =>
-            g.team === equipa &&
-            !golosUsados.has(g.eventId) &&
-            Math.abs((g.matchElapsedMs || 0) - pos.matchElapsedMs) <= JANELA_GOLO_MS &&
-            (!r.playerId || !g.scorerId || g.scorerId === r.playerId)
-        )
-        .sort(
-          (a, b) =>
-            Math.abs((a.matchElapsedMs || 0) - pos.matchElapsedMs) -
-            Math.abs((b.matchElapsedMs || 0) - pos.matchElapsedMs)
-        )[0];
-      if (par) {
-        goloEventId = par.eventId;
-        golosUsados.add(par.eventId);
+      if (r.goloEventId && idDoGolo.has(r.goloEventId)) {
+        goloEventId = idDoGolo.get(r.goloEventId);
         golosLigados += 1;
       } else {
-        golosSemPar += 1;
+        const equipa = equipaDoGolo(r);
+        const par = golosDaBase
+          .filter(
+            (g) =>
+              g.team === equipa &&
+              !golosUsados.has(g.eventId) &&
+              Math.abs((g.matchElapsedMs || 0) - pos.matchElapsedMs) <= JANELA_GOLO_MS &&
+              (!r.playerId || !g.scorerId || g.scorerId === r.playerId)
+          )
+          .sort(
+            (a, b) =>
+              Math.abs((a.matchElapsedMs || 0) - pos.matchElapsedMs) -
+              Math.abs((b.matchElapsedMs || 0) - pos.matchElapsedMs)
+          )[0];
+        if (par) {
+          goloEventId = par.eventId;
+          golosUsados.add(par.eventId);
+          golosLigados += 1;
+        } else {
+          golosSemPar += 1;
+        }
       }
     }
 
-    let novo;
+    let molde;
     try {
-      novo = registar(
+      molde = registar(
         base.state,
         {
           registo: r.registo,
@@ -364,64 +548,42 @@ export function planoDeFusao({ base, outro, n = 1 }) {
           matchElapsedMs: pos.matchElapsedMs,
           period: pos.period,
         },
-        hora ?? Date.now()
+        pos.hora ?? Date.now()
       );
     } catch {
       // Um registo que esta versão não sabe escrever fica no jogo de origem.
       ignorados += 1;
       continue;
     }
-
-    const id = idDeFusao(r.eventId, base.match.id, n);
-    eventos.push({
-      ...novo,
-      id,
-      clientEventId: id,
-      matchId: base.match.id,
-      period: pos.period,
-      matchElapsedMs: pos.matchElapsedMs,
-      periodElapsedMs: pos.periodElapsedMs,
-      metadata: {
-        ...novo.metadata,
-        ...(hora != null ? { hora } : {}),
-        fusao: { de: outro.match.id, origem: r.eventId, n },
-      },
-    });
+    eventos.push(novo(EVENT.STAT_RECORDED, r.eventId, '', pos, { playerId: molde.playerId, metadata: molde.metadata }));
     porRegisto[r.registo] = (porRegisto[r.registo] || 0) + 1;
-
-    if (r.playerId && (def?.por === 'jogador' || def?.jogadorOpcional) && !base.state?.players?.[r.playerId]) {
-      const j = fora.get(r.playerId) || {
-        ...(nomes.get(r.playerId) || { playerId: r.playerId, name: null, number: null }),
-        registos: 0,
-      };
-      j.registos += 1;
-      fora.set(r.playerId, j);
-    }
+    total += 1;
+    if (def?.por === 'jogador' || def?.jogadorOpcional) marcarFora(r.playerId);
   }
 
   return {
     eventos,
-    total: eventos.length,
+    // Quantos registos de estatística passam (os golos, faltas e cartões contam à parte).
+    total,
     porRegisto,
+    golos,
+    faltas,
+    cartoes,
     golosLigados,
     golosSemPar,
     semHora,
     ignorados,
     foraDaConvocatoria: [...fora.values()].sort((a, b) => (a.number ?? 0) - (b.number ?? 0)),
-    // O jogo dos Tempos pode já ter registos (os livres de 10 m, ou alguns
-    // acrescentados a frio): ficam, ao lado dos que chegam.
+    // O que o jogo dos Tempos já tem e que fica, ao lado do que chega.
     registosNaBase: registosDaBase.length,
+    golosNaBase: golosDaBase.length,
   };
 }
 
-/** Os registos que uma fusão copiou para o jogo base (para a desfazer). */
+/** Tudo o que uma fusão copiou para o jogo base (para a desfazer). */
 export function eventosDaFusao(events, n) {
   return (events || []).filter(
-    (e) =>
-      e.eventType === EVENT.STAT_RECORDED &&
-      !e.undoneAt &&
-      e.metadata?.fusao &&
-      Number(e.metadata.fusao.n) === Number(n)
+    (e) => !e.undoneAt && e.metadata?.fusao && Number(e.metadata.fusao.n) === Number(n)
   );
 }
 
@@ -435,6 +597,19 @@ export function resumoDosTempos(state) {
     substituicoes: (state?.substitutions || []).length,
     golos: (state?.goals || []).length,
     cartoes: (state?.cards || []).length,
+    expulsoes: players.filter((p) => p.status === 'EXPELLED').length,
     convocados: players.length,
+  };
+}
+
+/** O que o jogo dos Registos tem, para o resumo antes de juntar. */
+export function resumoDosRegistos(state) {
+  return {
+    resultado: { nos: state?.teamScore ?? 0, eles: state?.opponentScore ?? 0 },
+    golos: (state?.goals || []).length,
+    faltas: (state?.fouls || []).length,
+    cartoes: (state?.cards || []).length + (state?.opponentCards || []).length,
+    registos: registosDoJogo(state).length,
+    convocados: Object.keys(state?.players || {}).length,
   };
 }

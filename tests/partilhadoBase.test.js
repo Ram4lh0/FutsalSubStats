@@ -56,14 +56,15 @@ async function gravar(matchId, fabrica) {
 
 async function jogarTempos(id) {
   await gravar(id, (s) => A.startFirstHalf(s, T0));
-  await gravar(id, (s) => A.teamGoalBy(s, 'p5', T0 + 6 * MIN));
   await gravar(id, (s) => A.finishFirstHalf(s, T0 + 20 * MIN));
   await gravar(id, (s) => A.startSecondHalf(s, T0 + 30 * MIN));
   await gravar(id, (s) => A.finishMatch(s, T0 + 50 * MIN));
 }
 
 async function registarTres(id) {
-  await gravar(id, (s) => registar(s, { registo: REGISTO.REMATE, playerId: 'p5', resultado: 'GOLO', x: 0.9, y: 0.5 }, T0 + 6 * MIN + 4000));
+  // O golo aponta-se aqui (por hora real: este jogo dos Registos não usa relógio).
+  const golo = await gravar(id, (s) => A.teamGoalBy(s, 'p5', T0 + 6 * MIN));
+  await gravar(id, (s) => registar(s, { registo: REGISTO.REMATE, playerId: 'p5', resultado: 'GOLO', x: 0.9, y: 0.5, goloEventId: golo.id }, T0 + 6 * MIN + 4000));
   await gravar(id, (s) => registar(s, { registo: REGISTO.RECUPERACAO, playerId: 'p2', x: 0.3, y: 0.3 }, T0 + 10 * MIN));
   await gravar(id, (s) => registar(s, { registo: REGISTO.PERDA_BOLA, playerId: 'p3' }, T0 + 35 * MIN));
 }
@@ -113,8 +114,9 @@ test('juntar, desfazer e voltar a juntar', async () => {
   assert.deepEqual(lista.map((c) => [c.match.id, c.motivo]), [[reg, null]]);
   ({ lista } = await listarParaJuntar(reg));
   assert.deepEqual(lista.map((c) => [c.match.id, c.motivo]), [[tempos, null]]);
-  assert.deepEqual(oQueTem(await carregarPartilhado(reg)), { papel: 'REGISTOS', registos: 3, convocados: 6 });
-  assert.equal(oQueTem(await carregarPartilhado(tempos)).resultado.nos, 1);
+  const temReg = oQueTem(await carregarPartilhado(reg));
+  assert.deepEqual([temReg.papel, temReg.registos, temReg.convocados, temReg.golos], ['REGISTOS', 3, 6, 1]);
+  assert.equal(oQueTem(await carregarPartilhado(tempos)).substituicoes, 0);
 
   // Juntar a partir do lado dos Registos: a base é sempre o jogo dos Tempos.
   const antes = (await loadMatch(tempos)).events.length;
@@ -125,7 +127,8 @@ test('juntar, desfazer e voltar a juntar', async () => {
   assert.equal(feito.plano.golosLigados, 1);
 
   let base = await loadMatch(tempos);
-  assert.equal(base.events.length, antes + 4); // 3 registos + a marca
+  assert.equal(base.events.length, antes + 6); // o golo e a sua atribuição, 3 registos e a marca
+  assert.equal((await matches.get(tempos)).teamScore, 1); // o resumo na linha do jogo acompanha
   assert.equal(base.state.status, MATCH_STATUS.FINISHED);
   assert.equal(base.state.teamScore, 1);
   const juntos = registosDoJogo(base.state);
@@ -146,7 +149,7 @@ test('juntar, desfazer e voltar a juntar', async () => {
 
   // Segunda vez: recusa, e nada muda.
   await assert.rejects(() => juntar(tempos, reg), (e) => e.chave === 'partilhado.erro.jaFundido');
-  assert.equal((await loadMatch(tempos)).events.length, antes + 4);
+  assert.equal((await loadMatch(tempos)).events.length, antes + 6);
   assert.deepEqual((await listarParaJuntar(tempos)).lista, []);
 
   // Desfazer: os dois jogos como estavam.
@@ -154,7 +157,8 @@ test('juntar, desfazer e voltar a juntar', async () => {
   assert.deepEqual([desfeito.outroId, desfeito.reposto], [reg, true]);
   base = await loadMatch(tempos);
   assert.equal(registosDoJogo(base.state).length, 0);
-  assert.equal(base.state.teamScore, 1);
+  assert.equal(base.state.teamScore, 0);
+  assert.equal((await matches.get(tempos)).teamScore, 0);
   assert.equal(lerPartilha(base.events).fusao, null);
   // Marcados como desfeitos também, para as versões antigas da app.
   assert.equal(base.events.filter((e) => e.eventType === EVENT.STAT_RECORDED && !e.undoneAt).length, 0);

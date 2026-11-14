@@ -20,9 +20,10 @@ import {
   lerPartilha,
   mesmoJogo,
   planoDeFusao,
+  resumoDosRegistos,
   resumoDosTempos,
 } from '../domain/partilhado.js';
-import { registosDoJogo } from '../domain/registos.js';
+import { foulsTotal } from '../domain/reducer.js';
 
 /** Um erro com a chave do dicionário, para o ecrã o dizer na língua certa. */
 function erro(chave, texto) {
@@ -61,11 +62,28 @@ export async function carregarPartilhado(matchId) {
 /** O que um jogo tem, para mostrar antes de juntar. */
 export function oQueTem(jogo) {
   if (jogo.partilha.papel === PAPEL.TEMPOS) return { papel: PAPEL.TEMPOS, ...resumoDosTempos(jogo.state) };
-  return {
-    papel: PAPEL.REGISTOS,
-    registos: registosDoJogo(jogo.state).length,
-    convocados: Object.keys(jogo.state.players || {}).length,
-  };
+  return { papel: PAPEL.REGISTOS, ...resumoDosRegistos(jogo.state) };
+}
+
+/**
+ * Volta a escrever o resumo na linha do jogo (resultado, intervalo, faltas),
+ * como no apito final. Depois de juntar ou desfazer, os golos e as faltas do
+ * jogo mudaram, e é esta fotografia que quem olha para a tabela `matches` vê.
+ */
+async function gravarResumoDoJogo(matchId) {
+  const jogo = await loadMatch(matchId);
+  if (!jogo) return;
+  await matches.gravarCampos(
+    matchId,
+    {
+      teamFouls: foulsTotal(jogo.state, 'US'),
+      teamScore: jogo.state.teamScore,
+      opponentScore: jogo.state.opponentScore,
+      halftimeTeamScore: jogo.state.halftimeTeamScore,
+      halftimeOpponentScore: jogo.state.halftimeOpponentScore,
+    },
+    { sync: 'defer' }
+  );
 }
 
 /**
@@ -132,6 +150,7 @@ export async function juntar(idA, idB) {
     A.correction(outro.state, { partilhado: { v: VERSAO, fundidoEm: { jogo: base.match.id, n } } }),
     { sync: 'defer' }
   );
+  await gravarResumoDoJogo(base.match.id);
   await matches.gravarCampos(outro.match.id, { archivedAt: Date.now() });
   return { baseId: base.match.id, outroId: outro.match.id, n, plano };
 }
@@ -146,14 +165,16 @@ export async function desfazerFusao(baseId, userId = null) {
   if (!fusao) throw erro('partilhado.erro.semFusao', 'Este jogo não está juntado a nenhum.');
   const { n, com } = fusao;
 
-  // A marca é o que conta (os registos de uma fusão desfeita deixam de se ler).
-  // Marcá-los também como desfeitos serve as versões antigas da app.
+  // A marca é o que conta (o que uma fusão desfeita copiou deixa de se ler).
+  // Marcar esses eventos também como desfeitos serve as versões antigas da app.
   await events.append(A.correction(base.state, { partilhado: { v: VERSAO, fusaoDesfeita: { n } } }), {
     sync: 'defer',
   });
   for (const ev of eventosDaFusao(base.events, n)) {
     await events.markUndone(ev.id, userId, { sync: 'defer' });
   }
+
+  await gravarResumoDoJogo(baseId);
 
   const outro = await carregarPartilhado(com);
   if (outro) {

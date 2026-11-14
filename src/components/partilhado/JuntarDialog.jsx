@@ -82,14 +82,17 @@ export default function JuntarDialog({ matchId, userId, email, onClose }) {
   const linhaDe = (tem) =>
     tem.papel === PAPEL.TEMPOS
       ? t('partilhado.tem.tempos', {
-          nos: tem.resultado.nos,
-          eles: tem.resultado.eles,
           tempo: fmt(tem.duracaoMs),
           subs: tem.substituicoes,
-          golos: tem.golos,
-          cartoes: tem.cartoes,
+          expulsoes: tem.expulsoes,
         })
-      : t('partilhado.tem.registos', { n: tem.registos });
+      : t('partilhado.tem.registos', {
+          nos: tem.resultado.nos,
+          eles: tem.resultado.eles,
+          faltas: tem.faltas,
+          cartoes: tem.cartoes,
+          n: tem.registos,
+        });
 
   return (
     <Dialog title={t('partilhado.juntar.titulo')} onClose={() => onClose(null)} wide>
@@ -106,10 +109,13 @@ export default function JuntarDialog({ matchId, userId, email, onClose }) {
               {escolha.plano.registosNaBase ? (
                 <p className="muted small">{t('partilhado.aviso.registosNaBase', { n: escolha.plano.registosNaBase })}</p>
               ) : null}
+              {escolha.plano.golosNaBase ? (
+                <p className="juntar__aviso">{t('partilhado.aviso.golosNaBase', { n: escolha.plano.golosNaBase })}</p>
+              ) : null}
             </div>
             <div className="juntar__lado">
               <h3>{t('partilhado.papel.REGISTOS')}</h3>
-              <p>{t('partilhado.tem.registos', { n: escolha.plano.total })}</p>
+              <p>{linhaDe(oQueTem(escolha.outro))}</p>
               <ul className="juntar__tipos">
                 {REGISTOS.filter((id) => escolha.plano.porRegisto[id]).map((id) => (
                   <li key={id}>
@@ -121,7 +127,7 @@ export default function JuntarDialog({ matchId, userId, email, onClose }) {
             </div>
           </div>
 
-          {escolha.plano.total === 0 ? <p className="juntar__aviso">{t('partilhado.aviso.semRegistos')}</p> : null}
+          {escolha.plano.eventos.length === 0 ? <p className="juntar__aviso">{t('partilhado.aviso.semRegistos')}</p> : null}
           {escolha.plano.foraDaConvocatoria.length ? (
             <p className="juntar__aviso">
               {t('partilhado.aviso.foraDaConvocatoria', {

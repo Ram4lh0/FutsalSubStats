@@ -27,6 +27,12 @@ import {
   partilhaTerminada,
   planoDeFusao,
   posicaoNoRelogio,
+  posicaoPelaParte,
+  guardaRedesAoMinuto,
+  RELOGIO,
+  metadataDoRelogio,
+  relogioDosRegistos,
+  resumoDosRegistos,
   resumoDosTempos,
 } from '../src/domain/partilhado.js';
 
@@ -190,8 +196,11 @@ test('só os eventos do relógio e os registos levam a hora, e só nos jogos par
   const t = jogoDosTempos();
   const pausa = t.events.find((e) => e.eventType === EVENT.CLOCK_PAUSED);
   assert.equal(pausa.metadata.hora, T0 + 5 * MIN);
+  // Golos, faltas e cartões também: é o que o aparelho dos Registos aponta.
   const golo = t.events.find((e) => e.eventType === EVENT.TEAM_GOAL_ADDED);
-  assert.equal(golo.metadata.hora, undefined);
+  assert.equal(golo.metadata.hora, T0 + 8 * MIN);
+  assert.equal(levaHora(EVENT.YELLOW_CARD), true);
+  assert.equal(levaHora(EVENT.TEAM_FOUL_ADDED), true);
   const normal = jogo('m0', null);
   const ev = gravar(normal, (s) => A.startFirstHalf(s, T0), T0);
   assert.equal(ev.metadata.hora, undefined);
@@ -517,4 +526,221 @@ test('resumoDosTempos: o que o jogo dos Tempos tem', () => {
   assert.equal(r.duracaoMs, 45 * MIN);
   assert.equal(r.golos, 2);
   assert.equal(r.convocados, 7);
+});
+
+/* ----------------------------------------- o relógio dos Registos (1.39.0) */
+
+const toque = (ctx, acao, parte, ms, hora) =>
+  gravar(ctx, (s) => A.correction(s, metadataDoRelogio(acao, { parte, ms, hora }), hora), hora);
+
+test('relógio dos Registos: começar, parar, retomar, terminar a parte e começar a seguinte', () => {
+  const r = jogo('mR', PAPEL.REGISTOS, { comCinco: false });
+  assert.deepEqual(relogioDosRegistos(r.events, T0), { parte: 0, aCorrer: false, emPausa: false, periodMs: 0, matchMs: 0, duracoes: {} });
+
+  toque(r, RELOGIO.INICIO, 1, 0, T0);
+  let c = relogioDosRegistos(r.events, T0 + 4 * MIN);
+  assert.deepEqual([c.parte, c.aCorrer, c.periodMs, c.matchMs], [1, true, 4 * MIN, 4 * MIN]);
+
+  toque(r, RELOGIO.PAUSA, 1, 5 * MIN, T0 + 5 * MIN);
+  c = relogioDosRegistos(r.events, T0 + 9 * MIN);
+  assert.deepEqual([c.aCorrer, c.periodMs], [false, 5 * MIN]);
+
+  toque(r, RELOGIO.RETOMA, 1, 5 * MIN, T0 + 10 * MIN);
+  c = relogioDosRegistos(r.events, T0 + 12 * MIN);
+  assert.deepEqual([c.aCorrer, c.periodMs], [true, 7 * MIN]);
+
+  toque(r, RELOGIO.FIM, 1, 20 * MIN, T0 + 25 * MIN);
+  c = relogioDosRegistos(r.events, T0 + 30 * MIN);
+  assert.deepEqual([c.parte, c.aCorrer, c.emPausa, c.periodMs, c.matchMs], [1, false, true, 20 * MIN, 20 * MIN]);
+  assert.deepEqual(c.duracoes, { 1: 20 * MIN });
+
+  // No intervalo o relógio não se pára nem se retoma.
+  toque(r, RELOGIO.RETOMA, 1, 0, T0 + 31 * MIN);
+  assert.equal(relogioDosRegistos(r.events, T0 + 32 * MIN).aCorrer, false);
+
+  toque(r, RELOGIO.INICIO, 2, 0, T0 + 35 * MIN);
+  c = relogioDosRegistos(r.events, T0 + 38 * MIN);
+  assert.deepEqual([c.parte, c.aCorrer, c.emPausa, c.periodMs, c.matchMs], [2, true, false, 3 * MIN, 23 * MIN]);
+
+  // O jogo dos Registos continua sem "começar" para o resto da app.
+  assert.equal(estado(r).status, MATCH_STATUS.DRAFT);
+  assert.equal(estado(r, buildMatchState182).status, MATCH_STATUS.DRAFT);
+  assert.throws(() => metadataDoRelogio('OUTRA', { parte: 1 }));
+});
+
+test('posicaoPelaParte: a parte e o tempo dos Registos no relógio dos Tempos', () => {
+  const s = estado(jogoDosTempos()); // 1.ª parte 23:00, 2.ª parte 22:00
+  assert.deepEqual(posicaoPelaParte(s, 1, 4 * MIN), { period: 1, matchElapsedMs: 4 * MIN, periodElapsedMs: 4 * MIN });
+  assert.deepEqual(posicaoPelaParte(s, 2, 3 * MIN), { period: 2, matchElapsedMs: 26 * MIN, periodElapsedMs: 3 * MIN });
+  // Os relógios não batem ao segundo: nada passa do fim da parte nos Tempos.
+  assert.deepEqual(posicaoPelaParte(s, 1, 24 * MIN), { period: 1, matchElapsedMs: 23 * MIN, periodElapsedMs: 23 * MIN });
+  // Uma parte que os Tempos não tiveram cai no fim da última.
+  assert.deepEqual(posicaoPelaParte(s, 3, 2 * MIN), { period: 2, matchElapsedMs: 45 * MIN, periodElapsedMs: 22 * MIN });
+});
+
+/** Como o ecrã dos Registos: a ação fica com a parte e o minuto do relógio dele. */
+function apontar(ctx, fabrica, hora) {
+  const ev = fabrica(estado(ctx), hora);
+  const c = relogioDosRegistos(ctx.events, hora);
+  if (c.parte) {
+    ev.period = c.parte;
+    ev.matchElapsedMs = c.matchMs;
+    ev.periodElapsedMs = c.periodMs;
+    if ([EVENT.TEAM_FOUL_ADDED, EVENT.OPPONENT_FOUL_ADDED, EVENT.YELLOW_CARD, EVENT.OPPONENT_YELLOW_CARD].includes(ev.eventType)) {
+      ev.metadata = { ...ev.metadata, period: c.parte };
+    }
+  }
+  return por(ctx, ev);
+}
+
+/** Os Tempos só com tempo: uma troca, um vermelho ao p4 na 2.ª parte, sem golos. */
+function temposSoComTempo() {
+  const ctx = jogo('mT', PAPEL.TEMPOS);
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  gravar(ctx, (s) => A.substitute(s, { playerOutId: 'p1', playerInId: 'p6', position: 'GOALKEEPER' }, T0 + 10 * MIN), T0 + 10 * MIN);
+  gravar(ctx, (s) => A.finishFirstHalf(s, T0 + 20 * MIN), T0 + 20 * MIN);
+  gravar(ctx, (s) => A.setSecondHalfLineup(s, { GOALKEEPER: 'p6', FIXO: 'p2', LEFT_WINGER: 'p3', RIGHT_WINGER: 'p4', PIVOT: 'p5' }, T0 + 29 * MIN), T0 + 29 * MIN);
+  gravar(ctx, (s) => A.startSecondHalf(s, T0 + 30 * MIN), T0 + 30 * MIN);
+  gravar(ctx, (s) => A.redCard(s, { playerId: 'p4' }, T0 + 40 * MIN), T0 + 40 * MIN);
+  gravar(ctx, (s) => A.finishMatch(s, T0 + 50 * MIN), T0 + 50 * MIN);
+  return ctx;
+}
+
+/** Os Registos com relógio: golos, faltas, amarelos e um remate que deu golo. */
+function registosComRelogio() {
+  const r = jogo('mR', PAPEL.REGISTOS, { comCinco: false });
+  const I1 = T0 + 2000; // começa 2 s depois dos Tempos
+  toque(r, RELOGIO.INICIO, 1, 0, I1);
+  // 5:00 — golo do p5 com assistência do p3, e o remate que o deu.
+  const golo = apontar(r, (s, h) => A.teamGoalBy(s, 'p5', h), I1 + 5 * MIN);
+  gravar(r, (s) => A.attributeGoal(s, { targetEventId: golo.id, assistId: 'p3' }), I1 + 5 * MIN + 3000);
+  gravar(r, (s) => A.attributeGoal(s, { targetEventId: golo.id, howScored: 'TRANSICAO' }), I1 + 5 * MIN + 6000);
+  apontar(r, (s, h) => registar(s, { registo: REGISTO.REMATE, playerId: 'p5', resultado: 'GOLO', x: 0.9, y: 0.5, goloEventId: golo.id }, h), I1 + 5 * MIN);
+  // 8:00 — falta do p2.
+  const f = apontar(r, (s, h) => A.foul(s, EVENT.TEAM_FOUL_ADDED, h), I1 + 8 * MIN);
+  gravar(r, (s) => A.attributeFoul(s, { targetEventId: f.id, playerId: 'p2' }), I1 + 8 * MIN + 4000);
+  // 12:00 — golo sofrido (nos Tempos o GR já é o p6).
+  apontar(r, (s, h) => A.goal(s, EVENT.OPPONENT_GOAL_ADDED, h), I1 + 12 * MIN);
+  // 15:00 — amarelo ao p2.
+  apontar(r, (s, h) => A.lateCard(s, { type: 'YELLOW', playerId: 'p2', matchElapsedMs: 0, period: 0 }, h), I1 + 15 * MIN);
+  toque(r, RELOGIO.FIM, 1, 20 * MIN + 3000, I1 + 20 * MIN + 3000);
+  const I2 = T0 + 30 * MIN + 1000;
+  toque(r, RELOGIO.INICIO, 2, 0, I2);
+  // 2.ª parte, 4:00 — segundo amarelo ao p2 e amarelo ao 9 deles; 6:00 — falta deles; 7:00 — golo sem marcador.
+  apontar(r, (s, h) => A.lateCard(s, { type: 'YELLOW', playerId: 'p2', matchElapsedMs: 0, period: 0 }, h), I2 + 4 * MIN);
+  apontar(r, (s, h) => A.lateOpponentYellow(s, { number: 9, matchElapsedMs: 0, period: 0 }, h), I2 + 4 * MIN);
+  apontar(r, (s, h) => A.foul(s, EVENT.OPPONENT_FOUL_ADDED, h), I2 + 6 * MIN);
+  apontar(r, (s, h) => A.goal(s, EVENT.TEAM_GOAL_ADDED, h), I2 + 7 * MIN);
+  // Um golo deles marcado por engano e desfeito: não passa.
+  const engano = apontar(r, (s, h) => A.goal(s, EVENT.OPPONENT_GOAL_ADDED, h), I2 + 8 * MIN);
+  gravar(r, (s) => A.undoEvent(s, engano, I2 + 8 * MIN + 5000), I2 + 8 * MIN + 5000);
+  toque(r, RELOGIO.FIM, 2, 20 * MIN, T0 + 51 * MIN);
+  terminar(r, T0 + 52 * MIN);
+  return r;
+}
+
+test('no jogo dos Registos os amarelos não expulsam e o resultado é o que lá se apontou', () => {
+  const s = estado(registosComRelogio());
+  assert.deepEqual([s.teamScore, s.opponentScore], [2, 1]);
+  assert.equal(s.cards.length, 2);
+  assert.notEqual(s.players.p2.status, 'EXPELLED');
+  assert.deepEqual(resumoDosRegistos(s), { resultado: { nos: 2, eles: 1 }, golos: 3, faltas: 2, cartoes: 3, registos: 1, convocados: 7 });
+});
+
+test('fusão 1.39: golos, faltas, cartões e registos entram no jogo dos Tempos, na parte e minuto certos', () => {
+  const t = temposSoComTempo();
+  const r = registosComRelogio();
+  const baseAntes = { ...carregado(t), events: [...t.events] };
+  const antes = baseAntes.state;
+  assert.deepEqual([antes.teamScore, antes.opponentScore], [0, 0]);
+  const tempos = (s) => Object.fromEntries(Object.values(s.players).map((p) => [p.playerId, p.stints.map((x) => [x.startMatchMs, x.endMatchMs])]));
+  const tempoAntes = tempos(antes);
+
+  const plano = planoDeFusao({ base: carregado(t), outro: carregado(r), n: 1 });
+  assert.deepEqual(plano.golos, { US: 2, THEM: 1 });
+  assert.deepEqual(plano.faltas, { US: 1, THEM: 1 });
+  assert.deepEqual(plano.cartoes, { nossos: 2, adversario: 1, semJogador: 0 });
+  assert.equal(plano.total, 1);
+  assert.equal(plano.golosLigados, 1);
+  assert.equal(plano.golosSemPar, 0);
+  assert.equal(plano.golosNaBase, 0);
+  assert.equal(plano.semHora, 0);
+  // 3 golos × 2 (golo + atribuição) + 2 faltas + 3 cartões + 1 registo.
+  assert.equal(plano.eventos.length, 12);
+  assert.equal(new Set(plano.eventos.map((e) => e.id)).size, 12);
+
+  aplicar(t, r, plano);
+  const s = estado(t);
+  assert.deepEqual(s.warnings, []);
+  assert.equal(s.status, MATCH_STATUS.FINISHED);
+  assert.deepEqual([s.teamScore, s.opponentScore], [2, 1]);
+  assert.deepEqual([s.halftimeTeamScore, s.halftimeOpponentScore], [1, 1]);
+
+  // Golos: parte, minuto, marcador, assistência, tipo; o GR do golo sofrido é
+  // quem estava à baliza nos Tempos a esse minuto (o p6, depois da troca).
+  const [g1, g2, g3] = [...s.goals].sort((a, b) => a.matchElapsedMs - b.matchElapsedMs);
+  assert.deepEqual([g1.team, g1.period, g1.matchElapsedMs, g1.scorerId, g1.assistId, g1.howScored], ['US', 1, 5 * MIN, 'p5', 'p3', 'TRANSICAO']);
+  assert.deepEqual([g2.team, g2.period, g2.matchElapsedMs, g2.goalkeeperId], ['THEM', 1, 12 * MIN, 'p6']);
+  assert.deepEqual([g3.team, g3.period, g3.matchElapsedMs, g3.scorerId], ['US', 2, 27 * MIN, null]);
+  assert.equal(guardaRedesAoMinuto(baseAntes, 5 * MIN), 'p1');
+  assert.equal(guardaRedesAoMinuto(baseAntes, 12 * MIN), 'p6');
+
+  // O remate que deu golo fica preso ao golo copiado.
+  const [remate] = registosDoJogo(s);
+  assert.deepEqual([remate.registo, remate.resultado, remate.period, remate.matchElapsedMs], ['remate', 'GOLO', 1, 5 * MIN]);
+  assert.equal(remate.goloEventId, g1.eventId);
+
+  // Faltas e cartões, por parte.
+  assert.deepEqual(s.fouls.map((f) => [f.team, f.period, f.matchElapsedMs, f.playerId]), [['US', 1, 8 * MIN, 'p2'], ['THEM', 2, 26 * MIN, null]]);
+  const doP2 = s.cards.filter((c) => c.playerId === 'p2');
+  assert.deepEqual(doP2.map((c) => [c.type, c.period, c.secondYellow]), [['YELLOW', 1, false], ['YELLOW', 2, true]]);
+  assert.deepEqual(s.opponentCards.map((c) => [c.number, c.period]), [[9, 2]]);
+  assert.equal(s.opponentExpulsions, 0);
+
+  // O vermelho dos Tempos continua lá, e os tempos em campo não mexeram: o
+  // segundo amarelo do p2 não o expulsa, só o p4 (vermelho nos Tempos) está fora.
+  assert.equal(s.cards.filter((c) => c.type === 'RED' && c.playerId === 'p4').length, 1);
+  assert.equal(s.players.p4.status, 'EXPELLED');
+  assert.notEqual(s.players.p2.status, 'EXPELLED');
+  assert.deepEqual(tempos(s), tempoAntes);
+  assert.equal(s.elapsedMatchMs, antes.elapsedMatchMs);
+});
+
+test('fusão 1.39: sem a marca (ou desfeita) nada do que foi copiado conta', () => {
+  const t = temposSoComTempo();
+  const r = registosComRelogio();
+  const plano = planoDeFusao({ base: carregado(t), outro: carregado(r), n: 1 });
+  for (const ev of plano.eventos) por(t, { ...ev });
+  let s = estado(t);
+  assert.deepEqual([s.teamScore, s.goals.length, s.fouls.length, s.cards.length, s.opponentCards.length], [0, 0, 0, 1, 0]);
+
+  gravar(t, (x) => A.correction(x, { partilhado: { v: 1, fusao: { com: 'mR', n: 1, registos: plano.total } } }), T0 + 70 * MIN);
+  s = estado(t);
+  assert.deepEqual([s.teamScore, s.opponentScore, s.goals.length, s.fouls.length, s.cards.length], [2, 1, 3, 2, 3]);
+  assert.equal(eventosDaFusao(t.events, 1).length, 12);
+
+  gravar(t, (x) => A.correction(x, { partilhado: { v: 1, fusaoDesfeita: { n: 1 } } }), T0 + 80 * MIN);
+  s = estado(t);
+  assert.deepEqual([s.teamScore, s.opponentScore, s.goals.length, s.fouls.length, s.cards.length], [0, 0, 0, 0, 1]);
+  assert.equal(s.players.p4.status, 'EXPELLED');
+});
+
+test('fusão 1.39: cartão de quem não está na convocatória dos Tempos fica de fora e vem avisado', () => {
+  const t = temposSoComTempo();
+  const r = jogo('mR', PAPEL.REGISTOS, { comCinco: false, extra: ['Hugo'] });
+  toque(r, RELOGIO.INICIO, 1, 0, T0);
+  apontar(r, (s, h) => A.lateCard(s, { type: 'YELLOW', playerId: 'x8', matchElapsedMs: 0, period: 0 }, h), T0 + 3 * MIN);
+  apontar(r, (s, h) => A.teamGoalBy(s, 'x8', h), T0 + 4 * MIN);
+  terminar(r, T0 + 60 * MIN);
+  const plano = planoDeFusao({ base: carregado(t), outro: carregado(r), n: 1 });
+  assert.deepEqual(plano.cartoes, { nossos: 0, adversario: 0, semJogador: 1 });
+  assert.deepEqual(plano.golos, { US: 1, THEM: 0 });
+  assert.deepEqual(plano.foraDaConvocatoria.map((j) => [j.name, j.registos]), [['Hugo', 2]]);
+  aplicar(t, r, plano);
+  assert.equal(estado(t).teamScore, 1);
+});
+
+test('fusão 1.39: golos que o jogo dos Tempos já tinha ficam e vêm contados', () => {
+  const plano = planoDeFusao({ base: carregado(jogoDosTempos()), outro: carregado(registosComRelogio()), n: 1 });
+  assert.equal(plano.golosNaBase, 2);
 });
