@@ -21,6 +21,8 @@ import { compararEscaloes } from '../../domain/escaloes.js';
 import { buildMatchState } from '../../domain/reducer.js';
 import { registadoPorOutro } from '../../domain/aoVivo.js';
 import { ePartilhado, levaHora } from '../../domain/partilha.js';
+import { PAPEL, VERSAO, lerPartilha, mesmoJogo, planoDeFusao } from '../../domain/partilhado.js';
+import * as A from '../../domain/actions.js';
 import {
   LOCATION,
   EVENT,
@@ -844,9 +846,47 @@ async function loadStatesOf(list) {
   for (const m of list) {
     const sq = await squad.listByMatch(m.id);
     const evs = await events.listByMatch(m.id);
-    out.push({ match: m, state: buildMatchState(m, sq, evs) });
+    out.push({ match: m, state: buildMatchState(m, sq, evs), sq, evs });
   }
-  return out;
+  return juntarEmMemoria(out).map(({ match, state }) => ({ match, state }));
+}
+
+/**
+ * Jogos com registo partilhado que ainda não foram juntados: para o painel e
+ * as estatísticas, o jogo dos Tempos conta já com o que o dos Registos apontou
+ * (golos, faltas, cartões e registos), como se tivessem sido juntados. É só em
+ * memória — nada se escreve; o "Juntar" a sério continua a ser o que grava.
+ * Quando o jogo for juntado, o dos Registos arquiva-se e o resultado é o mesmo.
+ */
+function juntarEmMemoria(entradas) {
+  const info = entradas.map((e) => ({ ...e, partilha: lerPartilha(e.evs) }));
+  const livres = (papel) =>
+    info.filter((e) => e.partilha.papel === papel && !e.partilha.fusao && !e.partilha.fundidoEm);
+  const registos = livres(PAPEL.REGISTOS);
+  if (!registos.length) return entradas;
+  const usados = new Set();
+  const novos = new Map();
+  for (const base of livres(PAPEL.TEMPOS)) {
+    const outro = registos
+      .filter((r) => !usados.has(r.match.id) && mesmoJogo(base.match, r.match))
+      .sort((a, b) => (b.match.createdAt || 0) - (a.match.createdAt || 0))[0];
+    if (!outro) continue;
+    try {
+      const plano = planoDeFusao({
+        base: { match: base.match, squad: base.sq, events: base.evs, state: base.state },
+        outro: { match: outro.match, squad: outro.sq, events: outro.evs, state: outro.state },
+        n: 1,
+      });
+      const marca = A.correction(base.state, {
+        partilhado: { v: VERSAO, fusao: { com: outro.match.id, n: 1, registos: plano.total } },
+      });
+      usados.add(outro.match.id);
+      novos.set(base.match.id, buildMatchState(base.match, base.sq, [...base.evs, ...plano.eventos, marca]));
+    } catch {
+      // Se a fusão em memória falhar, o jogo fica como está.
+    }
+  }
+  return entradas.map((e) => (novos.has(e.match.id) ? { ...e, state: novos.get(e.match.id) } : e));
 }
 
 /** Jogo em curso (para o atalho "retomar jogo"). */
