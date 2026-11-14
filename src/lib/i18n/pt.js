@@ -2581,4 +2581,10 @@ export default {
   "partilhado.registos.enquadradoFoi": "Remate enquadrado de #{numero} {nome}: foi defendido ou golo?",
   "partilhado.registos.remateEnquadradoDe": "Remate enquadrado de #{numero} {nome}: de onde?",
   "partilhado.registos.remateForaDe": "Remate fora de #{numero} {nome}: de onde?",
+  "partilhado.registos.advBarra": "Adversário",
+  "partilhado.registos.remateEnquadradoAdv": "Remate enq. adv.",
+  "partilhado.registos.remateForaAdv": "Remate fora adv.",
+  "partilhado.registos.remateEnquadradoAdvDe": "Remate enquadrado do adversário: de onde?",
+  "partilhado.registos.remateForaAdvDe": "Remate fora do adversário: de onde?",
+  "partilhado.registos.enquadradoAdvFoi": "Remate enquadrado do adversário: foi defendido ou golo?",
 };

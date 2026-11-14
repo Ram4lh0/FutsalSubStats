@@ -162,7 +162,9 @@ export const CATALOGO = {
     soAdversario: true,
     ponto: true,
     resultados: Object.values(RESULTADO_REMATE),
-    opcoes: ['zona', 'resultado'],
+    // `enquadrado`: no ecrã dos Registos partilhados, dois botões (enquadrado /
+    // fora) numa barra do adversário por baixo do marcador.
+    opcoes: ['zona', 'resultado', 'enquadrado'],
     disponivel: true,
   },
   // A zona da perda (09/11/2026, pedido do SQB) é uma opção do escalão e vem

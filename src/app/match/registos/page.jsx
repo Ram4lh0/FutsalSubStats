@@ -156,6 +156,8 @@ function Registos() {
   // pergunta o que aconteceu, dois botões que já o dizem — "Remate enquadrado"
   // e "Remate fora" — e só se pergunta a zona.
   const doisRemates = ligados.has(REGISTO.REMATE) && Boolean(ligados.opcoes?.remate?.enquadrado);
+  // O mesmo para os remates do adversário: dois botões numa barra por baixo do marcador.
+  const doisRematesAdv = ligados.has(REGISTO.REMATE_ADV) && Boolean(ligados.opcoes?.remate_adv?.enquadrado);
 
   const registos = useAcoesRegistos({
     state,
@@ -622,7 +624,11 @@ function Registos() {
 
   // Os contadores de equipa que se somam por aqui (cantos, remates deles, …):
   // vão para o lado de cada equipa no marcador, em vez de uma barra à parte.
-  const { colunas } = colunasRegistos(state, ligados, doisRemates ? { ...on, registarRemateBarra: null } : on);
+  const { colunas } = colunasRegistos(state, ligados, {
+    ...on,
+    ...(doisRemates ? { registarRemateBarra: null } : {}),
+    ...(doisRematesAdv ? { registarRemateAdv: null } : {}),
+  });
   const daEquipa = (equipa) =>
     colunas
       .filter((col) => col[equipa]?.mais)
@@ -636,6 +642,27 @@ function Registos() {
           menos: () => on.tirarUltimo(c.registo, c.equipa),
         };
       });
+
+  // A barra do adversário (por baixo do marcador): registos só dele.
+  const rematesAdv = lista.filter((r) => r.registo === REGISTO.REMATE_ADV);
+  const itensAdv = doisRematesAdv
+    ? [
+        {
+          classe: 'enquadrado',
+          rotulo: t('partilhado.registos.remateEnquadradoAdv'),
+          n: rematesAdv.filter((r) => A_BALIZA.has(r.resultado)).length,
+          mais: () => on.registarRemateAdvCom(RESULTADO_REMATE.DEFENDIDO, t('partilhado.registos.remateEnquadradoAdvDe')),
+          menos: () => tirarRegisto((r) => r.registo === REGISTO.REMATE_ADV && A_BALIZA.has(r.resultado)),
+        },
+        {
+          classe: 'fora',
+          rotulo: t('partilhado.registos.remateForaAdv'),
+          n: rematesAdv.filter((r) => r.resultado === RESULTADO_REMATE.FORA).length,
+          mais: () => on.registarRemateAdvCom(RESULTADO_REMATE.FORA, t('partilhado.registos.remateForaAdvDe')),
+          menos: () => tirarRegisto((r) => r.registo === REGISTO.REMATE_ADV && r.resultado === RESULTADO_REMATE.FORA),
+        },
+      ]
+    : [];
 
   /** O que já se apontou, em poucas linhas: golos, faltas e cartões. */
   const nomeDe = (id) => {
@@ -868,6 +895,13 @@ function Registos() {
           </div>
         </div>
       </section>
+
+      {itensAdv.length ? (
+        <section className="regadv" aria-label={t('partilhado.registos.advBarra')}>
+          <span className="regadv__nome">{rivalName}</span>
+          <div className="regadv__passos">{itensAdv.map((x) => passo(x, 'regpasso'))}</div>
+        </section>
+      ) : null}
 
       {relogio.parte === 0 ? <p className="regaviso">{t('partilhado.relogio.aviso')}</p> : null}
 

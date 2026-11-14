@@ -2576,4 +2576,10 @@ export default {
   "partilhado.registos.enquadradoFoi": "Shot on target by #{numero} {nome}: saved or goal?",
   "partilhado.registos.remateEnquadradoDe": "Shot on target by #{numero} {nome}: from where?",
   "partilhado.registos.remateForaDe": "Shot off target by #{numero} {nome}: from where?",
+  "partilhado.registos.advBarra": "Opponent",
+  "partilhado.registos.remateEnquadradoAdv": "Opp. on target",
+  "partilhado.registos.remateForaAdv": "Opp. off target",
+  "partilhado.registos.remateEnquadradoAdvDe": "Opponent shot on target: from where?",
+  "partilhado.registos.remateForaAdvDe": "Opponent shot off target: from where?",
+  "partilhado.registos.enquadradoAdvFoi": "Opponent shot on target: saved or goal?",
 };

@@ -2577,4 +2577,10 @@ export default {
   "partilhado.registos.enquadradoFoi": "Remate a puerta de #{numero} {nome}: ¿parado o gol?",
   "partilhado.registos.remateEnquadradoDe": "Remate a puerta de #{numero} {nome}: ¿desde dónde?",
   "partilhado.registos.remateForaDe": "Remate fuera de #{numero} {nome}: ¿desde dónde?",
+  "partilhado.registos.advBarra": "Rival",
+  "partilhado.registos.remateEnquadradoAdv": "Remate rival a puerta",
+  "partilhado.registos.remateForaAdv": "Remate rival fuera",
+  "partilhado.registos.remateEnquadradoAdvDe": "Remate rival a puerta: ¿desde dónde?",
+  "partilhado.registos.remateForaAdvDe": "Remate rival fuera: ¿desde dónde?",
+  "partilhado.registos.enquadradoAdvFoi": "Remate rival a puerta: ¿parado o gol?",
 };

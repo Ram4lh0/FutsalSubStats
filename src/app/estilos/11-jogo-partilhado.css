@@ -267,3 +267,90 @@
 }
 .regamarelos__cartao { width: 8px; height: 11px; border-radius: 2px; background: #facc15; }
 .regamarelos__item.is-dois .regamarelos__cartao { background: #ef4444; }
+
+/* ------------------------------------------------ ecrã dos Registos: compacto
+   Tudo mais pequeno e mais para cima, para caberem os 12/14 jogadores no ecrã
+   (pedido do Elétrico FC, 14/11/2026). Vem depois das regras de cima e ganha. */
+.regtopo { margin-bottom: 6px; }
+.regtopo__stats { min-height: 30px; padding: 0 12px; font-size: 0.8rem; }
+.regplacar { gap: 6px 12px; padding: 8px 10px; margin-bottom: 8px; border-radius: 14px; }
+.regplacar__lado { gap: 6px; }
+.regplacar__golo { gap: 8px; }
+.regplacar__golos { font-size: 2.1rem; }
+.regplacar__menos, .regplacar__mais { width: 38px; height: 38px; font-size: 1.25rem; }
+.regplacar__passos { gap: 6px; }
+.regplacar__passos .regpasso { width: 150px; }
+.regplacar__relogio { gap: 2px; min-width: 170px; }
+.regplacar__parte { font-size: 0.7rem; }
+.regplacar__tempo { font-size: clamp(2rem, 5vw, 2.6rem); }
+.regplacar__botoes { gap: 6px; }
+.regplacar__botoes .btn { min-height: 38px; padding: 0 12px; font-size: 0.85rem; }
+.regplacar__botoes--relogio { margin-top: 2px; }
+.regaviso { margin-bottom: 8px; padding: 6px 10px; font-size: 0.82rem; }
+
+.regpasso { grid-template-columns: 30px minmax(0, 1fr) 30px; min-height: 36px; border-radius: 10px; }
+.regpasso > .regpasso__menos, .regpasso > .regpasso__mais { font-size: 1.15rem; }
+.regpasso > .regpasso__meio { padding: 2px; gap: 0; }
+.regpasso__rot { font-size: 0.68rem; line-height: 1.05; }
+.regpasso__n { font-size: 1rem; line-height: 1.1; }
+
+/* A barra do adversário, por baixo do marcador. */
+.regadv {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px; margin: -2px 0 8px;
+  border-radius: 12px; background: #16243d; border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.regadv__nome {
+  flex: none; max-width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+}
+.regadv__passos { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px; max-width: 520px; }
+.regadv .regpasso { min-height: 36px; }
+
+.regcards { grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 8px; }
+.regcard { padding: 8px; gap: 6px; border-radius: 12px; }
+.regcard.is-amarelo, .regcard.is-dois-amarelos { padding: 7px; }
+.regcard__quem { gap: 8px; }
+.regcard__num { font-size: 1.3rem; }
+.regcard__nome { font-size: 0.98rem; }
+.regcard__amarelo { width: 22px; height: 30px; font-size: 0.75rem; }
+.regcard__tiraramarelo { width: 30px; height: 30px; font-size: 1.1rem; }
+.regcard__botoes { grid-template-columns: 1fr 1fr; gap: 6px; }
+.regcard .regpasso { min-height: 34px; grid-template-columns: 26px minmax(0, 1fr) 26px; }
+.regcard .regpasso__rot { font-size: 0.64rem; }
+.regultimo { margin: 8px 0; padding: 6px 12px; }
+
+@media (max-width: 760px) {
+  .regplacar { gap: 6px 8px; }
+  /* Relógio numa linha só: tempo à esquerda, botões à direita. */
+  .regplacar__relogio { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; justify-items: start; text-align: left; }
+  .regplacar__relogio > :not(.regplacar__botoes) { grid-column: 1; }
+  .regplacar__relogio .regplacar__botoes--relogio { grid-column: 2; grid-row: 1 / 5; align-self: center; justify-content: flex-end; margin: 0; }
+  .regplacar__botoes .btn { min-height: 36px; padding: 0 10px; font-size: 0.8rem; }
+  .regplacar__golos { font-size: 1.9rem; }
+  .regplacar__menos, .regplacar__mais { width: 34px; height: 34px; }
+  .regplacar__passos { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .regplacar__passos .regpasso { width: 100%; }
+  .regpasso { grid-template-columns: 24px minmax(0, 1fr) 24px; min-height: 34px; }
+  .regadv { flex-wrap: wrap; gap: 4px 8px; }
+  .regadv__passos { max-width: none; flex: 1 1 100%; }
+}
+/* Telemóvel: o jogador numa linha (nome à esquerda, botões 2×2 à direita). */
+@media (max-width: 560px) {
+  .regcards { grid-template-columns: 1fr; gap: 6px; }
+  .regcard { grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 8px; }
+  .regcard__quem { flex-wrap: wrap; gap: 2px 6px; align-content: center; }
+  .regcard__num { order: 1; }
+  .regcard__tiraramarelo { order: 2; margin-left: auto; width: 24px; height: 24px; font-size: 0.95rem; }
+  .regcard__amarelo { order: 2; margin-left: auto; width: 18px; height: 24px; font-size: 0.65rem; }
+  .regcard__tiraramarelo + .regcard__amarelo { margin-left: 0; }
+  .regcard__nome { order: 3; flex: 1 0 100%; font-size: 0.82rem; }
+}
+@media (max-width: 760px) {
+  .regadv__nome { display: none; }
+}
+@media (max-width: 560px) {
+  .regcard { padding: 6px 8px; }
+  .regcard.is-amarelo, .regcard.is-dois-amarelos { padding: 5px 7px; }
+  .regcard .regpasso { min-height: 32px; }
+  .regcard__botoes { gap: 5px; }
+}
