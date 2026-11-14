@@ -331,19 +331,28 @@ function Registos() {
    * vivo — precisa do relógio a contar, que é ele que diz em que parte se está.
    */
   async function falta(team, p = null) {
-    let st = await commit(A.foul(state, team === 'US' ? EVENT.TEAM_FOUL_ADDED : EVENT.OPPONENT_FOUL_ADDED));
-    const ultima = [...(st?.fouls || [])].reverse().find((f) => f.team === team);
-    if (!ultima) return;
-    let playerId = p?.playerId || null;
+    const tipo = team === 'US' ? EVENT.TEAM_FOUL_ADDED : EVENT.OPPONENT_FOUL_ADDED;
+    // Com o jogador já sabido (botão do cartão), a falta grava-se num só evento
+    // com ele. Em dois passos (falta + atribuição à "última falta"), dois toques
+    // rápidos atribuíam os dois à mesma falta e a outra ficava sem jogador: o
+    // total da equipa subia e o do jogador não.
+    const ev = p
+      ? A.makeEvent(state, tipo, { playerId: p.playerId, metadata: { playerId: p.playerId } })
+      : A.foul(state, tipo);
+    let st = await commit(ev);
     if (!p) {
-      playerId = await pickPlayer(ui, st, team === 'US' ? t('acao.quemFezFalta') : t('acao.quemSofreuFalta'), {
+      const playerId = await pickPlayer(ui, st, team === 'US' ? t('acao.quemFezFalta') : t('acao.quemSofreuFalta'), {
         allowNone: true,
         noneLabel: t('acao.naoRegistar'),
       });
+      // A atribuição vai para ESTA falta (pelo id), não para a última da lista.
+      if (playerId) st = (await commit(A.attributeFoul(st, { targetEventId: ev.id, playerId }))) || st;
     }
-    if (playerId) st = (await commit(A.attributeFoul(st, { targetEventId: ultima.eventId, playerId }))) || st;
+    // A ordem DESTA falta na parte (não o total de agora): com toques rápidos o
+    // estado já traz as faltas seguintes, e cada toque abria o aviso do livre.
     const parte = relogioDosRegistos(eventosAgora.current).parte;
-    const n = parte ? foulsInPeriod(st, team, parte) : 0;
+    const daParte = parte ? (st?.fouls || []).filter((f) => f.team === team && f.period === parte) : [];
+    const n = daParte.findIndex((f) => f.eventId === ev.id) + 1;
     if (n > FOUL_LIMIT) await registos.perguntarLivre10(st, { equipa: team === 'US' ? 'THEM' : 'US', n });
   }
 
@@ -594,6 +603,11 @@ function Registos() {
     </div>
   );
 
+  // Quem do adversário já tem amarelo (número → quantos), por ordem do número.
+  const amarelosDeles = [
+    ...(state.opponentCards || []).reduce((m, c) => m.set(c.number, (m.get(c.number) || 0) + 1), new Map()),
+  ].sort((x, y) => Number(x[0]) - Number(y[0]));
+
   /** As faltas da parte de uma equipa: o "−" tira a última dessa parte. */
   const faltaDaEquipa = (team) => ({
     classe: 'falta',
@@ -826,6 +840,16 @@ function Registos() {
         </div>
 
         <div className="regplacar__lado regplacar__lado--deles">
+          {amarelosDeles.length ? (
+            <ul className="regamarelos" aria-label={t('partilhado.registos.amarelo')}>
+              {amarelosDeles.map(([numero, n]) => (
+                <li key={numero} className={`regamarelos__item ${n > 1 ? 'is-dois' : ''}`}>
+                  <span className="regamarelos__cartao" aria-hidden="true" />
+                  {numero}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <span className="regplacar__nome">{rivalName}</span>
           {golosDaEquipa('THEM', state.opponentScore, () => goloDeles())}
           <div className="regplacar__passos">
