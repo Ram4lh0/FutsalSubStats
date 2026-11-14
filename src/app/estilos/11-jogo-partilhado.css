@@ -252,3 +252,12 @@
 .btn.btn--partilhar.is-on { color: #06283d; background: #38bdf8; border-color: #38bdf8; }
 /* Sem o nome da equipa a barra fica só com a bolinha de cor. */
 .regbar__eq:empty { max-width: none; }
+/* O "−" ao lado do amarelo: tira o último amarelo do jogador. */
+.regcard__tiraramarelo {
+  flex: none; width: 38px; height: 38px; padding: 0; border-radius: 999px; cursor: pointer;
+  font-size: 1.3rem; line-height: 1; display: grid; place-items: center; color: #fde047;
+  background: rgba(250, 204, 21, 0.08); border: 1px solid rgba(250, 204, 21, 0.45);
+  user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.regcard__tiraramarelo:active { transform: scale(0.94); }
+.regcard__tiraramarelo:disabled { opacity: 0.4; }

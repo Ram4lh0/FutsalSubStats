@@ -860,6 +860,22 @@ function Registos() {
               <header className="regcard__quem">
                 <span className="regcard__num">{p.number}</span>
                 <span className="regcard__nome">{p.name}</span>
+                {amarelos ? (
+                  <button
+                    type="button"
+                    className="regcard__tiraramarelo"
+                    disabled={ocupado}
+                    aria-label={`− ${t('partilhado.registos.amarelo')}`}
+                    title={`− ${t('partilhado.registos.amarelo')}`}
+                    onClick={() =>
+                      tirarEvento(
+                        eventoDoUltimo((state.cards || []).filter((c) => c.playerId === p.playerId && c.type === CARD.YELLOW))
+                      )
+                    }
+                  >
+                    −
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className={`regcard__amarelo ${amarelos ? '' : 'is-vazio'}`}
