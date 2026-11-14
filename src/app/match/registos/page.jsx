@@ -27,7 +27,7 @@ import useNow from '@/lib/useNow.js';
 import useRegistos from '@/lib/useRegistos.js';
 import useAddons from '@/lib/useAddons.js';
 import useAcoesRegistos from '@/components/registos/useAcoesRegistos.js';
-import BarraRegistos from '@/components/registos/BarraRegistos.jsx';
+import { colunasRegistos } from '@/components/registos/BarraRegistos.jsx';
 import PainelRegistos from '@/components/registos/PainelRegistos.jsx';
 import FaixaPartilhado from '@/components/partilhado/FaixaPartilhado.jsx';
 import { opponentYellowCardDialog, pickGoalType, pickPlayer } from '@/components/live/dialogs.jsx';
@@ -370,10 +370,19 @@ function Registos() {
    * leva consigo o remate que lhe estava preso.
    */
   async function desfazerUltimo() {
-    if (!ultimo || ocupado) return;
+    if (ultimo) await tirarEvento(ultimo);
+  }
+
+  /**
+   * Tira uma ação já gravada (o "−" do marcador e dos cartões, e o DESFAZER).
+   * Um remate que deu golo sai com o seu golo, e um golo leva consigo o remate
+   * que lhe estava preso.
+   */
+  async function tirarEvento(ev) {
+    if (!ev || ocupado) return;
     setOcupado(true);
     try {
-      const alvos = new Map(registos.alvosDoDesfazer(ultimo).map((e) => [e.id, e]));
+      const alvos = new Map(registos.alvosDoDesfazer(ev).map((e) => [e.id, e]));
       for (const e of state.events || []) {
         if (e.eventType === EVENT.STAT_RECORDED && e.metadata?.goloEventId && alvos.has(e.metadata.goloEventId)) {
           alvos.set(e.id, e);
@@ -384,10 +393,28 @@ function Registos() {
         await events.append(A.undoEvent(state, e), { sync: 'defer' });
       }
       await recarregar();
-      ui.toast(t('partilhado.registos.desfeito', { registo: eventLabel(ultimo.eventType, ultimo, state.players) }), 'ok');
+      ui.toast(t('partilhado.registos.desfeito', { registo: eventLabel(ev.eventType, ev, state.players) }), 'ok');
     } finally {
       setOcupado(false);
     }
+  }
+
+  /** O evento do último elemento de uma lista do estado (golos, faltas, cartões, registos). */
+  const eventoDoUltimo = (itens) => {
+    const ult = itens[itens.length - 1];
+    return ult ? (state.events || []).find((e) => e.id === ult.eventId) || null : null;
+  };
+
+  /** Tira o último registo que cumpre `filtro`; um remate que deu golo tira-se pelo golo. */
+  function tirarRegisto(filtro) {
+    const meus = lista.filter(filtro);
+    if (!meus.length) return;
+    const semGolo = meus.filter((r) => r.resultado !== RESULTADO_REMATE.GOLO);
+    if (!semGolo.length) {
+      ui.toast(t('registos.tirarPeloGolo'), 'error');
+      return;
+    }
+    tirarEvento(eventoDoUltimo(semGolo));
   }
 
   /**
@@ -454,51 +481,143 @@ function Registos() {
   const haGR = jogadores.some((p) => p.preferredPosition === 'GOALKEEPER');
   const eGR = (p) => !haGR || p.preferredPosition === 'GOALKEEPER';
 
-  /** Os botões de um cartão: golo, falta e amarelo, e os registos ligados no escalão. */
+  /**
+   * Os botões de um cartão: golo, falta e os registos ligados no escalão.
+   * Cada um é "− n +": o "+" aponta, o "−" tira o último desse jogador.
+   */
   function botoesDe(p) {
-    const c = contagem.get(p.playerId) || {};
+    const id = p.playerId;
+    const c = contagem.get(id) || {};
+    const dele = (registo, extra = () => true) => (r) => r.registo === registo && r.playerId === id && extra(r);
     const b = [
-      ['golo', t('partilhado.registos.golo'), golosDe(p.playerId), () => golo(p)],
-      ['falta', t('partilhado.registos.falta'), faltasDe(p.playerId), () => falta('US', p)],
+      {
+        classe: 'golo',
+        rotulo: t('partilhado.registos.golo'),
+        n: golosDe(id),
+        mais: () => golo(p),
+        menos: () => tirarEvento(eventoDoUltimo((state.goals || []).filter((g) => g.team === 'US' && g.scorerId === id))),
+      },
+      {
+        classe: 'falta',
+        rotulo: t('partilhado.registos.falta'),
+        n: faltasDe(id),
+        mais: () => falta('US', p),
+        menos: () => tirarEvento(eventoDoUltimo((state.fouls || []).filter((f) => f.team === 'US' && f.playerId === id))),
+      },
     ];
+    const reg = (classe, rotulo, n, mais, filtro) => b.push({ classe, rotulo, n, mais, menos: () => tirarRegisto(filtro) });
     if (doisRemates) {
-      const meus = lista.filter((r) => r.registo === REGISTO.REMATE && r.playerId === p.playerId);
-      b.push([
+      const meus = lista.filter(dele(REGISTO.REMATE));
+      reg(
         'enquadrado',
         t('partilhado.registos.remateEnquadrado'),
         meus.filter((r) => A_BALIZA.has(r.resultado)).length,
         () => on.registarRemateCom(p, RESULTADO_REMATE.DEFENDIDO, t('partilhado.registos.remateEnquadradoDe', { numero: p.number, nome: p.name })),
-      ]);
-      b.push([
+        dele(REGISTO.REMATE, (r) => A_BALIZA.has(r.resultado))
+      );
+      reg(
         'fora',
         t('partilhado.registos.remateFora'),
         meus.filter((r) => r.resultado === RESULTADO_REMATE.FORA).length,
         () => on.registarRemateCom(p, RESULTADO_REMATE.FORA, t('partilhado.registos.remateForaDe', { numero: p.number, nome: p.name })),
-      ]);
+        dele(REGISTO.REMATE, (r) => r.resultado === RESULTADO_REMATE.FORA)
+      );
     } else if (ligados.has(REGISTO.REMATE)) {
-      b.push(['remate', t('registos.nome.remate'), c.remate, () => on.registarRemate(p)]);
+      reg('remate', t('registos.nome.remate'), c.remate, () => on.registarRemate(p), dele(REGISTO.REMATE));
     }
     if (ligados.has(REGISTO.RECUPERACAO)) {
-      b.push(['recup', t('registos.nome.recuperacao'), c.recuperacao, () => on.registarRecuperacao(p)]);
+      reg('recup', t('registos.nome.recuperacao'), c.recuperacao, () => on.registarRecuperacao(p), dele(REGISTO.RECUPERACAO));
     }
     if (ligados.has(REGISTO.PERDA_BOLA)) {
-      b.push(['perda', t('registos.nome.perda_bola'), c.perda_bola, () => on.registarPerda(p)]);
+      reg('perda', t('registos.nome.perda_bola'), c.perda_bola, () => on.registarPerda(p), dele(REGISTO.PERDA_BOLA));
     }
     if (ligados.has(REGISTO.PASSE_FALHADO)) {
-      b.push(['passe', t('registos.nome.passe_falhado'), c.passe_falhado, () => on.registarPasse(p)]);
+      reg('passe', t('registos.nome.passe_falhado'), c.passe_falhado, () => on.registarPasse(p), dele(REGISTO.PASSE_FALHADO));
     }
     if (eGR(p) && ligados.has(REGISTO.DEFESA_GR)) {
-      b.push(['defesa', t('registos.nome.defesa_gr'), c.defesa_gr, () => on.registarDefesa(p)]);
+      reg('defesa', t('registos.nome.defesa_gr'), c.defesa_gr, () => on.registarDefesa(p), dele(REGISTO.DEFESA_GR));
     }
     if (eGR(p) && ligados.has(REGISTO.LANCAMENTO_GR)) {
-      b.push(['lanc', t('registos.nome.lancamento_gr'), c.lancamento_gr, () => on.registarLancamentoGR(p)]);
+      reg('lanc', t('registos.nome.lancamento_gr'), c.lancamento_gr, () => on.registarLancamentoGR(p), dele(REGISTO.LANCAMENTO_GR));
     }
     if (ligados.has(REGISTO.ACAO)) {
-      b.push(['positiva', t('registos.acaoPositiva'), c.positivas, () => on.registarAcao(p, RESULTADO_ACAO.POSITIVA)]);
-      b.push(['negativa', t('registos.acaoNegativa'), c.negativas, () => on.registarAcao(p, RESULTADO_ACAO.NEGATIVA)]);
+      reg('positiva', t('registos.acaoPositiva'), c.positivas, () => on.registarAcao(p, RESULTADO_ACAO.POSITIVA),
+        dele(REGISTO.ACAO, (r) => r.resultado === RESULTADO_ACAO.POSITIVA));
+      reg('negativa', t('registos.acaoNegativa'), c.negativas, () => on.registarAcao(p, RESULTADO_ACAO.NEGATIVA),
+        dele(REGISTO.ACAO, (r) => r.resultado === RESULTADO_ACAO.NEGATIVA));
     }
     return b;
   }
+
+  /** Um contador "− n +". O "−" fica apagado sem nada para tirar. */
+  const passo = ({ classe, rotulo, n, mais, menos }, base = 'regpasso') => (
+    <div key={classe} className={`${base} ${base}--${classe}`}>
+      <button
+        type="button"
+        className={`${base}__menos`}
+        onClick={menos}
+        disabled={!n || ocupado}
+        aria-label={`− ${rotulo}`}
+      >
+        −
+      </button>
+      <button type="button" className={`${base}__meio`} onClick={mais}>
+        <span className={`${base}__rot`}>{rotulo}</span>
+        <b className={`${base}__n`}>{n || 0}</b>
+      </button>
+      <button type="button" className={`${base}__mais`} onClick={mais} aria-label={rotulo}>
+        +
+      </button>
+    </div>
+  );
+
+  /** O resultado de uma equipa entre o "−" (tira o último golo) e o "+" (golo). */
+  const golosDaEquipa = (team, n, mais) => (
+    <div className="regplacar__golo">
+      <button
+        type="button"
+        className="regplacar__menos"
+        onClick={() => tirarEvento(eventoDoUltimo((state.goals || []).filter((g) => g.team === team)))}
+        disabled={!n || ocupado}
+        aria-label={`− ${t('partilhado.registos.golo')}`}
+      >
+        −
+      </button>
+      <strong className="regplacar__golos">{n}</strong>
+      <button type="button" className="regplacar__mais" onClick={mais} aria-label={`+ ${t('partilhado.registos.golo')}`}>
+        +
+      </button>
+    </div>
+  );
+
+  /** As faltas da parte de uma equipa: o "−" tira a última dessa parte. */
+  const faltaDaEquipa = (team) => ({
+    classe: 'falta',
+    rotulo: t('partilhado.registos.falta'),
+    n: faltasDaParte(team),
+    mais: () => falta(team),
+    menos: () =>
+      tirarEvento(
+        eventoDoUltimo((state.fouls || []).filter((f) => f.team === team && (!relogio.parte || f.period === relogio.parte)))
+      ),
+  });
+
+  // Os contadores de equipa que se somam por aqui (cantos, remates deles, …):
+  // vão para o lado de cada equipa no marcador, em vez de uma barra à parte.
+  const { colunas } = colunasRegistos(state, ligados, doisRemates ? { ...on, registarRemateBarra: null } : on);
+  const daEquipa = (equipa) =>
+    colunas
+      .filter((col) => col[equipa]?.mais)
+      .map((col) => {
+        const c = col[equipa];
+        return {
+          classe: `eq-${col.id}`,
+          rotulo: t(`registos.barra.${col.id}`),
+          n: c.valor,
+          mais: c.mais,
+          menos: () => on.tirarUltimo(c.registo, c.equipa),
+        };
+      });
 
   /** O que já se apontou, em poucas linhas: golos, faltas e cartões. */
   const nomeDe = (id) => {
@@ -553,6 +672,11 @@ function Registos() {
       <div className="summary-actions">
         <Badge kind="partilha">{t('partilhado.papel.REGISTOS')}</Badge>
         <Badge kind="live">{t('partilhado.aRegistar')}</Badge>
+        {ligados.size ? (
+          <button type="button" className="regtopo__stats" onClick={on.verRegistos}>
+            {t('registos.estatisticas')}
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -629,14 +753,10 @@ function Registos() {
       <section className="regplacar" aria-label={t('partilhado.registos.marcador')}>
         <div className="regplacar__lado">
           <span className="regplacar__nome">{ourName}</span>
-          <strong className="regplacar__golos">{state.teamScore}</strong>
-          <div className="regplacar__botoes">
-            <button type="button" className="btn btn--primary" onClick={goloNosso}>
-              + {t('partilhado.registos.golo')}
-            </button>
-            <button type="button" className="btn btn--ghost" onClick={() => falta('US')}>
-              + {t('partilhado.registos.falta')} <b className="regplacar__n">{faltasDaParte('US')}</b>
-            </button>
+          {golosDaEquipa('US', state.teamScore, goloNosso)}
+          <div className="regplacar__passos">
+            {passo(faltaDaEquipa('US'), 'regpasso')}
+            {daEquipa('US').map((x) => passo(x, 'regpasso'))}
           </div>
         </div>
 
@@ -698,17 +818,20 @@ function Registos() {
 
         <div className="regplacar__lado regplacar__lado--deles">
           <span className="regplacar__nome">{rivalName}</span>
-          <strong className="regplacar__golos">{state.opponentScore}</strong>
-          <div className="regplacar__botoes">
-            <button type="button" className="btn btn--primary" onClick={() => goloDeles()}>
-              + {t('partilhado.registos.golo')}
-            </button>
-            <button type="button" className="btn btn--ghost" onClick={() => falta('THEM')}>
-              + {t('partilhado.registos.falta')} <b className="regplacar__n">{faltasDaParte('THEM')}</b>
-            </button>
-            <button type="button" className="btn btn--ghost" onClick={amareloDeles}>
-              + {t('partilhado.registos.amarelo')} <b className="regplacar__n">{(state.opponentCards || []).length}</b>
-            </button>
+          {golosDaEquipa('THEM', state.opponentScore, () => goloDeles())}
+          <div className="regplacar__passos">
+            {passo(faltaDaEquipa('THEM'), 'regpasso')}
+            {passo(
+              {
+                classe: 'amarelo',
+                rotulo: t('partilhado.registos.amarelo'),
+                n: (state.opponentCards || []).length,
+                mais: amareloDeles,
+                menos: () => tirarEvento(eventoDoUltimo(state.opponentCards || [])),
+              },
+              'regpasso'
+            )}
+            {daEquipa('THEM').map((x) => passo(x, 'regpasso'))}
           </div>
         </div>
       </section>
@@ -726,46 +849,31 @@ function Registos() {
         </div>
       ) : null}
 
-      {ligados.size ? (
-        <BarraRegistos
-          state={state}
-          ligados={ligados}
-          ourName={ourName}
-          opponentName={rivalName}
-          // Aqui já não há resultado: a barra fica só com a bolinha de cada equipa.
-          semNomes
-          // Com os dois botões de remate, os nossos remates somam-se nos cartões
-          // (é lá que se diz se foi enquadrado ou fora); na barra fica só o total.
-          on={doisRemates ? { ...on, registarRemateBarra: null } : on}
-        />
-      ) : null}
-
       <div className="regcards">
-        {jogadores.map((p) => (
-          <article key={p.playerId} className="regcard">
-            <header className="regcard__quem">
-              <span className="regcard__num">{p.number}</span>
-              <span className="regcard__nome">{p.name}</span>
-              <button
-                type="button"
-                className={`regcard__amarelo ${amarelosDe(p.playerId) ? '' : 'is-vazio'}`}
-                aria-label={t('partilhado.registos.amarelo')}
-                title={t('partilhado.registos.amarelo')}
-                onClick={() => amarelo(p)}
-              >
-                {amarelosDe(p.playerId) || ''}
-              </button>
-            </header>
-            <div className="regcard__botoes">
-              {botoesDe(p).map(([classe, rotulo, quantos, fazer]) => (
-                <button key={classe} type="button" className={`regcard__btn regcard__btn--${classe}`} onClick={fazer}>
-                  <span>{rotulo}</span>
-                  <b>{quantos || 0}</b>
+        {jogadores.map((p) => {
+          const amarelos = amarelosDe(p.playerId);
+          return (
+            <article
+              key={p.playerId}
+              className={`regcard ${amarelos ? 'is-amarelo' : ''} ${amarelos >= 2 ? 'is-dois-amarelos' : ''}`}
+            >
+              <header className="regcard__quem">
+                <span className="regcard__num">{p.number}</span>
+                <span className="regcard__nome">{p.name}</span>
+                <button
+                  type="button"
+                  className={`regcard__amarelo ${amarelos ? '' : 'is-vazio'}`}
+                  aria-label={t('partilhado.registos.amarelo')}
+                  title={t('partilhado.registos.amarelo')}
+                  onClick={() => amarelo(p)}
+                >
+                  {amarelos || ''}
                 </button>
-              ))}
-            </div>
-          </article>
-        ))}
+              </header>
+              <div className="regcard__botoes">{botoesDe(p).map((b) => passo(b))}</div>
+            </article>
+          );
+        })}
       </div>
 
       <div className="regultimo">
