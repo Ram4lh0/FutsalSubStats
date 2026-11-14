@@ -189,7 +189,7 @@
 .live--so-tempos .court .pcard__t:first-child { display: block; }
 
 /* O painel dos tempos (intervalo e botão "Tempos"). */
-.tpainel { display: grid; gap: 14px; }
+.tmpainel { display: grid; gap: 14px; }
 .tpainel__kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .tpainel__kpi { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); min-width: 0; }
 .tpainel__rot { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }

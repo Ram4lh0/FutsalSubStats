@@ -1013,6 +1013,7 @@ export default {
 
   /* ------------------------------------------------------ pantalla de juego */
   'vivo.alemDe': '+{extra} más allá de {limite} · total {total}',
+  'vivo.parteAcabou': "El reloj se paró a los {limite}. Reanúdalo si el árbitro añade tiempo.",
   'vivo.faltam': 'Quedan {resta} · total {total}',
   'vivo.aCorrer': 'EN MARCHA',
   'vivo.parado': 'PARADO',

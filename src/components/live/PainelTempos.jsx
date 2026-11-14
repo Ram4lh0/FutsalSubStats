@@ -48,7 +48,7 @@ export default function PainelTempos({ state, clockMs, onEditTempos = null }) {
   );
 
   return (
-    <div className="tpainel">
+    <div className="tmpainel">
       <div className="tpainel__kpis">
         {kpi(t('tpainel.mediaEntrada'), fmt(mediaEntrada), t('tpainel.mediaEntradaSub', { n: totalEntradas }))}
         {kpi(

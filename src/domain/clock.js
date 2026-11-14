@@ -38,11 +38,10 @@ export function fmtRemaining(ms) {
 /**
  * Posição do relógio face à duração configurada da parte.
  *
- * A duração é uma REFERÊNCIA, não um limite: o cronómetro nunca pára sozinho.
- * Quem decide quando a parte acaba é o árbitro, e a aplicação não tem como saber
- * quanto tempo ele descontou — parar automaticamente aos 20:00 perderia tempo de
- * jogo real e estragava os tempos individuais (regra 3.4: o cronómetro da
- * aplicação é a única referência para todos os cálculos).
+ * A duração é uma REFERÊNCIA no domínio: esta função só mede. Quem pára o
+ * relógio ao chegar ao fim da parte é o ecrã do jogo (uma vez por parte, e dá
+ * para retomar se o árbitro der descontos).
+ * O árbitro pode descontar tempo, por isso retomar à mão continua a ser possível.
  */
 export function periodProgress(state, periodDurationMs, now = Date.now()) {
   const c = readClock(state, now);

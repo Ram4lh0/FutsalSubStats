@@ -1013,6 +1013,7 @@ export default {
 
   /* --------------------------------------------------------- live screen */
   'vivo.alemDe': '+{extra} past {limite} · total {total}',
+  'vivo.parteAcabou': "The clock stopped at {limite}. Resume it if the referee adds time.",
   'vivo.faltam': '{resta} left · total {total}',
   'vivo.aCorrer': 'RUNNING',
   'vivo.parado': 'STOPPED',

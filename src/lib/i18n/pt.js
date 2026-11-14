@@ -1016,6 +1016,7 @@ export default {
 
   /* ------------------------------------------------------ ecrã de jogo */
   'vivo.alemDe': '+{extra} além dos {limite} · total {total}',
+  'vivo.parteAcabou': "O relógio parou aos {limite}. Retoma quando o árbitro der descontos.",
   'vivo.faltam': 'Faltam {resta} · total {total}',
   'vivo.aCorrer': 'A CORRER',
   'vivo.parado': 'PARADO',

@@ -215,6 +215,30 @@ function Live() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clockMs, state]);
 
+  // O relógio pára sozinho quando a parte chega ao fim (20:00, 40:00…), no
+  // instante exacto: a paragem fica gravada com a hora em que o limite foi
+  // atingido, não com a do próximo batimento. Só pára uma vez por parte; se o
+  // árbitro deu descontos, retoma-se à mão e já não volta a parar.
+  const paradaNaParte = useRef(null);
+  useEffect(() => {
+    if (!state || !match || state.timerStatus !== 'RUNNING') return;
+    // No jogo corrido o relógio é só uma referência e não pára.
+    if (timingOf(match) !== MATCH_TIMING.TIMED) return;
+    const limite = state.currentPeriod >= 3 ? EXTRA_TIME_PERIOD_MS : match.periodDurationMs;
+    if (!limite) return;
+    const chave = `${matchId}:${state.currentPeriod}`;
+    if (paradaNaParte.current === chave) return;
+    const agora = Date.now();
+    const p = periodProgress(state, limite, agora);
+    if (!p.over) return;
+    paradaNaParte.current = chave;
+    const quando = Math.max(state.timerStartedAt || 0, agora - p.overtimeMs);
+    commit(A.pauseClock(state, quando), { sync: 'defer' });
+    beep();
+    toast(t('vivo.parteAcabou', { limite: fmt(limite) }), 'ok', 8000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clockMs, state]);
+
   // Preparação e jogo terminado têm ecrã próprio.
   useEffect(() => {
     if (!state) return;
