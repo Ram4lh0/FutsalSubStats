@@ -5,8 +5,8 @@
 .badge--partilha { color: #c4b5fd; border-color: rgba(167, 139, 250, 0.5); background: rgba(167, 139, 250, 0.1); }
 
 /* ------------------------------------------------- criar o jogo: o papel */
-.partilha { border: 1px dashed var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; justify-items: start; }
-.partilha.is-on { border-style: solid; border-color: rgba(167, 139, 250, 0.55); background: rgba(167, 139, 250, 0.06); }
+.partilha { border: 1px dashed rgba(56, 189, 248, 0.5); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; justify-items: start; }
+.partilha.is-on { border-style: solid; border-color: rgba(56, 189, 248, 0.7); background: rgba(56, 189, 248, 0.06); }
 .partilha > p { margin: 0; }
 .partilha__papeis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
 .partilha__papel {
@@ -199,3 +199,8 @@
 .live--so-tempos .court .pcard__times { padding-right: 0; }
 .live--so-tempos .pcard--court .pcard__t { white-space: nowrap; }
 .live--so-tempos .pcard--bench .pcard__t { white-space: normal; overflow-wrap: anywhere; }
+
+/* "Registo partilhado" no Novo jogo: azul para dar destaque; cheio quando está ligado. */
+.btn.btn--partilhar { color: #7dd3fc; border-color: #38bdf8; background: rgba(56, 189, 248, 0.14); font-weight: 700; }
+.btn.btn--partilhar:hover { background: rgba(56, 189, 248, 0.24); }
+.btn.btn--partilhar.is-on { color: #06283d; background: #38bdf8; border-color: #38bdf8; }

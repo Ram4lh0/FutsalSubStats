@@ -491,7 +491,7 @@ function Assistente() {
               <div className={`partilha ${partilhado ? 'is-on' : ''}`}>
                 <button
                   type="button"
-                  className={`btn ${partilhado ? 'btn--primary' : 'btn--ghost'}`}
+                  className={`btn btn--partilhar ${partilhado ? 'is-on' : ''}`}
                   aria-pressed={partilhado}
                   onClick={() => setPartilhado((v) => !v)}
                 >
