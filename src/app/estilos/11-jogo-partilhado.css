@@ -175,11 +175,8 @@
   font-size: 1rem; color: var(--text); border-color: rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.06);
 }
 .live--so-tempos .clockadj__b:active { transform: scale(0.96); }
-.clockbox__time--editar {
-  background: none; border: 0; border-bottom: 2px dashed rgba(255, 255, 255, 0.3); color: inherit; cursor: pointer;
-  padding: 0 4px; font: inherit;
-}
-.clockbox__time--editar:hover { border-bottom-color: var(--primary); }
+.clockbox__time--editar { background: none; border: 0; color: inherit; cursor: pointer; padding: 0 4px; }
+.live--so-tempos .clockbox__time { font-size: clamp(3rem, 7vw, 4.4rem); }
 /* Os cartões têm espaço: letras maiores, cores por tipo de tempo. */
 .live--so-tempos .pcard__t { font-size: 1.02rem; line-height: 1.35; }
 .live--so-tempos .pcard--court .pcard__t,
@@ -200,4 +197,5 @@
 .tpainel__extra { font-size: 0.82rem; color: var(--muted); overflow-wrap: anywhere; }
 .live--so-tempos .pcard--court .pcard__times,
 .live--so-tempos .court .pcard__times { padding-right: 0; }
-.live--so-tempos .pcard__t { white-space: nowrap; }
+.live--so-tempos .pcard--court .pcard__t { white-space: nowrap; }
+.live--so-tempos .pcard--bench .pcard__t { white-space: normal; overflow-wrap: anywhere; }
