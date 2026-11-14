@@ -1,23 +1,32 @@
 'use client';
 
-// components/video/FormAnalise.jsx — criar uma análise (colar o link) e as
-// definições de uma que já existe (título, data, jogo, margens do clipe).
+// components/video/FormAnalise.jsx — criar uma análise (colar o link do
+// YouTube ou escolher um vídeo do computador) e as definições de uma que já
+// existe (título, data, jogo, margens do clipe).
 
-import { useEffect, useMemo, useState } from 'react';
-import { Dialog } from '@/lib/ui.jsx';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Dialog, useUI } from '@/lib/ui.jsx';
 import { Field } from '@/components/bits.jsx';
 import { analises as repoAnalises } from '@/lib/data/video.js';
+import { BotaoEscolherVideo, ErroDoVideoLocal, descricaoDoFicheiro, useLigarVideo } from './LigarVideo.jsx';
+import useFicheiroLigado from '@/lib/useFicheiroLigado.js';
+import { ligarFicheiro, sondarVideo } from '@/lib/videoLocal.js';
 import {
+  FONTE,
+  fonteDaAnalise,
   lerLinkYouTube,
   linkYouTubeNoSegundo,
+  metadadosDoFicheiro,
   miniaturaYouTube,
   normalizarMargens,
+  origemDaAnalise,
+  tituloDoFicheiro,
 } from '@/domain/analiseVideo.js';
 import { isoDia } from '@/domain/treino.js';
 import { guardarMargens, tituloDoYouTube } from '@/lib/videoPrefs.js';
 import { abrirFora } from '@/lib/partilha.js';
 import { dayLabel, opponentShort } from '@/lib/format.js';
-import { useT } from '@/lib/i18n/index.js';
+import { useLocale, useT } from '@/lib/i18n/index.js';
 
 export function rotuloDoJogo(jogo) {
   return jogo ? `${opponentShort(jogo)} · ${dayLabel(jogo.scheduledAt)}` : '';
@@ -41,11 +50,22 @@ function EscolherJogo({ jogos, valor, onMudar }) {
 }
 
 /**
- * "Nova análise": cola-se o link, valida-se, e o resto é opcional. Devolve a
- * análise criada (ou null) pelo `onFechar`.
+ * "Nova análise": escolhe-se de onde vem o vídeo — um link do YouTube ou um
+ * ficheiro do computador —, confirma-se que abre, e o resto é opcional.
+ * Devolve a análise criada (ou null) pelo `onFechar`.
+ *
+ * O ficheiro do computador não é lido nem enviado: confirma-se só que o
+ * browser o consegue abrir (metadados) e guarda-se o nome, o tamanho e a data.
  */
 export function NovaAnalise({ teamId, jogos, onFechar }) {
   const t = useT();
+  const locale = useLocale();
+  const [origem, setOrigem] = useState(FONTE.YOUTUBE);
+  // O vídeo do computador que já se confirmou que abre: { file, durationMs }.
+  const [escolhido, setEscolhido] = useState(null);
+  const [aVerificar, setAVerificar] = useState(false);
+  const [erroFicheiro, setErroFicheiro] = useState(null);
+  const pedido = useRef(0);
   const [link, setLink] = useState('');
   const [titulo, setTitulo] = useState('');
   const [tituloMexido, setTituloMexido] = useState(false);
@@ -58,7 +78,7 @@ export function NovaAnalise({ teamId, jogos, onFechar }) {
 
   // O título do vídeo vem do YouTube, se o treinador ainda não escreveu o seu.
   useEffect(() => {
-    if (!lido?.id || tituloMexido) return undefined;
+    if (origem !== FONTE.YOUTUBE || !lido?.id || tituloMexido) return undefined;
     let vivo = true;
     tituloDoYouTube(lido.id).then((nome) => {
       if (vivo && nome) setTitulo((atual) => atual || nome);
@@ -66,19 +86,63 @@ export function NovaAnalise({ teamId, jogos, onFechar }) {
     return () => {
       vivo = false;
     };
-  }, [lido?.id, tituloMexido]);
+  }, [origem, lido?.id, tituloMexido]);
+
+  function mudarOrigem(nova) {
+    if (nova === origem) return;
+    setOrigem(nova);
+    // O título sugerido era do outro vídeo; o que o treinador escreveu fica.
+    if (!tituloMexido) setTitulo(nova === FONTE.LOCAL && escolhido ? tituloDoFicheiro(escolhido.file.name) : '');
+  }
+
+  async function escolherFicheiro(file) {
+    const meu = ++pedido.current;
+    setErroFicheiro(null);
+    setAVerificar(true);
+    try {
+      const info = await sondarVideo(file);
+      if (meu !== pedido.current) return;
+      setEscolhido({ file, durationMs: info.durationMs });
+      if (!tituloMexido) setTitulo(tituloDoFicheiro(file.name));
+    } catch (e) {
+      if (meu !== pedido.current) return;
+      // Não abre neste browser: fica o que estava escolhido antes (se havia).
+      setErroFicheiro(e?.codigo === 'ficheiro' ? 'ficheiro' : 'formato');
+    } finally {
+      if (meu === pedido.current) setAVerificar(false);
+    }
+  }
 
   function escolherJogo(id) {
     setJogoId(id);
     const jogo = jogos?.find((j) => j.id === id);
     if (!jogo) return;
     if (jogo.scheduledAt) setData(isoDia(new Date(jogo.scheduledAt)));
-    if (!tituloMexido) setTitulo(t('video.form.tituloDoJogo', { adversario: opponentShort(jogo) }));
+    // Num vídeo do computador, o título inicial é o nome do ficheiro.
+    if (!tituloMexido && origem === FONTE.YOUTUBE) {
+      setTitulo(t('video.form.tituloDoJogo', { adversario: opponentShort(jogo) }));
+    }
   }
 
   async function criar(e) {
     e.preventDefault();
-    if (!lido || aGuardar) return;
+    if (aGuardar) return;
+    if (origem === FONTE.LOCAL) {
+      if (!escolhido || aVerificar) return;
+      setAGuardar(true);
+      const nova = await repoAnalises.guardar(teamId, {
+        provider: FONTE.LOCAL,
+        localFile: metadadosDoFicheiro(escolhido.file, { durationMs: escolhido.durationMs }),
+        title: titulo || tituloDoFicheiro(escolhido.file.name) || t('video.form.tituloOmissao'),
+        matchId: jogoId,
+        recordedOn: data || null,
+      });
+      // O ficheiro fica ligado em memória: a análise abre já com ele.
+      ligarFicheiro(nova.id, escolhido.file);
+      onFechar({ analise: nova, inicioSeg: 0 });
+      return;
+    }
+    if (!lido) return;
     setAGuardar(true);
     const analise = await repoAnalises.guardar(teamId, {
       youtubeId: lido.id,
@@ -89,23 +153,70 @@ export function NovaAnalise({ teamId, jogos, onFechar }) {
     onFechar({ analise, inicioSeg: lido.inicioSeg });
   }
 
+  const local = origem === FONTE.LOCAL;
+  const pronto = local ? Boolean(escolhido) : Boolean(lido);
+
   return (
     <Dialog title={t('video.nova')} onClose={() => onFechar(null)}>
       <form className="vform" onSubmit={criar}>
-        <Field label={t('video.form.link')} hint={invalido ? null : t('video.form.linkDica')}>
-          <input
-            className={`input ${invalido ? 'is-erro' : ''}`}
-            value={link}
-            inputMode="url"
-            autoFocus
-            placeholder="https://youtu.be/…"
-            onChange={(e) => setLink(e.target.value)}
-          />
-          {invalido ? <span className="field__hint vform__erro">{t('video.form.linkInvalido')}</span> : null}
-        </Field>
-        {lido ? (
+        <div className="vorigem" role="tablist" aria-label={t('video.form.origem')}>
+          {[
+            [FONTE.YOUTUBE, 'video.form.origemYoutube'],
+            [FONTE.LOCAL, 'video.form.origemLocal'],
+          ].map(([id, chave]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              data-origem={id}
+              className={`tmodo__btn ${origem === id ? 'is-on' : ''}`}
+              aria-selected={origem === id}
+              onClick={() => mudarOrigem(id)}
+            >
+              {t(chave)}
+            </button>
+          ))}
+        </div>
+        {local ? (
+          <Field label={t('video.form.ficheiro')} hint={t('video.form.ficheiroDica')}>
+            <div className="vficheiro">
+              <BotaoEscolherVideo
+                className={`btn ${escolhido ? 'btn--ghost' : 'btn--primary'}`}
+                disabled={aVerificar || aGuardar}
+                onFicheiro={escolherFicheiro}
+              >
+                {aVerificar
+                  ? t('video.form.aVerificar')
+                  : t(escolhido ? 'video.form.trocarFicheiro' : 'video.form.escolherFicheiro')}
+              </BotaoEscolherVideo>
+              {escolhido ? (
+                <span className="vficheiro__nome mono" data-ficheiro-escolhido>
+                  {descricaoDoFicheiro(escolhido.file, locale)}
+                </span>
+              ) : null}
+            </div>
+          </Field>
+        ) : (
+          <Field label={t('video.form.link')} hint={invalido ? null : t('video.form.linkDica')}>
+            <input
+              className={`input ${invalido ? 'is-erro' : ''}`}
+              value={link}
+              inputMode="url"
+              autoFocus
+              placeholder="https://youtu.be/…"
+              onChange={(e) => setLink(e.target.value)}
+            />
+            {invalido ? <span className="field__hint vform__erro">{t('video.form.linkInvalido')}</span> : null}
+          </Field>
+        )}
+        {local && erroFicheiro ? (
+          <div className="vform__aviso" role="alert">
+            <ErroDoVideoLocal erro={erroFicheiro} />
+          </div>
+        ) : null}
+        {pronto ? (
           <>
-            <img className="vform__mini" src={miniaturaYouTube(lido.id)} alt="" />
+            {local ? null : <img className="vform__mini" src={miniaturaYouTube(lido.id)} alt="" />}
             <Field label={t('video.form.titulo')}>
               <input
                 className="input"
@@ -130,7 +241,7 @@ export function NovaAnalise({ teamId, jogos, onFechar }) {
           <button type="button" className="btn btn--ghost" onClick={() => onFechar(null)}>
             {t('comum.cancelar')}
           </button>
-          <button type="submit" className="btn btn--primary" disabled={!lido || aGuardar}>
+          <button type="submit" className="btn btn--primary" disabled={!pronto || aGuardar || aVerificar}>
             {t('video.form.criar')}
           </button>
         </footer>
@@ -151,6 +262,24 @@ export function DefinicoesAnalise({ analise, jogos, margens, tempoSeg, soLeitura
   const [data, setData] = useState(analise.recordedOn || '');
   const [antes, setAntes] = useState(margens.antesMs / 1000);
   const [depois, setDepois] = useState(margens.depoisMs / 1000);
+  const locale = useLocale();
+  const ui = useUI();
+  const local = origemDaAnalise(analise) === FONTE.LOCAL;
+  const ligado = useFicheiroLigado(local ? analise.id : null);
+  const { ligar, aLigar } = useLigarVideo(soLeitura);
+  // O que está guardado muda quando se troca o ficheiro com a janela aberta.
+  const [guardado, setGuardado] = useState(analise.localFile || null);
+  const [erroFicheiro, setErroFicheiro] = useState(null);
+
+  async function trocarFicheiro(file) {
+    setErroFicheiro(null);
+    const resposta = await ligar({ ...fonteDaAnalise(analise), ficheiro: metadadosDoFicheiro(guardado) }, file);
+    if (resposta.erro) setErroFicheiro(resposta.erro);
+    if (resposta.ligado) {
+      if (!soLeitura) setGuardado(metadadosDoFicheiro(file));
+      ui.toast(t('video.local.trocado'), 'ok');
+    }
+  }
 
   async function guardar(e) {
     e?.preventDefault();
@@ -205,14 +334,33 @@ export function DefinicoesAnalise({ analise, jogos, margens, tempoSeg, soLeitura
           ))}
         </div>
 
+        {local ? (
+          <div className="vmargens">
+            <span className="field__label">{t('video.local.cartao')}</span>
+            <p className="field__hint mono">{descricaoDoFicheiro(guardado, locale)}</p>
+            <p className="field__hint">{t(ligado ? 'video.local.ligado' : 'video.local.porLigar')}</p>
+            {erroFicheiro ? (
+              <div className="vform__aviso" role="alert">
+                <ErroDoVideoLocal erro={erroFicheiro} />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="vform__extra">
-          <button
-            type="button"
-            className="btn btn--ghost btn--tiny"
-            onClick={() => abrirFora(linkYouTubeNoSegundo(analise.youtubeId, tempoSeg))}
-          >
-            {t('video.abrirNoYouTube')}
-          </button>
+          {local ? (
+            <BotaoEscolherVideo className="btn btn--ghost btn--tiny" disabled={aLigar} onFicheiro={trocarFicheiro}>
+              {aLigar ? t('video.local.aAbrir') : t(ligado ? 'video.local.trocar' : 'video.local.religar')}
+            </BotaoEscolherVideo>
+          ) : (
+            <button
+              type="button"
+              className="btn btn--ghost btn--tiny"
+              onClick={() => abrirFora(linkYouTubeNoSegundo(analise.youtubeId, tempoSeg))}
+            >
+              {t('video.abrirNoYouTube')}
+            </button>
+          )}
           {soLeitura ? null : (
             <button type="button" className="btn btn--ghost btn--danger btn--tiny" onClick={() => onFechar('apagar')}>
               {t('video.apagarAnalise')}

@@ -34,6 +34,8 @@ import {
 import useRouteParams from '@/lib/useRouteParams.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
 import useDadosVideo from '@/lib/useDadosVideo.js';
+import useFicheiroLigado from '@/lib/useFicheiroLigado.js';
+import { desligarFicheiro } from '@/lib/videoLocal.js';
 import { useUI } from '@/lib/ui.jsx';
 import { rotas } from '@/lib/routes.js';
 import { matches as repoJogos, players as repoJogadores } from '@/lib/data/repository.js';
@@ -42,6 +44,7 @@ import { lerMargens } from '@/lib/videoPrefs.js';
 import {
   CATEGORIAS_VIDEO,
   FILTRO_VAZIO,
+  FONTE,
   alternarFiltro,
   categoriaVideo,
   chaveDoSubtipo,
@@ -114,6 +117,11 @@ function Analise({ clubId, teamId, videoId }) {
   const analise = dados?.analises.find((a) => a.id === videoId) || null;
   const fonte = useMemo(() => fonteDaAnalise(analise), [analise]);
   const leitor = useLeitorDeClipes({ fonteDoClipe: () => fonte });
+  // Num vídeo do computador, o ficheiro tem de estar ligado neste aparelho:
+  // sem ele há clipes (só guardam tempos) mas não há imagem para marcar.
+  const local = fonte?.tipo === FONTE.LOCAL;
+  const ficheiro = useFicheiroLigado(local ? fonte.id : null);
+  const semVideo = local && !ficheiro;
 
   const clipes = useMemo(
     () => (dados?.clipes || []).filter((c) => c.analysisId === videoId),
@@ -133,25 +141,30 @@ function Analise({ clubId, teamId, videoId }) {
     if (d) setDuracao(d);
   }, [leitor, leitor.pronto, leitor.estado, duracao]);
 
+  // Outro ficheiro ligado (ou nenhum): a duração volta a perguntar-se.
+  useEffect(() => {
+    setDuracao(0);
+  }, [ficheiro]);
+
   /* ---------------------------------------------------------- marcar */
 
   const marcar = useCallback(
     async (categoria) => {
-      if (soLeitura || !analise) return;
+      if (soLeitura || !analise || semVideo) return;
       const intervalo = intervaloDoToque(leitor.tempoAgoraMs(), margens || undefined, leitor.duracaoMs() || null);
       const clipe = await repoClipes.criar(analise, { ...intervalo, category: categoria });
       setFolha({ id: clipe.id, novo: true });
     },
-    [soLeitura, analise, leitor, margens]
+    [soLeitura, analise, semVideo, leitor, margens]
   );
 
   const marcarInicio = useCallback(() => {
-    if (soLeitura) return;
+    if (soLeitura || semVideo) return;
     setInicioManual(leitor.tempoAgoraMs());
-  }, [soLeitura, leitor]);
+  }, [soLeitura, semVideo, leitor]);
 
   const marcarFim = useCallback(async () => {
-    if (soLeitura || !analise) return;
+    if (soLeitura || !analise || semVideo) return;
     if (inicioManual == null) {
       ui.toast(t('video.manual.faltaInicio'), 'info');
       return;
@@ -160,7 +173,7 @@ function Analise({ clubId, teamId, videoId }) {
     const clipe = await repoClipes.criar(analise, intervalo);
     setInicioManual(null);
     setFolha({ id: clipe.id, novo: true });
-  }, [soLeitura, analise, inicioManual, leitor, ui, t]);
+  }, [soLeitura, analise, semVideo, inicioManual, leitor, ui, t]);
 
   /* --------------------------------------------------------- atalhos */
 
@@ -247,6 +260,7 @@ function Analise({ clubId, teamId, videoId }) {
     });
     if (!certo) return;
     await repoAnalises.apagar(analise.id);
+    desligarFicheiro(analise.id);
     router.push(voltar);
   }
 
@@ -293,7 +307,13 @@ function Analise({ clubId, teamId, videoId }) {
       <div className="vanalise__grelha">
         <div className="vanalise__principal">
           <div className="vanalise__palco">
-            <LeitorVideo fonte={fonte} inicioSeg={inicioSeg} titulo={analise.title} {...leitor.propsDoLeitor} />
+            <LeitorVideo
+              fonte={fonte}
+              inicioSeg={inicioSeg}
+              titulo={analise.title}
+              soLeitura={soLeitura}
+              {...leitor.propsDoLeitor}
+            />
             {duracao ? (
               <div className="vtempo" aria-hidden="true">
                 {clipes.map((c) => (
@@ -313,10 +333,10 @@ function Analise({ clubId, teamId, videoId }) {
                 <span className="vtempo__agora" style={{ left: `${Math.min(100, (leitor.tempoMs / duracao) * 100)}%` }} />
               </div>
             ) : null}
-            <ControlosVideo leitor={leitor} />
+            {semVideo ? null : <ControlosVideo leitor={leitor} />}
           </div>
 
-          {soLeitura ? null : (
+          {soLeitura || semVideo ? null : (
             <section className="vmarcar" aria-label={t('video.marcar.titulo')}>
               <div className="vmarcar__grelha">
                 {CATEGORIAS_VIDEO.map((c, i) => (

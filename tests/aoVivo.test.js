@@ -150,6 +150,28 @@ function servidorFalso(quemEnvia) {
         return Promise.resolve({ error: null });
       },
       select: () => consulta(nome),
+      // `delete().eq(...).not(col, 'in', '(a,b)')`: a convocatória tira do
+      // servidor os jogadores que já não estão neste aparelho.
+      delete() {
+        const iguais = [];
+        const fora = [];
+        const pedido = {
+          eq: (c, v) => (iguais.push([c, v]), pedido),
+          not: (c, operador, valor) => {
+            if (operador === 'in') {
+              fora.push([c, new Set(String(valor).replace(/^\(|\)$/g, '').split(',').filter(Boolean))]);
+            }
+            return pedido;
+          },
+          then: (fn, falhou) => {
+            tabelas[nome] = (tabelas[nome] || []).filter(
+              (r) => !(iguais.every(([c, v]) => r[c] === v) && fora.every(([c, lista]) => !lista.has(String(r[c]))))
+            );
+            return Promise.resolve({ error: null }).then(fn, falhou);
+          },
+        };
+        return pedido;
+      },
       update(patch) {
         return {
           eq: (c, v) => {

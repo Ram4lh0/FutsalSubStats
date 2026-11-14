@@ -7,6 +7,10 @@
 // dessa sessão e nada mais) e mostra-os um a um, com a nota do treinador.
 // Só de leitura: não há nada para marcar nem para mudar.
 //
+// Só os clipes de vídeos do YouTube se veem aqui. Os de vídeos do computador
+// do treinador não estão em servidor nenhum: diz-se quantos são, em vez de
+// fingir que não existem ou de mostrar um leitor que nunca abriria.
+//
 // Não usa `Pagina` de propósito: o `Guard` lá dentro mandava para o login.
 // Os links valem 30 dias, como os das jogadas.
 
@@ -70,6 +74,7 @@ function Conteudo() {
         title: data.title,
         expiresAt: data.expires_at,
         clipes: (data.clips || []).map(clipeDaResposta).filter((c) => c.fonte),
+        locais: (data.clips || []).filter((r) => r.provider === FONTE.LOCAL).length,
       });
     })();
     return () => {
@@ -87,9 +92,14 @@ function Conteudo() {
         ) : (
           <div className="card publica__aviso">
             <h1 className="publica__titulo">{res.title}</h1>
-            <p>{t('video.publica.semClipes')}</p>
+            {res.locais ? null : <p>{t('video.publica.semClipes')}</p>}
           </div>
         )
+      ) : null}
+      {res.estado === 'OK' && res.locais ? (
+        <p className="card publica__aviso" data-clipes-locais={res.locais}>
+          {t('video.publica.locais', { n: res.locais })}
+        </p>
       ) : null}
       {res.estado === 'OK' ? (
         <p className="muted publica__validade">

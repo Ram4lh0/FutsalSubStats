@@ -17,6 +17,7 @@ import LeitorVideo from '@/components/video/LeitorVideo.jsx';
 import Apresentacao from '@/components/video/Apresentacao.jsx';
 import useLeitorDeClipes from '@/components/video/useLeitorDeClipes.js';
 import { GuardaVideo, NomeDaSessao, PartilharSessaoVideo } from '@/components/video/dialogos.jsx';
+import { VideosPorLigar } from '@/components/video/LigarVideo.jsx';
 import {
   ControlosVideo,
   LegendaClipe,
@@ -33,8 +34,11 @@ import { rotas } from '@/lib/routes.js';
 import { players as repoJogadores } from '@/lib/data/repository.js';
 import { sessoes as repoSessoes } from '@/lib/data/video.js';
 import {
+  FONTE,
+  analisesLocaisDosClipes,
   clipesDaSessao,
   fonteDaAnalise,
+  origemDaAnalise,
   moverNaLista,
   tempoVideo,
 } from '@/domain/analiseVideo.js';
@@ -86,6 +90,13 @@ function Sessao({ clubId, teamId, sessaoId }) {
   );
   const fonteDoClipe = (c) => fonteDaAnalise(analisesPorId.get(c.analysisId));
   const leitor = useLeitorDeClipes({ fonteDoClipe });
+  // Os vídeos do computador de onde vêm clipes desta sessão: é preciso tê-los
+  // ligados neste aparelho para os ver, e não se podem partilhar por link.
+  const locais = useMemo(() => analisesLocaisDosClipes(clipes, analisesPorId), [clipes, analisesPorId]);
+  const nClipesLocais = useMemo(
+    () => clipes.filter((c) => origemDaAnalise(analisesPorId.get(c.analysisId)) === FONTE.LOCAL).length,
+    [clipes, analisesPorId]
+  );
 
   const arrasto = useArrasto((origem, destino) => {
     if (!sessao || origem.i === destino.i) return;
@@ -161,7 +172,11 @@ function Sessao({ clubId, teamId, sessaoId }) {
                   <button
                     type="button"
                     className="btn btn--ghost btn--tiny"
-                    onClick={() => ui.open((close) => <PartilharSessaoVideo sessao={sessao} onFechar={close} />)}
+                    onClick={() =>
+                      ui.open((close) => (
+                        <PartilharSessaoVideo sessao={sessao} locais={nClipesLocais} onFechar={close} />
+                      ))
+                    }
                   >
                     {t('tatica.partilhar')}
                   </button>
@@ -193,11 +208,13 @@ function Sessao({ clubId, teamId, sessaoId }) {
       ) : (
         <div className="vanalise__grelha">
           <div className="vanalise__principal">
+            <VideosPorLigar analises={locais} soLeitura={soLeitura} />
             <div className="vanalise__palco">
               <LeitorVideo
                 fonte={fonteDoClipe(primeiro)}
                 inicioSeg={primeiro.startMs / 1000}
                 titulo={sessao.title}
+                soLeitura={soLeitura}
                 {...leitor.propsDoLeitor}
               />
               <ControlosVideo leitor={leitor} />
@@ -301,6 +318,7 @@ function Sessao({ clubId, teamId, sessaoId }) {
           fotos={fotos}
           titulo={sessao.title}
           inicio={aApresentar}
+          soLeitura={soLeitura}
           onFechar={() => setAApresentar(null)}
         />
       ) : null}

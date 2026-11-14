@@ -1,7 +1,8 @@
 'use client';
 
 // components/video/dialogos.jsx — as janelas da Análise de vídeo: escolher a
-// sessão onde entram uns clipes, partilhar uma sessão por link, e o aviso de
+// sessão onde entram uns clipes, partilhar uma sessão por link (só com clipes
+// do YouTube: os vídeos do computador não saem do aparelho), e o aviso de
 // quando o add-on não está ligado no escalão.
 
 import { useCallback, useEffect, useState } from 'react';
@@ -130,8 +131,12 @@ export function EscolherSessao({ teamId, clipIds, sugestao = '', onFechar }) {
  * sem conta nem app. Segue o `PartilharJogada`: o link só abre depois de a
  * sessão (e os clipes dela) chegarem ao servidor, por isso sincroniza ao
  * abrir, ao criar o link e antes de enviar.
+ *
+ * Com clipes de vídeos do computador (`locais` > 0) não há link: o vídeo não
+ * está em servidor nenhum, e um link que parecesse abri-los enganava quem o
+ * recebe. Explica-se porquê, e deixa-se desligar um link que já existisse.
  */
-export function PartilharSessaoVideo({ sessao: inicial, onFechar }) {
+export function PartilharSessaoVideo({ sessao: inicial, locais = 0, onFechar }) {
   const t = useT();
   const locale = useLocale();
   const ui = useUI();
@@ -163,6 +168,8 @@ export function PartilharSessaoVideo({ sessao: inicial, onFechar }) {
   // coisa por subir, sobe já.
   useEffect(() => {
     (async () => {
+      // Com vídeos do computador não se cria link nenhum.
+      if (locais > 0) return;
       const ativo = inicial.shareToken && inicial.shareExpiresAt > Date.now();
       if (!ativo) setSessao(await repoSessoes.novoLink(inicial.id));
       sincronizar();
@@ -208,6 +215,28 @@ export function PartilharSessaoVideo({ sessao: inicial, onFechar }) {
       return undefined;
     }
     return acao(janela);
+  }
+
+  if (locais > 0) {
+    return (
+      <Dialog title={t('video.partilha.titulo')} onClose={() => onFechar(sessao)}>
+        <div data-partilha-local>
+          <p className="modal__text">{t('video.partilha.comLocais', { n: locais })}</p>
+          <p className="modal__text">{t('video.partilha.comLocaisComo')}</p>
+          {ativo ? <p className="modal__hint tlink__aviso">{t('video.partilha.comLocaisLinkAtivo')}</p> : null}
+        </div>
+        <footer className="modal__actions">
+          {ativo ? (
+            <button className="btn btn--ghost btn--danger" onClick={desligar}>
+              {t('tatica.desligarLink')}
+            </button>
+          ) : null}
+          <button className="btn btn--primary" onClick={() => onFechar(sessao)}>
+            {t('comum.fechar')}
+          </button>
+        </footer>
+      </Dialog>
+    );
   }
 
   return (
@@ -279,6 +308,33 @@ export function PartilharSessaoVideo({ sessao: inicial, onFechar }) {
           </footer>
         </>
       )}
+    </Dialog>
+  );
+}
+
+/**
+ * Antes de partilhar clipes com um jogador: alguns (ou todos) são de vídeos
+ * do computador e não podem ir por link. Devolve true se é para seguir só com
+ * os do YouTube, ou null se se desistiu (ou não há nenhum do YouTube).
+ */
+export function AvisoPartilhaLocal({ locais, youtube = 0, onFechar }) {
+  const t = useT();
+  return (
+    <Dialog title={t('video.partilha.titulo')} onClose={() => onFechar(null)}>
+      <div data-partilha-local>
+        <p className="modal__text">{t('video.partilha.comLocais', { n: locais })}</p>
+        <p className="modal__text">{t('video.partilha.comLocaisComo')}</p>
+      </div>
+      <footer className="modal__actions">
+        <button className={`btn ${youtube ? 'btn--ghost' : 'btn--primary'}`} onClick={() => onFechar(null)}>
+          {t(youtube ? 'comum.cancelar' : 'comum.fechar')}
+        </button>
+        {youtube ? (
+          <button className="btn btn--primary" onClick={() => onFechar(true)}>
+            {t('video.partilha.soYoutube', { n: youtube })}
+          </button>
+        ) : null}
+      </footer>
     </Dialog>
   );
 }

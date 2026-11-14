@@ -1,10 +1,12 @@
 // domain/analiseVideo.js — a lógica pura da Análise de vídeo (add-on
-// 'analise-video'): ler o link do YouTube, criar e acertar clipes, filtrar,
-// ordenar sessões e contar as conversas por ter com cada jogador.
+// 'analise-video'): ler o link do YouTube, reconhecer um ficheiro do
+// computador, criar e acertar clipes, filtrar, ordenar sessões e contar as
+// conversas por ter com cada jogador.
 //
-// O vídeo nunca é nosso: guarda-se só de onde vem (`provider` + a referência,
-// hoje o id do YouTube) e os tempos dos clipes em milissegundos. Nada aqui
-// sabe o que é um leitor nem um servidor — é por isso que se testa sem browser.
+// O vídeo nunca é nosso: guarda-se só de onde vem (`provider` + a referência:
+// o id do YouTube, ou o nome, o tamanho e a data de um ficheiro que fica no
+// aparelho) e os tempos dos clipes em milissegundos. Nada aqui sabe o que é um
+// leitor nem um servidor — é por isso que se testa sem browser.
 //
 // Regra de ouro, como nos registos e nos add-ons: um id de categoria ou de
 // subtipo nunca muda de significado. Para tirar um da app, marca-se
@@ -14,8 +16,11 @@ import { uuidDe } from './treino.js';
 
 /* ------------------------------------------------------------- a fonte */
 
-/** De onde vem o vídeo. Hoje só o YouTube; o resto da app pergunta por aqui. */
-export const FONTE = { YOUTUBE: 'youtube' };
+/**
+ * De onde vem o vídeo: um link do YouTube ou um ficheiro do computador, que
+ * nunca sai do aparelho. O resto da app pergunta por aqui.
+ */
+export const FONTE = { YOUTUBE: 'youtube', LOCAL: 'local' };
 
 const ID_YT = /^[A-Za-z0-9_-]{11}$/;
 const HOSTS_YT = /^(www\.|m\.|music\.)?(youtube\.com|youtube-nocookie\.com)$/i;
@@ -79,18 +84,225 @@ export function linkYouTubeNoSegundo(id, seg = 0) {
   return `https://www.youtube.com/watch?v=${id}${t ? `&t=${t}s` : ''}`;
 }
 
+/* ------------------------------------------------ ficheiro do computador */
+
+// Um vídeo local nunca é guardado nem enviado: fica no disco do treinador e a
+// app só o lê, aos bocados, enquanto toca. O que se guarda (e sincroniza) é o
+// bastante para o reconhecer quando ele o voltar a escolher: nome, tamanho,
+// data de modificação, tipo e, quando se sabe, a duração.
+
+const LIMITE_NOME_FICHEIRO = 255;
+const numeroOuNull = (v) => {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+};
+
+/**
+ * Os metadados de um ficheiro, na forma em que se guardam. Aceita um `File`
+ * do browser ou o que veio da base de dados; devolve null quando não há nome.
+ * Só copia campos simples: nunca o `File`, nunca um `Blob`, nunca um endereço
+ * `blob:`.
+ *
+ * @returns {{name: string, size: number|null, type: string, lastModified: number|null, durationMs: number|null} | null}
+ */
+export function metadadosDoFicheiro(ficheiro, { durationMs } = {}) {
+  if (!ficheiro || typeof ficheiro !== 'object') return null;
+  const name = String(ficheiro.name ?? '').trim().slice(0, LIMITE_NOME_FICHEIRO);
+  if (!name) return null;
+  const duracao = durationMs !== undefined ? durationMs : ficheiro.durationMs;
+  return {
+    name,
+    size: numeroOuNull(ficheiro.size),
+    type: String(ficheiro.type ?? '').slice(0, 100),
+    lastModified: numeroOuNull(ficheiro.lastModified),
+    durationMs: numeroOuNull(duracao) || null,
+  };
+}
+
+/**
+ * O que distingue o ficheiro escolhido do que está guardado: 'name', 'size',
+ * 'lastModified'. Vazio quer dizer que é o mesmo. Um campo que falte de um dos
+ * lados não conta — uma análise que não o tenha guardado não fica presa.
+ * O tipo fica de fora de propósito: o mesmo ficheiro aparece como
+ * `video/mp4` num browser e sem tipo noutro.
+ *
+ * @returns {string[]}
+ */
+export function diferencasDoFicheiro(guardado, escolhido) {
+  const a = metadadosDoFicheiro(guardado);
+  const b = metadadosDoFicheiro(escolhido);
+  if (!a || !b) return [];
+  const saida = [];
+  if (a.name !== b.name) saida.push('name');
+  if (a.size != null && b.size != null && a.size !== b.size) saida.push('size');
+  if (a.lastModified != null && b.lastModified != null && a.lastModified !== b.lastModified) {
+    saida.push('lastModified');
+  }
+  return saida;
+}
+
+/** O ficheiro escolhido é o que a análise guardou? */
+export function mesmoFicheiro(guardado, escolhido) {
+  return (
+    Boolean(metadadosDoFicheiro(guardado) && metadadosDoFicheiro(escolhido)) &&
+    diferencasDoFicheiro(guardado, escolhido).length === 0
+  );
+}
+
+/** "Jogo_com_o_Sporting.mp4" → "Jogo com o Sporting": o título que se sugere. */
+export function tituloDoFicheiro(nome) {
+  const semPasta = String(nome ?? '').split(/[\\/]/).pop() || '';
+  const semExtensao = semPasta.replace(/\.[A-Za-z0-9]{1,5}$/, '');
+  return (semExtensao || semPasta).replace(/_+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+}
+
+/** 5 795 000 000 → "5,4 GB". Sem tamanho, texto vazio. */
+export function tamanhoLegivel(bytes, separador = ',') {
+  const n = numeroOuNull(bytes);
+  if (n == null) return '';
+  const unidades = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let valor = n;
+  let i = 0;
+  while (valor >= 1024 && i < unidades.length - 1) {
+    valor /= 1024;
+    i += 1;
+  }
+  const texto = i === 0 || valor >= 100 ? String(Math.round(valor)) : valor.toFixed(1);
+  return `${texto.replace('.', separador)} ${unidades[i]}`;
+}
+
+/* --------------------------------------------------- a fonte da análise */
+
+/** A origem de uma análise. As gravadas antes de haver o campo são do YouTube. */
+export function origemDaAnalise(analise) {
+  return analise?.provider || FONTE.YOUTUBE;
+}
+
 /**
  * A fonte de uma análise, na forma que o leitor recebe. É o único sítio que
- * sabe em que campos ela está guardada: no dia em que houver outra fonte, os
- * clipes e as sessões não mudam.
+ * sabe em que campos ela está guardada: os clipes e as sessões só guardam
+ * tempos, e por isso não mudam com a fonte.
  *
- * @returns {{tipo: string, id: string} | null}
+ *   YouTube → { tipo: 'youtube', id: <id do vídeo> }
+ *   local   → { tipo: 'local', id: <id da análise>, ficheiro: <metadados> }
+ *
+ * Num vídeo local o `id` é o da análise: é com ele que se procura o ficheiro
+ * que o treinador ligou neste aparelho (lib/videoLocal.js).
+ *
+ * @returns {{tipo: string, id: string, ficheiro?: object|null} | null}
  */
 export function fonteDaAnalise(analise) {
   if (!analise) return null;
-  const tipo = analise.provider || FONTE.YOUTUBE;
+  const tipo = origemDaAnalise(analise);
   if (tipo === FONTE.YOUTUBE) return analise.youtubeId ? { tipo, id: analise.youtubeId } : null;
+  if (tipo === FONTE.LOCAL) {
+    return analise.id ? { tipo, id: analise.id, ficheiro: metadadosDoFicheiro(analise.localFile) } : null;
+  }
   return null;
+}
+
+/** Duas fontes são o mesmo vídeo? (o mesmo tipo e a mesma referência) */
+export function mesmaFonte(a, b) {
+  return Boolean(a && b) && a.tipo === b.tipo && a.id === b.id;
+}
+
+/**
+ * Como o leitor passa do vídeo que tem (`atual`) para o que lhe pedem
+ * (`alvo`). É a regra que evita tocar o vídeo anterior ou ficar preso a meio
+ * de uma troca:
+ *
+ *   'ir'      → é o mesmo vídeo e o leitor está livre: basta saltar para lá;
+ *   'dentro'  → outro vídeo do YouTube com o leitor do YouTube livre: o
+ *               próprio leitor troca de vídeo, sem ser montado de novo;
+ *   'trocar'  → tudo o resto (outra origem, outro ficheiro, ou um leitor que
+ *               ainda está a abrir): monta-se o leitor certo e o pedido fica
+ *               guardado até ele dizer que está pronto.
+ *
+ * @param {object|null} atual a fonte que está no leitor
+ * @param {object|null} alvo a fonte pedida
+ * @param {boolean} livre o leitor está pronto e sem pedidos por cumprir
+ * @returns {'ir' | 'dentro' | 'trocar' | null} null se não há para onde ir
+ */
+export function passoDeAbertura(atual, alvo, livre) {
+  if (!alvo) return null;
+  if (!livre) return 'trocar';
+  if (mesmaFonte(alvo, atual)) return 'ir';
+  if (alvo.tipo === FONTE.YOUTUBE && atual?.tipo === FONTE.YOUTUBE) return 'dentro';
+  return 'trocar';
+}
+
+/**
+ * As análises com vídeo local de onde vêm estes clipes, sem repetir e pela
+ * ordem em que aparecem. É o que decide se uma sessão se pode partilhar por
+ * link (só com YouTube) e que ficheiros é preciso ter ligados para a ver.
+ *
+ * @param {object[]} clipes
+ * @param {Map<string, object>} analisesPorId
+ * @returns {object[]}
+ */
+export function analisesLocaisDosClipes(clipes, analisesPorId) {
+  const vistas = new Set();
+  const saida = [];
+  for (const c of clipes || []) {
+    const analise = analisesPorId?.get(c.analysisId);
+    if (!analise || vistas.has(analise.id) || origemDaAnalise(analise) !== FONTE.LOCAL) continue;
+    vistas.add(analise.id);
+    saida.push(analise);
+  }
+  return saida;
+}
+
+/* ------------------------------------------------- a área real da imagem */
+
+// A preparação para os desenhos por cima do vídeo: o leitor ocupa uma caixa,
+// mas a imagem só enche a caixa toda quando as proporções coincidem. Senão há
+// barras pretas (em cima e em baixo, ou dos lados), e um desenho tem de ficar
+// agarrado à imagem, não à caixa. Guardar pontos em fração da imagem (0–1)
+// faz com que sirvam em qualquer tamanho de ecrã, na análise e a apresentar.
+
+export const PROPORCAO_OMISSAO = 16 / 9;
+
+/**
+ * Onde fica a imagem dentro da caixa do leitor (como `object-fit: contain`).
+ *
+ * @param {{largura: number, altura: number}} caixa em píxeis
+ * @param {number} proporcao largura / altura do vídeo
+ * @returns {{x: number, y: number, largura: number, altura: number}}
+ */
+export function areaDaImagem(caixa, proporcao = PROPORCAO_OMISSAO) {
+  const largura = Math.max(0, Number(caixa?.largura) || 0);
+  const altura = Math.max(0, Number(caixa?.altura) || 0);
+  const p = Number.isFinite(Number(proporcao)) && Number(proporcao) > 0 ? Number(proporcao) : PROPORCAO_OMISSAO;
+  if (!largura || !altura) return { x: 0, y: 0, largura: 0, altura: 0 };
+  if (largura / altura > p) {
+    // Caixa mais larga do que o vídeo: barras dos lados.
+    const l = altura * p;
+    return { x: (largura - l) / 2, y: 0, largura: l, altura };
+  }
+  // Caixa mais alta do que o vídeo: barras em cima e em baixo.
+  const a = largura / p;
+  return { x: 0, y: (altura - a) / 2, largura, altura: a };
+}
+
+/**
+ * Um ponto da caixa (píxeis) em fração da imagem: (0,0) é o canto de cima à
+ * esquerda da imagem, (1,1) o de baixo à direita. `dentro` diz se o ponto
+ * caiu mesmo na imagem e não numa barra preta.
+ */
+export function pontoNaImagem(area, px, py) {
+  if (!area?.largura || !area?.altura) return { x: 0, y: 0, dentro: false };
+  const x = (Number(px) - area.x) / area.largura;
+  const y = (Number(py) - area.y) / area.altura;
+  return { x, y, dentro: x >= 0 && x <= 1 && y >= 0 && y <= 1 };
+}
+
+/** O inverso: um ponto em fração da imagem → píxeis da caixa. */
+export function pontoNaCaixa(area, x, y) {
+  return {
+    x: (area?.x || 0) + Number(x) * (area?.largura || 0),
+    y: (area?.y || 0) + Number(y) * (area?.altura || 0),
+  };
 }
 
 export function miniaturaDaAnalise(analise) {

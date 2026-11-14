@@ -4,7 +4,8 @@
 // As mesmas regras do `treino.js`: escreve-se aqui primeiro, sempre, com
 // `dirty: true`, e a fila do `sync.js` leva ao servidor quando houver rede.
 // Apagar é marcar `deletedAt`. O vídeo em si nunca passa por aqui — só o link
-// (o id do YouTube) e os tempos dos clipes.
+// (o id do YouTube) ou os metadados do ficheiro do computador (nome, tamanho,
+// data), e os tempos dos clipes.
 
 import * as db from './local.js';
 import { notifyLocalChange } from './sync.js';
@@ -15,6 +16,8 @@ import {
   acertarIntervalo,
   idConversa,
   juntarASessao,
+  mesmoFicheiro,
+  metadadosDoFicheiro,
   ordenarClipes,
   prenderIntervalo,
   semRepetidos,
@@ -64,18 +67,30 @@ export const analises = {
   },
 
   /**
-   * Cria ou muda uma análise. O vídeo (`youtubeId`) só se escolhe ao criar:
-   * trocar o vídeo deixava os clipes a apontar para tempos de outro jogo.
+   * Cria ou muda uma análise. A origem do vídeo só se escolhe ao criar — um
+   * link do YouTube (`youtubeId`) ou um ficheiro do computador (`localFile`,
+   * só os metadados): trocar o vídeo deixava os clipes a apontar para tempos
+   * de outro jogo. Num vídeo local, o ficheiro volta a ligar-se com
+   * `ligarFicheiro`, que pede confirmação a quem a chama quando ele é outro.
    */
   async guardar(teamId, dados) {
     const atual = dados.id ? await db.get(db.STORES.videoAnalyses, dados.id) : null;
+    const provider = atual
+      ? atual.provider || FONTE.YOUTUBE
+      : dados.provider === FONTE.LOCAL || (!dados.youtubeId && dados.localFile)
+        ? FONTE.LOCAL
+        : FONTE.YOUTUBE;
     const row = stamp({
       ...atual,
       id: dados.id || uid(),
       teamId,
       title: texto(dados.title, 200) || '—',
-      provider: atual?.provider || FONTE.YOUTUBE,
-      youtubeId: atual?.youtubeId || dados.youtubeId,
+      provider,
+      youtubeId: provider === FONTE.YOUTUBE ? atual?.youtubeId || dados.youtubeId : null,
+      // Só os metadados (nome, tamanho, data, tipo, duração). O ficheiro em si
+      // nunca entra na base de dados nem sai do aparelho.
+      localFile:
+        provider === FONTE.LOCAL ? metadadosDoFicheiro(atual ? atual.localFile : dados.localFile) : null,
       matchId: dados.matchId === undefined ? atual?.matchId || null : dados.matchId || null,
       recordedOn: dados.recordedOn === undefined ? atual?.recordedOn || null : dados.recordedOn || null,
       createdBy: atual?.createdBy || donoAtual() || null,
@@ -85,6 +100,29 @@ export const analises = {
     notifyLocalChange();
     return row;
   },
+
+  /**
+   * Guarda os metadados do ficheiro que passou a estar ligado a uma análise
+   * local: quando o treinador confirmou outro ficheiro, ou quando ficou a
+   * saber-se a duração. Os clipes e as sessões não são tocados. Devolve a
+   * linha, ou null se a análise não existe ou não é de um ficheiro local.
+   */
+  ligarFicheiro: (id, ficheiro, opcoes) =>
+    emFila(async () => {
+      const atual = await db.get(db.STORES.videoAnalyses, id);
+      if (!atual || atual.deletedAt || atual.provider !== FONTE.LOCAL) return null;
+      const novo = metadadosDoFicheiro(ficheiro, opcoes);
+      if (!novo) return null;
+      // A duração que já se sabia fica, se o ficheiro for o mesmo.
+      if (!novo.durationMs && mesmoFicheiro(atual.localFile, novo)) {
+        novo.durationMs = atual.localFile?.durationMs || null;
+      }
+      if (JSON.stringify(metadadosDoFicheiro(atual.localFile)) === JSON.stringify(novo)) return atual;
+      const row = stamp({ ...atual, localFile: novo });
+      await db.put(db.STORES.videoAnalyses, row);
+      notifyLocalChange();
+      return row;
+    }),
 
   /** Apaga a análise e os clipes dela (as sessões ficam, sem esses clipes). */
   async apagar(id) {

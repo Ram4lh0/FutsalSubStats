@@ -17,7 +17,8 @@ import { Empty } from '@/components/bits.jsx';
 import FotoJogador, { useFotosDoEscalao } from '@/components/FotoJogador.jsx';
 import LeitorVideo from '@/components/video/LeitorVideo.jsx';
 import useLeitorDeClipes from '@/components/video/useLeitorDeClipes.js';
-import { GuardaVideo, PartilharSessaoVideo } from '@/components/video/dialogos.jsx';
+import { AvisoPartilhaLocal, GuardaVideo, PartilharSessaoVideo } from '@/components/video/dialogos.jsx';
+import { VideosPorLigar } from '@/components/video/LigarVideo.jsx';
 import {
   ControlosVideo,
   IconeCategoria,
@@ -33,7 +34,15 @@ import { useUI } from '@/lib/ui.jsx';
 import { rotas } from '@/lib/routes.js';
 import { players as repoJogadores } from '@/lib/data/repository.js';
 import { conversas as repoConversas, sessoes as repoSessoes } from '@/lib/data/video.js';
-import { categoriaVideo, chaveDoSubtipo, fichaDoJogador, fonteDaAnalise } from '@/domain/analiseVideo.js';
+import {
+  FONTE,
+  analisesLocaisDosClipes,
+  categoriaVideo,
+  chaveDoSubtipo,
+  fichaDoJogador,
+  fonteDaAnalise,
+  origemDaAnalise,
+} from '@/domain/analiseVideo.js';
 import { useLocale, useT } from '@/lib/i18n/index.js';
 
 export default function JogadorVideoPage() {
@@ -87,6 +96,8 @@ function Ficha({ clubId, teamId, playerId }) {
   const porFalar = useMemo(() => todos.filter((c) => !c.faladoEm), [todos]);
   const fonteDoClipe = (c) => fonteDaAnalise(analisesPorId.get(c.analysisId));
   const leitor = useLeitorDeClipes({ fonteDoClipe });
+  const locais = useMemo(() => analisesLocaisDosClipes(todos, analisesPorId), [todos, analisesPorId]);
+  const eLocal = (c) => origemDaAnalise(analisesPorId.get(c.analysisId)) === FONTE.LOCAL;
 
   const voltar = rotas.analisesVideo(clubId, teamId, 'jogadores');
   if (!dados || !plantel) return <p className="muted">{t('comum.aCarregar')}</p>;
@@ -115,8 +126,19 @@ function Ficha({ clubId, teamId, playerId }) {
     });
 
   async function partilhar() {
-    const clipes = escolhidosVisiveis.length ? escolhidosVisiveis : porFalar.length ? porFalar : todos;
+    let clipes = escolhidosVisiveis.length ? escolhidosVisiveis : porFalar.length ? porFalar : todos;
     if (!clipes.length) return;
+    // Os vídeos do computador não saem do aparelho: um link não os mostra a
+    // ninguém. Explica-se, e só se partilha o que é do YouTube (se houver).
+    const doComputador = clipes.filter(eLocal);
+    if (doComputador.length) {
+      const doYouTube = clipes.filter((c) => !eLocal(c));
+      const seguir = await ui.open((close) => (
+        <AvisoPartilhaLocal locais={doComputador.length} youtube={doYouTube.length} onFechar={close} />
+      ));
+      if (!seguir || !doYouTube.length) return;
+      clipes = doYouTube;
+    }
     const sessao = await repoSessoes.criar(teamId, {
       title: t('video.jogador.tituloPartilha', { nome: jogador.name }),
       clipIds: clipes.map((c) => c.id),
@@ -166,11 +188,13 @@ function Ficha({ clubId, teamId, playerId }) {
       ) : (
         <div className="vanalise__grelha">
           <div className="vanalise__principal">
+            <VideosPorLigar analises={locais} soLeitura={soLeitura} />
             <div className="vanalise__palco">
               <LeitorVideo
                 fonte={fonteDoClipe(primeiro)}
                 inicioSeg={primeiro.startMs / 1000}
                 titulo={jogador.name}
+                soLeitura={soLeitura}
                 {...leitor.propsDoLeitor}
               />
               <ControlosVideo leitor={leitor} />

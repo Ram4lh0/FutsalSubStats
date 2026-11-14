@@ -130,6 +130,57 @@
 .vleitor__erro p { margin: 0; color: var(--muted); max-width: 44ch; font-size: 0.9rem; line-height: 1.45; }
 .vleitor__erroacoes { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
 
+/* O vídeo do computador: ocupa a caixa toda e a imagem fica inteira lá dentro
+   (com barras pretas quando as proporções não coincidem). */
+.vleitor__video { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: #000; object-fit: contain; }
+/* A camada dos desenhos: colada à área real da imagem, sem apanhar toques. */
+.vleitor__camada { position: absolute; pointer-events: none; }
+
+/* Análise de um ficheiro que não está ligado neste aparelho. */
+/* Sem proporção fixa: num telemóvel o texto não cabia em 16:9. */
+.vleitor--falta {
+  display: grid; place-items: center; aspect-ratio: auto; min-height: clamp(220px, 40vw, 420px);
+  background: var(--bg-2);
+}
+.vfalta {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 16px; text-align: center;
+  width: 100%; max-width: 52ch; min-width: 0;
+}
+.vfalta p { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
+.vfalta__ficheiro { font-size: 0.82rem; color: var(--muted); overflow-wrap: anywhere; }
+.vfalta__erro { color: var(--danger); font-size: 0.9rem; }
+.vfalta__erro p { color: var(--danger); }
+.vficheiro__input { display: none; }
+.vficheiro__compara { display: grid; gap: 4px; margin: 10px 0; font-size: 0.86rem; overflow-wrap: anywhere; }
+.vficheiro__compara em { font-style: normal; color: var(--muted); }
+
+/* Nova análise: de onde vem o vídeo, e o ficheiro escolhido. */
+.vorigem { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.vorigem .tmodo__btn { width: 100%; justify-content: center; text-align: center; }
+.vficheiro { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.vficheiro__nome { flex: 1; min-width: 0; font-size: 0.86rem; color: var(--muted); overflow-wrap: anywhere; }
+.vform__aviso { margin: 0; color: var(--danger); font-size: 0.88rem; line-height: 1.45; }
+.vform__aviso p { margin: 4px 0 0; }
+
+/* O cartão de uma análise de um ficheiro do computador: sem miniatura. */
+.vcartao__local {
+  width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  color: #cbd5e1; font-size: 0.82rem; padding: 10px; text-align: center;
+}
+.vcartao__local small { color: #94a3b8; font-size: 0.74rem; overflow-wrap: anywhere; }
+
+/* Sessão ou ficha com vídeos do computador por ligar. */
+.vporligar {
+  display: grid; gap: 8px; padding: 12px 14px; border: 1px solid #f59e0b; border-radius: 12px;
+  background: rgba(245, 158, 11, 0.08); margin-bottom: 12px;
+}
+.vporligar p { margin: 0; font-size: 0.86rem; color: var(--muted); line-height: 1.45; }
+.vporligar__item { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vporligar__nome { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; }
+.vporligar__nome span { color: var(--muted); font-size: 0.78rem; overflow-wrap: anywhere; }
+.vporligar__erro { flex-basis: 100%; color: var(--danger); font-size: 0.84rem; }
+.vporligar__erro p { color: var(--danger); }
+
 /* A linha do tempo: uma risca por clipe, com a cor da categoria. */
 .vtempo { position: relative; height: 12px; border-radius: 6px; background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; }
 .vtempo__clipe {
@@ -347,6 +398,8 @@
   padding: max(12px, var(--seguro-cima)) max(14px, var(--seguro-dir)) max(12px, var(--seguro-baixo)) max(14px, var(--seguro-esq));
   background: #05080f; color: var(--text);
 }
+/* Uma pergunta feita a meio da apresentação (ficheiro diferente) fica por cima. */
+body:has(.vapresenta) .backdrop { z-index: 95; }
 .vapresenta__topo { display: flex; align-items: flex-start; gap: 10px; }
 .vapresenta__topo .vlegenda { flex: 1; background: rgba(22, 35, 59, 0.75); }
 .vapresenta__topo .vlegenda__titulo { font-size: 1.25rem; }

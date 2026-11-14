@@ -16,7 +16,8 @@ import { useT } from '@/lib/i18n/index.js';
 
 /**
  * @param {{clipes: object[], fonteDoClipe: (c: object) => object, tituloDoClipe?: (c: object) => string,
- *   jogadores?: Map, fotos?: Map, titulo: string, inicio?: number, onFechar: () => void}} props
+ *   jogadores?: Map, fotos?: Map, titulo: string, inicio?: number, soLeitura?: boolean,
+ *   onFechar: () => void}} props
  */
 export default function Apresentacao({
   clipes,
@@ -25,6 +26,7 @@ export default function Apresentacao({
   fotos,
   titulo,
   inicio = 0,
+  soLeitura = true,
   onFechar,
 }) {
   const t = useT();
@@ -73,6 +75,8 @@ export default function Apresentacao({
   useEffect(() => {
     function aoTeclar(e) {
       const a = acoes.current;
+      // Com uma pergunta aberta por cima (ficheiro diferente), as teclas são dela.
+      if (document.querySelector('.backdrop')) return;
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         a.mostrar(a.indice + 1);
@@ -111,7 +115,13 @@ export default function Apresentacao({
 
       <div className="vapresenta__palco">
         {fonte ? (
-          <LeitorVideo fonte={fonte} inicioSeg={clipe.startMs / 1000} titulo={titulo} {...leitor.propsDoLeitor} />
+          <LeitorVideo
+            fonte={fonte}
+            inicioSeg={clipe.startMs / 1000}
+            titulo={titulo}
+            soLeitura={soLeitura}
+            {...leitor.propsDoLeitor}
+          />
         ) : (
           <p className="muted">{t('video.erro.fonte')}</p>
         )}

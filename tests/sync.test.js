@@ -147,13 +147,32 @@ function servidorFalso({ falhaEm, semUpdatedAtEventos = false, semConfigDosRegis
     },
     delete() {
       if (falhaEm === nome) return { eq: () => Promise.resolve({ error: new Error('sem rede') }) };
-      return {
-        eq: (coluna, valor) => {
-          const i = tabelas[nome].findIndex((r) => r[coluna] === valor);
-          if (i >= 0) tabelas[nome].splice(i, 1);
-          return Promise.resolve({ error: null });
+      // `delete().eq(...)` e `delete().eq(...).not(col, 'in', '(a,b)')`, como o
+      // PostgREST: só apaga quando se espera pela resposta, e o `not … in`
+      // poupa as linhas da lista (é como a convocatória tira do servidor os
+      // jogadores que o treinador trocou).
+      const iguais = [];
+      const fora = [];
+      const pedido = {
+        eq: (coluna, valor) => (iguais.push([coluna, valor]), pedido),
+        not: (coluna, operador, valor) => {
+          if (operador === 'in') {
+            fora.push([coluna, new Set(String(valor).replace(/^\(|\)$/g, '').split(',').filter(Boolean))]);
+          }
+          return pedido;
+        },
+        then: (fn, falhou) => {
+          tabelas[nome] = (tabelas[nome] || []).filter(
+            (r) =>
+              !(
+                iguais.every(([c, v]) => r[c] === v) &&
+                fora.every(([c, lista]) => !lista.has(String(r[c])))
+              )
+          );
+          return Promise.resolve({ error: null }).then(fn, falhou);
         },
       };
+      return pedido;
     },
   });
 

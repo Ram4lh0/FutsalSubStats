@@ -4,6 +4,7 @@
 // vista nem o domínio sabem que existe um servidor do outro lado.
 
 import { desempateOf } from '../../domain/constants.js';
+import { metadadosDoFicheiro } from '../../domain/analiseVideo.js';
 
 const iso = (ms) => (ms == null ? null : new Date(ms).toISOString());
 const ms = (txt) => {
@@ -485,6 +486,10 @@ export const videoAnalysisMapper = {
     title: a.title,
     provider: a.provider || 'youtube',
     youtube_id: a.youtubeId || null,
+    // Vídeo do computador: só os metadados que o reconhecem (nome, tamanho,
+    // data, tipo, duração). O ficheiro nunca é enviado. A coluna só vai nas
+    // análises locais, para as do YouTube continuarem a subir como sempre.
+    ...(a.provider === 'local' ? { local_file: metadadosDoFicheiro(a.localFile) } : {}),
     match_id: a.matchId || null,
     recorded_on: a.recordedOn || null,
     // Só quando se sabe: em branco, o servidor põe quem está a enviar.
@@ -496,7 +501,8 @@ export const videoAnalysisMapper = {
     teamId: r.team_id,
     title: r.title,
     provider: r.provider || 'youtube',
-    youtubeId: r.youtube_id,
+    youtubeId: r.youtube_id ?? null,
+    localFile: metadadosDoFicheiro(r.local_file),
     matchId: r.match_id ?? null,
     recordedOn: r.recorded_on ?? null,
     createdBy: r.created_by ?? null,

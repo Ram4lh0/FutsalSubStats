@@ -8,7 +8,8 @@
 //   · Por jogador — o plantel, com os clipes que cada um ainda não viu.
 //
 // O vídeo nunca é guardado por nós: cada análise é só um link do YouTube
-// (não listado) e os tempos dos clipes.
+// (não listado) ou os metadados de um ficheiro do computador, e os tempos dos
+// clipes.
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -26,7 +27,15 @@ import { useUI } from '@/lib/ui.jsx';
 import { rotas } from '@/lib/routes.js';
 import { matches as repoJogos } from '@/lib/data/repository.js';
 import { sessoes as repoSessoes } from '@/lib/data/video.js';
-import { contarPorJogador, miniaturaDaAnalise, resumoDaAnalise } from '@/domain/analiseVideo.js';
+import useFicheiroLigado from '@/lib/useFicheiroLigado.js';
+import {
+  FONTE,
+  contarPorJogador,
+  miniaturaDaAnalise,
+  origemDaAnalise,
+  resumoDaAnalise,
+  tamanhoLegivel,
+} from '@/domain/analiseVideo.js';
 import { deIsoDia } from '@/domain/treino.js';
 import { useLocale, useT } from '@/lib/i18n/index.js';
 
@@ -189,7 +198,11 @@ function Analises({ dados, jogos, soLeitura, onNova, onAbrir }) {
         return (
           <button key={a.id} type="button" className="vcartao" onClick={() => onAbrir(a)}>
             <span className="vcartao__mini">
-              <img src={miniaturaDaAnalise(a)} alt="" loading="lazy" />
+              {origemDaAnalise(a) === FONTE.LOCAL ? (
+                <CartaoLocal analise={a} />
+              ) : (
+                <img src={miniaturaDaAnalise(a)} alt="" loading="lazy" />
+              )}
             </span>
             <span className="vcartao__texto">
               <strong className="vcartao__titulo">{a.title}</strong>
@@ -211,6 +224,27 @@ function Analises({ dados, jogos, soLeitura, onNova, onAbrir }) {
         );
       })}
     </div>
+  );
+}
+
+/** No lugar da miniatura: o vídeo é do computador, e diz-se se está ligado aqui. */
+function CartaoLocal({ analise }) {
+  const t = useT();
+  const locale = useLocale();
+  const ligado = useFicheiroLigado(analise.id);
+  const tamanho = tamanhoLegivel(analise.localFile?.size, locale === 'en' ? '.' : ',');
+  return (
+    <span className="vcartao__local" data-local={ligado ? 'ligado' : 'por-ligar'}>
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="m10 9 5 3-5 3V9Z" />
+      </svg>
+      <span>{t('video.local.cartao')}</span>
+      <small className="mono">
+        {[analise.localFile?.name, tamanho].filter(Boolean).join(' · ')}
+      </small>
+      <small>{t(ligado ? 'video.local.ligado' : 'video.local.porLigar')}</small>
+    </span>
   );
 }
 
