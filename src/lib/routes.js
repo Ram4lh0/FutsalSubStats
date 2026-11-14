@@ -134,6 +134,8 @@ export const rotas = {
   // O link que o jogador recebe: abre sem conta, só com os clipes escolhidos.
   videoPublico: (share) => comIds('/video', { share }),
 
+  disponibilidadePublica: (share) => comIds('/disponibilidade', { share }),
+
   /* --------------------------------------------------------------- jogo */
   jogoPreparar: (match) => comIds('/match/setup', { match }),
   jogoAoVivo: (match) => comIds('/match/live', { match }),
@@ -143,6 +145,9 @@ export const rotas = {
   // Só de leitura, e fora de `/match/live` de propósito: não trava a
   // sincronização nem encolhe o cabeçalho como o ecrã de registo.
   jogoAssistir: (match) => comIds('/match/watch', { match }),
+  // O ecrã do papel "Registos" de um jogo com registo partilhado (add-on
+  // 'jogo-partilhado'): os convocados em cartões, sem campo nem relógio.
+  jogoRegistos: (match) => comIds('/match/registos', { match }),
 };
 
 /**

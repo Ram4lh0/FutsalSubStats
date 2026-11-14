@@ -19,6 +19,7 @@ import { noJogoAoVivo } from '@/lib/routes.js';
 import { useT } from '@/lib/i18n/index.js';
 import { useUI } from '@/lib/ui.jsx';
 import { readGuidedTutorialState } from '@/lib/tutorial.js';
+import { abrirFora } from '@/lib/partilha.js';
 
 const SEM_POPUP = /^\/(login|password|delete-account|privacy|tutorial|jogo)(\/|$)/;
 
@@ -46,7 +47,7 @@ export default function AvisoConta() {
       aTratar.current = userId;
       const { data, error } = await sb
         .from('avisos_conta')
-        .select('id, titulo, mensagem')
+        .select('id, titulo, mensagem, botao_texto, botao_link')
         .eq('user_id', userId)
         .is('mostrado_em', null)
         .order('criado_em', { ascending: true })
@@ -63,7 +64,13 @@ export default function AvisoConta() {
       }
 
       await ui.open((close) => (
-        <PopupAviso titulo={data.titulo} mensagem={data.mensagem} onClose={close} />
+        <PopupAviso
+          titulo={data.titulo}
+          mensagem={data.mensagem}
+          botaoTexto={data.botao_texto}
+          botaoLink={data.botao_link}
+          onClose={close}
+        />
       ));
       await sb
         .from('avisos_conta')
@@ -86,7 +93,7 @@ export default function AvisoConta() {
   return null;
 }
 
-function PopupAviso({ titulo, mensagem, onClose }) {
+function PopupAviso({ titulo, mensagem, botaoTexto, botaoLink, onClose }) {
   const t = useT();
 
   useEffect(() => {
@@ -116,6 +123,18 @@ function PopupAviso({ titulo, mensagem, onClose }) {
           {mensagem}
         </p>
 
+        {botaoTexto && /^https:\/\//.test(botaoLink || '') && (
+          <button
+            type="button"
+            className="btn btn--block wpppop__btn"
+            onClick={() => {
+              abrirFora(botaoLink);
+              onClose(true);
+            }}
+          >
+            {botaoTexto}
+          </button>
+        )}
         <button type="button" className="btn btn--block" onClick={() => onClose(true)}>
           {t('avisoConta.ok')}
         </button>

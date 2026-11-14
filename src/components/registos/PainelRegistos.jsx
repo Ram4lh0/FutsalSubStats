@@ -40,6 +40,13 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
   const tem = (id) => r.tipos.has(id);
   const calorNos = marcadores(state, { registos: [REGISTO.REMATE] });
   const calorEles = marcadores(state, { registos: [REGISTO.REMATE_ADV] });
+  // Só remates: o mapa dos remates (com legenda que filtra) já os mostra, e o
+  // campo de cima ficava repetido, com um único botão "Remates".
+  const soRemates =
+    filtros.length > 0 &&
+    filtros.every((f) => f === REGISTO.REMATE || f === REGISTO.REMATE_ADV) &&
+    (calorNos.length > 0 || calorEles.length > 0) &&
+    !jogador;
   const marcas = filtro
     ? marcadores(state, { registos: [filtro] }).filter((m) => !jogador || m.playerId === jogador)
     : [];
@@ -126,7 +133,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
         ) : null}
       </div>
 
-      {r.rematesComResultado ? (
+      {r.rematesComResultado && !soRemates ? (
         <div className="regpainel__legenda">
           {Object.values(RESULTADO_REMATE).map((o) => (
             <span key={o} className="regpainel__item" style={{ '--cor': COR_RESULTADO[o] }}>
@@ -136,7 +143,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
         </div>
       ) : null}
 
-      {filtros.length ? (
+      {filtros.length && !soRemates ? (
         <>
           <div className="regpainel__filtros">
             {filtros.map((f) => (

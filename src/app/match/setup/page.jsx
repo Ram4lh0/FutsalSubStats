@@ -16,6 +16,7 @@ import { confirmarPoucosConvocados } from '@/lib/squad.js';
 import { linkLimpo } from '@/lib/convocatoria.js';
 import { useUI } from '@/lib/ui.jsx';
 import { useAuth } from '@/lib/auth.jsx';
+import { PAPEL, lerPartilha } from '@/domain/partilha.js';
 import { clubs, teams, competitions, players, matches, squad, events, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { startFirstHalf } from '@/domain/actions.js';
@@ -61,6 +62,11 @@ function Preparacao() {
       const carregado = await loadMatch(matchId);
       if (!carregado) return setDados({ vazio: true });
       const { match, state } = carregado;
+
+      // Jogo com registo partilhado, papel Registos: não tem cinco nem relógio.
+      if (lerPartilha(carregado.events).papel === PAPEL.REGISTOS) {
+        return router.replace(rotas.jogoRegistos(matchId));
+      }
 
       if (state.status !== MATCH_STATUS.DRAFT && state.status !== MATCH_STATUS.READY) {
         return router.replace(
@@ -121,12 +127,14 @@ function Preparacao() {
   // Um jogador inativo que já esteja convocado continua a aparecer: tirá-lo da
   // lista escondia uma convocatória feita antes de ele ser desativado.
   const elegiveis = roster.filter((p) => p.isActive || escolhidos.includes(p.id));
+  // O número de camisola deste jogo (pode diferir do plantel) fica como foi escolhido.
+  const numeroNoJogo = (p) => state.players[p.id]?.number ?? p.shirtNumber;
   const candidatos = elegiveis
     .filter((p) => escolhidos.includes(p.id))
     .map((p) => ({
       playerId: p.id,
       name: p.name,
-      number: p.shirtNumber,
+      number: numeroNoJogo(p),
       preferredPosition: p.preferredPosition,
     }));
 
@@ -216,7 +224,7 @@ function Preparacao() {
         .map((p) => ({
           playerId: p.id,
           playerNameSnapshot: p.name,
-          shirtNumberSnapshot: p.shirtNumber,
+          shirtNumberSnapshot: numeroNoJogo(p),
           preferredPosition: p.preferredPosition,
           initialPosition: inverso[p.id] || null,
           initialLocation: inverso[p.id] ? LOCATION.COURT : LOCATION.BENCH,
@@ -385,7 +393,7 @@ function Preparacao() {
                 if (!arraste.acabouDeArrastar()) alternar(p);
               }}
             >
-              <span className="pick__num">{p.shirtNumber}</span>
+              <span className="pick__num">{numeroNoJogo(p)}</span>
               <span className="pick__name">{p.name}</span>
               <span className="pick__pos">{positionLabel(p.preferredPosition)}</span>
             </button>

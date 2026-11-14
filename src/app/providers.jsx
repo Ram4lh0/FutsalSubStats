@@ -189,6 +189,12 @@ function SyncBridge() {
     const aoFocar = () => {
       if (document.visibilityState === 'visible') atualizar();
     };
+    // Verificação leve de tempos a tempos com a app à frente e com rede: um
+    // pedido pequeno (as marcas do servidor) e a contagem local do que está por
+    // enviar. Só descarrega ou envia se houver mesmo alguma coisa.
+    const verificacao = setInterval(() => {
+      if (document.visibilityState === 'visible' && navigator.onLine !== false) atualizar();
+    }, 60000);
     window.addEventListener('online', aoVoltar);
     window.addEventListener('focus', aoVoltar);
     document.addEventListener('visibilitychange', aoFocar);
@@ -197,6 +203,7 @@ function SyncBridge() {
 
     return () => {
       vivo = false;
+      clearInterval(verificacao);
       window.removeEventListener('online', aoVoltar);
       window.removeEventListener('focus', aoVoltar);
       document.removeEventListener('visibilitychange', aoFocar);

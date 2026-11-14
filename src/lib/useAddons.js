@@ -21,6 +21,20 @@ import { addonsAtivos } from '../domain/addons.js';
 
 const NENHUM = new Set();
 
+/**
+ * Add-ons ligados só neste computador, para ver uma feature antes de a ligar
+ * num escalão a sério: `NEXT_PUBLIC_ADDONS_LOCAIS=jogo-partilhado npm run dev`.
+ * Só vale em desenvolvimento — num build (site, lojas, pacote OTA) é ignorado,
+ * mesmo que a variável lá esteja.
+ */
+function addonsLocais() {
+  if (process.env.NODE_ENV === 'production') return [];
+  return String(process.env.NEXT_PUBLIC_ADDONS_LOCAIS || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
 /** @returns {Set<string>} os ids dos add-ons activos (vazio se nenhum). */
 export default function useAddons(teamId) {
   const [ativos, setAtivos] = useState(NENHUM);
@@ -30,7 +44,10 @@ export default function useAddons(teamId) {
     async function carregar() {
       const config = teamId ? await statConfig.get(teamId).catch(() => null) : null;
       if (!vivo) return;
-      const novos = addonsAtivos(config);
+      const locais = teamId ? addonsLocais() : [];
+      const novos = addonsAtivos(
+        locais.length ? { ...(config || {}), addons: [...(config?.addons || []), ...locais] } : config
+      );
       // Mantém a mesma referência quando nada mudou: quem depende dela não
       // volta a desenhar por causa de uma sincronização que não trouxe nada.
       setAtivos((atuais) =>

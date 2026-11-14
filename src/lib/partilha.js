@@ -21,19 +21,25 @@ function nativo() {
   return Boolean(cap.isNative);
 }
 
-function baseDosLinks() {
-  return !nativo() && typeof window !== 'undefined' && /^https?:$/.test(window.location.protocol)
-    ? window.location.origin
-    : URL_WEB;
+function urlPublico(caminho) {
+  const base =
+    !nativo() && typeof window !== 'undefined' && /^https?:$/.test(window.location.protocol)
+      ? window.location.origin
+      : URL_WEB;
+  return `${base}${caminho}`;
 }
 
 export function urlDaJogada(token) {
-  return `${baseDosLinks()}${rotas.jogadaPublica(token)}`;
+  return urlPublico(rotas.jogadaPublica(token));
+}
+
+export function urlDaDisponibilidade(token) {
+  return urlPublico(rotas.disponibilidadePublica(token));
 }
 
 /** O link público de uma sessão de vídeo (os clipes escolhidos para um jogador). */
 export function urlDoVideo(token) {
-  return `${baseDosLinks()}${rotas.videoPublico(token)}`;
+  return urlPublico(rotas.videoPublico(token));
 }
 
 /** Está-se dentro da app nativa (iOS/Android), e não no browser? */

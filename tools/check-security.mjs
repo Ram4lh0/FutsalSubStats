@@ -32,13 +32,13 @@ const sql = ler(MIGRACOES);
 /* ------------------------------------- 1. toda a tabela tem de ser protegida */
 
 const tabelas = new Set(
-  [...sql.matchAll(/create table (?:if not exists )?([a-z_]+)/g)].map((m) => m[1])
+  [...sql.matchAll(/create table (?:if not exists )?([a-z_]+(?:\.[a-z_]+)?)/g)].map((m) => m[1])
 );
 const comRls = new Set(
-  [...sql.matchAll(/alter table\s+([a-z_]+)\s+enable row level security/g)].map((m) => m[1])
+  [...sql.matchAll(/alter table\s+([a-z_]+(?:\.[a-z_]+)?)\s+enable row level security/g)].map((m) => m[1])
 );
 const comPolitica = new Set(
-  [...sql.matchAll(/create policy [a-z_]+ on ([a-z_]+)/g)].map((m) => m[1])
+  [...sql.matchAll(/create policy [a-z_]+ on ([a-z_]+(?:\.[a-z_]+)?)/g)].map((m) => m[1])
 );
 
 // Uma tabela pode, deliberadamente, não ter política nenhuma: é assim que se
@@ -53,7 +53,7 @@ const comPolitica = new Set(
 //
 //   -- sem-politica: <a razão>
 const semPoliticaDeliberado = new Set(
-  [...sql.matchAll(/--\s*sem-politica:\s*[^\n]*\n[\s\S]{0,400}?create table (?:if not exists )?([a-z_]+)/g)]
+  [...sql.matchAll(/--\s*sem-politica:\s*[^\n]*\n[\s\S]{0,400}?create table (?:if not exists )?([a-z_]+(?:\.[a-z_]+)?)/g)]
     .map((m) => m[1])
 );
 

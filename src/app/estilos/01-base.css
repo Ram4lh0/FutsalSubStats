@@ -481,6 +481,9 @@ ul { padding: 0; list-style: none; }
 .app.is-live .appbar { padding-top: max(4px, var(--seguro-cima)); padding-bottom: 4px; }
 .app.is-live .mainnav-top,
 .app.is-live .mainnav--bottom,
-.app.is-live .mainnav--side {
+.app.is-live .mainnav--side,
+.app.is-registos .mainnav-top,
+.app.is-registos .mainnav--bottom,
+.app.is-registos .mainnav--side {
   display: none;
 }

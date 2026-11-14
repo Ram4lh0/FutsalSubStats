@@ -425,7 +425,6 @@ export async function push(userId, email) {
     [db.STORES.competitions, competitionMapper, competicoes],
     [db.STORES.players, playerMapper, jogadores],
     [db.STORES.matches, matchMapper, jogos],
-    [db.STORES.matchSquad, squadMapper, convocadosSujos],
   ]) {
     if (!linhas.length) continue;
     let { error } = await sb.from(mapper.table).upsert(linhas.map((r) => mapper.toRow(r)));
@@ -443,6 +442,51 @@ export async function push(userId, email) {
     if (error) throw etiqueta(error, `${mapper.table} (${detalharLinhas(linhas)})`);
     await clean(store, linhas);
     total += linhas.length;
+  }
+
+  // Convocatórias, jogo a jogo. Uma que passe o limite da competição (erro
+  // 23514 do servidor) não pode travar o resto: ficaria sem sincronizar os
+  // eventos, os resultados e tudo o que vem depois. Fica por enviar, o resto
+  // segue, e o erro é levantado no fim com a explicação.
+  const excedidos = [];
+  {
+    const porJogo = new Map();
+    for (const c of convocadosSujos) {
+      if (!porJogo.has(c.matchId)) porJogo.set(c.matchId, []);
+      porJogo.get(c.matchId).push(c);
+    }
+    for (const [matchId, linhas] of porJogo) {
+      // A convocatória deste aparelho é a verdadeira. Os jogadores que o
+      // treinador tirou nunca eram apagados lá em cima, e o servidor conta-os
+      // para o limite da competição: 12 antigos + 3 trocados = 15, recusado.
+      // Antes de enviar, tiram-se do servidor os que já não estão aqui.
+      const locais = await db.byIndex(db.STORES.matchSquad, 'by_match', matchId);
+      const idsJogadores = locais.map((c) => c.playerId).filter(Boolean);
+      if (idsJogadores.length) {
+        const { error: erroLimpar } = await sb
+          .from(squadMapper.table)
+          .delete()
+          .eq('match_id', matchId)
+          .not('player_id', 'in', `(${idsJogadores.join(',')})`);
+        if (erroLimpar) throw etiqueta(erroLimpar, `${squadMapper.table} (limpar)`);
+      }
+      const { error } = await sb.from(squadMapper.table).upsert(linhas.map((r) => squadMapper.toRow(r)));
+      if (error) {
+        if (String(error.code) === '23514') {
+          const jogo = jogos.find((m) => m.id === matchId);
+          const limite = /(d+)/.exec(error.message || '')?.[1] || '?';
+          excedidos.push({
+            jogo: jogo?.opponentName || matchId.slice(0, 8),
+            n: linhas.length,
+            limite,
+          });
+          continue;
+        }
+        throw etiqueta(error, `${squadMapper.table} (${detalharLinhas(linhas)})`);
+      }
+      await clean(db.STORES.matchSquad, linhas);
+      total += linhas.length;
+    }
   }
 
   // Depois dos jogadores: a foto precisa que o jogador já exista lá.
@@ -474,6 +518,13 @@ export async function push(userId, email) {
 
   total += await pushTreino(sb);
   total += await pushVideo(sb);
+
+  if (excedidos.length) {
+    const e = excedidos[0];
+    const erro = new Error(t('sinc.convocatoriaExcede', { jogo: e.jogo, limite: e.limite }));
+    erro.codigo = '23514';
+    throw erro;
+  }
 
   return { pushed: total };
 }
@@ -1368,6 +1419,22 @@ export async function flush(userId, email) {
   aCorrer = true;
   try {
     const { pushed } = await push(userId, email);
+    // Só se dá por sincronizado depois de contar o que sobrou. O envio pode
+    // deixar linhas para trás sem erro (jogo sem escalão, sessão ainda por
+    // carregar) e antes isso ficava como "tudo em dia" com os jogos só no aparelho.
+    const restam = await pendingCount();
+    if (restam > 0) {
+      set({
+        status: SYNC.PENDING,
+        pending: restam,
+        online: true,
+        error: { message: t('sinc.restam', { n: restam }), detalhe: null, codigo: null },
+      });
+      retryMs = Math.min(retryMs * 2, 60000);
+      if (proximaTentativa) clearTimeout(proximaTentativa);
+      proximaTentativa = setTimeout(() => flush(userId, email), retryMs);
+      return pushed;
+    }
     set({ status: SYNC.SYNCED, pending: 0, online: true, lastSyncAt: Date.now(), error: null });
     retryMs = 2000;
     return pushed;
@@ -1494,5 +1561,29 @@ export async function saveNow(userId, email) {
     guardado: estado.status === SYNC.SYNCED,
     status: estado.status,
     pendentes: estado.pending,
+  };
+}
+
+/**
+ * Sincronização completa a pedido: descarrega o que há de novo no servidor,
+ * envia o que ficou aqui e diz como acabou. É o que os botões "Sincronizar"
+ * chamam — antes só enviavam e não diziam nada.
+ */
+export async function sincronizarTudo(userId, email) {
+  let erro = null;
+  if (userId && online() && !emDemo()) {
+    try {
+      await pull(userId);
+    } catch (err) {
+      erro = err?.message || String(err);
+    }
+  }
+  const r = await saveNow(userId, email);
+  const msg = estado.error?.message || erro;
+  return {
+    ok: r.guardado && !erro && r.pendentes === 0,
+    status: r.status,
+    pendentes: r.pendentes,
+    erro: r.guardado && !erro ? null : msg,
   };
 }

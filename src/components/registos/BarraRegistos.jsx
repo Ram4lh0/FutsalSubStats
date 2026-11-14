@@ -7,8 +7,8 @@
 //
 // Cada célula é um contador "− n +": o "+" regista (com as perguntas que o
 // escalão pedir), o "−" tira o último registo desse tipo, para um engano (ver
-// `tirarUltimo`). Uma célula só com o número é informação que se regista
-// noutro sítio (os nossos remates, nos cartões dos jogadores).
+// `tirarUltimo`). Os nossos remates também se somam aqui: o "+" pergunta
+// primeiro quem rematou, dos que estão em campo.
 //
 // No telemóvel a grelha vira-se: uma linha por registo e as colunas nós e
 // eles, para caber sem deslizar. São as mesmas células, desenhadas duas vezes
@@ -32,17 +32,13 @@ function lerEscondida() {
   }
 }
 
-export default function BarraRegistos({ state, ligados, ourName, opponentName, on }) {
+/**
+ * Os contadores de equipa ligados: uma coluna por registo, com a célula de
+ * cada equipa (`null` deixa a célula vazia). Também a usa o ecrã do jogo,
+ * para saber se cabe tudo nos cards dos cartões (ver `registoUnicoPorEquipa`).
+ */
+export function colunasRegistos(state, ligados, on) {
   const r = resumoRegistos(state);
-  const [escondida, setEscondida] = useState(lerEscondida);
-  const mudar = (valor) => {
-    setEscondida(valor);
-    try {
-      window.localStorage.setItem(CHAVE_ESCONDIDA, valor ? '1' : '0');
-    } catch {
-      // Sem armazenamento (janela privada): fica só até sair do ecrã.
-    }
-  };
   const passeNaBarra = ligados.has(REGISTO.PASSE_FALHADO) && ligados.opcoes?.passe_falhado?.barra;
 
   // Cada coluna: o rótulo e, para cada equipa, o valor e o que fazem os
@@ -51,7 +47,9 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
   const colunas = [
     (ligados.has(REGISTO.REMATE) || ligados.has(REGISTO.REMATE_ADV)) && {
       id: 'remates',
-      US: ligados.has(REGISTO.REMATE) ? { valor: r.remates } : null,
+      US: ligados.has(REGISTO.REMATE)
+        ? contador(REGISTO.REMATE, r.remates, on.registarRemateBarra)
+        : null,
       THEM: ligados.has(REGISTO.REMATE_ADV)
         ? contador(REGISTO.REMATE_ADV, r.rematesAdv, on.registarRemateAdv)
         : null,
@@ -81,7 +79,82 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
         }
     ),
   ].filter(Boolean);
+  return { colunas, r, passeNaBarra };
 
+}
+
+/**
+ * Com no máximo um contador de cada lado (p. ex. os nossos remates e os
+ * remates deles), a barra é um painel inteiro para dois números: esses
+ * contadores passam para debaixo dos cartões de cada equipa, no marcador.
+ * Devolve `{ US, THEM }` (cada um `{ id, c }` ou `null`), ou `null` quando
+ * não é o caso.
+ */
+export function registoUnicoPorEquipa(colunas) {
+  if (!colunas.length) return null;
+  const lado = (equipa) => colunas.filter((col) => col[equipa]).map((col) => ({ id: col.id, c: col[equipa] }));
+  const nos = lado('US');
+  const eles = lado('THEM');
+  if (nos.length > 1 || eles.length > 1) return null;
+  return { US: nos[0] || null, THEM: eles[0] || null };
+}
+
+/** Uma célula "− n +" (ou só o número, se não se soma por aqui). */
+export function CelulaRegisto({ c, nome, on, classe = 'regbar' }) {
+  if (!c) return <span className={`${classe}__vazio`} />;
+  if (!c.mais) return <span className={`${classe}__so`}>{c.valor}</span>;
+  const quem = { registo: t(`registos.nome.${c.registo}`), equipa: nome };
+  return (
+    <span className={`${classe}__passo`}>
+      <button
+        type="button"
+        className={`${classe}__menos`}
+        disabled={!c.valor}
+        aria-label={t('registos.tirarUm', quem)}
+        title={t('registos.tirarUm', quem)}
+        onClick={() => on.tirarUltimo(c.registo, c.equipa)}
+      >
+        −
+      </button>
+      <strong className={`${classe}__n`}>{c.valor}</strong>
+      <button
+        type="button"
+        className={`${classe}__mais`}
+        aria-label={t('registos.somarUm', quem)}
+        title={t('registos.somarUm', quem)}
+        onClick={c.mais}
+      >
+        +
+      </button>
+    </span>
+  );
+}
+
+/**
+ * O contador único de uma equipa, como linha dentro do card dos cartões
+ * (`TeamCards` / `RivalOut`): o nome do registo e o "− n +".
+ */
+export function RegistoNoCard({ unico, nome, on }) {
+  if (!unico) return null;
+  return (
+    <span className="rivalout__registo">
+      <span className="rivalout__registo-rot">{t(`registos.barra.${unico.id}`)}</span>
+      <CelulaRegisto c={unico.c} nome={nome} on={on} classe="rivalout__reg" />
+    </span>
+  );
+}
+
+export default function BarraRegistos({ state, ligados, ourName, opponentName, on, compacta = false, semNomes = false }) {
+  const { colunas, r, passeNaBarra } = colunasRegistos(state, ligados, on);
+  const [escondida, setEscondida] = useState(lerEscondida);
+  const mudar = (valor) => {
+    setEscondida(valor);
+    try {
+      window.localStorage.setItem(CHAVE_ESCONDIDA, valor ? '1' : '0');
+    } catch {
+      // Sem armazenamento (janela privada): fica só até sair do ecrã.
+    }
+  };
   // O que se regista nos cartões dos jogadores, em texto curto.
   const curto = [
     [REGISTO.RECUPERACAO, r.recuperacoes],
@@ -94,35 +167,9 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
     .map(([id, n]) => t(`registos.curto.${id}`, { n }))
     .join(' · ');
 
-  const celula = (c, nome) => {
-    if (!c) return <span className="regbar__vazio" />;
-    if (!c.mais) return <span className="regbar__so">{c.valor}</span>;
-    const quem = { registo: t(`registos.nome.${c.registo}`), equipa: nome };
-    return (
-      <span className="regbar__passo">
-        <button
-          type="button"
-          className="regbar__menos"
-          disabled={!c.valor}
-          aria-label={t('registos.tirarUm', quem)}
-          title={t('registos.tirarUm', quem)}
-          onClick={() => on.tirarUltimo(c.registo, c.equipa)}
-        >
-          −
-        </button>
-        <strong className="regbar__n">{c.valor}</strong>
-        <button
-          type="button"
-          className="regbar__mais"
-          aria-label={t('registos.somarUm', quem)}
-          title={t('registos.somarUm', quem)}
-          onClick={c.mais}
-        >
-          +
-        </button>
-      </span>
-    );
-  };
+  // Sem nenhum registo do adversário ligado, a barra é só nossa: não há linha deles.
+  const haEles = colunas.some((c) => c.THEM);
+  const celula = (c, nome) => <CelulaRegisto c={c} nome={nome} on={on} />;
 
   const verEstatisticas = (
     <button type="button" className="regbar__acao" onClick={on.verRegistos} title={curto || undefined}>
@@ -147,11 +194,12 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
     </span>
   );
 
-  // Escondida, ou sem contadores de equipa: só uma linha fina.
-  if (escondida || !colunas.length) {
+  // Escondida, sem contadores de equipa, ou com os contadores nos cards dos
+  // cartões (`compacta`): só uma linha fina.
+  if (escondida || compacta || !colunas.length) {
     return (
-      <section className="regbar regbar--fina" aria-label={t('registos.titulo')}>
-        {colunas.length ? (
+      <section className={`regbar regbar--fina ${compacta ? 'regbar--compacta' : ''}`} aria-label={t('registos.titulo')}>
+        {colunas.length && !compacta ? (
           <button
             type="button"
             className="regbar__acao"
@@ -168,17 +216,17 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
   }
 
   return (
-    <section className="regbar" aria-label={t('registos.titulo')}>
+    <section className={`regbar ${haEles ? '' : 'regbar--so-nos'}`} aria-label={t('registos.titulo')}>
       {colunas.length ? (
         <div className="regbar__lista">
           {topo}
-          <span className="regbar__eq">{ourName}</span>
-          <span className="regbar__eq regbar__eq--deles">{opponentName}</span>
+          <span className="regbar__eq">{semNomes ? null : ourName}</span>
+          {haEles ? <span className="regbar__eq regbar__eq--deles">{semNomes ? null : opponentName}</span> : null}
           {colunas.map((c) => (
             <Fragment key={c.id}>
               <span className="regbar__rot regbar__rot--linha">{t(`registos.barra.${c.id}`)}</span>
               <span className="regbar__cel">{celula(c.US, ourName)}</span>
-              <span className="regbar__cel regbar__cel--deles">{celula(c.THEM, opponentName)}</span>
+              {haEles ? <span className="regbar__cel regbar__cel--deles">{celula(c.THEM, opponentName)}</span> : null}
             </Fragment>
           ))}
         </div>
@@ -191,18 +239,20 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
               {t(`registos.barra.${c.id}`)}
             </span>
           ))}
-          <span className="regbar__eq">{ourName}</span>
+          <span className="regbar__eq">{semNomes ? null : ourName}</span>
           {colunas.map((c) => (
             <span key={c.id} className="regbar__cel">
               {celula(c.US, ourName)}
             </span>
           ))}
-          <span className="regbar__eq regbar__eq--deles">{opponentName}</span>
-          {colunas.map((c) => (
-            <span key={c.id} className="regbar__cel regbar__cel--deles">
-              {celula(c.THEM, opponentName)}
-            </span>
-          ))}
+          {haEles ? <span className="regbar__eq regbar__eq--deles">{semNomes ? null : opponentName}</span> : null}
+          {haEles
+            ? colunas.map((c) => (
+                <span key={c.id} className="regbar__cel regbar__cel--deles">
+                  {celula(c.THEM, opponentName)}
+                </span>
+              ))
+            : null}
         </div>
       ) : null}
     </section>

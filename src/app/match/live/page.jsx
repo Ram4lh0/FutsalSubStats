@@ -6,12 +6,14 @@
 // grava um evento e o estado é recalculado a partir de todos os eventos. É o que
 // permite desfazer, corrigir e sobreviver a um recarregamento a meio.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import { Empty } from '@/components/bits.jsx';
 import { Dialog, useUI } from '@/lib/ui.jsx';
+import PainelTempos from '@/components/live/PainelTempos.jsx';
+import { perguntarMinutoDoRelogio } from '@/lib/relogioEditing.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import Halftime from '@/components/live/Halftime.jsx';
 import Penaltis from '@/components/live/Penaltis.jsx';
@@ -42,7 +44,7 @@ import * as A from '@/domain/actions.js';
 import * as V from '@/domain/validation.js';
 import { countOnCourt, foulsInPeriod, foulsTotal, powerPlayAtivo } from '@/domain/reducer.js';
 import { playerCards } from '@/domain/stats.js';
-import { fmt, readClock } from '@/domain/clock.js';
+import { fmt, periodProgress, readClock } from '@/domain/clock.js';
 import { openPenalties, penaltyBoard, canStartPenalty, canReplaceExpelled, PENALTY_STATUS } from '@/domain/penalties.js';
 import {
   EVENT,
@@ -70,13 +72,22 @@ import useArrasto from '@/lib/arrastar.js';
 import { setGuidedTutorialStepById } from '@/lib/tutorial.js';
 import useRegistos from '@/lib/useRegistos.js';
 import useAcoesRegistos from '@/components/registos/useAcoesRegistos.js';
-import BarraRegistos from '@/components/registos/BarraRegistos.jsx';
+import BarraRegistos, {
+  colunasRegistos,
+  registoUnicoPorEquipa,
+  RegistoNoCard,
+} from '@/components/registos/BarraRegistos.jsx';
 import useAddons from '@/lib/useAddons.js';
 import useEnviarAoVivo from '@/lib/useEnviarAoVivo.js';
 import { deveAssistir } from '@/lib/aoVivo.js';
 import { ADDON_AO_VIVO } from '@/domain/aoVivo.js';
+import { PAPEL, lerPartilha } from '@/domain/partilha.js';
+import { jogoSincronizado } from '@/lib/partilhado.js';
 
 const OWN_GOAL = '__OWN_GOAL__';
+
+/** Nenhum registo ligado (o papel Tempos de um jogo partilhado). */
+const SEM_REGISTOS = Object.assign(new Set(), { opcoes: {} });
 
 export default function LivePage() {
   return (
@@ -101,6 +112,7 @@ function Live() {
   // A história da demonstração, por cima do intervalo (components/DemoHistoria).
   // Lida depois de montar: no servidor não há sessionStorage.
   const [historia, setHistoria] = useState(false);
+  const [verTempos, setVerTempos] = useState(false);
   useEffect(() => setHistoria(emDemo() && !historiaJaVista()), []);
   // Sanções cujo fim já foi anunciado — evita repetir o aviso a cada batimento e
   // evita anunciar sanções que já tinham terminado quando o ecrã abriu.
@@ -118,7 +130,14 @@ function Live() {
   // nenhum, o ecrã fica exactamente como sempre. Os handlers vivem num hook
   // próprio; `commit` e `scoreFor` são declarados mais abaixo e só se chamam
   // depois de o ecrã estar desenhado.
-  const ligados = useRegistos(match?.teamId);
+  const ligadosDoEscalao = useRegistos(match?.teamId);
+  // Jogo com registo partilhado, papel Tempos: este aparelho fica só com o
+  // tempo — campo, banco, substituições, relógio e períodos — e com o cartão
+  // vermelho, porque uma expulsão mexe em quem está em campo. Golos, faltas,
+  // amarelos e registos apontam-se no aparelho dos Registos.
+  const papel = useMemo(() => lerPartilha(carregado?.events).papel, [carregado]);
+  const soTempos = papel === PAPEL.TEMPOS;
+  const ligados = soTempos ? SEM_REGISTOS : ligadosDoEscalao;
   const registos = useAcoesRegistos({
     state,
     ligados,
@@ -193,6 +212,30 @@ function Live() {
       beep();
       toast(t('acao.sancaoCumprida', { numero: p.number, nome: p.name }), 'ok', 8000);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clockMs, state]);
+
+  // O relógio pára sozinho quando a parte chega ao fim (20:00, 40:00…), no
+  // instante exacto: a paragem fica gravada com a hora em que o limite foi
+  // atingido, não com a do próximo batimento. Só pára uma vez por parte; se o
+  // árbitro deu descontos, retoma-se à mão e já não volta a parar.
+  const paradaNaParte = useRef(null);
+  useEffect(() => {
+    if (!state || !match || state.timerStatus !== 'RUNNING') return;
+    // No jogo corrido o relógio é só uma referência e não pára.
+    if (timingOf(match) !== MATCH_TIMING.TIMED) return;
+    const limite = state.currentPeriod >= 3 ? EXTRA_TIME_PERIOD_MS : match.periodDurationMs;
+    if (!limite) return;
+    const chave = `${matchId}:${state.currentPeriod}`;
+    if (paradaNaParte.current === chave) return;
+    const agora = Date.now();
+    const p = periodProgress(state, limite, agora);
+    if (!p.over) return;
+    paradaNaParte.current = chave;
+    const quando = Math.max(state.timerStartedAt || 0, agora - p.overtimeMs);
+    commit(A.pauseClock(state, quando), { sync: 'defer' });
+    beep();
+    toast(t('vivo.parteAcabou', { limite: fmt(limite) }), 'ok', 8000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clockMs, state]);
 
@@ -748,6 +791,7 @@ function Live() {
     const temAmarelo = state.cards.some((c) => c.playerId === p.playerId && c.type === CARD.YELLOW);
     return (
       <>
+        {soTempos ? null : (
         <button
           className="menu__item menu__item--yellow"
           onClick={() => {
@@ -761,6 +805,7 @@ function Live() {
             <span className="menu__hint">{t('acao.jaTem', { n: cartoes.yellows })}</span>
           ) : null}
         </button>
+        )}
         <button
           className="menu__item menu__item--danger"
           onClick={() => {
@@ -1116,6 +1161,10 @@ function Live() {
       { sync: 'defer' }
     );
     await sync.saveNow(userId, user?.email);
+    // Jogo com registo partilhado: só se junta depois de chegar ao servidor.
+    if (papel && !(await jogoSincronizado(matchId))) {
+      toast(t('partilhado.faixa.porSincronizar'), 'error', 6000);
+    }
     setGuidedTutorialStepById('summary');
     router.push(rotas.jogoResumo(matchId));
   }
@@ -1189,6 +1238,19 @@ function Live() {
     // Acertar o relógio. O passo vem em milissegundos e pode ser negativo; o
     // reducer é que trava para não passar do zero.
     adjustClock: (deltaMs) => commit(A.adjustClock(state, deltaMs, Date.now()), { sync: 'defer' }),
+    // Quem regista os tempos diz o minuto verdadeiro da parte: acerta-se o
+    // relógio de uma vez, e os tempos dos jogadores seguem-no.
+    ...(soTempos
+      ? {
+          bancoEfetivo: true,
+          editClock: async (periodMs) => {
+            const alvo = await perguntarMinutoDoRelogio(ui, periodMs);
+            if (alvo == null) return;
+            const atual = periodProgress(state, match.periodDurationMs, Date.now()).periodMs;
+            if (alvo !== atual) await commit(A.adjustClock(state, alvo - atual, Date.now()), { sync: 'defer' });
+          },
+        }
+      : {}),
     togglePowerPlay: (ligar) => commit(A.setPowerPlay(state, ligar)),
     opponentExpulsion: (delta) => commit(A.opponentExpulsion(state, delta)),
     registarAmareloAdversario,
@@ -1234,7 +1296,7 @@ function Live() {
   if (state.status === MATCH_STATUS.HALFTIME) {
     const pausaProl = fase === 'PAUSA_PROL' || fase === 'PAUSA_PROL2';
     return (
-      <div className="live live--pause">
+      <div className={`live live--pause ${soTempos ? 'live--so-tempos' : ''}`}>
         <header className="live__head live__head--halftime">
           <Scoreboard
             state={state}
@@ -1276,15 +1338,16 @@ function Live() {
           ourName={ourName}
           opponentName={rivalName}
           onEditGoal={editarGolo}
-          onAddGoal={acrescentarGolo}
+          onAddGoal={soTempos ? undefined : acrescentarGolo}
           onCorrectScore={corrigirResultado}
-          onAddFoul={acrescentarFalta}
+          onAddFoul={soTempos ? undefined : acrescentarFalta}
           onEditFoul={editarFalta}
-          onAddCard={acrescentarCartao}
+          onAddCard={soTempos ? undefined : acrescentarCartao}
           onEditCard={editarCartao}
           onEditRegisto={editarRegisto}
           onAddRegisto={ligados.size ? acrescentarRegisto : undefined}
           onEditTempos={pausaProl ? undefined : editarTemposDaPrimeira}
+          soTempos={soTempos}
           onStart={pausaProl ? startExtraTime : startSecondHalf}
           {...(pausaProl
             ? {
@@ -1332,10 +1395,16 @@ function Live() {
   const duracaoDaParte = state.currentPeriod >= 3 ? EXTRA_TIME_PERIOD_MS : match.periodDurationMs;
   const undoable = state.lastUndoable;
 
+  // Só um contador de cada lado (p. ex. remates nossos e deles): vai para
+  // debaixo dos cartões de cada equipa e a barra fica uma linha fina.
+  const unico = ligados.size ? registoUnicoPorEquipa(colunasRegistos(state, ligados, on).colunas) : null;
+  const regNosso = unico ? <RegistoNoCard unico={unico.US} nome={ourName} on={on} /> : null;
+  const regDeles = unico ? <RegistoNoCard unico={unico.THEM} nome={rivalName} on={on} /> : null;
+
   return (
-    <div className="live">
+    <div className={`live ${soTempos ? 'live--so-tempos' : ''}`}>
       <header
-        className={`live__head ${timing === MATCH_TIMING.TIMED ? 'live__head--cronometrado' : ''}`}
+        className={`live__head ${timing === MATCH_TIMING.TIMED ? 'live__head--cronometrado' : ''} ${unico ? 'live__head--com-registo' : ''}`}
         data-tour="live-clock"
       >
         <Scoreboard
@@ -1344,22 +1413,23 @@ function Live() {
           opponentName={rivalName}
           ourFull={club?.name || ''}
           opponentFull={match.opponentName}
-          interactive
+          interactive={!soTempos}
           on={on}
-          opponentExtra={<RivalOut state={state} on={on} variant="inline" />}
-          ourExtra={<TeamCards state={state} on={on} variant="inline" />}
+          opponentExtra={soTempos ? null : <RivalOut state={state} on={on} variant="inline" extra={regDeles} />}
+          ourExtra={soTempos ? null : <TeamCards state={state} on={on} variant="inline" extra={regNosso} />}
         />
         <ClockBox
           state={state}
           periodDurationMs={duracaoDaParte}
           periodLabel={periodLabel}
           now={now}
+          countdown={timing === MATCH_TIMING.TIMED}
           // Só no jogo cronometrado. No corrido o relógio é uma referência, não
           // uma contagem oficial, e não há paragens onde alguém se possa enganar.
           on={timing === MATCH_TIMING.TIMED ? on : null}
         />
-        <RivalOut state={state} on={on} />
-        <TeamCards state={state} on={on} />
+        <RivalOut state={state} on={on} extra={regDeles} />
+        <TeamCards state={state} on={on} extra={regNosso} />
         <div className="live__controls">
           {/* No jogo cronometrado a pausa vive no canto inferior direito, ao
               alcance do polegar; aqui em cima seria um segundo botão igual. */}
@@ -1395,6 +1465,11 @@ function Live() {
               {t('acao.terminarJogo')}
             </button>
           )}
+          {soTempos ? (
+            <button className="btn btn--big btn--ghost" onClick={() => setVerTempos(true)}>
+              {t('tpainel.botao')}
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -1409,6 +1484,7 @@ function Live() {
           ourName={ourName}
           opponentName={rivalName}
           on={on}
+          compacta={!!unico}
         />
       ) : null}
 
@@ -1425,6 +1501,12 @@ function Live() {
 
         <Bench state={state} sel={sel} clockMs={clockMs} on={on} arrasto={arrasto} />
       </div>
+
+      {verTempos ? (
+        <Dialog title={t('tpainel.titulo')} onClose={() => setVerTempos(false)} wide>
+          <PainelTempos state={state} clockMs={clockMs} />
+        </Dialog>
+      ) : null}
 
       <footer className="live__bar">
         <button

@@ -71,6 +71,10 @@ export const NOME_REGISTO = {
  * também estiverem ligadas. O painel avisa quando faltam.
  */
 export const ADDONS = {
+  'disponibilidade-convocatoria': {
+    grupo: 'treino',
+    nome: 'Formulário de disponibilidade nas convocatórias',
+  },
   // Uma entrada "Visão geral do clube" no seletor de escalões: os resultados
   // de todos os escalões no fim de semana, numa só janela, e a comparação
   // entre eles. Aparece no clube quando está ligada em pelo menos um dos seus
@@ -99,6 +103,14 @@ export const ADDONS = {
   'analise-video': {
     grupo: 'treino',
     nome: 'Análise de vídeo',
+  },
+  // "Registo partilhado" ao criar um jogo: duas pessoas, dois aparelhos, um
+  // regista os tempos e o outro os registos, e no fim juntam-se num jogo só
+  // (botão "Juntar" no resumo). Ver domain/partilha.js. Um jogo criado como
+  // partilhado continua a sê-lo mesmo que o add-on se desligue depois.
+  'jogo-partilhado': {
+    grupo: 'jogo',
+    nome: 'Jogo com registo partilhado (Tempos + Registos)',
   },
 };
 

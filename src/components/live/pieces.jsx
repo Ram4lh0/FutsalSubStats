@@ -118,17 +118,15 @@ function ScoreCell({ team, score, side, interactive, on, children = null }) {
  * banco deles, e é este número que decide se um golo sofrido devolve ou não um
  * jogador nosso. Com 4 contra 4 ninguém repõe.
  */
-export function RivalOut({ state, on, variant = 'standalone' }) {
+export function RivalOut({ state, on, variant = 'standalone', extra = null }) {
   const n = state.opponentExpulsions || 0;
   const amarelos = (state.opponentCards || []).length;
   // Um card só, com título e uma linha por assunto (pedido a 26/09/2026): antes
   // eram dois contadores empilhados sem nome, e o dos amarelos não se percebia
   // o que era.
-  return (
-    <span
-      className={`rivalout rivalout--${variant} ${n ? 'is-on' : ''}`}
-      title={n ? t('vivo.jogamCom', { n: MAX_ON_COURT - n }) : t('vivo.jogamComCinco')}
-    >
+  const titulo = n ? t('vivo.jogamCom', { n: MAX_ON_COURT - n }) : t('vivo.jogamComCinco');
+  const conteudo = (
+    <>
       <span className="rivalout__titulo">{t('vivo.advTitulo')}</span>
       {/* Sem rótulos "Expulsos"/"Amarelos": o cartão diz qual é qual. Para tirar
           uma expulsão toca-se no cartão vermelho (pede confirmação), tal como
@@ -173,7 +171,16 @@ export function RivalOut({ state, on, variant = 'standalone' }) {
           </button>
         </span>
       </span>
-    </span>
+    </>
+  );
+  return (
+    <CardsComRegisto
+      classe={`rivalout rivalout--${variant} ${n ? 'is-on' : ''}`}
+      title={titulo}
+      extra={extra}
+    >
+      {conteudo}
+    </CardsComRegisto>
   );
 }
 
@@ -182,7 +189,7 @@ export function RivalOut({ state, on, variant = 'standalone' }) {
  * cor, que pergunta a quem se aponta. É o mesmo registo do menu do cartão do
  * jogador, só que sem ter de ir procurar o jogador primeiro.
  */
-export function TeamCards({ state, on, variant = 'standalone' }) {
+export function TeamCards({ state, on, variant = 'standalone', extra = null }) {
   const amarelos = state.cards.filter((c) => c.type === 'YELLOW').length;
   const vermelhos = state.cards.filter((c) => c.type === 'RED').length;
   const linha = (n, cor, onAdd, aria) => (
@@ -197,10 +204,34 @@ export function TeamCards({ state, on, variant = 'standalone' }) {
     </span>
   );
   return (
-    <span className={`rivalout rivalout--ours rivalout--${variant}`}>
+    <CardsComRegisto classe={`rivalout rivalout--ours rivalout--${variant}`} extra={extra}>
       <span className="rivalout__titulo">{t('vivo.nossoTitulo')}</span>
       {linha(amarelos, 'yellow', () => on.registarCartaoNosso('YELLOW'), t('vivo.registarAmareloNosso'))}
       {linha(vermelhos, 'red', () => on.registarCartaoNosso('RED'), t('vivo.registarVermelhoNosso'))}
+    </CardsComRegisto>
+  );
+}
+
+/**
+ * O card dos cartões e, quando há um só contador de equipa ligado (p. ex. os
+ * remates), um segundo card com ele, separado e por baixo. Sem contador fica
+ * exactamente como sempre. Com ele, o `.rivalout` passa a ser só a pilha (é
+ * ela que se posiciona) e cada card tem a sua caixa.
+ */
+function CardsComRegisto({ classe, title, extra, children }) {
+  if (!extra) {
+    return (
+      <span className={classe} title={title}>
+        {children}
+      </span>
+    );
+  }
+  return (
+    <span className={`${classe} rivalout--pilha`}>
+      <span className="rivalout__caixa" title={title}>
+        {children}
+      </span>
+      {extra}
     </span>
   );
 }
@@ -238,8 +269,13 @@ function FoulsCell({ state, team, side, interactive, on }) {
  * configurada — o árbitro é que manda. Passado o limite, o número fica âmbar e a
  * linha de baixo troca a contagem decrescente por quanto tempo já vai a mais.
  */
-export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
+export function ClockBox({ state, periodDurationMs, periodLabel, now, on, countdown = false }) {
   const p = periodProgress(state, periodDurationMs, now);
+  // Jogo cronometrado: o número grande desce de 20:00 a 00:00 em cada parte;
+  // os registos continuam a usar o tempo real (matchMs). Os botões ± seguem o
+  // que se vê: "−1s" tira um segundo ao que está no ecrã.
+  const mostrar = countdown && p.limitMs > 0;
+  const sinal = mostrar ? -1 : 1;
   return (
     <div className="clockbox">
       <span className="clockbox__period">{periodLabel}</span>
@@ -256,7 +292,7 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
               className="clockadj__b"
               title={t('vivo.menosDezSegundos')}
               aria-label={t('vivo.menosDezSegundos')}
-              onClick={() => on.adjustClock(-10_000)}
+              onClick={() => on.adjustClock(sinal * -10_000)}
             >
               −10s
             </button>
@@ -265,14 +301,26 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
               className="clockadj__b"
               title={t('vivo.menosSegundo')}
               aria-label={t('vivo.menosSegundo')}
-              onClick={() => on.adjustClock(-1000)}
+              onClick={() => on.adjustClock(sinal * -1000)}
             >
               −1s
             </button>
           </span>
         ) : null}
 
-        <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(p.periodMs)}</span>
+        {on?.editClock ? (
+          <button
+            type="button"
+            className={`clockbox__time clockbox__time--editar ${p.over ? 'is-over' : ''}`}
+            title={t('relogio.tocar')}
+            aria-label={t('relogio.tocar')}
+            onClick={() => on.editClock(p.periodMs)}
+          >
+            {fmt(p.periodMs)}
+          </button>
+        ) : (
+          <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(mostrar ? p.remainingMs : p.periodMs)}</span>
+        )}
 
         {on?.adjustClock ? (
           <span className="clockadj">
@@ -281,7 +329,7 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
               className="clockadj__b"
               title={t('vivo.maisDezSegundos')}
               aria-label={t('vivo.maisDezSegundos')}
-              onClick={() => on.adjustClock(10_000)}
+              onClick={() => on.adjustClock(sinal * 10_000)}
             >
               +10s
             </button>
@@ -290,7 +338,7 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
               className="clockadj__b"
               title={t('vivo.maisSegundo')}
               aria-label={t('vivo.maisSegundo')}
-              onClick={() => on.adjustClock(1000)}
+              onClick={() => on.adjustClock(sinal * 1000)}
             >
               +1s
             </button>
@@ -298,7 +346,9 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
         ) : null}
       </div>
       <span className="clockbox__hint">
-        {p.over
+        {mostrar
+          ? t('vivo.soTotal', { total: fmt(p.matchMs) })
+          : p.over
           ? t('vivo.alemDe', {
               extra: fmt(p.overtimeMs),
               limite: fmt(p.limitMs),
@@ -414,7 +464,7 @@ function CourtCard({ pos, p, state, sel, clockMs, on, arrasto, ligados = SEM_REG
       </div>
       <div className="pcard__name">{p.name}</div>
       <div className="pcard__times">
-        <span className="pcard__t">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
+        <span className="pcard__t pcard__t--jogo">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
         <span className="pcard__t pcard__t--hi">
           {t('vivo.emJogoHa', { tempo: fmt(s.currentStintMs ?? 0) })}
         </span>
@@ -540,6 +590,13 @@ function BenchCard({ p, state, sel, clockMs, on, arrasto }) {
   const selecionado = sel?.kind === 'bench' && sel.playerId === p.playerId;
   const alvo = sel?.kind === 'court' && !expulso;
   const s = playerMatchStats(state.players[p.playerId] || p, clockMs);
+  // Quem regista os tempos conta o banco com o relógio do jogo (pára quando o
+  // jogo pára), e não em tempo real.
+  const fechadas = s.stints.filter((x) => !x.open);
+  const desdeASaida =
+    on.bancoEfetivo && fechadas.length
+      ? Math.max(0, clockMs - fechadas[fechadas.length - 1].endMatchMs)
+      : s.sinceLeftMs;
 
   // Um expulso não volta a entrar, portanto nem se arrasta nem recebe ninguém.
   const pega = (!expulso && arrasto?.pegar({ tipo: 'bench', playerId: p.playerId })) || {};
@@ -606,15 +663,18 @@ function BenchCard({ p, state, sel, clockMs, on, arrasto }) {
         </div>
       ) : (
         <div className="pcard__times">
-          <span className="pcard__t">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
+          <span className="pcard__t pcard__t--jogo">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
           {/* Destacado como o "Em jogo há" dos jogadores em campo: é o número que
               decide a próxima substituição — há quanto tempo este descansa. */}
           <span className="pcard__t pcard__t--hi">
             {s.sinceLeftMs == null
               ? t('vivo.aindaNaoEntrou')
-              : t('vivo.saiuHa', { tempo: fmt(s.sinceLeftMs) })}
+              : t('vivo.saiuHa', { tempo: fmt(desdeASaida) })}
           </span>
-          <span className="pcard__t">{t('vivo.entradas', { n: s.entries })}</span>
+          <span className="pcard__t pcard__t--entradas">
+            {t('vivo.entradas', { n: '' })}
+            <b>{s.entries}</b>
+          </span>
         </div>
       )}
       {selecionado ? (

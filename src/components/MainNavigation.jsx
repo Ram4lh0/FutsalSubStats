@@ -63,7 +63,7 @@ function areaFromPath(pathname) {
 }
 
 function isPublicPath(pathname) {
-  return /^\/login\/?$|^\/privacy\/?$|^\/delete-account\/?$|^\/jogada\/?$|^\/video\/?$/.test(pathname || '');
+  return /^\/login\/?$|^\/privacy\/?$|^\/delete-account\/?$|^\/(jogada|disponibilidade|video)\/?$/.test(pathname || '');
 }
 
 function targetFor(area, selected) {

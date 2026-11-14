@@ -8,7 +8,8 @@
 
 import { useRouter } from 'next/navigation';
 import DataTable from './DataTable.jsx';
-import { StatusBadge } from './bits.jsx';
+import { Badge, StatusBadge } from './bits.jsx';
+import { PAPEL, lerPartilha } from '@/domain/partilha.js';
 import { dayLabel, homeAwayLabel, sufixoDesempate } from '@/lib/format.js';
 import { matchResult } from '@/domain/stats.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
@@ -36,8 +37,13 @@ export default function MatchList({ entries, competitions = [], backPath, limit 
       <tbody>
         {linhas.map(({ match, state }) => {
           const r = matchResult(state);
+          // Jogo com registo partilhado: o papel deste jogo, e o ecrã próprio
+          // de quem só regista (não tem preparação nem jogo ao vivo).
+          const partilha = lerPartilha(state.allEvents);
           const destino =
-            state.status === MATCH_STATUS.FINISHED
+            partilha.papel === PAPEL.REGISTOS
+              ? rotas.jogoRegistos(match.id)
+              : state.status === MATCH_STATUS.FINISHED
               ? comOrigem(rotas.jogoResumo(match.id), { atras: backPath })
               : state.status === MATCH_STATUS.DRAFT || state.status === MATCH_STATUS.READY
                 ? rotas.jogoPreparar(match.id)
@@ -53,15 +59,27 @@ export default function MatchList({ entries, competitions = [], backPath, limit 
               <td className="mono">{dayLabel(match.scheduledAt)}</td>
               <td>{match.opponentName}</td>
               <td className="num mono">
+                {/* O jogo dos Registos não tem resultado: esse é do jogo dos Tempos. */}
                 <span className={r === 'W' ? 'res res--w' : r === 'L' ? 'res res--l' : r ? 'res res--d' : ''}>
-                  {state.teamScore}–{state.opponentScore}
+                  {partilha.papel === PAPEL.REGISTOS ? '—' : `${state.teamScore}–${state.opponentScore}`}
                 </span>
                 {sufixoDesempate(state) ? <span className="muted small">{sufixoDesempate(state)}</span> : null}
               </td>
               <td>{homeAwayLabel(match.homeOrAway)}</td>
               <td className="muted">{nomeDaProva(match.competitionId)}</td>
               <td>
-                <StatusBadge status={state.status} />
+                {partilha.papel === PAPEL.REGISTOS ? (
+                  <Badge kind={partilha.terminadoEm ? 'ok' : ''}>
+                    {partilha.terminadoEm ? t('estado.FINISHED') : t('partilhado.aRegistar')}
+                  </Badge>
+                ) : (
+                  <StatusBadge status={state.status} />
+                )}
+                {partilha.papel ? (
+                  <Badge kind="partilha">
+                    {partilha.fusao ? t('partilhado.juntado') : t(`partilhado.papel.${partilha.papel}`)}
+                  </Badge>
+                ) : null}
               </td>
             </tr>
           );

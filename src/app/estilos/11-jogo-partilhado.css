@@ -1,0 +1,356 @@
+/* Jogo com registo partilhado (add-on 'jogo-partilhado'): a escolha do papel
+   ao criar o jogo, o ecrã do papel Registos, a faixa do "Juntar" e a janela
+   de juntar. */
+
+.badge--partilha { color: #c4b5fd; border-color: rgba(167, 139, 250, 0.5); background: rgba(167, 139, 250, 0.1); }
+
+/* ------------------------------------------------- criar o jogo: o papel */
+.partilha { border: 1px dashed rgba(56, 189, 248, 0.5); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; justify-items: start; }
+.partilha.is-on { border-style: solid; border-color: rgba(56, 189, 248, 0.7); background: rgba(56, 189, 248, 0.06); }
+.partilha > p { margin: 0; }
+.partilha__papeis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.partilha__papel {
+  display: grid; gap: 4px; text-align: left; padding: 12px 14px; min-height: var(--touch);
+  background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; color: var(--text); cursor: pointer;
+}
+.partilha__papel strong { font-size: 1rem; }
+.partilha__papel span { color: var(--muted); font-size: 0.82rem; line-height: 1.35; }
+.partilha__papel.is-on { border-color: var(--primary); background: rgba(34, 197, 94, 0.1); }
+@media (max-width: 560px) {
+  .partilha__papeis { grid-template-columns: 1fr; }
+}
+
+/* -------------------------------------------------- a faixa do "Juntar" */
+.faixa-partilha {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 12px 14px; margin-bottom: 16px; border-radius: 14px;
+  border: 1px solid rgba(167, 139, 250, 0.45); background: rgba(167, 139, 250, 0.07);
+}
+.faixa-partilha--aviso { border-color: rgba(245, 158, 11, 0.6); background: rgba(245, 158, 11, 0.08); }
+.faixa-partilha__info { display: flex; align-items: center; gap: 10px; flex: 1 1 260px; min-width: 0; line-height: 1.4; }
+.faixa-partilha__info .badge { margin-left: 0; flex: none; }
+.faixa-partilha__acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ------------------------------------------------ a janela de juntar */
+.juntar__item { flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; color: var(--text); }
+.juntar__item:disabled { opacity: 0.6; cursor: not-allowed; }
+.juntar__itemtopo { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.juntar__motivo { color: var(--warn); font-size: 0.85rem; font-weight: 600; }
+.juntar__lados { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.juntar__lado { background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.juntar__lado h3 { margin: 0 0 6px; font-size: 0.95rem; color: #c4b5fd; }
+.juntar__lado p { margin: 0 0 4px; }
+.juntar__tipos { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; font-size: 0.88rem; }
+.juntar__tipos li { display: flex; justify-content: space-between; gap: 10px; }
+.juntar__aviso {
+  margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; font-size: 0.88rem; line-height: 1.4;
+  border: 1px solid rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.08);
+}
+.juntar__erro {
+  margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; font-size: 0.9rem;
+  border: 1px solid rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.08);
+}
+@media (max-width: 560px) {
+  .juntar__lados { grid-template-columns: 1fr; }
+}
+
+/* ------------------------------------------------ o ecrã dos Registos
+   Visual como os cartões do jogo ao vivo: fundo azul-escuro em degradé,
+   contornos finos e suaves, sombra, números grandes. Cada contador é
+   "− n +": o "+" (ou tocar no meio) aponta, o "−" tira o último. */
+.regultimo {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin: 14px 0; padding: 10px 14px; border-radius: 14px;
+  background: linear-gradient(180deg, rgba(22, 35, 59, 0.9), rgba(15, 25, 43, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.regultimo__texto { min-width: 0; line-height: 1.4; }
+
+/* Barra fina do topo: sair, os estados e as Estatísticas. */
+.regtopo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.regtopo .summary-actions { display: flex; gap: 6px; align-items: center; }
+.regtopo__stats {
+  min-height: 36px; padding: 0 16px; border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 0.88rem;
+  color: var(--text); background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.regtopo__stats:hover { background: rgba(255, 255, 255, 0.1); }
+.regtopo__stats:active { transform: scale(0.97); }
+
+/* Os cartões dos jogadores. */
+.regcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 12px; }
+.regcard {
+  min-width: 0; padding: 12px; display: grid; gap: 10px; align-content: start; border-radius: 16px;
+  background: #16243d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+/* Com amarelo: contorno amarelo (sem brilho); com dois, vermelho. */
+.regcard.is-amarelo { border: 2px solid #facc15; padding: 11px; }
+.regcard.is-dois-amarelos { border: 2px solid #ef4444; padding: 11px; }
+.regcard__quem { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.regcard__num {
+  flex: none; min-width: 2ch; font-size: 1.6rem; line-height: 1; font-weight: 800;
+  font-variant-numeric: tabular-nums; color: #fff;
+}
+.regcard__nome { font-size: 1.08rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+/* O amarelo é só o cartão, no canto de cima. */
+.regcard__amarelo {
+  flex: none; width: 28px; height: 38px; padding: 0; border-radius: 6px; cursor: pointer;
+  background: #facc15; border: 0; color: #1a1300; font-weight: 800; font-size: 0.85rem;
+  display: grid; place-items: center;
+  user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.regcard__amarelo:active { transform: scale(0.94); }
+.regcard__amarelo.is-vazio { opacity: 0.35; }
+.regcard__botoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 8px; }
+
+/* Um contador "− n +". Liso, sem brilho: a cor do tipo vai só no número. */
+.regpasso {
+  --cor: rgba(255, 255, 255, 0.55);
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; align-items: stretch; min-width: 0;
+  min-height: var(--touch); border-radius: 12px; overflow: hidden;
+  background: #1d2d4a; border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.regpasso > button {
+  border: 0; background: none; color: var(--text); cursor: pointer; padding: 0; min-width: 0;
+  user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.regpasso > .regpasso__menos, .regpasso > .regpasso__mais { font-size: 1.35rem; font-weight: 500; color: rgba(255, 255, 255, 0.7); }
+.regpasso > .regpasso__menos { border-right: 1px solid rgba(255, 255, 255, 0.07); }
+.regpasso > .regpasso__mais { border-left: 1px solid rgba(255, 255, 255, 0.07); }
+.regpasso > .regpasso__menos:disabled { color: rgba(255, 255, 255, 0.18); cursor: default; }
+.regpasso > button:not(:disabled):active { background: rgba(255, 255, 255, 0.1); }
+.regpasso > .regpasso__meio { display: grid; place-items: center; align-content: center; gap: 1px; padding: 4px 2px; line-height: 1.1; }
+.regpasso__rot { font-size: 0.78rem; font-weight: 600; color: #fff; text-align: center; overflow-wrap: anywhere; }
+.regpasso__n { font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--cor); }
+.regpasso--golo { --cor: #4ade80; }
+.regpasso--falta { --cor: #cbd5e1; }
+.regpasso--amarelo { --cor: #fde047; }
+.regpasso--enquadrado, .regpasso--remate { --cor: #7dd3fc; }
+.regpasso--fora { --cor: #94a3b8; }
+.regpasso--recup { --cor: #f9a8d4; }
+.regpasso--perda { --cor: #fdba74; }
+.regpasso--passe, .regpasso--defesa { --cor: #fde047; }
+.regpasso--lanc { --cor: #67e8f9; }
+.regpasso--positiva { --cor: #4ade80; }
+.regpasso--negativa { --cor: #f87171; }
+@media (hover: hover) {
+  .regpasso > button:not(:disabled):hover { background: rgba(255, 255, 255, 0.06); }
+}
+@media (max-width: 560px) {
+  .regcards { grid-template-columns: 1fr; }
+}
+
+/* --------------------------------- o aparelho dos Tempos: só o tempo
+   Sem resultado, faltas nem cartões no marcador, e sem os botões de golo e de
+   falta nos cartões dos jogadores. Fica o cartão (só o vermelho, no menu). */
+.live--so-tempos .scoreboard__score,
+.live--so-tempos .scoreboard__fouls,
+.live--so-tempos .rivalout,
+.live--so-tempos .pcard__goal,
+.live--so-tempos .pcard__quickfoul,
+.live--so-tempos .halftime__score,
+.live--so-tempos .halftime__title .btn { display: none; }
+
+/* ------------------------- o marcador e o relógio do ecrã dos Registos */
+.regplacar {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 16px; align-items: start;
+  padding: 14px 16px; margin-bottom: 14px; border-radius: 18px;
+  background: #16243d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.regplacar__lado { display: grid; gap: 10px; justify-items: start; min-width: 0; }
+.regplacar__lado--deles { justify-items: end; text-align: right; }
+.regplacar__nome {
+  font-size: 0.8rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* − 0 + : o resultado grande entre os botões de tirar e de marcar. */
+.regplacar__golo { display: flex; align-items: center; gap: 14px; }
+.regplacar__golos { font-size: 3rem; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 1.4ch; text-align: center; }
+.regplacar__menos, .regplacar__mais {
+  width: 48px; height: 48px; border-radius: 999px; cursor: pointer; font-size: 1.5rem; line-height: 1; display: grid; place-items: center;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none;
+}
+.regplacar__menos { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.16); color: var(--text); }
+.regplacar__menos:disabled { opacity: 0.3; cursor: default; }
+.regplacar__mais { background: var(--primary); border: 0; color: var(--primary-ink); font-weight: 700; }
+.regplacar__menos:not(:disabled):active, .regplacar__mais:active { transform: scale(0.94); }
+.regplacar__passos { display: flex; gap: 8px; flex-wrap: wrap; }
+.regplacar__lado--deles .regplacar__passos { justify-content: flex-end; }
+.regplacar__passos .regpasso { width: 170px; max-width: 100%; }
+.regplacar__relogio { display: grid; gap: 6px; justify-items: center; text-align: center; min-width: 200px; }
+.regplacar__parte { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.regplacar__tempo { font-size: clamp(2.8rem, 6vw, 3.6rem); line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--muted); }
+.regplacar__tempo.is-a-correr { color: var(--primary); }
+.regplacar__botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.regplacar__botoes .btn { min-height: var(--touch); border-radius: 12px; }
+.regplacar__botoes--relogio { justify-content: center; margin-top: 4px; }
+.regaviso {
+  margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; font-size: 0.9rem; line-height: 1.4;
+  border: 1px solid rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.08);
+}
+@media (max-width: 760px) {
+  .regplacar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .regplacar__relogio { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
+  .regplacar__passos { flex-direction: column; width: 100%; }
+  .regplacar__passos .regpasso { width: 100%; }
+  .regplacar__golos { font-size: 2.4rem; }
+  .regplacar__golo { gap: 10px; }
+}
+
+.regresumo { display: grid; gap: 6px; margin-bottom: 12px; }
+.regresumo__placar { margin: 0; font-size: 1.1rem; }
+.regresumo__placar strong { font-size: 1.4rem; margin: 0 6px; font-variant-numeric: tabular-nums; }
+.regresumo__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.regresumo__lista li { display: flex; gap: 12px; }
+.regresumo .muted { margin: 0; }
+/* ------------------------- o ecrã de quem regista os tempos (só Tempos) */
+/* Botões do relógio maiores e na horizontal: −10s −1s  00:00  +1s +10s. */
+.live--so-tempos .clockbox__linha { gap: 16px; }
+.live--so-tempos .clockadj { flex-direction: row; gap: 8px; }
+.live--so-tempos .clockadj__b {
+  min-height: 46px; min-width: 62px; padding: 0 10px; border-radius: 10px;
+  font-size: 1rem; color: var(--text); border-color: rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.06);
+}
+.live--so-tempos .clockadj__b:active { transform: scale(0.96); }
+.clockbox__time--editar { background: none; border: 0; color: inherit; cursor: pointer; padding: 0 4px; }
+.live--so-tempos .clockbox__time { font-size: clamp(3rem, 7vw, 4.4rem); }
+/* Os cartões têm espaço: letras maiores, cores por tipo de tempo. */
+.live--so-tempos .pcard__t { font-size: 1.02rem; line-height: 1.35; }
+.live--so-tempos .pcard--court .pcard__t,
+.live--so-tempos .pcard--bench .pcard__t { font-size: 1.02rem; }
+.live--so-tempos .pcard__t--jogo { color: #7dd3fc; font-weight: 600; }
+.live--so-tempos .pcard__t--hi { color: #4ade80; font-weight: 700; }
+.live--so-tempos .pcard__t--entradas { color: #fff; }
+.live--so-tempos .pcard__t--entradas b { font-size: 1.25rem; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.live--so-tempos .pcard__name { font-size: 1.1rem; }
+.live--so-tempos .court .pcard__t:first-child { display: block; }
+
+/* O painel dos tempos (intervalo e botão "Tempos"). */
+.tmpainel { display: grid; gap: 14px; }
+.tpainel__kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.tpainel__kpi { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); min-width: 0; }
+.tpainel__rot { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.tpainel__val { font-size: 1.7rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tpainel__extra { font-size: 0.82rem; color: var(--muted); overflow-wrap: anywhere; }
+.live--so-tempos .pcard--court .pcard__times,
+.live--so-tempos .court .pcard__times { padding-right: 0; }
+.live--so-tempos .pcard--court .pcard__t { white-space: nowrap; }
+.live--so-tempos .pcard--bench .pcard__t { white-space: normal; overflow-wrap: anywhere; }
+
+/* "Registo partilhado" no Novo jogo: azul para dar destaque; cheio quando está ligado. */
+.btn.btn--partilhar { color: #7dd3fc; border-color: #38bdf8; background: rgba(56, 189, 248, 0.14); font-weight: 700; }
+.btn.btn--partilhar:hover { background: rgba(56, 189, 248, 0.24); }
+.btn.btn--partilhar.is-on { color: #06283d; background: #38bdf8; border-color: #38bdf8; }
+/* Sem o nome da equipa a barra fica só com a bolinha de cor. */
+.regbar__eq:empty { max-width: none; }
+/* O "−" ao lado do amarelo: tira o último amarelo do jogador. */
+.regcard__tiraramarelo {
+  flex: none; width: 38px; height: 38px; padding: 0; border-radius: 999px; cursor: pointer;
+  font-size: 1.3rem; line-height: 1; display: grid; place-items: center; color: #fde047;
+  background: rgba(250, 204, 21, 0.08); border: 1px solid rgba(250, 204, 21, 0.45);
+  user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.regcard__tiraramarelo:active { transform: scale(0.94); }
+.regcard__tiraramarelo:disabled { opacity: 0.4; }
+
+/* Os números do adversário com amarelo, pequenos, no canto de cima à esquerda. */
+.regplacar__lado--deles { position: relative; }
+.regamarelos {
+  position: absolute; top: 0; left: 0; max-width: 45%; margin: 0; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; gap: 4px 8px;
+}
+.regamarelos__item {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: #fff;
+}
+.regamarelos__cartao { width: 8px; height: 11px; border-radius: 2px; background: #facc15; }
+.regamarelos__item.is-dois .regamarelos__cartao { background: #ef4444; }
+
+/* ------------------------------------------------ ecrã dos Registos: compacto
+   Tudo mais pequeno e mais para cima, para caberem os 12/14 jogadores no ecrã
+   (pedido do Elétrico FC, 14/11/2026). Vem depois das regras de cima e ganha. */
+.regtopo { margin-bottom: 6px; }
+.regtopo__stats { min-height: 30px; padding: 0 12px; font-size: 0.8rem; }
+.regplacar { gap: 6px 12px; padding: 8px 10px; margin-bottom: 8px; border-radius: 14px; }
+.regplacar__lado { gap: 6px; }
+.regplacar__golo { gap: 8px; }
+.regplacar__golos { font-size: 2.1rem; }
+.regplacar__menos, .regplacar__mais { width: 38px; height: 38px; font-size: 1.25rem; }
+.regplacar__passos { gap: 6px; }
+.regplacar__passos .regpasso { width: 150px; }
+.regplacar__relogio { gap: 2px; min-width: 170px; }
+.regplacar__parte { font-size: 0.7rem; }
+.regplacar__tempo { font-size: clamp(2rem, 5vw, 2.6rem); }
+.regplacar__botoes { gap: 6px; }
+.regplacar__botoes .btn { min-height: 38px; padding: 0 12px; font-size: 0.85rem; }
+.regplacar__botoes--relogio { margin-top: 2px; }
+.regaviso { margin-bottom: 8px; padding: 6px 10px; font-size: 0.82rem; }
+
+.regpasso { grid-template-columns: 30px minmax(0, 1fr) 30px; min-height: 36px; border-radius: 10px; }
+.regpasso > .regpasso__menos, .regpasso > .regpasso__mais { font-size: 1.15rem; }
+.regpasso > .regpasso__meio { padding: 2px; gap: 0; }
+.regpasso__rot { font-size: 0.68rem; line-height: 1.05; }
+.regpasso__n { font-size: 1rem; line-height: 1.1; }
+
+/* A barra do adversário, por baixo do marcador. */
+.regadv {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px; margin: -2px 0 8px;
+  border-radius: 12px; background: #16243d; border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.regadv__nome {
+  flex: none; max-width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+}
+.regadv__passos { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px; max-width: 520px; }
+.regadv .regpasso { min-height: 36px; }
+
+.regcards { grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 8px; }
+.regcard { padding: 8px; gap: 6px; border-radius: 12px; }
+.regcard.is-amarelo, .regcard.is-dois-amarelos { padding: 7px; }
+.regcard__quem { gap: 8px; }
+.regcard__num { font-size: 1.3rem; }
+.regcard__nome { font-size: 0.98rem; }
+.regcard__amarelo { width: 22px; height: 30px; font-size: 0.75rem; }
+.regcard__tiraramarelo { width: 30px; height: 30px; font-size: 1.1rem; }
+.regcard__botoes { grid-template-columns: 1fr 1fr; gap: 6px; }
+.regcard .regpasso { min-height: 34px; grid-template-columns: 26px minmax(0, 1fr) 26px; }
+.regcard .regpasso__rot { font-size: 0.64rem; }
+.regultimo { margin: 8px 0; padding: 6px 12px; }
+
+@media (max-width: 760px) {
+  .regplacar { gap: 6px 8px; }
+  /* Relógio numa linha só: tempo à esquerda, botões à direita. */
+  .regplacar__relogio { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; justify-items: start; text-align: left; }
+  .regplacar__relogio > :not(.regplacar__botoes) { grid-column: 1; }
+  .regplacar__relogio .regplacar__botoes--relogio { grid-column: 2; grid-row: 1 / 5; align-self: center; justify-content: flex-end; margin: 0; }
+  .regplacar__botoes .btn { min-height: 36px; padding: 0 10px; font-size: 0.8rem; }
+  .regplacar__golos { font-size: 1.9rem; }
+  .regplacar__menos, .regplacar__mais { width: 34px; height: 34px; }
+  .regplacar__passos { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .regplacar__passos .regpasso { width: 100%; }
+  .regpasso { grid-template-columns: 24px minmax(0, 1fr) 24px; min-height: 34px; }
+  .regadv { flex-wrap: wrap; gap: 4px 8px; }
+  .regadv__passos { max-width: none; flex: 1 1 100%; }
+}
+/* Telemóvel: o jogador numa linha (nome à esquerda, botões 2×2 à direita). */
+@media (max-width: 560px) {
+  .regcards { grid-template-columns: 1fr; gap: 6px; }
+  .regcard { grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 8px; }
+  .regcard__quem { flex-wrap: wrap; gap: 2px 6px; align-content: center; }
+  .regcard__num { order: 1; }
+  .regcard__tiraramarelo { order: 2; margin-left: auto; width: 24px; height: 24px; font-size: 0.95rem; }
+  .regcard__amarelo { order: 2; margin-left: auto; width: 18px; height: 24px; font-size: 0.65rem; }
+  .regcard__tiraramarelo + .regcard__amarelo { margin-left: 0; }
+  .regcard__nome { order: 3; flex: 1 0 100%; font-size: 0.82rem; }
+}
+@media (max-width: 760px) {
+  .regadv__nome { display: none; }
+}
+@media (max-width: 560px) {
+  .regcard { padding: 6px 8px; }
+  .regcard.is-amarelo, .regcard.is-dois-amarelos { padding: 5px 7px; }
+  .regcard .regpasso { min-height: 32px; }
+  .regcard__botoes { gap: 5px; }
+}

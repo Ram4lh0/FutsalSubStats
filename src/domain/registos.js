@@ -28,6 +28,7 @@
 import { makeEvent } from './actions.js';
 import { EVENT } from './constants.js';
 import { matchStatsTable } from './stats.js';
+import { fusaoEmVigor } from './partilha.js';
 
 /** Versão da forma do `metadata`. Sobe só se um campo mudar de significado. */
 export const VERSAO = 1;
@@ -101,6 +102,11 @@ export const OPCOES = {
   resultado: { nome: 'pedir o que aconteceu', omissao: true },
   cartao: { nome: 'botão no cartão do jogador', omissao: true },
   barra: { nome: 'botão na barra de cima (pergunta quem)', omissao: false },
+  // Só no ecrã dos Registos de um jogo com registo partilhado: em vez de um
+  // botão "Remate" que pergunta o que aconteceu, dois botões que já o dizem —
+  // "Remate enquadrado" (grava DEFENDIDO: foi à baliza) e "Remate fora"
+  // (grava FORA) — e só se pergunta a zona. Pedido do Elétrico FC (14/11/2026).
+  enquadrado: { nome: 'registo partilhado: dois botões (enquadrado / fora), só com a zona', omissao: false },
 };
 
 /**
@@ -116,7 +122,7 @@ export const CATALOGO = {
     por: 'jogador',
     ponto: true,
     resultados: Object.values(RESULTADO_REMATE),
-    opcoes: ['zona', 'resultado'],
+    opcoes: ['zona', 'resultado', 'enquadrado'],
     disponivel: true,
   },
   // O ponto é de onde rematou o adversário. Só o guarda-redes tem o botão.
@@ -156,7 +162,9 @@ export const CATALOGO = {
     soAdversario: true,
     ponto: true,
     resultados: Object.values(RESULTADO_REMATE),
-    opcoes: ['zona', 'resultado'],
+    // `enquadrado`: no ecrã dos Registos partilhados, dois botões (enquadrado /
+    // fora) numa barra do adversário por baixo do marcador.
+    opcoes: ['zona', 'resultado', 'enquadrado'],
     disponivel: true,
   },
   // A zona da perda (09/11/2026, pedido do SQB) é uma opção do escalão e vem
@@ -539,13 +547,22 @@ function lerRegisto(ev) {
  *  - com as correções aplicadas, pela ordem em que foram feitas;
  *  - sem os remates `GOLO` cujo golo foi desfeito ou tirado;
  *  - sem registos que esta versão não conheça (os da fase 2 e seguintes).
+ *  - sem os registos copiados por uma fusão que não esteja em vigor (jogo
+ *    com registo partilhado).
  */
 export function registosDoJogo(state) {
   const evs = state?.events || [];
   const porId = new Map();
+  // Jogo partilhado (domain/partilha.js): um registo copiado por uma fusão só
+  // conta enquanto essa fusão estiver em vigor.
+  let emVigor;
   for (const ev of evs) {
     if (ev.eventType !== EVENT.STAT_RECORDED) continue;
     if (!eRegistoConhecido(ev.metadata?.registo)) continue;
+    if (ev.metadata?.fusao) {
+      if (emVigor === undefined) emVigor = fusaoEmVigor(evs);
+      if (Number(ev.metadata.fusao.n) !== emVigor) continue;
+    }
     porId.set(ev.id, lerRegisto(ev));
   }
   if (!porId.size) return [];
