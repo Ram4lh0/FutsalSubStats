@@ -99,6 +99,7 @@
 .regbar__lista { display: none; grid-template-columns: 1fr auto auto; align-items: center; gap: 6px 8px; }
 .regbar__lista .regbar__eq { justify-self: center; max-width: 11ch; font-size: 0.72rem; }
 .regbar__rot--linha { text-align: left; }
+.regbar--so-nos .regbar__lista { grid-template-columns: 1fr auto; }
 @media (max-width: 640px) {
   .regbar__grelha { display: none; }
   .regbar__lista { display: grid; }

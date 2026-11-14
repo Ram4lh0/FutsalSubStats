@@ -116,6 +116,27 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
       x = r.x;
       y = r.y;
     }
+    // Remate enquadrado: depois da zona, pergunta-se se foi defendido ou golo.
+    if (resultado === RESULTADO_REMATE.DEFENDIDO) {
+      const o = await perguntarOnde(ui, {
+        titulo: t('partilhado.registos.enquadradoFoi', quem(p)),
+        opcoes: [RESULTADO_REMATE.DEFENDIDO, RESULTADO_REMATE.GOLO].map((id) => ({
+          id,
+          rotulo: t(`registos.resultado.${id}`),
+          cor: COR_RESULTADO[id],
+        })),
+        semCampo: true,
+      });
+      if (!o) return;
+      resultado = o.opcao;
+      if (resultado === RESULTADO_REMATE.GOLO) {
+        await marcarGolo(p, {
+          comRemate: (st, goloEventId) =>
+            registar(st, { registo: REGISTO.REMATE, playerId: p.playerId, resultado, x, y, goloEventId }),
+        });
+        return;
+      }
+    }
     await commit(registar(state, { registo: REGISTO.REMATE, playerId: p.playerId, resultado, x, y }));
   }
 

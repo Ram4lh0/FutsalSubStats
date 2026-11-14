@@ -2557,6 +2557,7 @@ export default {
   "partilhado.aviso.golosNaBase": "The Times match already has {n} goals: they stay and add to the incoming ones. If they should not be there, delete them first in that match summary.",
   "partilhado.registos.remateEnquadrado": "Shot on target",
   "partilhado.registos.remateFora": "Shot off target",
+  "partilhado.registos.enquadradoFoi": "Shot on target by #{numero} {nome}: saved or goal?",
   "partilhado.registos.remateEnquadradoDe": "Shot on target by #{numero} {nome}: from where?",
   "partilhado.registos.remateForaDe": "Shot off target by #{numero} {nome}: from where?",
 };

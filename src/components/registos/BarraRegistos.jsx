@@ -167,6 +167,8 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
     .map(([id, n]) => t(`registos.curto.${id}`, { n }))
     .join(' · ');
 
+  // Sem nenhum registo do adversário ligado, a barra é só nossa: não há linha deles.
+  const haEles = colunas.some((c) => c.THEM);
   const celula = (c, nome) => <CelulaRegisto c={c} nome={nome} on={on} />;
 
   const verEstatisticas = (
@@ -214,17 +216,17 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
   }
 
   return (
-    <section className="regbar" aria-label={t('registos.titulo')}>
+    <section className={`regbar ${haEles ? '' : 'regbar--so-nos'}`} aria-label={t('registos.titulo')}>
       {colunas.length ? (
         <div className="regbar__lista">
           {topo}
           <span className="regbar__eq">{ourName}</span>
-          <span className="regbar__eq regbar__eq--deles">{opponentName}</span>
+          {haEles ? <span className="regbar__eq regbar__eq--deles">{opponentName}</span> : null}
           {colunas.map((c) => (
             <Fragment key={c.id}>
               <span className="regbar__rot regbar__rot--linha">{t(`registos.barra.${c.id}`)}</span>
               <span className="regbar__cel">{celula(c.US, ourName)}</span>
-              <span className="regbar__cel regbar__cel--deles">{celula(c.THEM, opponentName)}</span>
+              {haEles ? <span className="regbar__cel regbar__cel--deles">{celula(c.THEM, opponentName)}</span> : null}
             </Fragment>
           ))}
         </div>
@@ -243,12 +245,14 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
               {celula(c.US, ourName)}
             </span>
           ))}
-          <span className="regbar__eq regbar__eq--deles">{opponentName}</span>
-          {colunas.map((c) => (
-            <span key={c.id} className="regbar__cel regbar__cel--deles">
-              {celula(c.THEM, opponentName)}
-            </span>
-          ))}
+          {haEles ? <span className="regbar__eq regbar__eq--deles">{opponentName}</span> : null}
+          {haEles
+            ? colunas.map((c) => (
+                <span key={c.id} className="regbar__cel regbar__cel--deles">
+                  {celula(c.THEM, opponentName)}
+                </span>
+              ))
+            : null}
         </div>
       ) : null}
     </section>

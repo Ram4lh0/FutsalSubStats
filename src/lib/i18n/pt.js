@@ -2562,6 +2562,7 @@ export default {
   "partilhado.aviso.golosNaBase": "O jogo dos Tempos já tem {n} golos: ficam, e somam-se aos que chegam. Se não deviam lá estar, apague-os primeiro no resumo desse jogo.",
   "partilhado.registos.remateEnquadrado": "Remate enquadrado",
   "partilhado.registos.remateFora": "Remate fora",
+  "partilhado.registos.enquadradoFoi": "Remate enquadrado de #{numero} {nome}: foi defendido ou golo?",
   "partilhado.registos.remateEnquadradoDe": "Remate enquadrado de #{numero} {nome}: de onde?",
   "partilhado.registos.remateForaDe": "Remate fora de #{numero} {nome}: de onde?",
 };

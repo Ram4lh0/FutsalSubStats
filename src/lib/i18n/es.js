@@ -2558,6 +2558,7 @@ export default {
   "partilhado.aviso.golosNaBase": "El partido de los Tiempos ya tiene {n} goles: se quedan y se suman a los que llegan. Si no deberían estar, bórralos primero en el resumen de ese partido.",
   "partilhado.registos.remateEnquadrado": "Remate a puerta",
   "partilhado.registos.remateFora": "Remate fuera",
+  "partilhado.registos.enquadradoFoi": "Remate a puerta de #{numero} {nome}: ¿parado o gol?",
   "partilhado.registos.remateEnquadradoDe": "Remate a puerta de #{numero} {nome}: ¿desde dónde?",
   "partilhado.registos.remateForaDe": "Remate fuera de #{numero} {nome}: ¿desde dónde?",
 };
