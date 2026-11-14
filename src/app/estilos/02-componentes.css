@@ -691,7 +691,9 @@
    * ficado recolhida antes de entrar no jogo, ganhava a este reset na mesma
    * (o `:has()` conta como se tivesse as classes do que está lá dentro). */
   .app.is-live,
-  .app.is-live:has(.mainnav--side.is-collapsed) {
+  .app.is-live:has(.mainnav--side.is-collapsed),
+  .app.is-registos,
+  .app.is-registos:has(.mainnav--side.is-collapsed) {
     padding-left: 0;
   }
   .mainnav--bottom {

@@ -12,6 +12,8 @@ import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import { Empty } from '@/components/bits.jsx';
 import { Dialog, useUI } from '@/lib/ui.jsx';
+import PainelTempos from '@/components/live/PainelTempos.jsx';
+import { perguntarMinutoDoRelogio } from '@/lib/relogioEditing.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import Halftime from '@/components/live/Halftime.jsx';
 import Penaltis from '@/components/live/Penaltis.jsx';
@@ -42,7 +44,7 @@ import * as A from '@/domain/actions.js';
 import * as V from '@/domain/validation.js';
 import { countOnCourt, foulsInPeriod, foulsTotal, powerPlayAtivo } from '@/domain/reducer.js';
 import { playerCards } from '@/domain/stats.js';
-import { fmt, readClock } from '@/domain/clock.js';
+import { fmt, periodProgress, readClock } from '@/domain/clock.js';
 import { openPenalties, penaltyBoard, canStartPenalty, canReplaceExpelled, PENALTY_STATUS } from '@/domain/penalties.js';
 import {
   EVENT,
@@ -110,6 +112,7 @@ function Live() {
   // A história da demonstração, por cima do intervalo (components/DemoHistoria).
   // Lida depois de montar: no servidor não há sessionStorage.
   const [historia, setHistoria] = useState(false);
+  const [verTempos, setVerTempos] = useState(false);
   useEffect(() => setHistoria(emDemo() && !historiaJaVista()), []);
   // Sanções cujo fim já foi anunciado — evita repetir o aviso a cada batimento e
   // evita anunciar sanções que já tinham terminado quando o ecrã abriu.
@@ -1211,6 +1214,19 @@ function Live() {
     // Acertar o relógio. O passo vem em milissegundos e pode ser negativo; o
     // reducer é que trava para não passar do zero.
     adjustClock: (deltaMs) => commit(A.adjustClock(state, deltaMs, Date.now()), { sync: 'defer' }),
+    // Quem regista os tempos diz o minuto verdadeiro da parte: acerta-se o
+    // relógio de uma vez, e os tempos dos jogadores seguem-no.
+    ...(soTempos
+      ? {
+          bancoEfetivo: true,
+          editClock: async (periodMs) => {
+            const alvo = await perguntarMinutoDoRelogio(ui, periodMs);
+            if (alvo == null) return;
+            const atual = periodProgress(state, match.periodDurationMs, Date.now()).periodMs;
+            if (alvo !== atual) await commit(A.adjustClock(state, alvo - atual, Date.now()), { sync: 'defer' });
+          },
+        }
+      : {}),
     togglePowerPlay: (ligar) => commit(A.setPowerPlay(state, ligar)),
     opponentExpulsion: (delta) => commit(A.opponentExpulsion(state, delta)),
     registarAmareloAdversario,
@@ -1307,6 +1323,7 @@ function Live() {
           onEditRegisto={editarRegisto}
           onAddRegisto={ligados.size ? acrescentarRegisto : undefined}
           onEditTempos={pausaProl ? undefined : editarTemposDaPrimeira}
+          soTempos={soTempos}
           onStart={pausaProl ? startExtraTime : startSecondHalf}
           {...(pausaProl
             ? {
@@ -1423,6 +1440,11 @@ function Live() {
               {t('acao.terminarJogo')}
             </button>
           )}
+          {soTempos ? (
+            <button className="btn btn--big btn--ghost" onClick={() => setVerTempos(true)}>
+              {t('tpainel.botao')}
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -1454,6 +1476,12 @@ function Live() {
 
         <Bench state={state} sel={sel} clockMs={clockMs} on={on} arrasto={arrasto} />
       </div>
+
+      {verTempos ? (
+        <Dialog title={t('tpainel.titulo')} onClose={() => setVerTempos(false)} wide>
+          <PainelTempos state={state} clockMs={clockMs} />
+        </Dialog>
+      ) : null}
 
       <footer className="live__bar">
         <button

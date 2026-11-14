@@ -13,6 +13,7 @@
 // para estar à mão em qualquer ponto do deslize.
 
 import { useState } from 'react';
+import PainelTempos from '@/components/live/PainelTempos.jsx';
 import DataTable from '@/components/DataTable.jsx';
 import CourtPicker, { countFilled } from '@/components/CourtPicker.jsx';
 import { GoalsTimeline } from '@/components/Goals.jsx';
@@ -52,6 +53,7 @@ export default function Halftime({
   tempoParte = null,
   notaFaltas = null,
   emProlongamento = false,
+  soTempos = false,
 }) {
   const t = useT();
   // Pré-preenche com quem terminou a 1.ª parte, para poupar toques.
@@ -85,6 +87,7 @@ export default function Halftime({
 
   return (
     <section className="halftime">
+      {soTempos ? null : (
       <div className="halftime__bloco">
         <div className="halftime__title">
           <h2 className="section section--tight">{titulo || t('intervalo.titulo')}</h2>
@@ -101,6 +104,7 @@ export default function Halftime({
           })}
         </p>
       </div>
+      )}
 
       <div className="halftime__bloco">
         <h2 className="section section--tight">
@@ -118,9 +122,15 @@ export default function Halftime({
         </div>
         {/* Uma pista de que há mais por baixo: com o campo a ocupar o ecrã
             todo, nada dizia que as estatísticas continuavam lá em baixo. */}
-        <p className="halftime__mais muted">{t('intervalo.maisAbaixo')}</p>
+        {soTempos ? null : <p className="halftime__mais muted">{t('intervalo.maisAbaixo')}</p>}
       </div>
 
+      {soTempos ? (
+        <div className="halftime__bloco">
+          <PainelTempos state={state} clockMs={state.elapsedMatchMs} onEditTempos={onEditTempos} />
+        </div>
+      ) : (
+        <>
       <div className="halftime__bloco" data-tour="halftime-summary">
         <div className="halftime__title">
           <h3 className="section section--tight">{t('intervalo.golos')}</h3>
@@ -292,6 +302,8 @@ export default function Halftime({
           </tbody>
         </DataTable>
       </div>
+        </>
+      )}
     </section>
   );
 }

@@ -166,6 +166,14 @@ function Registos() {
   // Enquanto se regista, o ecrã não adormece.
   useEcraAceso(aRegistar);
 
+  // Em jogo, sem a barra lateral (como no jogo ao vivo).
+  useEffect(() => {
+    if (!aRegistar) return undefined;
+    const el = document.getElementById('app');
+    el?.classList.add('is-registos');
+    return () => el?.classList.remove('is-registos');
+  }, [aRegistar]);
+
   // Um jogo que não é deste papel tem os seus ecrãs de sempre.
   useEffect(() => {
     if (!carregado || carregado.vazio) return;
@@ -452,7 +460,6 @@ function Registos() {
     const b = [
       ['golo', t('partilhado.registos.golo'), golosDe(p.playerId), () => golo(p)],
       ['falta', t('partilhado.registos.falta'), faltasDe(p.playerId), () => falta('US', p)],
-      ['amarelo', t('partilhado.registos.amarelo'), amarelosDe(p.playerId), () => amarelo(p)],
     ];
     if (doisRemates) {
       const meus = lista.filter((r) => r.registo === REGISTO.REMATE && r.playerId === p.playerId);
@@ -532,6 +539,24 @@ function Registos() {
     </div>
   );
 
+  // Em jogo, o ecrã é como o do jogo: sem barra lateral e sem título, só uma
+  // linha fina para sair e os estados, para o marcador ficar bem no topo.
+  const topoFino = (
+    <div className="regtopo">
+      <button
+        type="button"
+        className="btn btn--ghost btn--tiny"
+        onClick={() => router.push(rotas.jogos(match.clubId, match.teamId))}
+      >
+        ‹
+      </button>
+      <div className="summary-actions">
+        <Badge kind="partilha">{t('partilhado.papel.REGISTOS')}</Badge>
+        <Badge kind="live">{t('partilhado.aRegistar')}</Badge>
+      </div>
+    </div>
+  );
+
   const cabecalho = (
     <PageHead
       title={`${ourName} — ${rivalName}`}
@@ -599,7 +624,7 @@ function Registos() {
 
   return (
     <>
-      {cabecalho}
+      {topoFino}
 
       <section className="regplacar" aria-label={t('partilhado.registos.marcador')}>
         <div className="regplacar__lado">
@@ -713,6 +738,34 @@ function Registos() {
         />
       ) : null}
 
+      <div className="regcards">
+        {jogadores.map((p) => (
+          <article key={p.playerId} className="regcard">
+            <header className="regcard__quem">
+              <span className="regcard__num">{p.number}</span>
+              <span className="regcard__nome">{p.name}</span>
+              <button
+                type="button"
+                className={`regcard__amarelo ${amarelosDe(p.playerId) ? '' : 'is-vazio'}`}
+                aria-label={t('partilhado.registos.amarelo')}
+                title={t('partilhado.registos.amarelo')}
+                onClick={() => amarelo(p)}
+              >
+                {amarelosDe(p.playerId) || ''}
+              </button>
+            </header>
+            <div className="regcard__botoes">
+              {botoesDe(p).map(([classe, rotulo, quantos, fazer]) => (
+                <button key={classe} type="button" className={`regcard__btn regcard__btn--${classe}`} onClick={fazer}>
+                  <span>{rotulo}</span>
+                  <b>{quantos || 0}</b>
+                </button>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+
       <div className="regultimo">
         <span className="regultimo__texto">
           <strong>{t('partilhado.registos.total', { n: acoes })}</strong>
@@ -726,25 +779,6 @@ function Registos() {
         <button type="button" className="btn btn--ghost" onClick={desfazerUltimo} disabled={!ultimo || ocupado}>
           {t('partilhado.registos.desfazer')}
         </button>
-      </div>
-
-      <div className="regcards">
-        {jogadores.map((p) => (
-          <article key={p.playerId} className="regcard">
-            <header className="regcard__quem">
-              <span className="regcard__num">{p.number}</span>
-              <span className="regcard__nome">{p.name}</span>
-            </header>
-            <div className="regcard__botoes">
-              {botoesDe(p).map(([classe, rotulo, quantos, fazer]) => (
-                <button key={classe} type="button" className={`regcard__btn regcard__btn--${classe}`} onClick={fazer}>
-                  <span>{rotulo}</span>
-                  <b>{quantos || 0}</b>
-                </button>
-              ))}
-            </div>
-          </article>
-        ))}
       </div>
     </>
   );

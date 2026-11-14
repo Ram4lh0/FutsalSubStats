@@ -73,7 +73,18 @@
   font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums;
   background: var(--primary); color: var(--primary-ink);
 }
-.regcard__nome { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.regcard__nome { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+/* O amarelo é só o cartão, no canto de cima do cartão do jogador. */
+.regcard__amarelo {
+  flex: none; position: relative; width: 30px; height: 40px; padding: 0; border-radius: 5px; cursor: pointer;
+  background: #facc15; border: 2px solid rgba(255, 255, 255, 0.35); color: #1a1300; font-weight: 800; font-size: 0.85rem;
+  display: grid; place-items: center; user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.regcard__amarelo:active { transform: scale(0.94); }
+.regcard__amarelo.is-vazio { opacity: 0.85; }
+/* Barra fina do topo do ecrã dos Registos: sair e os estados. */
+.regtopo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.regtopo .summary-actions { display: flex; gap: 6px; align-items: center; }
 .regcard__botoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(132px, 100%), 1fr)); gap: 6px; }
 .regcard__btn {
   display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: var(--touch); min-width: 0;
@@ -119,7 +130,8 @@
 .regplacar__lado { display: grid; gap: 6px; justify-items: start; min-width: 0; }
 .regplacar__lado--deles { justify-items: end; text-align: right; }
 .regplacar__nome { font-weight: 700; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.regplacar__golos { font-size: 2.4rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.regplacar__golos { font-size: 2.4rem; line-height: 1; font-variant-numeric: tabular-nums; justify-self: end; padding-right: 14%; }
+.regplacar__lado--deles .regplacar__golos { justify-self: start; padding-right: 0; padding-left: 14%; }
 .regplacar__botoes { display: flex; gap: 6px; flex-wrap: wrap; }
 .regplacar__lado--deles .regplacar__botoes { justify-content: flex-end; }
 .regplacar__botoes .btn { min-height: var(--touch); }
@@ -153,3 +165,39 @@
 .regcard__btn--amarelo { border-color: rgba(250, 204, 21, 0.85); color: #fde047; }
 .regcard__btn--enquadrado { border-color: rgba(56, 189, 248, 0.75); }
 .regcard__btn--fora { border-color: rgba(148, 163, 184, 0.8); }
+
+/* ------------------------- o ecrã de quem regista os tempos (só Tempos) */
+/* Botões do relógio maiores e na horizontal: −10s −1s  00:00  +1s +10s. */
+.live--so-tempos .clockbox__linha { gap: 16px; }
+.live--so-tempos .clockadj { flex-direction: row; gap: 8px; }
+.live--so-tempos .clockadj__b {
+  min-height: 46px; min-width: 62px; padding: 0 10px; border-radius: 10px;
+  font-size: 1rem; color: var(--text); border-color: rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.06);
+}
+.live--so-tempos .clockadj__b:active { transform: scale(0.96); }
+.clockbox__time--editar {
+  background: none; border: 0; border-bottom: 2px dashed rgba(255, 255, 255, 0.3); color: inherit; cursor: pointer;
+  padding: 0 4px; font: inherit;
+}
+.clockbox__time--editar:hover { border-bottom-color: var(--primary); }
+/* Os cartões têm espaço: letras maiores, cores por tipo de tempo. */
+.live--so-tempos .pcard__t { font-size: 1.02rem; line-height: 1.35; }
+.live--so-tempos .pcard--court .pcard__t,
+.live--so-tempos .pcard--bench .pcard__t { font-size: 1.02rem; }
+.live--so-tempos .pcard__t--jogo { color: #7dd3fc; font-weight: 600; }
+.live--so-tempos .pcard__t--hi { color: #4ade80; font-weight: 700; }
+.live--so-tempos .pcard__t--entradas { color: #fff; }
+.live--so-tempos .pcard__t--entradas b { font-size: 1.25rem; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.live--so-tempos .pcard__name { font-size: 1.1rem; }
+.live--so-tempos .court .pcard__t:first-child { display: block; }
+
+/* O painel dos tempos (intervalo e botão "Tempos"). */
+.tpainel { display: grid; gap: 14px; }
+.tpainel__kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.tpainel__kpi { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); min-width: 0; }
+.tpainel__rot { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.tpainel__val { font-size: 1.7rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tpainel__extra { font-size: 0.82rem; color: var(--muted); overflow-wrap: anywhere; }
+.live--so-tempos .pcard--court .pcard__times,
+.live--so-tempos .court .pcard__times { padding-right: 0; }
+.live--so-tempos .pcard__t { white-space: nowrap; }

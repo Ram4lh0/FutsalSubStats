@@ -303,7 +303,19 @@ export function ClockBox({ state, periodDurationMs, periodLabel, now, on }) {
           </span>
         ) : null}
 
-        <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(p.periodMs)}</span>
+        {on?.editClock ? (
+          <button
+            type="button"
+            className={`clockbox__time clockbox__time--editar ${p.over ? 'is-over' : ''}`}
+            title={t('relogio.tocar')}
+            aria-label={t('relogio.tocar')}
+            onClick={() => on.editClock(p.periodMs)}
+          >
+            {fmt(p.periodMs)}
+          </button>
+        ) : (
+          <span className={`clockbox__time ${p.over ? 'is-over' : ''}`}>{fmt(p.periodMs)}</span>
+        )}
 
         {on?.adjustClock ? (
           <span className="clockadj">
@@ -445,7 +457,7 @@ function CourtCard({ pos, p, state, sel, clockMs, on, arrasto, ligados = SEM_REG
       </div>
       <div className="pcard__name">{p.name}</div>
       <div className="pcard__times">
-        <span className="pcard__t">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
+        <span className="pcard__t pcard__t--jogo">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
         <span className="pcard__t pcard__t--hi">
           {t('vivo.emJogoHa', { tempo: fmt(s.currentStintMs ?? 0) })}
         </span>
@@ -571,6 +583,13 @@ function BenchCard({ p, state, sel, clockMs, on, arrasto }) {
   const selecionado = sel?.kind === 'bench' && sel.playerId === p.playerId;
   const alvo = sel?.kind === 'court' && !expulso;
   const s = playerMatchStats(state.players[p.playerId] || p, clockMs);
+  // Quem regista os tempos conta o banco com o relógio do jogo (pára quando o
+  // jogo pára), e não em tempo real.
+  const fechadas = s.stints.filter((x) => !x.open);
+  const desdeASaida =
+    on.bancoEfetivo && fechadas.length
+      ? Math.max(0, clockMs - fechadas[fechadas.length - 1].endMatchMs)
+      : s.sinceLeftMs;
 
   // Um expulso não volta a entrar, portanto nem se arrasta nem recebe ninguém.
   const pega = (!expulso && arrasto?.pegar({ tipo: 'bench', playerId: p.playerId })) || {};
@@ -637,15 +656,18 @@ function BenchCard({ p, state, sel, clockMs, on, arrasto }) {
         </div>
       ) : (
         <div className="pcard__times">
-          <span className="pcard__t">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
+          <span className="pcard__t pcard__t--jogo">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
           {/* Destacado como o "Em jogo há" dos jogadores em campo: é o número que
               decide a próxima substituição — há quanto tempo este descansa. */}
           <span className="pcard__t pcard__t--hi">
             {s.sinceLeftMs == null
               ? t('vivo.aindaNaoEntrou')
-              : t('vivo.saiuHa', { tempo: fmt(s.sinceLeftMs) })}
+              : t('vivo.saiuHa', { tempo: fmt(desdeASaida) })}
           </span>
-          <span className="pcard__t">{t('vivo.entradas', { n: s.entries })}</span>
+          <span className="pcard__t pcard__t--entradas">
+            {t('vivo.entradas', { n: '' })}
+            <b>{s.entries}</b>
+          </span>
         </div>
       )}
       {selecionado ? (
