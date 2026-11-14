@@ -81,19 +81,12 @@
 .regcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 12px; }
 .regcard {
   min-width: 0; padding: 12px; display: grid; gap: 10px; align-content: start; border-radius: 16px;
-  background: linear-gradient(160deg, #1a2a47, #0f1a2e);
-  border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
-  transition: box-shadow 0.25s, border-color 0.25s;
+  background: #16243d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
-/* Com amarelo: contorno e brilho amarelos; com dois, vermelhos. */
-.regcard.is-amarelo {
-  border-color: #facc15;
-  box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.28), 0 0 28px rgba(250, 204, 21, 0.4), 0 8px 22px rgba(0, 0, 0, 0.32);
-}
-.regcard.is-dois-amarelos {
-  border-color: rgba(239, 68, 68, 0.85);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.22), 0 0 22px rgba(239, 68, 68, 0.3), 0 8px 22px rgba(0, 0, 0, 0.32);
-}
+/* Com amarelo: contorno amarelo (sem brilho); com dois, vermelho. */
+.regcard.is-amarelo { border: 2px solid #facc15; padding: 11px; }
+.regcard.is-dois-amarelos { border: 2px solid #ef4444; padding: 11px; }
 .regcard__quem { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .regcard__num {
   flex: none; min-width: 2ch; font-size: 1.6rem; line-height: 1; font-weight: 800;
@@ -103,20 +96,20 @@
 /* O amarelo é só o cartão, no canto de cima. */
 .regcard__amarelo {
   flex: none; width: 28px; height: 38px; padding: 0; border-radius: 6px; cursor: pointer;
-  background: linear-gradient(160deg, #fde047, #eab308); border: 0; color: #1a1300; font-weight: 800; font-size: 0.85rem;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); display: grid; place-items: center;
+  background: #facc15; border: 0; color: #1a1300; font-weight: 800; font-size: 0.85rem;
+  display: grid; place-items: center;
   user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
 }
 .regcard__amarelo:active { transform: scale(0.94); }
-.regcard__amarelo.is-vazio { opacity: 0.35; box-shadow: none; }
+.regcard__amarelo.is-vazio { opacity: 0.35; }
 .regcard__botoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 8px; }
 
-/* Um contador "− n +". A cor do tipo vai no contorno e no número. */
+/* Um contador "− n +". Liso, sem brilho: a cor do tipo vai só no número. */
 .regpasso {
   --cor: rgba(255, 255, 255, 0.55);
   display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; align-items: stretch; min-width: 0;
   min-height: var(--touch); border-radius: 12px; overflow: hidden;
-  background: rgba(255, 255, 255, 0.04); border: 1px solid color-mix(in srgb, var(--cor) 45%, transparent);
+  background: #1d2d4a; border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .regpasso > button {
   border: 0; background: none; color: var(--text); cursor: pointer; padding: 0; min-width: 0;
@@ -163,8 +156,8 @@
 .regplacar {
   display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 16px; align-items: start;
   padding: 14px 16px; margin-bottom: 14px; border-radius: 18px;
-  background: linear-gradient(180deg, #17253f, #0f1a2e);
-  border: 1px solid rgba(255, 255, 255, 0.09); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  background: #16243d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .regplacar__lado { display: grid; gap: 10px; justify-items: start; min-width: 0; }
 .regplacar__lado--deles { justify-items: end; text-align: right; }
