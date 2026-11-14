@@ -31,12 +31,12 @@ import { colunasRegistos } from '@/components/registos/BarraRegistos.jsx';
 import PainelRegistos from '@/components/registos/PainelRegistos.jsx';
 import FaixaPartilhado from '@/components/partilhado/FaixaPartilhado.jsx';
 import { opponentYellowCardDialog, pickGoalType, pickPlayer } from '@/components/live/dialogs.jsx';
-import { clubs, events, loadMatch } from '@/lib/data/repository.js';
+import { clubs, competitions, events, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
 import { jogoSincronizado, reabrirRegistos, terminarRegistos } from '@/lib/partilhado.js';
 import * as A from '@/domain/actions.js';
 import { fmt } from '@/domain/clock.js';
-import { CARD, EVENT, FOUL_LIMIT, PLAYER_MATCH_STATUS, goalTypesFor } from '@/domain/constants.js';
+import { CARD, DESEMPATE, EVENT, FOUL_LIMIT, PLAYER_MATCH_STATUS, desempateOf, goalTypesFor } from '@/domain/constants.js';
 import {
   MAX_PARTES,
   PAPEL,
@@ -113,6 +113,9 @@ function Registos() {
 
   const [carregado, setCarregado] = useState(null);
   const [club, setClub] = useState(null);
+  // A competição diz se há prolongamento: sem ele, a 2.ª parte só acaba com
+  // "Terminar jogo".
+  const [competicao, setCompeticao] = useState(null);
   const [ocupado, setOcupado] = useState(false);
   // Os eventos mais recentes, para o relógio se ler a meio de uma sequência
   // de gravações (golo, assistência, tipo) sem esperar pelo desenho seguinte.
@@ -129,6 +132,7 @@ function Registos() {
     (async () => {
       const novo = await recarregar();
       if (novo) setClub(await clubs.get(novo.match.clubId));
+      if (novo?.match?.competitionId) setCompeticao(await competitions.get(novo.match.competitionId));
     })();
   }, [recarregar]);
 
@@ -743,7 +747,10 @@ function Registos() {
     );
   }
 
-  const seguinte = relogio.parte < MAX_PARTES ? relogio.parte + 1 : null;
+  const comProlongamento = desempateOf(competicao) === DESEMPATE.PROLONGAMENTO;
+  // Sem prolongamento na competição, a 2.ª parte é a última.
+  const ultimaParte = comProlongamento ? MAX_PARTES : 2;
+  const seguinte = relogio.parte < ultimaParte ? relogio.parte + 1 : null;
   const noFimDeUmaParte = relogio.parte > 0 && relogio.emPausa;
 
   return (
@@ -803,9 +810,11 @@ function Registos() {
                 >
                   {relogio.aCorrer ? t('vivo.pararTempo') : t('vivo.retomarTempo')}
                 </button>
-                <button type="button" className="btn btn--ghost" onClick={terminarParte}>
-                  {t('partilhado.relogio.terminar', { parte: nomeDaParte(relogio.parte) })}
-                </button>
+                {relogio.parte < 2 || comProlongamento ? (
+                  <button type="button" className="btn btn--ghost" onClick={terminarParte}>
+                    {t('partilhado.relogio.terminar', { parte: nomeDaParte(relogio.parte) })}
+                  </button>
+                ) : null}
                 {relogio.parte >= 2 ? (
                   <button type="button" className="btn btn--ghost" onClick={terminar} disabled={ocupado}>
                     {t('acao.terminarJogo')}
