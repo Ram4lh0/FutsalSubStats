@@ -144,7 +144,7 @@ export function RegistoNoCard({ unico, nome, on }) {
   );
 }
 
-export default function BarraRegistos({ state, ligados, ourName, opponentName, on, compacta = false }) {
+export default function BarraRegistos({ state, ligados, ourName, opponentName, on, compacta = false, semNomes = false }) {
   const { colunas, r, passeNaBarra } = colunasRegistos(state, ligados, on);
   const [escondida, setEscondida] = useState(lerEscondida);
   const mudar = (valor) => {
@@ -220,8 +220,8 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
       {colunas.length ? (
         <div className="regbar__lista">
           {topo}
-          <span className="regbar__eq">{ourName}</span>
-          {haEles ? <span className="regbar__eq regbar__eq--deles">{opponentName}</span> : null}
+          <span className="regbar__eq">{semNomes ? null : ourName}</span>
+          {haEles ? <span className="regbar__eq regbar__eq--deles">{semNomes ? null : opponentName}</span> : null}
           {colunas.map((c) => (
             <Fragment key={c.id}>
               <span className="regbar__rot regbar__rot--linha">{t(`registos.barra.${c.id}`)}</span>
@@ -239,13 +239,13 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
               {t(`registos.barra.${c.id}`)}
             </span>
           ))}
-          <span className="regbar__eq">{ourName}</span>
+          <span className="regbar__eq">{semNomes ? null : ourName}</span>
           {colunas.map((c) => (
             <span key={c.id} className="regbar__cel">
               {celula(c.US, ourName)}
             </span>
           ))}
-          {haEles ? <span className="regbar__eq regbar__eq--deles">{opponentName}</span> : null}
+          {haEles ? <span className="regbar__eq regbar__eq--deles">{semNomes ? null : opponentName}</span> : null}
           {haEles
             ? colunas.map((c) => (
                 <span key={c.id} className="regbar__cel regbar__cel--deles">

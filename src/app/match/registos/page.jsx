@@ -732,6 +732,8 @@ function Registos() {
           ligados={ligados}
           ourName={ourName}
           opponentName={rivalName}
+          // Aqui já não há resultado: a barra fica só com a bolinha de cada equipa.
+          semNomes
           // Com os dois botões de remate, os nossos remates somam-se nos cartões
           // (é lá que se diz se foi enquadrado ou fora); na barra fica só o total.
           on={doisRemates ? { ...on, registarRemateBarra: null } : on}
