@@ -112,6 +112,7 @@ export const rotas = {
   // O link que vai por WhatsApp. Abre sem conta nem app, e por isso fica fora
   // de `/team`.
   jogadaPublica: (share) => comIds('/jogada', { share }),
+  disponibilidadePublica: (share) => comIds('/disponibilidade', { share }),
 
   /* --------------------------------------------------------------- jogo */
   jogoPreparar: (match) => comIds('/match/setup', { match }),

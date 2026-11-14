@@ -71,6 +71,10 @@ export const NOME_REGISTO = {
  * também estiverem ligadas. O painel avisa quando faltam.
  */
 export const ADDONS = {
+  'disponibilidade-convocatoria': {
+    grupo: 'treino',
+    nome: 'Formulário de disponibilidade nas convocatórias',
+  },
   // Uma entrada "Visão geral do clube" no seletor de escalões: os resultados
   // de todos os escalões no fim de semana, numa só janela, e a comparação
   // entre eles. Aparece no clube quando está ligada em pelo menos um dos seus

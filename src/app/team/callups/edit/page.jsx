@@ -17,6 +17,9 @@ import Pagina from '@/components/Pagina.jsx';
 import PageHead from '@/components/PageHead.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
 import useSoLeitura from '@/lib/useSoLeitura.js';
+import useAddons from '@/lib/useAddons.js';
+import { supabase } from '@/lib/supabase/client.js';
+import { EnviarFormulario, RespostaConvocatoria, useRespostasConvocatoria } from '@/components/DisponibilidadeConvocatoria.jsx';
 import { rotas } from '@/lib/routes.js';
 import { Empty, Field } from '@/components/bits.jsx';
 import LinhaJogo, { porJogar } from '@/components/treino/LinhaJogo.jsx';
@@ -233,6 +236,8 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
 
   const entry = dados.entries.find((e) => e.match.id === matchId) || null;
   const match = entry?.match || null;
+  const temFormulario = useAddons(teamId).has('disponibilidade-convocatoria');
+  const { respostas, erro: erroRespostas } = useRespostasConvocatoria(temFormulario ? match?.id : null);
   const prova = (dados.competitions || []).find((c) => c.id === match?.competitionId) || null;
   const limite = maxSquadOf(prova);
   const ativos = useMemo(
@@ -312,7 +317,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
     });
   }
 
-  async function guardar() {
+  async function guardar({ incluirConvocados = true } = {}) {
     if (!info.opponentName.trim()) {
       toast(t('conv.faltaAdversario'), 'error');
       return false;
@@ -334,7 +339,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
         venueUrl: linkLimpo(info.link) || null,
       });
     }
-    if (mudouLista) {
+    if (incluirConvocados && mudouLista) {
       // Quem já estava convocado guarda a posição do cinco inicial, se a tinha.
       const antes = new Map(linhas.map((r) => [r.playerId, r]));
       await squad.replace(
@@ -368,6 +373,17 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
     const rows = await squad.listByMatch(match.id);
     const m = (await matches.get(match.id)) || match;
     return { match: m, team: dados.team, club: dados.club, convocados: rows, competicao: prova?.name || null };
+  }
+
+  async function criarFormulario() {
+    if (mudouInfo && !(await guardar({ incluirConvocados: false }))) return null;
+    await sync.saveNow(userId, user?.email);
+    const sb = supabase();
+    const { data, error } = await sb.rpc('disponibilidade_criar', {
+      p_jogo: match.id, p_pavilhao: casa || null, p_link: linkDeCasa(teamId) || null,
+    });
+    if (error || data?.estado !== 'ok') throw error || new Error();
+    return data;
   }
 
   async function copiar() {
@@ -437,6 +453,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
         <div className="tpresh">
           <h2 className="section section--tight">{t('conv.convocados')}</h2>
           <span className="toolbar__spacer" />
+          {temFormulario && !soLeitura ? <EnviarFormulario criar={criarFormulario} disabled={!ativos.length} /> : null}
           {soLeitura ? null : (
             <>
               <button type="button" className="btn btn--ghost btn--tiny" onClick={() => setEscolhidos(ativos.slice(0, limite ?? ativos.length).map((p) => p.id))}>
@@ -451,6 +468,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
             {escolhidos.length}/{limite ?? '∞'}
           </span>
         </div>
+        {temFormulario && erroRespostas ? <p role="status" className="muted">{t('disp.erro')}</p> : null}
         {ativos.length ? (
           <div className="pickgrid conv__grelha" {...(soLeitura ? {} : arraste.grelha)}>
             {ativos.map((p) => (
@@ -459,7 +477,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
                 type="button"
                 data-pick-id={p.id}
                 disabled={soLeitura}
-                className={`pick ${escolhidos.includes(p.id) ? 'is-on' : ''}`}
+                className={`pick ${temFormulario ? "conv__atleta-disponibilidade" : ""} ${escolhidos.includes(p.id) ? 'is-on' : ''}`}
                 onClick={() => {
                   if (!arraste.acabouDeArrastar()) alternar(p.id);
                 }}
@@ -467,6 +485,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
                 <span className="pick__num">{p.shirtNumber}</span>
                 <span className="pick__name">{p.name}</span>
                 <span className="pick__pos">{positionLabel(p.preferredPosition)}</span>
+                {temFormulario && respostas ? <RespostaConvocatoria resposta={respostas[p.id]} /> : null}
               </button>
             ))}
           </div>
@@ -477,7 +496,7 @@ function Convocatoria({ clubId, teamId, matchId, dados }) {
 
       <div className="conv__acoes">
         {soLeitura ? null : (
-          <button type="button" className="btn btn--primary" disabled={!porGravar} onClick={guardar}>
+          <button type="button" className="btn btn--primary" disabled={!porGravar} onClick={() => guardar()}>
             {porGravar ? t('conv.guardar') : t('conv.gravada')}
           </button>
         )}

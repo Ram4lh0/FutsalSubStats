@@ -376,3 +376,6 @@
   display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 999px;
   background: rgba(167, 139, 250, 0.18); color: #c4b5fd; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
 }
+
+.conv__atleta-disponibilidade .pick__pos { grid-column: 2; white-space: normal; overflow-wrap: anywhere; }
+.btn.conv__enviar-formulario { --primary: #2563eb; --primary-ink: #fff; }

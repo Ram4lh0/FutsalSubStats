@@ -21,12 +21,20 @@ function nativo() {
   return Boolean(cap.isNative);
 }
 
-export function urlDaJogada(token) {
+function urlPublico(caminho) {
   const base =
     !nativo() && typeof window !== 'undefined' && /^https?:$/.test(window.location.protocol)
       ? window.location.origin
       : URL_WEB;
-  return `${base}${rotas.jogadaPublica(token)}`;
+  return `${base}${caminho}`;
+}
+
+export function urlDaJogada(token) {
+  return urlPublico(rotas.jogadaPublica(token));
+}
+
+export function urlDaDisponibilidade(token) {
+  return urlPublico(rotas.disponibilidadePublica(token));
 }
 
 /**
