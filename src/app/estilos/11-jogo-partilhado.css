@@ -128,7 +128,7 @@
 .regpasso > .regpasso__menos:disabled { color: rgba(255, 255, 255, 0.18); cursor: default; }
 .regpasso > button:not(:disabled):active { background: rgba(255, 255, 255, 0.1); }
 .regpasso > .regpasso__meio { display: grid; place-items: center; align-content: center; gap: 1px; padding: 4px 2px; line-height: 1.1; }
-.regpasso__rot { font-size: 0.76rem; font-weight: 600; color: var(--muted); text-align: center; overflow-wrap: anywhere; }
+.regpasso__rot { font-size: 0.78rem; font-weight: 600; color: #fff; text-align: center; overflow-wrap: anywhere; }
 .regpasso__n { font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--cor); }
 .regpasso--golo { --cor: #4ade80; }
 .regpasso--falta { --cor: #cbd5e1; }
