@@ -379,3 +379,17 @@
 
 .conv__atleta-disponibilidade .pick__pos { grid-column: 2; white-space: normal; overflow-wrap: anywhere; }
 .btn.conv__enviar-formulario { --primary: #2563eb; --primary-ink: #fff; }
+
+.conv__estado {
+  grid-column: 2;
+  justify-self: start;
+  margin-block: 3px;
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.conv__estado--vai { color: #86efac; background: #14532d; }
+.conv__estado--nao { color: #fecaca; background: #7f1d1d; }
+.conv__estado--pendente { color: #fde68a; background: #713f12; }

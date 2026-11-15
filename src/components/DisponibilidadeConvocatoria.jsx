@@ -50,7 +50,9 @@ export function RespostaConvocatoria({ resposta }) {
   if (!resposta) return <span className="pick__pos">{t('disp.semResposta')}</span>;
   return (
     <>
-      <span className="pick__pos">{t(`disp.${resposta.estado}`)}</span>
+      <strong className={`conv__estado conv__estado--${resposta.estado}`}>
+        {t(`disp.${resposta.estado}`)}
+      </strong>
       {resposta.motivo ? <span className="pick__pos">{resposta.motivo}</span> : null}
       <span className="pick__pos">{resposta.nome} · {new Date(resposta.atualizado).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}</span>
     </>
