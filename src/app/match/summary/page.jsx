@@ -238,15 +238,16 @@ function Resumo() {
   }
 
   /**
-   * Mudar o dia/hora do jogo depois de jogado (jogos metidos a posteriori,
-   * datas trocadas). Só mexe em `scheduledAt`, como a preparação do jogo.
+   * Corrigir os dados do jogo depois de jogado (jogos metidos a posteriori,
+   * adversário, casa/fora ou data trocados): adversário + abreviatura,
+   * casa ou fora e dia/hora — os mesmos campos da preparação do jogo.
    */
-  async function editarData() {
-    const ts = await ui.open((close) => (
-      <DataDialog quando={match.scheduledAt} onClose={() => close(null)} onSave={(v) => close(v)} />
+  async function editarDetalhes() {
+    const v = await ui.open((close) => (
+      <DetalhesDialog match={match} onClose={() => close(null)} onSave={(x) => close(x)} />
     ));
-    if (ts == null) return;
-    await matches.update(matchId, { scheduledAt: ts });
+    if (v == null) return;
+    await matches.update(matchId, v);
     sync.saveNow(userId, user?.email);
     ui.toast(t('resumo.dataGuardada'), 'ok');
     carregar();
@@ -516,7 +517,7 @@ function Resumo() {
                   : t('resumo.terminarAoMinuto')}
               </button>
             ) : null}
-            <button className="btn btn--ghost" onClick={editarData}>
+            <button className="btn btn--ghost" onClick={editarDetalhes}>
               {t('resumo.editarData')}
             </button>
             <button className="btn btn--ghost" onClick={editarNotas}>
@@ -837,26 +838,47 @@ function paraInput(ts) {
   return d.toISOString().slice(0, 16);
 }
 
-function DataDialog({ quando, onClose, onSave }) {
+function DetalhesDialog({ match, onClose, onSave }) {
   const t = useT();
   const ui = useUI();
-  const [valor, setValor] = useState(paraInput(quando));
+  const [form, setForm] = useState({
+    opponentName: match.opponentName || '',
+    opponentShortName: match.opponentShortName || '',
+    homeOrAway: match.homeOrAway || 'HOME',
+    quando: paraInput(match.scheduledAt),
+  });
+  const campo = (k) => ({ value: form[k], onChange: (e) => setForm((f) => ({ ...f, [k]: e.target.value })) });
   function guardar() {
-    const ts = valor ? new Date(valor).getTime() : NaN;
+    const ts = form.quando ? new Date(form.quando).getTime() : NaN;
     if (!Number.isFinite(ts)) return ui.toast(t('resumo.dataInvalida'), 'error');
-    onSave(ts);
+    onSave({
+      opponentName: form.opponentName.trim() || match.opponentName,
+      opponentShortName: form.opponentShortName.trim() || null,
+      homeOrAway: form.homeOrAway,
+      scheduledAt: ts,
+    });
   }
   return (
     <Dialog title={t('resumo.dataDoJogo')} onClose={onClose}>
       <div className="form">
         <label className="field">
+          <span className="field__label">{t('prep.adversario')}</span>
+          <input className="input" {...campo('opponentName')} />
+        </label>
+        <label className="field">
+          <span className="field__label">{t('prep.abreviatura')}</span>
+          <input className="input" maxLength={12} {...campo('opponentShortName')} />
+        </label>
+        <label className="field">
+          <span className="field__label">{t('prep.casaOuFora')}</span>
+          <select className="input" {...campo('homeOrAway')}>
+            <option value="HOME">{t('local.HOME')}</option>
+            <option value="AWAY">{t('local.AWAY')}</option>
+          </select>
+        </label>
+        <label className="field">
           <span className="field__label">{t('resumo.dataHora')}</span>
-          <input
-            className="input"
-            type="datetime-local"
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-          />
+          <input className="input" type="datetime-local" {...campo('quando')} />
         </label>
       </div>
       <footer className="modal__actions">

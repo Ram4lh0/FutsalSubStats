@@ -1258,10 +1258,10 @@ export default {
   'resumo.verPeriodos': 'Periodos',
   'resumo.notasDoJogo': 'Notas del partido',
   'resumo.notasGuardadas': 'Notas guardadas.',
-  'resumo.editarData': 'Editar fecha',
-  'resumo.dataDoJogo': 'Fecha del partido',
+  'resumo.editarData': 'Editar detalles',
+  'resumo.dataDoJogo': 'Detalles del partido',
   'resumo.dataHora': 'Fecha y hora',
-  'resumo.dataGuardada': 'Fecha del partido guardada.',
+  'resumo.dataGuardada': 'Detalles del partido guardados.',
   'resumo.dataInvalida': 'Elige una fecha válida.',
   'resumo.confirmaApagar':
     '¿Eliminar este partido? También desaparece de las estadísticas de la categoría, de la competición y de la ficha de cada jugador. No hay forma de recuperarlo.',

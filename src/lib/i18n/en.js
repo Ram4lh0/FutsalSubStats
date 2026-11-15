@@ -1258,10 +1258,10 @@ export default {
   'resumo.verPeriodos': 'Spells',
   'resumo.notasDoJogo': 'Match notes',
   'resumo.notasGuardadas': 'Notes saved.',
-  'resumo.editarData': 'Edit date',
-  'resumo.dataDoJogo': 'Match date',
+  'resumo.editarData': 'Edit details',
+  'resumo.dataDoJogo': 'Match details',
   'resumo.dataHora': 'Date and time',
-  'resumo.dataGuardada': 'Match date saved.',
+  'resumo.dataGuardada': 'Match details saved.',
   'resumo.dataInvalida': 'Pick a valid date.',
   'resumo.confirmaApagar':
     'Delete this match? It also disappears from the team stats, from the competition and from each player profile. There is no way to get it back.',
