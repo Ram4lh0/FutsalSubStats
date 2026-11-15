@@ -18,7 +18,7 @@ function minuto(ms) {
 
 function nomeDe(state, playerId) {
   const p = playerId ? state.players[playerId] : null;
-  return p ? `#${p.number} ${p.name}` : null;
+  return p ? p.name : null;
 }
 
 /**

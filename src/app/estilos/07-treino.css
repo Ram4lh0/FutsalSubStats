@@ -393,3 +393,18 @@
 .conv__estado--vai { color: #86efac; background: #14532d; }
 .conv__estado--nao { color: #fecaca; background: #7f1d1d; }
 .conv__estado--pendente { color: #fde68a; background: #713f12; }
+
+/* ------------------------------------ Treinos e Convocatórias: sem transbordo
+ * Os cartões são grelhas: a coluna implícita é `auto` e cresce até ao
+ * conteúdo mais largo (as etiquetas não quebram linha), alargando a página
+ * inteira e dando deslize lateral. `minmax(0, 1fr)` trava a coluna à largura
+ * do cartão. */
+.tdia, .tprox, .ut { grid-template-columns: minmax(0, 1fr); }
+.tcal__card, .tprox, .tdia { min-width: 0; max-width: 100%; }
+.tlinha { min-width: 0; box-sizing: border-box; }
+@media (max-width: 520px) {
+  .tlinha { flex-wrap: wrap; gap: 6px 10px; }
+  .tlinha__info { flex: 1 1 150px; }
+  .tlinha__seta { margin-left: auto; }
+  .conv__acoes .btn, .area-actions--compact .btn { flex: 1 1 auto; }
+}

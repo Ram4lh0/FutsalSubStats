@@ -453,3 +453,15 @@ body:has(.vapresenta) .backdrop { z-index: 95; }
 /* "Guardar" fecha a folha: é o botão que se procura no fim, por isso é o maior. */
 .vfolha__guardar { min-width: 110px; }
 @media (max-width: 520px) { .vfolha__fundo .vfolha__guardar { flex: 1 1 100%; order: 9; } }
+
+/* iPad na horizontal: o vídeo a 16:9 em largura total ocupava quase o ecrã e
+ * os botões de marcar ficavam para lá do rolo. A altura do vídeo passa a ter
+ * teto (42% do ecrã) e a caixa fica centrada com a largura que dá esse teto,
+ * para os momentos se registarem sem deslizar. Só em ecrãs de toque deitados. */
+@media (min-width: 700px) and (orientation: landscape) and (pointer: coarse) {
+  .vanalise__palco .vleitor:not(.vleitor--falta):not(.vleitor--aviso) {
+    width: min(100%, calc(42dvh * 16 / 9));
+    margin-inline: auto;
+  }
+  .vanalise--marcar .page__head { margin-bottom: 6px; }
+}

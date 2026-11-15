@@ -38,7 +38,7 @@ import useFicheiroLigado from '@/lib/useFicheiroLigado.js';
 import { desligarFicheiro } from '@/lib/videoLocal.js';
 import { useUI } from '@/lib/ui.jsx';
 import { rotas } from '@/lib/routes.js';
-import { matches as repoJogos, players as repoJogadores } from '@/lib/data/repository.js';
+import { matches as repoJogos, players as repoJogadores, squad as repoConvocados } from '@/lib/data/repository.js';
 import { analises as repoAnalises, clipes as repoClipes } from '@/lib/data/video.js';
 import { lerMargens } from '@/lib/videoPrefs.js';
 import {
@@ -93,6 +93,8 @@ function Analise({ clubId, teamId, videoId }) {
   const [folha, setFolha] = useState(null); // { id, novo }
   const [inicioManual, setInicioManual] = useState(null);
   const [margens, setMargens] = useState(null);
+  // Convocados do jogo a que a análise está ligada (null = sem jogo ou sem convocatória).
+  const [convocados, setConvocados] = useState(null);
   const [duracao, setDuracao] = useState(0);
   // Os chips dos filtros ficam recolhidos até se pedirem: com um jogo inteiro
   // marcado são muitos, e a lista de clipes é que interessa.
@@ -115,6 +117,21 @@ function Analise({ clubId, teamId, videoId }) {
   }, [teamId]);
 
   const analise = dados?.analises.find((a) => a.id === videoId) || null;
+  const jogoDaAnalise = analise?.matchId || null;
+
+  useEffect(() => {
+    let vivo = true;
+    if (!jogoDaAnalise) {
+      setConvocados(null);
+      return undefined;
+    }
+    repoConvocados.listByMatch(jogoDaAnalise).then((linhas) => {
+      if (vivo) setConvocados(linhas.length ? new Set(linhas.map((l) => l.playerId)) : null);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [jogoDaAnalise]);
   const fonte = useMemo(() => fonteDaAnalise(analise), [analise]);
   const leitor = useLeitorDeClipes({ fonteDoClipe: () => fonte });
   // Num vídeo do computador, o ficheiro tem de estar ligado neste aparelho:
@@ -128,7 +145,11 @@ function Analise({ clubId, teamId, videoId }) {
     [dados, videoId]
   );
   const jogadoresPorId = useMemo(() => new Map(plantel.map((j) => [j.id, j])), [plantel]);
-  const ativos = useMemo(() => plantel.filter((j) => j.isActive !== false), [plantel]);
+  // Com um jogo associado, só os convocados desse jogo aparecem para marcar nos cortes.
+  const ativos = useMemo(
+    () => plantel.filter((j) => (convocados ? convocados.has(j.id) : j.isActive !== false)),
+    [plantel, convocados]
+  );
   const opcoes = useMemo(() => opcoesDeFiltro(clipes), [clipes]);
   const visiveis = useMemo(() => filtrarClipes(clipes, filtro), [clipes, filtro]);
   const clipeDaFolha = folha ? clipes.find((c) => c.id === folha.id) || null : null;

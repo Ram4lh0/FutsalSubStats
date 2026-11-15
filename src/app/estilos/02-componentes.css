@@ -1051,3 +1051,38 @@
 /* Aviso que aparece dentro de um formulário: vazio não ocupa lugar. */
 .error--aviso { margin: 0; font-size: 0.9rem; font-weight: 600; }
 .error--aviso:empty { display: none; }
+
+/* ------------------------------------------------ telemóvel e tablet em pé
+ * Jogos: os botões de baixo deixam de flutuar. Fixos ao ecrã, tapavam as
+ * últimas linhas da tabela depois de "Mostrar mais" (e o próprio "Mostrar
+ * mais"). Aqui ficam no fim da lista, no fluxo normal, e é a margem da
+ * `.view` que os afasta da barra de navegação. */
+@media (max-width: 979px) {
+  .matches-actions {
+    position: static;
+    inset: auto;
+    max-width: none;
+    margin: 10px 0 0;
+    flex-wrap: wrap;
+    background: none;
+    pointer-events: auto;
+  }
+  .matches-actions .btn--ghost { background: transparent; backdrop-filter: none; }
+  .tablewrap:has(+ .matches-actions),
+  .tablewrap:has(+ .matches-showmore) { margin-bottom: 8px; }
+  .matches-showmore { margin: 0 0 8px; }
+}
+
+/* Páginas nunca deslizam para o lado: o que não cabe, encolhe ou quebra linha.
+ * As tabelas largas continuam a deslizar dentro do próprio `.tablewrap`. */
+@media (max-width: 979px) {
+  .view { overflow-x: hidden; }
+  .tabbody { min-width: 0; max-width: 100%; }
+}
+
+/* Abas de telemóvel: colunas do mesmo tamanho (duas por linha com quatro
+ * abas, três com três), em vez de larguras desiguais conforme o nome. */
+@media (max-width: 560px) {
+  .tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 4px; }
+  .tab { min-width: 0; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+}
