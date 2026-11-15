@@ -102,7 +102,10 @@ function baseDaPonte() {
 function enderecoDaPonte(id, inicioSeg) {
   const q = new URLSearchParams({ v: id });
   if (inicioSeg > 0) q.set('start', String(Math.floor(inicioSeg)));
-  return `${baseDaPonte()}/yt-ponte.html?${q.toString()}`;
+  // A Vercel serve os .html soltos com URL limpo: `/yt-ponte/` dá 200 e
+  // `/yt-ponte.html` dá 404. O `next dev` só conhece o nome do ficheiro.
+  const base = baseDaPonte();
+  return `${base}${base === URL_WEB ? '/yt-ponte/' : '/yt-ponte.html'}?${q.toString()}`;
 }
 
 function criarPonte(iframe, { onReady, onStateChange, onError }) {
