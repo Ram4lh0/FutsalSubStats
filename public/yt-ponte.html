@@ -1,0 +1,124 @@
+<!doctype html>
+<!--
+  yt-ponte.html — o leitor do YouTube visto de dentro da app nativa.
+
+  Porquê: dentro da app, a página vive em `capacitor://localhost` (iOS) ou
+  `https://localhost` (Android). O YouTube exige saber de que site vem o
+  leitor (o Referer) e recusa esses endereços com o erro 152/153, "erro de
+  configuração do leitor de vídeo". Esta página é servida pelo site da app
+  (https://futsalsubstats.vercel.app) e é ELA que mostra o vídeo: o YouTube vê
+  um site a sério e deixa tocar.
+
+  A app manda ordens por postMessage e recebe o estado de volta:
+    app → ponte  { fss: 'yt', cmd: 'ola'|'tocar'|'pausar'|'irPara'|'velocidade'|'carregar'|'preparar', ... }
+    ponte → app  { fss: 'yt', ev: 'pronto'|'estado'|'tempo'|'erro', estado, tempo, duracao, codigo }
+
+  Ver src/components/video/LeitorYouTube.jsx (modo ponte).
+-->
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="robots" content="noindex">
+<title>Leitor</title>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+  iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+</style>
+</head>
+<body>
+<script>
+(function () {
+  var HOST = 'https://www.youtube-nocookie.com';
+  var TIQUE_MS = 250;
+  var ID_OK = /^[A-Za-z0-9_-]{6,20}$/;
+
+  var q = new URLSearchParams(location.search);
+  var id = q.get('v') || '';
+  var inicio = Math.max(0, Math.floor(Number(q.get('start')) || 0));
+  if (!ID_OK.test(id)) { avisar({ ev: 'erro', codigo: 2 }); return; }
+
+  var player = null;
+  var pronto = false;
+  var relogio = null;
+
+  function avisar(msg) {
+    msg.fss = 'yt';
+    try { parent.postMessage(msg, '*'); } catch (e) { /* sem pai */ }
+  }
+  function seguro(fn, omissao) {
+    try { var r = fn(); return r === undefined ? omissao : r; } catch (e) { return omissao; }
+  }
+  function instantaneo(ev) {
+    avisar({
+      ev: ev,
+      estado: seguro(function () { return player.getPlayerState(); }, -1),
+      tempo: seguro(function () { return Number(player.getCurrentTime()) || 0; }, 0),
+      duracao: seguro(function () { return Number(player.getDuration()) || 0; }, 0)
+    });
+  }
+  function pararRelogio() { if (relogio) clearInterval(relogio); relogio = null; }
+
+  // O iframe é escrito por nós, com o `origin` e a referrer policy certos.
+  var p = new URLSearchParams({
+    enablejsapi: '1', playsinline: '1', rel: '0', modestbranding: '1', iv_load_policy: '3',
+    origin: location.origin, widget_referrer: location.origin
+  });
+  if (inicio > 0) p.set('start', String(inicio));
+  var iframe = document.createElement('iframe');
+  iframe.id = 'yt';
+  iframe.src = HOST + '/embed/' + id + '?' + p.toString();
+  iframe.title = 'YouTube';
+  iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+  iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen');
+  iframe.setAttribute('allowfullscreen', '');
+  document.body.appendChild(iframe);
+
+  window.onYouTubeIframeAPIReady = function () {
+    player = new YT.Player('yt', {
+      events: {
+        onReady: function () { pronto = true; instantaneo('pronto'); },
+        onStateChange: function (e) {
+          pararRelogio();
+          if (e.data === YT.PlayerState.PLAYING) relogio = setInterval(function () { instantaneo('tempo'); }, TIQUE_MS);
+          instantaneo('estado');
+        },
+        onError: function (e) { avisar({ ev: 'erro', codigo: e.data }); }
+      }
+    });
+  };
+  var s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  s.async = true;
+  s.onerror = function () { avisar({ ev: 'erro', codigo: 'rede' }); };
+  document.head.appendChild(s);
+
+  window.addEventListener('message', function (e) {
+    if (e.source !== parent) return;
+    var m = e.data;
+    if (!m || m.fss !== 'yt' || !m.cmd) return;
+    if (m.cmd === 'ola') { if (pronto) instantaneo('pronto'); return; }
+    if (!pronto) return;
+    var seg = Math.max(0, Number(m.seg) || 0);
+    switch (m.cmd) {
+      case 'tocar': seguro(function () { player.playVideo(); }); break;
+      case 'pausar': seguro(function () { player.pauseVideo(); }); break;
+      case 'irPara': seguro(function () { player.seekTo(seg, true); }); break;
+      case 'velocidade': seguro(function () { player.setPlaybackRate(Number(m.v) || 1); }); break;
+      case 'carregar':
+      case 'preparar':
+        if (!ID_OK.test(m.id || '')) return;
+        seguro(function () {
+          var o = { videoId: m.id, startSeconds: seg };
+          if (m.cmd === 'carregar') player.loadVideoById(o); else player.cueVideoById(o);
+        });
+        break;
+      default: return;
+    }
+    setTimeout(function () { instantaneo('tempo'); }, 50);
+  });
+})();
+</script>
+</body>
+</html>

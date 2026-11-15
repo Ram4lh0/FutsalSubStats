@@ -53,12 +53,121 @@ function carregarApi() {
  *   101/150 → incorporação desligada · 152/153 → falta de origem (WebView).
  */
 function erroDoYouTube(codigo) {
+  if (codigo === 'rede') return 'rede';
   const n = Number(codigo);
   if (n === 2) return 'invalido';
   if (n === 100) return 'privado';
   if (n === 101 || n === 150) return 'incorporacao';
   if (n === 152 || n === 153) return 'origem';
   return 'outro';
+}
+
+// ─── Modo ponte (app nativa) ─────────────────────────────────────────────────
+//
+// Dentro da app a página vive em `capacitor://localhost` (iOS) ou
+// `https://localhost` (Android). O YouTube exige um Referer de um site a sério
+// e recusa estes com o erro 152/153 ("erro de configuração do leitor"). Aí o
+// vídeo é mostrado pela `public/yt-ponte.html`, servida pelo site da app, e
+// falamos com ela por postMessage. O objeto `criarPonte` imita a parte do
+// `YT.Player` que usamos, para o resto deste ficheiro não saber a diferença.
+
+const URL_WEB = 'https://futsalsubstats.vercel.app';
+// Os mesmos números do `YT.PlayerState`.
+const ESTADOS = { UNSTARTED: -1, ENDED: 0, PLAYING: 1, PAUSED: 2, BUFFERING: 3, CUED: 5 };
+
+function eNativo() {
+  if (typeof window === 'undefined') return false;
+  const cap = window.Capacitor;
+  if (!cap) return false;
+  if (typeof cap.isNativePlatform === 'function') return Boolean(cap.isNativePlatform());
+  if (typeof cap.getPlatform === 'function') return cap.getPlatform() !== 'web';
+  return Boolean(cap.isNative);
+}
+
+/** Na app usa-se sempre a ponte. No browser, só para testar (`fss.ytPonte` = '1'). */
+function usarPonte() {
+  if (eNativo()) return true;
+  try {
+    return window.localStorage.getItem('fss.ytPonte') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function baseDaPonte() {
+  if (!eNativo() && /^https?:$/.test(window.location.protocol)) return window.location.origin;
+  return URL_WEB;
+}
+
+function enderecoDaPonte(id, inicioSeg) {
+  const q = new URLSearchParams({ v: id });
+  if (inicioSeg > 0) q.set('start', String(Math.floor(inicioSeg)));
+  return `${baseDaPonte()}/yt-ponte.html?${q.toString()}`;
+}
+
+function criarPonte(iframe, { onReady, onStateChange, onError }) {
+  const origem = new URL(iframe.src).origin;
+  const cache = { estado: ESTADOS.UNSTARTED, tempo: 0, duracao: 0 };
+  const mandar = (cmd, extra = {}) => {
+    try {
+      iframe.contentWindow?.postMessage({ fss: 'yt', cmd, ...extra }, origem);
+    } catch {
+      /* o iframe já saiu */
+    }
+  };
+  let pronto = false;
+  const aoMensagem = (e) => {
+    if (e.source !== iframe.contentWindow || e.origin !== origem) return;
+    const m = e.data;
+    if (!m || m.fss !== 'yt' || !m.ev) return;
+    if (m.ev === 'erro') {
+      onError?.({ data: m.codigo });
+      return;
+    }
+    const estadoAntes = cache.estado;
+    if (typeof m.tempo === 'number') cache.tempo = m.tempo;
+    if (typeof m.duracao === 'number' && m.duracao > 0) cache.duracao = m.duracao;
+    if (typeof m.estado === 'number') cache.estado = m.estado;
+    if (m.ev === 'pronto') {
+      if (!pronto) {
+        pronto = true;
+        onReady?.();
+      }
+    } else if (m.ev === 'estado' || cache.estado !== estadoAntes) {
+      onStateChange?.({ data: cache.estado });
+    }
+  };
+  const aoCarregar = () => mandar('ola');
+  window.addEventListener('message', aoMensagem);
+  iframe.addEventListener('load', aoCarregar);
+  mandar('ola');
+
+  return {
+    playVideo: () => mandar('tocar'),
+    pauseVideo: () => mandar('pausar'),
+    seekTo: (seg) => {
+      cache.tempo = Math.max(0, Number(seg) || 0);
+      mandar('irPara', { seg: cache.tempo });
+    },
+    setPlaybackRate: (v) => mandar('velocidade', { v }),
+    loadVideoById: ({ videoId, startSeconds = 0 }) => {
+      cache.tempo = startSeconds;
+      cache.duracao = 0;
+      mandar('carregar', { id: videoId, seg: startSeconds });
+    },
+    cueVideoById: ({ videoId, startSeconds = 0 }) => {
+      cache.tempo = startSeconds;
+      cache.duracao = 0;
+      mandar('preparar', { id: videoId, seg: startSeconds });
+    },
+    getCurrentTime: () => cache.tempo,
+    getDuration: () => cache.duracao,
+    getPlayerState: () => cache.estado,
+    destroy: () => {
+      window.removeEventListener('message', aoMensagem);
+      iframe.removeEventListener('load', aoCarregar);
+    },
+  };
 }
 
 function enderecoDoEmbed(id, inicioSeg) {
@@ -90,7 +199,8 @@ const LeitorYouTube = forwardRef(function LeitorYouTube(
   const relogioRef = useRef(null);
   // O endereço inicial fica fixo: mudar o `src` a cada desenho recarregava o
   // vídeo. Outro vídeo entra pelo `abrir()` (ou pela `key`, em quem monta).
-  const [src] = useState(() => enderecoDoEmbed(id, inicioSeg));
+  const [ponte] = useState(usarPonte);
+  const [src] = useState(() => (ponte ? enderecoDaPonte(id, inicioSeg) : enderecoDoEmbed(id, inicioSeg)));
   const ouvintes = useRef({});
   ouvintes.current = { onPronto, onEstado, onTempo, onErro };
 
@@ -110,39 +220,41 @@ const LeitorYouTube = forwardRef(function LeitorYouTube(
     };
     const avisarTempo = () => ouvintes.current.onTempo?.(tempo());
 
-    carregarApi()
+    const comoPlayer = ponte ? Promise.resolve({ PlayerState: ESTADOS }) : carregarApi();
+    comoPlayer
       .then((YT) => {
         if (!vivo || !iframeRef.current) return;
-        playerRef.current = new YT.Player(iframeRef.current, {
-          events: {
-            onReady: () => {
-              if (!vivo) return;
-              prontoRef.current = true;
-              ouvintes.current.onPronto?.();
-            },
-            onStateChange: (e) => {
-              if (!vivo) return;
-              const S = YT.PlayerState;
-              const estado =
-                e.data === S.PLAYING
-                  ? 'a_tocar'
-                  : e.data === S.PAUSED
-                    ? 'pausa'
-                    : e.data === S.ENDED
-                      ? 'fim'
-                      : e.data === S.BUFFERING
-                        ? 'a_carregar'
-                        : 'parado';
-              pararRelogio();
-              if (estado === 'a_tocar') relogioRef.current = setInterval(avisarTempo, TIQUE_MS);
-              avisarTempo();
-              ouvintes.current.onEstado?.(estado);
-            },
-            onError: (e) => {
-              if (vivo) ouvintes.current.onErro?.(erroDoYouTube(e.data));
-            },
+        const S = YT.PlayerState;
+        const events = {
+          onReady: () => {
+            if (!vivo) return;
+            prontoRef.current = true;
+            ouvintes.current.onPronto?.();
           },
-        });
+          onStateChange: (e) => {
+            if (!vivo) return;
+            const estado =
+              e.data === S.PLAYING
+                ? 'a_tocar'
+                : e.data === S.PAUSED
+                  ? 'pausa'
+                  : e.data === S.ENDED
+                    ? 'fim'
+                    : e.data === S.BUFFERING
+                      ? 'a_carregar'
+                      : 'parado';
+            pararRelogio();
+            if (estado === 'a_tocar') relogioRef.current = setInterval(avisarTempo, TIQUE_MS);
+            avisarTempo();
+            ouvintes.current.onEstado?.(estado);
+          },
+          onError: (e) => {
+            if (vivo) ouvintes.current.onErro?.(erroDoYouTube(e.data));
+          },
+        };
+        playerRef.current = ponte
+          ? criarPonte(iframeRef.current, events)
+          : new YT.Player(iframeRef.current, { events });
       })
       .catch(() => {
         if (vivo) ouvintes.current.onErro?.('rede');
@@ -159,7 +271,7 @@ const LeitorYouTube = forwardRef(function LeitorYouTube(
       }
       playerRef.current = null;
     };
-  }, []);
+  }, [ponte]);
 
   useImperativeHandle(
     ref,
