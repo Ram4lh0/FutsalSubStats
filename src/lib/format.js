@@ -97,9 +97,12 @@ export function registoLabel(r, jogadores = null) {
       ? t(`registos.resultado.${r.resultado}`)
       : t(`registos.nome.${r.registo}`),
   ];
+  // A bola parada diz qual foi: "Bola parada ofensiva · Canto · Golo".
+  if (r.tipo && CATALOGO[r.registo].tipos?.includes(r.tipo)) partes.push(t(`registos.tipoBolaParada.${r.tipo}`));
   const jogador = r.playerId ? jogadores?.[r.playerId] : null;
+  const def = CATALOGO[r.registo];
   if (jogador) partes.push(`#${jogador.number}`);
-  else if (CATALOGO[r.registo].por === 'equipa' && !CATALOGO[r.registo].soAdversario) partes.push(t(`registos.aFavor.${r.equipa === 'THEM' ? 'THEM' : 'US'}`));
+  else if (def.por === 'equipa' && !def.soAdversario && !def.soNos) partes.push(t(`registos.aFavor.${r.equipa === 'THEM' ? 'THEM' : 'US'}`));
   if (r.resultado && r.registo !== 'acao') partes.push(t(`registos.${chaveResultado(r)}.${r.resultado}`));
   return partes.join(' · ');
 }
@@ -114,6 +117,9 @@ export function chaveResultado(r) {
   if (r.registo === 'penalti') return 'resultadoPenalti';
   if (r.registo === 'penalti_adv') return 'resultadoPenaltiAdv';
   if (r.registo === 'livre_10m') return 'resultado10m';
+  if (r.registo === 'duelo_def') return 'resultadoDuelo';
+  if (r.registo === 'pressao_alta') return 'resultadoPressao';
+  if (r.registo === 'bola_parada') return 'resultadoBolaParada';
   return 'resultado';
 }
 

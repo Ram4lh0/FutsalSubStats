@@ -858,3 +858,27 @@ test('época: duelos por jogador, pressão alta e bolas paradas ofensivas', asyn
   assert.deepEqual(atleta.duelos, { ganhos: 2, percentagem: 100 });
   assert.equal(extrasDaEquipa(entries).por.duelo_def.res.GANHO, 2);
 });
+
+test('os registos novos têm etiqueta com resultado (e tipo) nas três línguas', async () => {
+  const { registoLabel } = await import('../src/lib/format.js');
+  const { definirIdioma } = await import('../src/lib/i18n/index.js');
+  const jogadores = { p7: { number: 7, name: 'Zé' } };
+  const esperado = {
+    pt: ['Duelo 1x1 defensivo · #7 · Ganhou', 'Pressão alta · Recuperou a bola', 'Bola parada ofensiva · Canto · #7 · Golo'],
+    en: ['Defensive 1v1 duel · #7 · Won', 'High press · Won the ball', 'Attacking set piece · Corner · #7 · Goal'],
+    es: ['Duelo 1x1 defensivo · #7 · Ganado', 'Presión alta · Recuperó el balón', 'Balón parado ofensivo · Córner · #7 · Gol'],
+  };
+  try {
+    for (const [lingua, [duelo, pressao, bp]] of Object.entries(esperado)) {
+      definirIdioma(lingua);
+      assert.equal(registoLabel({ registo: 'duelo_def', playerId: 'p7', resultado: 'GANHO' }, jogadores), duelo);
+      assert.equal(registoLabel({ registo: 'pressao_alta', equipa: 'US', resultado: 'RECUPERADA' }, jogadores), pressao);
+      assert.equal(
+        registoLabel({ registo: 'bola_parada', tipo: 'CANTO', playerId: 'p7', resultado: 'GOLO' }, jogadores),
+        bp
+      );
+    }
+  } finally {
+    definirIdioma('pt');
+  }
+});

@@ -18,9 +18,12 @@ import * as A from '@/domain/actions.js';
 import { fmt } from '@/domain/clock.js';
 import {
   CATALOGO,
+  COR_BOLA_PARADA,
+  COR_DUELO,
   COR_PENALTI,
   COR_PENALTI_ADV,
   COR_RESULTADO,
+  COR_PRESSAO,
   COR_RESULTADO_ADV,
   RESULTADO_REMATE,
   corDoRegisto,
@@ -50,6 +53,9 @@ function coresDe(registo, equipa) {
   if (registo === 'penalti') return COR_PENALTI;
   if (registo === 'penalti_adv') return COR_PENALTI_ADV;
   if (registo === 'livre_10m') return equipa === 'THEM' ? COR_PENALTI_ADV : COR_PENALTI;
+  if (registo === 'duelo_def') return COR_DUELO;
+  if (registo === 'pressao_alta') return COR_PRESSAO;
+  if (registo === 'bola_parada') return COR_BOLA_PARADA;
   return CATALOGO[registo]?.soAdversario ? COR_RESULTADO_ADV : COR_RESULTADO;
 }
 
@@ -72,6 +78,7 @@ function RegistoDialog({
   const [jogador, setJogador] = useState(registo.playerId || '');
   const [equipa, setEquipa] = useState(registo.equipa || 'US');
   const [resultado, setResultado] = useState(registo.resultado || '');
+  const [tipo, setTipo] = useState(registo.tipo || '');
   const [minuto, setMinuto] = useState(nova ? '' : fmt(registo.matchElapsedMs));
   const [ponto, setPonto] = useState(
     registo.x != null && registo.y != null ? { x: registo.x, y: registo.y } : null
@@ -81,12 +88,16 @@ function RegistoDialog({
   const erro = minuto.trim() ? erroDoMinuto(state, ms) : 'faltas.minutoInvalido';
   // Quem fez o registo: sempre nos de jogador, e nos de equipa que o admitem
   // quando são nossos (o livre de 10 m). Num `jogadorOpcional` pode ficar vazio.
-  const pedeJogador = def.por === 'jogador' || (def.jogadorOpcional && equipa === 'US');
+  // Na bola parada o jogador é quem marcou: só num registo que deu golo.
+  const pedeJogador =
+    def.por === 'jogador' ||
+    (def.jogadorOpcional && equipa === 'US' && (!def.tipos || registo.resultado === RESULTADO_REMATE.GOLO));
   const podeSemResultado = semResultado || (!nova && registo.resultado == null);
   const valido =
     Number.isFinite(ms) &&
     !erro &&
     (!pedeJogador || jogador || def.jogadorOpcional) &&
+    (!def.tipos || !nova || Boolean(tipo)) &&
     (!def.resultados || Boolean(resultado) || podeSemResultado);
   const resultados = resultadosPossiveis(registo, nova);
   const cores = coresDe(registo.registo, equipa);
@@ -104,7 +115,7 @@ function RegistoDialog({
       wide
     >
       <div className="form">
-        {def.por === 'equipa' && !def.soAdversario ? (
+        {def.por === 'equipa' && !def.soAdversario && !def.soNos ? (
           <label className="field">
             <span className="field__label">{t('registos.aFavorDe')}</span>
             <select className="input" value={equipa} onChange={(e) => setEquipa(e.target.value)}>
@@ -127,6 +138,24 @@ function RegistoDialog({
               ))}
             </select>
           </label>
+        ) : null}
+
+        {def.tipos ? (
+          <div className="field">
+            <span className="field__label">{t('registos.bolaParadaTipoSub')}</span>
+            <div className="regzona__opcoes">
+              {def.tipos.map((tp) => (
+                <button
+                  key={tp}
+                  type="button"
+                  className={`regzona__opcao ${tipo === tp ? 'is-on' : ''}`}
+                  onClick={() => setTipo(tp)}
+                >
+                  {t(`registos.tipoBolaParada.${tp}`)}
+                </button>
+              ))}
+            </div>
+          </div>
         ) : null}
 
         {resultados.length > 1 ? (
@@ -213,6 +242,7 @@ function RegistoDialog({
               playerId: pedeJogador ? jogador || null : null,
               equipa,
               resultado: resultado || null,
+              ...(def.tipos ? { tipo: tipo || null } : {}),
               matchElapsedMs: ms,
               period: periodoDoMinuto(state, ms),
               x: ponto?.x ?? null,
@@ -239,9 +269,10 @@ export function camposMudados(registo, novo) {
   } else if (def.jogadorOpcional && (novo.playerId || null) !== (registo.playerId || null)) {
     campos.playerId = novo.playerId || null;
   }
-  if (def.por === 'equipa' && !def.soAdversario && novo.equipa !== registo.equipa) {
+  if (def.por === 'equipa' && !def.soAdversario && !def.soNos && novo.equipa !== registo.equipa) {
     campos.equipa = novo.equipa;
   }
+  if (def.tipos && novo.tipo && novo.tipo !== registo.tipo) campos.tipo = novo.tipo;
   if (def.resultados && novo.resultado && novo.resultado !== registo.resultado) {
     campos.resultado = novo.resultado;
   }

@@ -17,7 +17,7 @@ const T0 = 1_700_000_000_000;
 const START = { p1: 'GOALKEEPER', p2: 'FIXO', p3: 'LEFT_WINGER', p4: 'RIGHT_WINGER', p5: 'PIVOT' };
 const match = { id: 'm1', clubId: 'c1', periodDurationMs: 20 * MIN, opponentName: 'Rival', scheduledAt: new Date(T0).toISOString() };
 
-function jogoComPontos({ lancamentos = false } = {}) {
+function jogoComPontos({ lancamentos = false, novos = false } = {}) {
   const squad = ['Ana', 'Bruno', 'Carlos', 'Diogo', 'Eduardo', 'Filipe'].map((name, i) => {
     const id = `p${i + 1}`;
     return {
@@ -48,6 +48,12 @@ function jogoComPontos({ lancamentos = false } = {}) {
   if (lancamentos) {
     reg({ registo: 'lancamento_gr', playerId: 'p1', x: 0.6, y: 0.2 }, T0 + 7 * MIN);
     reg({ registo: 'lancamento_gr', playerId: 'p1', x: 0.35, y: 0.85 }, T0 + 8 * MIN);
+  }
+  if (novos) {
+    reg({ registo: 'duelo_def', playerId: 'p2', resultado: 'GANHO' }, T0 + 9 * MIN);
+    reg({ registo: 'duelo_def', playerId: 'p2', resultado: 'PERDIDO' }, T0 + 10 * MIN);
+    reg({ registo: 'pressao_alta', resultado: 'RECUPERADA' }, T0 + 11 * MIN);
+    reg({ registo: 'bola_parada', tipo: 'CANTO', resultado: 'FINALIZACAO' }, T0 + 12 * MIN);
   }
   gravar((s) => A.finishMatch(s, T0 + 20 * MIN), T0 + 20 * MIN);
   return buildMatchState(match, squad, events);
@@ -138,4 +144,25 @@ test('o PDF da ficha de quem nunca foi convocado sai na mesma', async () => {
   const novo = { id: 'p99', name: 'Novo', shirtNumber: 99 };
   const pdf = await gerarPdfAtleta({ club: { name: 'Clube' }, team: { name: 'Sub-15' }, entries, roster: [novo], player: novo });
   assert.ok(pdf.size > 1500);
+});
+
+test('duelos 1x1, pressão alta e bolas paradas ofensivas: mais conteúdo nos três PDF', async () => {
+  const sem = jogoComPontos();
+  const com = jogoComPontos({ novos: true });
+  const club = { name: 'Clube' };
+  const team = { name: 'Sub-15' };
+  const roster = [{ id: 'p2', name: 'Bruno', number: 2, shirtNumber: 2, preferredPosition: 'FIXO' }];
+  const tamanho = async (state) => {
+    const entries = [{ match: { ...match, status: 'FINISHED' }, state }];
+    return {
+      jogo: (await gerarPdfJogo({ club, match, state, team })).size,
+      painel: (await gerarPdfPainel({ club, team, entries, roster, parteMs: 20 * MIN })).size,
+      atleta: (await gerarPdfAtleta({ club, team, entries, roster, player: roster[0] })).size,
+    };
+  };
+  const a = await tamanho(sem);
+  const b = await tamanho(com);
+  assert.ok(b.jogo > a.jogo, 'PDF do jogo');
+  assert.ok(b.painel > a.painel, 'PDF do painel');
+  assert.ok(b.atleta > a.atleta, 'PDF do atleta');
 });
