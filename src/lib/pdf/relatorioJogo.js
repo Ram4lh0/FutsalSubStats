@@ -12,7 +12,7 @@ import { golosPorFaixa } from '../../domain/dashboard.js';
 import { amarelosAdversario, faltasPorJogador, golosPorTipoNoJogo, mediaEmCampo } from '../../domain/intervalo.js';
 import { foulsInPeriod, foulsTotal } from '../../domain/reducer.js';
 import { matchResult, matchStatsTable, powerPlayTotals } from '../../domain/stats.js';
-import { REGISTO, RESULTADO_REMATE, marcadores, resumoRegistos, temRegistos } from '../../domain/registos.js';
+import { REGISTO, RESULTADO_REMATE, deQuantos, marcadores, resumoRegistos, temRegistos } from '../../domain/registos.js';
 import { clubShort, dateLabel, homeAwayLabel, opponentShort, statusLabel, sufixoDesempate, parteCurtaLabel, parteLabel, positionShort } from '../format.js';
 import { resumoPenaltis } from '../../domain/prolongamento.js';
 import { titularesPorParte } from '../../domain/titulares.js';
@@ -354,6 +354,27 @@ function registosDoJogo(r, state, match, nos) {
   }
   if (tem(REGISTO.PERDA_BOLA)) cartoes.push({ rotulo: t('registos.total.perda_bola'), valor: reg.perdas });
   if (tem(REGISTO.PASSE_FALHADO)) cartoes.push({ rotulo: t('registos.total.passe_falhado'), valor: reg.passes });
+  if (tem(REGISTO.DUELO_DEF)) {
+    cartoes.push({
+      rotulo: t('registos.total.duelo_def'),
+      valor: reg.duelos.total,
+      detalhe: t('registos.duelosGanhos', { n: reg.duelos.ganhos, total: reg.duelos.total }),
+    });
+  }
+  if (tem(REGISTO.PRESSAO_ALTA)) {
+    cartoes.push({
+      rotulo: t('registos.total.pressao_alta'),
+      valor: reg.pressao.total,
+      detalhe: t('registos.pressaoRecuperadas', { n: reg.pressao.recuperadas, total: reg.pressao.total }),
+    });
+  }
+  if (tem(REGISTO.BOLA_PARADA)) {
+    cartoes.push({
+      rotulo: t('registos.total.bola_parada'),
+      valor: reg.bolasParadas.total,
+      detalhe: t('registos.bpDetalhe', { golos: reg.bolasParadas.golos, fin: reg.bolasParadas.finalizacoes }),
+    });
+  }
   const golosEm = (b) => t('registos.golosEm', { golos: b.golos, total: b.total });
   if (tem(REGISTO.PENALTI)) {
     cartoes.push({ rotulo: t('registos.total.penalti'), valor: reg.penaltis.total, detalhe: golosEm(reg.penaltis) });
@@ -435,7 +456,16 @@ function registosDoJogo(r, state, match, nos) {
 
   // ------------------------------------------------- tabela por jogador
   const porJogador = reg.jogadores.some(
-    (j) => j.remates || j.recuperacoes || j.defesas || j.lancamentosGR || j.perdas || j.passes || j.positivas || j.negativas
+    (j) =>
+      j.remates ||
+      j.recuperacoes ||
+      j.defesas ||
+      j.lancamentosGR ||
+      j.perdas ||
+      j.passes ||
+      j.duelos ||
+      j.positivas ||
+      j.negativas
   );
   if (!porJogador) return;
   const colunas = [
@@ -473,6 +503,7 @@ function registosDoJogo(r, state, match, nos) {
     col(t('registos.col.passes'), (j) => j.passes || '–');
     por10((j) => um(j.passes10));
   }
+  if (tem(REGISTO.DUELO_DEF)) col(t('registos.col.duelos'), (j) => deQuantos(j.duelosGanhos, j.duelos) || '–');
   if (tem(REGISTO.ACAO)) {
     col(t('registos.col.acoes'), (j) => (j.positivas || j.negativas ? `+${j.positivas} / -${j.negativas}` : '–'));
   }

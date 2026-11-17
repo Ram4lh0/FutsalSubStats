@@ -3,7 +3,8 @@
 // components/registos/BarraRegistos.jsx — entre o marcador e o campo: os
 // contadores dos registos de equipa, numa grelha como um mini-marcador. Uma
 // linha para nós e outra para eles, uma coluna por registo ligado (remates,
-// penáltis, passes falhados, cantos, foras, lançamentos de baliza).
+// penáltis, pressão alta, bolas paradas ofensivas, passes falhados, cantos,
+// foras, lançamentos de baliza).
 //
 // Cada célula é um contador "− n +": o "+" regista (com as perguntas que o
 // escalão pedir), o "−" tira o último registo desse tipo, para um engano (ver
@@ -60,6 +61,16 @@ export function colunasRegistos(state, ligados, on) {
       THEM: ligados.has(REGISTO.PENALTI_ADV)
         ? contador(REGISTO.PENALTI_ADV, r.penaltisAdv.total, on.registarPenaltiAdv)
         : null,
+    },
+    ligados.has(REGISTO.PRESSAO_ALTA) && {
+      id: 'pressao',
+      US: contador(REGISTO.PRESSAO_ALTA, r.pressao.total, on.registarPressao),
+      THEM: null,
+    },
+    ligados.has(REGISTO.BOLA_PARADA) && {
+      id: 'bolasParadas',
+      US: contador(REGISTO.BOLA_PARADA, r.bolasParadas.total, on.registarBolaParada),
+      THEM: null,
     },
     passeNaBarra && {
       id: 'passes',
@@ -161,6 +172,7 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
     [REGISTO.DEFESA_GR, r.defesas],
     [REGISTO.LANCAMENTO_GR, r.lancamentosGR],
     [REGISTO.PERDA_BOLA, r.perdas],
+    [REGISTO.DUELO_DEF, r.duelos.total],
     ...(passeNaBarra ? [] : [[REGISTO.PASSE_FALHADO, r.passes]]),
   ]
     .filter(([id]) => ligados.has(id))

@@ -33,6 +33,10 @@ import {
   passesDaEpoca,
   passesPorJogador,
   bolasParadas,
+  bolasParadasOfensivas,
+  duelosDaEpoca,
+  duelosPorJogador,
+  pressaoDaEpoca,
   REGISTOS_BOLA_PARADA,
   defesasPorJogador,
   lancamentosGRPorJogador,
@@ -492,6 +496,60 @@ function registosExtra(r, entries) {
         texto: t('registos.epoca.perdasDetalhe', { n: j.passes, porJogo: j.porJogo.toFixed(1) }),
       })),
       { cor: COR.vermelho }
+    );
+  }
+  if (tipos.has(REGISTO.DUELO_DEF)) {
+    const equipa = duelosDaEpoca(entries);
+    r.secao(t('registos.epoca.duelos'), 30);
+    r.cartoes([
+      {
+        rotulo: t('registos.epoca.duelosGanhos'),
+        valor: equipa.percentagem == null ? '—' : `${equipa.percentagem}%`,
+        detalhe: t('registos.duelosGanhos', { n: equipa.ganhos, total: equipa.duelos }),
+      },
+      { rotulo: t('registos.total.duelo_def'), valor: equipa.duelos },
+    ]);
+    r.barrasH(
+      duelosPorJogador(entries).map((j) => ({
+        rotulo: `${j.number ?? ''} ${j.name}`.trim(),
+        valor: j.ganhos,
+        texto: t('registos.epoca.duelosDetalhe', { ganhos: j.ganhos, n: j.duelos, pct: j.percentagem }),
+      }))
+    );
+    r.paragrafo(t('registos.epoca.duelosNota'));
+  }
+  if (tipos.has(REGISTO.PRESSAO_ALTA)) {
+    const p = pressaoDaEpoca(entries);
+    r.secao(t('registos.epoca.pressao'), 30);
+    r.cartoes([
+      {
+        rotulo: t('registos.epoca.pressaoEficacia'),
+        valor: p.percentagem == null ? '—' : `${p.percentagem}%`,
+        detalhe: t('registos.pressaoRecuperadas', { n: p.recuperadas, total: p.total }),
+      },
+      { rotulo: t('registos.epoca.pressaoPorJogo'), valor: p.porJogo.toFixed(1), detalhe: t('painelv.emJogos', { n: p.jogos }) },
+      { rotulo: t('registos.total.pressao_alta'), valor: p.total },
+    ]);
+  }
+  if (tipos.has(REGISTO.BOLA_PARADA)) {
+    const b = bolasParadasOfensivas(entries);
+    const pct = (n) => (b.total ? `${Math.round((n / b.total) * 100)}%` : '—');
+    r.secao(t('registos.epoca.bolasParadasOf'), 30);
+    r.cartoes([
+      { rotulo: t('registos.total.bola_parada'), valor: b.total, detalhe: t('painelv.emJogos', { n: b.jogos }) },
+      { rotulo: t('registos.epoca.bpGolos'), valor: pct(b.golos), detalhe: t('registos.golosEm', { golos: b.golos, total: b.total }) },
+      {
+        rotulo: t('registos.epoca.bpFinalizacao'),
+        valor: pct(b.golos + b.finalizacoes),
+        detalhe: `${b.golos + b.finalizacoes}/${b.total}`,
+      },
+    ]);
+    r.barrasH(
+      Object.entries(b.porTipo).map(([tp, x]) => ({
+        rotulo: t(`registos.tipoBolaParada.${tp}`),
+        valor: x.total,
+        texto: t('registos.epoca.bpPorTipo', { total: x.total, golos: x.golos, fin: x.finalizacoes }),
+      }))
     );
   }
   if (REGISTOS_BOLA_PARADA.some((id) => tipos.has(id))) {

@@ -18,7 +18,17 @@
 
 import { GOAL_TYPE, MATCH_STATUS, normalizePosition, timingOf, timingConfig, goalTypesFor } from './constants.js';
 import { clubAggregate, matchResult, playerMatchStats } from './stats.js';
-import { A_BALIZA, REGISTO, RESULTADO_REMATE, paraMarcadores, recuperacoesPor10, registosDoJogo } from './registos.js';
+import {
+  A_BALIZA,
+  REGISTO,
+  RESULTADO_DUELO,
+  RESULTADO_PRESSAO,
+  RESULTADO_REMATE,
+  paraMarcadores,
+  recuperacoesPor10,
+  registosDoJogo,
+  resumoBolasParadas,
+} from './registos.js';
 
 /** Um jogo terminado. É a unidade de tudo o que se conta aqui. */
 const acabado = (e) => e?.state?.status === MATCH_STATUS.FINISHED;
@@ -903,6 +913,78 @@ export function passesDaEpoca(entries) {
   return { jogos: jogos.length, passes, passesPorJogo: jogos.length ? passes / jogos.length : 0 };
 }
 
+/**
+ * Duelos 1x1 defensivos por jogador na época: quantos, quantos ganhou e a
+ * percentagem. Ordenado pelos ganhos.
+ */
+export function duelosPorJogador(entries) {
+  const porJogador = new Map();
+  for (const e of terminados(entries)) {
+    for (const r of registosDoJogo(e.state)) {
+      if (r.registo !== REGISTO.DUELO_DEF || !r.playerId) continue;
+      const p = e.state.players?.[r.playerId];
+      if (!porJogador.has(r.playerId)) {
+        porJogador.set(r.playerId, { playerId: r.playerId, number: p?.number, name: p?.name || '', duelos: 0, ganhos: 0 });
+      }
+      const j = porJogador.get(r.playerId);
+      j.duelos += 1;
+      if (r.resultado === RESULTADO_DUELO.GANHO) j.ganhos += 1;
+    }
+  }
+  return [...porJogador.values()]
+    .map((j) => ({ ...j, percentagem: j.duelos ? Math.round((j.ganhos / j.duelos) * 100) : 0 }))
+    .sort((a, b) => b.ganhos - a.ganhos || b.percentagem - a.percentagem || (a.number ?? 0) - (b.number ?? 0));
+}
+
+/** Os duelos 1x1 defensivos da equipa na época. */
+export function duelosDaEpoca(entries) {
+  let duelos = 0;
+  let ganhos = 0;
+  for (const e of terminados(entries)) {
+    for (const r of registosDoJogo(e.state)) {
+      if (r.registo !== REGISTO.DUELO_DEF) continue;
+      duelos += 1;
+      if (r.resultado === RESULTADO_DUELO.GANHO) ganhos += 1;
+    }
+  }
+  return { duelos, ganhos, percentagem: duelos ? Math.round((ganhos / duelos) * 100) : null };
+}
+
+/** As pressões altas na época: quantas, quantas recuperaram a bola e por jogo. */
+export function pressaoDaEpoca(entries) {
+  let total = 0;
+  let recuperadas = 0;
+  let jogos = 0;
+  for (const e of terminados(entries)) {
+    const lista = registosDoJogo(e.state).filter((r) => r.registo === REGISTO.PRESSAO_ALTA);
+    if (!lista.length) continue;
+    jogos += 1;
+    total += lista.length;
+    recuperadas += lista.filter((r) => r.resultado === RESULTADO_PRESSAO.RECUPERADA).length;
+  }
+  return {
+    jogos,
+    total,
+    recuperadas,
+    porJogo: jogos ? total / jogos : 0,
+    percentagem: total ? Math.round((recuperadas / total) * 100) : null,
+  };
+}
+
+/** As bolas paradas ofensivas na época: totais, golos e finalizações, por tipo. */
+export function bolasParadasOfensivas(entries) {
+  const lista = [];
+  let jogos = 0;
+  for (const e of terminados(entries)) {
+    const doJogo = registosDoJogo(e.state).filter((r) => r.registo === REGISTO.BOLA_PARADA);
+    if (!doJogo.length) continue;
+    jogos += 1;
+    lista.push(...doJogo);
+  }
+  const r = resumoBolasParadas(lista);
+  return { ...r, jogos, porJogo: jogos ? r.total / jogos : 0 };
+}
+
 /** Os registos que fazem aparecer o bloco das bolas paradas. */
 export const REGISTOS_BOLA_PARADA = [REGISTO.CANTO, REGISTO.PENALTI, REGISTO.PENALTI_ADV, REGISTO.LIVRE_10M];
 
@@ -989,6 +1071,7 @@ const REGISTOS_DO_ATLETA = [
   REGISTO.LANCAMENTO_GR,
   REGISTO.PERDA_BOLA,
   REGISTO.PASSE_FALHADO,
+  REGISTO.DUELO_DEF,
   REGISTO.ACAO,
   REGISTO.PENALTI,
 ];
@@ -1008,6 +1091,7 @@ export function extrasDoAtleta(entries, playerId) {
   const remates = { aBaliza: 0, golos: 0, comResultado: 0 };
   const acoes = { positivas: 0, negativas: 0 };
   const penaltis = { golos: 0 };
+  const duelos = { ganhos: 0 };
 
   for (const e of terminados(entries)) {
     const s = statsDoJogador(e.state, playerId);
@@ -1036,6 +1120,8 @@ export function extrasDoAtleta(entries, playerId) {
         }
       } else if (id === REGISTO.PENALTI) {
         penaltis.golos += meus.filter((r) => r.resultado === RESULTADO_REMATE.GOLO).length;
+      } else if (id === REGISTO.DUELO_DEF) {
+        duelos.ganhos += meus.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length;
       }
     }
   }
@@ -1056,6 +1142,10 @@ export function extrasDoAtleta(entries, playerId) {
     },
     acoes,
     penaltis,
+    duelos: {
+      ...duelos,
+      percentagem: por[REGISTO.DUELO_DEF].n ? Math.round((duelos.ganhos / por[REGISTO.DUELO_DEF].n) * 100) : null,
+    },
   };
 }
 
@@ -1075,7 +1165,7 @@ export function mapaDoAtleta(entries, registo, playerId) {
  */
 export function extrasDaEquipa(entries) {
   const por = {};
-  const alvo = (id) => (por[id] ||= { US: 0, THEM: 0, jogos: 0 });
+  const alvo = (id) => (por[id] ||= { US: 0, THEM: 0, jogos: 0, res: {} });
   const remates = { n: 0, aBaliza: 0, golos: 0, comResultado: 0 };
   const acoes = { positivas: 0, negativas: 0 };
   const defesas = { n: 0, jogos: 0 };
@@ -1085,6 +1175,7 @@ export function extrasDaEquipa(entries) {
     for (const r of lista) {
       const a = alvo(r.registo);
       a[r.equipa === 'THEM' ? 'THEM' : 'US'] += 1;
+      if (r.resultado) a.res[r.resultado] = (a.res[r.resultado] || 0) + 1;
       if (!vistos.has(r.registo)) {
         vistos.add(r.registo);
         a.jogos += 1;

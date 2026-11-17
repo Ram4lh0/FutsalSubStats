@@ -31,9 +31,10 @@ export function toCsv(rows) {
 
 /** As colunas dos registos extra de um jogador, pela ordem do cabeçalho. */
 function colunasDeRegistos(j) {
-  if (!j) return [0, 0, 0, 0, 0, 0, 0, 0, 0];
-  // As perdas de bola, os passes falhados e os lançamentos do GR vieram
-  // depois: ficam no fim, para não mexer nas colunas de antes.
+  if (!j) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  // As perdas de bola, os passes falhados, os lançamentos do GR e os duelos
+  // 1x1 defensivos vieram depois: ficam no fim, para não mexer nas colunas de
+  // antes.
   return [
     j.remates,
     j.rematesBaliza,
@@ -44,6 +45,8 @@ function colunasDeRegistos(j) {
     j.perdas,
     j.passes,
     j.lancamentosGR,
+    j.duelosGanhos,
+    j.duelos - j.duelosGanhos,
   ];
 }
 
@@ -109,6 +112,23 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
     ...(reg?.tipos.has(REGISTO.LANCAMENTO_BALIZA)
       ? [[t('registos.csv.lancamentos'), `${reg.lancamentos.US}-${reg.lancamentos.THEM}`]]
       : []),
+    ...(reg?.tipos.has(REGISTO.PRESSAO_ALTA)
+      ? [[t('registos.csv.pressao'), `${reg.pressao.recuperadas}/${reg.pressao.total}`]]
+      : []),
+    ...(reg?.tipos.has(REGISTO.BOLA_PARADA)
+      ? [
+          [
+            t('registos.csv.bolasParadas'),
+            `${reg.bolasParadas.golos}/${reg.bolasParadas.finalizacoes}/${reg.bolasParadas.total}`,
+          ],
+          ...Object.entries(reg.bolasParadas.porTipo)
+            .filter(([, b]) => b.total)
+            .map(([tp, b]) => [
+              `${t('registos.total.bola_parada')} · ${t(`registos.tipoBolaParada.${tp}`)}`,
+              `${b.golos}/${b.finalizacoes}/${b.total}`,
+            ]),
+        ]
+      : []),
     ...pp.periodos.map((x) => [
       t('csv.periodo5v4', { n: x.numero }),
       t('csv.detalhe5v4', {
@@ -145,6 +165,8 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
             t('registos.total.perda_bola'),
             t('registos.total.passe_falhado'),
             t('registos.total.lancamento_gr'),
+            t('registos.csv.duelosGanhos'),
+            t('registos.csv.duelosPerdidos'),
           ]
         : []),
     ],

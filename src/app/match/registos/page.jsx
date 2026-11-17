@@ -546,6 +546,9 @@ function Registos() {
     if (ligados.has(REGISTO.PERDA_BOLA)) {
       reg('perda', t('registos.nome.perda_bola'), c.perda_bola, () => on.registarPerda(p), dele(REGISTO.PERDA_BOLA));
     }
+    if (ligados.has(REGISTO.DUELO_DEF)) {
+      reg('duelo', t('registos.nome.duelo_def'), c.duelo_def, () => on.registarDuelo(p), dele(REGISTO.DUELO_DEF));
+    }
     if (ligados.has(REGISTO.PASSE_FALHADO)) {
       reg('passe', t('registos.nome.passe_falhado'), c.passe_falhado, () => on.registarPasse(p), dele(REGISTO.PASSE_FALHADO));
     }

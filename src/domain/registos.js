@@ -61,6 +61,13 @@ export const REGISTO = {
   // Lançamentos do guarda-redes (11/11/2026, pedido do SQB): quantos faz
   // cada GR e para onde lançou. O ponto é o DESTINO do lançamento.
   LANCAMENTO_GR: 'lancamento_gr',
+  // Pedidos a 17/11/2026 (ORDEM, Iniciados), da lista de análise do clube:
+  // duelos 1x1 defensivos de cada jogador (ganhos ou perdidos), as pressões
+  // altas da equipa (recuperou a bola ou não) e as bolas paradas ofensivas
+  // (canto, livre ou lateral, e no que deu).
+  DUELO_DEF: 'duelo_def',
+  PRESSAO_ALTA: 'pressao_alta',
+  BOLA_PARADA: 'bola_parada',
   // O livre de 10 metros, da 6.ª falta da parte em diante. É de TODOS os
   // escalões: não se liga no painel, grava-se sempre que o treinador diz se
   // foi golo. `equipa` é quem bate o livre.
@@ -86,6 +93,28 @@ export const RESULTADO_PENALTI = {
 
 /** O livre de 10 metros: foi golo ou não. */
 export const RESULTADO_10M = { GOLO: 'GOLO', FALHADO: 'FALHADO' };
+
+/** Duelo 1x1 defensivo: o defensor ganhou-o ou perdeu-o. */
+export const RESULTADO_DUELO = { GANHO: 'GANHO', PERDIDO: 'PERDIDO' };
+
+/** Pressão alta: a equipa recuperou a bola com a pressão, ou não. */
+export const RESULTADO_PRESSAO = { RECUPERADA: 'RECUPERADA', NAO_RECUPERADA: 'NAO_RECUPERADA' };
+
+/**
+ * Bola parada ofensiva: no que deu. `GOLO` corre primeiro o fluxo do golo
+ * (com o tipo já posto); `FINALIZACAO` é remate sem golo.
+ */
+export const RESULTADO_BOLA_PARADA = {
+  GOLO: 'GOLO',
+  FINALIZACAO: 'FINALIZACAO',
+  SEM_FINALIZACAO: 'SEM_FINALIZACAO',
+};
+
+/** De que bola parada se trata. `LATERAL` é o pontapé de linha lateral. */
+export const TIPO_BOLA_PARADA = { CANTO: 'CANTO', LIVRE: 'LIVRE', LATERAL: 'LATERAL' };
+
+/** O tipo do golo (GOAL_TYPE) que nasce de cada bola parada. */
+export const GOLO_DA_BOLA_PARADA = { CANTO: 'CANTO', LIVRE: 'LIVRE', LATERAL: 'FORA' };
 
 /** Os "fixe" verde e vermelho: uma ação boa ou má, marcada à mão. */
 export const RESULTADO_ACAO = { POSITIVA: 'POSITIVA', NEGATIVA: 'NEGATIVA' };
@@ -220,6 +249,32 @@ export const CATALOGO = {
     opcoes: ['zona'],
     disponivel: true,
   },
+  // Um toque no "1x1" do cartão do jogador e pergunta-se se ganhou o duelo.
+  [REGISTO.DUELO_DEF]: {
+    por: 'jogador',
+    ponto: false,
+    resultados: Object.values(RESULTADO_DUELO),
+    disponivel: true,
+  },
+  // Da equipa, sempre nossa (`soNos`): botão na barra de cima.
+  [REGISTO.PRESSAO_ALTA]: {
+    por: 'equipa',
+    soNos: true,
+    ponto: false,
+    resultados: Object.values(RESULTADO_PRESSAO),
+    disponivel: true,
+  },
+  // Nossa, na barra de cima: o tipo (`tipos`) e no que deu. Num golo guarda-se
+  // quem marcou (`jogadorOpcional`), e o golo leva o tipo da bola parada.
+  [REGISTO.BOLA_PARADA]: {
+    por: 'equipa',
+    soNos: true,
+    jogadorOpcional: true,
+    ponto: false,
+    resultados: Object.values(RESULTADO_BOLA_PARADA),
+    tipos: Object.values(TIPO_BOLA_PARADA),
+    disponivel: true,
+  },
   // `sempre`: não vai ao painel nem precisa de estar ligado. `jogadorOpcional`:
   // num livre nosso guarda-se quem bateu, se o treinador o disser.
   [REGISTO.LIVRE_10M]: {
@@ -242,6 +297,7 @@ const REMATES = new Set([
   REGISTO.PENALTI,
   REGISTO.PENALTI_ADV,
   REGISTO.LIVRE_10M,
+  REGISTO.BOLA_PARADA,
 ]);
 
 /** O registo leva um golo atrás quando dá golo? (Remates, penáltis, 10 m.) */
@@ -275,6 +331,11 @@ export const COR_PENALTI = {
   FALHADO: '#94a3b8',
 };
 export const COR_PENALTI_ADV = { ...COR_PENALTI, GOLO: '#f43f5e' };
+
+/** Os botões dos resultados dos registos de 17/11/2026. */
+export const COR_DUELO = { GANHO: '#22c55e', PERDIDO: '#f43f5e' };
+export const COR_PRESSAO = { RECUPERADA: '#22c55e', NAO_RECUPERADA: '#94a3b8' };
+export const COR_BOLA_PARADA = { GOLO: '#22c55e', FINALIZACAO: '#38bdf8', SEM_FINALIZACAO: '#94a3b8' };
 
 export const COR_REGISTO = {
   recuperacao: '#f472b6',
@@ -407,6 +468,8 @@ export function registar(
     x = null,
     y = null,
     goloEventId = null,
+    // Só nos registos com `tipos` (a bola parada): canto, livre ou lateral.
+    tipo = null,
     // Só nos registos acrescentados a frio: o minuto e a parte em que foi.
     matchElapsedMs = null,
     period = null,
@@ -424,14 +487,19 @@ export function registar(
   if (def.resultados && !semResultado && !def.resultados.includes(resultado)) {
     throw new Error(`Resultado inválido para ${registo}: ${resultado}`);
   }
+  if (def.tipos && tipo != null && !def.tipos.includes(tipo)) {
+    throw new Error(`Tipo inválido para ${registo}: ${tipo}`);
+  }
 
   const metadata = {
     v: VERSAO,
     registo,
     // Os registos de jogador são sempre nossos; os do adversário, sempre deles.
-    equipa: def.por === 'jogador' ? 'US' : def.soAdversario ? 'THEM' : equipaValida(equipa),
+    equipa:
+      def.por === 'jogador' || def.soNos ? 'US' : def.soAdversario ? 'THEM' : equipaValida(equipa),
   };
   if (def.resultados && !semResultado) metadata.resultado = resultado;
+  if (def.tipos && tipo != null) metadata.tipo = tipo;
   // Quem bateu, num registo de equipa que o admite (o livre de 10 m nosso).
   let comJogador = null;
   if (def.por === 'jogador') comJogador = playerId || null;
@@ -489,7 +557,13 @@ export function corrigirRegisto(state, { targetEventId, ...campos }, now = Date.
     if (!campos.playerId && !def?.jogadorOpcional) throw new Error('O registo precisa de jogador.');
     metadata.playerId = campos.playerId || null;
   }
-  if ('equipa' in campos && !def?.soAdversario) metadata.equipa = equipaValida(campos.equipa);
+  if ('equipa' in campos && !def?.soAdversario && !def?.soNos) metadata.equipa = equipaValida(campos.equipa);
+  if ('tipo' in campos) {
+    if (def && (!def.tipos || !def.tipos.includes(campos.tipo))) {
+      throw new Error(`Tipo inválido: ${campos.tipo}`);
+    }
+    metadata.tipo = campos.tipo;
+  }
   if ('resultado' in campos) {
     if (def && (!def.resultados || !def.resultados.includes(campos.resultado))) {
       throw new Error(`Resultado inválido: ${campos.resultado}`);
@@ -530,6 +604,7 @@ function lerRegisto(ev) {
     playerId: ev.playerId || md.playerId || null,
     equipa: md.equipa === 'THEM' ? 'THEM' : 'US',
     resultado: md.resultado ?? null,
+    tipo: md.tipo ?? null,
     x: md.x ?? null,
     y: md.y ?? null,
     goloEventId: md.goloEventId ?? null,
@@ -576,9 +651,10 @@ export function registosDoJogo(state) {
     if ('playerId' in md && (md.playerId || def.jogadorOpcional)) {
       if (def.por === 'jogador' || def.jogadorOpcional) r.playerId = md.playerId || null;
     }
-    if ('equipa' in md && def.por === 'equipa' && !def.soAdversario) {
+    if ('equipa' in md && def.por === 'equipa' && !def.soAdversario && !def.soNos) {
       r.equipa = md.equipa === 'THEM' ? 'THEM' : 'US';
     }
+    if ('tipo' in md && def.tipos?.includes(md.tipo)) r.tipo = md.tipo;
     if ('resultado' in md && def.resultados?.includes(md.resultado)) {
       const golo = RESULTADO_REMATE.GOLO;
       // A mesma regra da escrita: um remate não entra nem sai do golo por aqui.
@@ -647,6 +723,9 @@ export function resumoRegistos(state, now = Date.now()) {
     };
   };
   const livres = de(REGISTO.LIVRE_10M);
+  const duelos = de(REGISTO.DUELO_DEF);
+  const pressoes = de(REGISTO.PRESSAO_ALTA);
+  const bolasParadas = de(REGISTO.BOLA_PARADA);
 
   const tempos = new Map(matchStatsTable(state, now).map((r) => [r.playerId, r.courtMs]));
   const jogadores = Object.values(state.players || {})
@@ -658,6 +737,7 @@ export function resumoRegistos(state, now = Date.now()) {
       const perdas = meus.filter((r) => r.registo === REGISTO.PERDA_BOLA).length;
       const passes = meus.filter((r) => r.registo === REGISTO.PASSE_FALHADO).length;
       const lancamentosGR = meus.filter((r) => r.registo === REGISTO.LANCAMENTO_GR).length;
+      const meusDuelos = meus.filter((r) => r.registo === REGISTO.DUELO_DEF);
       return {
         playerId: p.playerId,
         number: p.number,
@@ -674,6 +754,8 @@ export function resumoRegistos(state, now = Date.now()) {
         perdas10: recuperacoesPor10(perdas, courtMs),
         passes,
         passes10: recuperacoesPor10(passes, courtMs),
+        duelos: meusDuelos.length,
+        duelosGanhos: meusDuelos.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length,
         positivas: meus.filter(
           (r) => r.registo === REGISTO.ACAO && r.resultado === RESULTADO_ACAO.POSITIVA
         ).length,
@@ -691,6 +773,7 @@ export function resumoRegistos(state, now = Date.now()) {
         j.lancamentosGR ||
         j.perdas ||
         j.passes ||
+        j.duelos ||
         j.positivas ||
         j.negativas
     )
@@ -730,6 +813,15 @@ export function resumoRegistos(state, now = Date.now()) {
     },
     lancamentos: porEquipa(REGISTO.LANCAMENTO_BALIZA),
     lancamentosGR: de(REGISTO.LANCAMENTO_GR).length,
+    duelos: {
+      total: duelos.length,
+      ganhos: duelos.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length,
+    },
+    pressao: {
+      total: pressoes.length,
+      recuperadas: pressoes.filter((r) => r.resultado === RESULTADO_PRESSAO.RECUPERADA).length,
+    },
+    bolasParadas: resumoBolasParadas(bolasParadas),
     acoes: {
       positivas: acoes.filter((r) => r.resultado === RESULTADO_ACAO.POSITIVA).length,
       negativas: acoes.filter((r) => r.resultado === RESULTADO_ACAO.NEGATIVA).length,
@@ -741,7 +833,7 @@ export function resumoRegistos(state, now = Date.now()) {
 /**
  * Quantos de cada registo tem cada jogador, para os números nos botões do
  * cartão: Map playerId → { remate, recuperacao, defesa_gr, lancamento_gr, perda_bola,
- * passe_falhado, positivas, negativas }.
+ * passe_falhado, duelo_def, positivas, negativas }.
  */
 export function contagemPorJogador(state) {
   const out = new Map();
@@ -755,6 +847,7 @@ export function contagemPorJogador(state) {
         lancamento_gr: 0,
         perda_bola: 0,
         passe_falhado: 0,
+        duelo_def: 0,
         positivas: 0,
         negativas: 0,
       });
@@ -768,6 +861,32 @@ export function contagemPorJogador(state) {
     }
   }
   return out;
+}
+
+/**
+ * As bolas paradas ofensivas de uma lista de registos (um jogo ou uma época):
+ * quantas, quantas deram golo e quantas acabaram em remate sem golo, no total
+ * e por tipo (canto, livre, lateral).
+ */
+export function resumoBolasParadas(lista) {
+  const conta = (l) => ({
+    total: l.length,
+    golos: l.filter((r) => r.resultado === RESULTADO_BOLA_PARADA.GOLO).length,
+    finalizacoes: l.filter((r) => r.resultado === RESULTADO_BOLA_PARADA.FINALIZACAO).length,
+  });
+  const bps = lista.filter((r) => r.registo === REGISTO.BOLA_PARADA);
+  return {
+    ...conta(bps),
+    porTipo: Object.fromEntries(
+      Object.values(TIPO_BOLA_PARADA).map((tp) => [tp, conta(bps.filter((r) => r.tipo === tp))])
+    ),
+  };
+}
+
+/** "x/y (z%)": quantos de quantos, com a percentagem. `null` sem nenhum. */
+export function deQuantos(n, total) {
+  if (!total) return null;
+  return `${n}/${total} (${Math.round((n / total) * 100)}%)`;
 }
 
 /**

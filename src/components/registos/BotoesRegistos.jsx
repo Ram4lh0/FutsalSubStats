@@ -3,8 +3,8 @@
 // components/registos/BotoesRegistos.jsx — os botões dos registos extra no
 // cartão do jogador em campo: ação + e −, defesa e lançamento (só no
 // guarda-redes), remate,
-// recuperação, perda de bola e passe falhado (se o escalão o quiser no
-// cartão), cada um só se o escalão o tiver ligado, e o G no fim.
+// recuperação, perda de bola, duelo 1x1 defensivo e passe falhado (se o
+// escalão o quiser no cartão), cada um só se o escalão o tiver ligado, e o G no fim.
 //
 // São `span` como o G e o F: o cartão inteiro já é um botão, e um botão dentro
 // de outro não é HTML válido.
@@ -31,6 +31,7 @@ export function temBotoesNoCartao(ligados, pos) {
     ligados.has(REGISTO.REMATE) ||
     ligados.has(REGISTO.RECUPERACAO) ||
     ligados.has(REGISTO.PERDA_BOLA) ||
+    ligados.has(REGISTO.DUELO_DEF) ||
     passeNoCartao(ligados) ||
     ligados.has(REGISTO.ACAO) ||
     (pos === 'GOALKEEPER' && (ligados.has(REGISTO.DEFESA_GR) || ligados.has(REGISTO.LANCAMENTO_GR)))
@@ -96,6 +97,11 @@ export default function BotoesRegistos({ pos, p, ligados, contagem, on, golo }) 
       {ligados.has(REGISTO.PERDA_BOLA)
         ? botao('perda', t('registos.btn.perda_bola'), t('registos.nome.perda_bola'), c.perda_bola, () =>
             on.registarPerda(p)
+          )
+        : null}
+      {ligados.has(REGISTO.DUELO_DEF)
+        ? botao('duelo', t('registos.btn.duelo_def'), t('registos.nome.duelo_def'), c.duelo_def, () =>
+            on.registarDuelo(p)
           )
         : null}
       {passeNoCartao(ligados)

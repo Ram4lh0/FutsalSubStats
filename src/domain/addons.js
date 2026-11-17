@@ -54,6 +54,9 @@ export const NOME_REGISTO = {
   penalti_adv: 'Penáltis do adversário',
   lancamento_baliza: 'Lançamentos de baliza',
   lancamento_gr: 'Lançamentos do GR',
+  duelo_def: 'Duelos 1x1 defensivos',
+  pressao_alta: 'Pressão alta',
+  bola_parada: 'Bolas paradas ofensivas',
 };
 
 /**

@@ -19,14 +19,22 @@ import { events } from '@/lib/data/repository.js';
 import * as A from '@/domain/actions.js';
 import { EVENT, GOAL_TYPE } from '@/domain/constants.js';
 import {
+  COR_BOLA_PARADA,
+  COR_DUELO,
   COR_PENALTI,
   COR_PENALTI_ADV,
   COR_RESULTADO,
+  COR_PRESSAO,
   COR_RESULTADO_ADV,
+  GOLO_DA_BOLA_PARADA,
   REGISTO,
   RESULTADO_10M,
+  RESULTADO_BOLA_PARADA,
+  RESULTADO_DUELO,
   RESULTADO_PENALTI,
+  RESULTADO_PRESSAO,
   RESULTADO_REMATE,
+  TIPO_BOLA_PARADA,
   levaGolo,
   marcadores,
   registar,
@@ -259,6 +267,82 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     await commit(registar(state, { registo: REGISTO.PASSE_FALHADO, playerId }));
   }
 
+  /** Duelo 1x1 defensivo: um toque no "1x1" do cartão e ganhou ou perdeu. */
+  async function registarDuelo(p) {
+    const r = await perguntarOnde(ui, {
+      titulo: t('registos.dueloDe', quem(p)),
+      subtitulo: t('registos.dueloSub'),
+      opcoes: Object.values(RESULTADO_DUELO).map((o) => ({
+        id: o,
+        rotulo: t(`registos.resultadoDuelo.${o}`),
+        cor: COR_DUELO[o],
+      })),
+      semCampo: true,
+    });
+    if (!r) return;
+    await commit(registar(state, { registo: REGISTO.DUELO_DEF, playerId: p.playerId, resultado: r.opcao }));
+  }
+
+  /** Pressão alta (nossa, na barra): a pressão recuperou a bola ou não. */
+  async function registarPressao() {
+    const { nos } = nomes();
+    const r = await perguntarOnde(ui, {
+      titulo: t('registos.pressaoDe', { equipa: nos }),
+      subtitulo: t('registos.pressaoSub'),
+      opcoes: Object.values(RESULTADO_PRESSAO).map((o) => ({
+        id: o,
+        rotulo: t(`registos.resultadoPressao.${o}`),
+        cor: COR_PRESSAO[o],
+      })),
+      semCampo: true,
+    });
+    if (!r) return;
+    await commit(registar(state, { registo: REGISTO.PRESSAO_ALTA, resultado: r.opcao }));
+  }
+
+  /**
+   * Bola parada ofensiva (nossa, na barra): que bola parada foi (canto, livre,
+   * lateral) e no que deu. Golo pergunta quem marcou e corre o fluxo do golo
+   * com o tipo já posto (canto, livre ou fora); o registo fica preso ao golo.
+   */
+  async function registarBolaParada() {
+    const { nos } = nomes();
+    const titulo = t('registos.bolaParadaDe', { equipa: nos });
+    const tp = await perguntarOnde(ui, {
+      titulo,
+      subtitulo: t('registos.bolaParadaTipoSub'),
+      opcoes: Object.values(TIPO_BOLA_PARADA).map((o) => ({ id: o, rotulo: t(`registos.tipoBolaParada.${o}`) })),
+      semCampo: true,
+    });
+    if (!tp) return;
+    const tipo = tp.opcao;
+    const r = await perguntarOnde(ui, {
+      titulo,
+      subtitulo: t('registos.bolaParadaResultadoSub', { tipo: t(`registos.tipoBolaParada.${tipo}`) }),
+      opcoes: Object.values(RESULTADO_BOLA_PARADA).map((o) => ({
+        id: o,
+        rotulo: t(`registos.resultadoBolaParada.${o}`),
+        cor: COR_BOLA_PARADA[o],
+      })),
+      semCampo: true,
+    });
+    if (!r) return;
+    const dados = { registo: REGISTO.BOLA_PARADA, tipo, resultado: r.opcao };
+    if (r.opcao !== RESULTADO_BOLA_PARADA.GOLO) {
+      await commit(registar(state, dados));
+      return;
+    }
+    const playerId = await pickPlayer(ui, state, t('acao.quemMarcou'), {
+      allowNone: true,
+      noneLabel: t('acao.naoRegistar'),
+    });
+    if (playerId === undefined) return;
+    await marcarGolo(playerId ? state.players[playerId] : null, {
+      tipo: GOLO_DA_BOLA_PARADA[tipo],
+      comRemate: (st, goloEventId) => registar(st, { ...dados, playerId, goloEventId }),
+    });
+  }
+
   async function registarAcao(p, resultado) {
     await commit(registar(state, { registo: REGISTO.ACAO, playerId: p.playerId, resultado }));
   }
@@ -455,6 +539,9 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
       registarPasse,
       registarPasseBarra,
       registarAcao,
+      registarDuelo,
+      registarPressao,
+      registarBolaParada,
       registarFora,
       registarCanto,
       registarLancamento,

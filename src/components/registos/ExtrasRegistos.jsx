@@ -107,7 +107,7 @@ export function TabelaExtrasAtleta({ extras }) {
 /** Os cartões de cada registo extra, no painel de um atleta. */
 export function BlocosExtrasAtleta({ extras, entries, playerId, Bloco }) {
   const t = useT();
-  const { por, remates, acoes, penaltis } = extras;
+  const { por, remates, acoes, penaltis, duelos } = extras;
   const tem = (id) => por[id]?.jogos > 0;
   const emJogos = (id) => t('painelv.emJogos', { n: por[id].jogos });
 
@@ -171,6 +171,24 @@ export function BlocosExtrasAtleta({ extras, entries, playerId, Bloco }) {
       {simples(REGISTO.DEFESA_GR)}
       {simples(REGISTO.LANCAMENTO_GR)}
       {simples(REGISTO.PASSE_FALHADO)}
+
+      {tem(REGISTO.DUELO_DEF) && por.duelo_def.n ? (
+        <Bloco titulo={t('registos.total.duelo_def')}>
+          <div className="grid grid--stats">
+            <StatCard
+              label={t('registos.total.duelo_def')}
+              value={por.duelo_def.n}
+              hint={emJogos('duelo_def')}
+            />
+            <StatCard
+              label={t('registos.epoca.duelosGanhos')}
+              value={duelos?.percentagem == null ? '—' : `${duelos.percentagem}%`}
+              hint={t('registos.duelosGanhos', { n: duelos?.ganhos || 0, total: por.duelo_def.n })}
+            />
+            <StatCard label={t('registos.ext.porJogo')} value={um(por.duelo_def.porJogo)} />
+          </div>
+        </Bloco>
+      ) : null}
 
       {tem(REGISTO.ACAO) ? (
         <Bloco titulo={t('registos.total.acao')}>

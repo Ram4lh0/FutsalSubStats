@@ -18,6 +18,7 @@ import {
   COR_RESULTADO_ADV,
   REGISTO,
   RESULTADO_REMATE,
+  deQuantos,
   marcadores,
   resumoRegistos,
 } from '@/domain/registos.js';
@@ -51,7 +52,16 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
     ? marcadores(state, { registos: [filtro] }).filter((m) => !jogador || m.playerId === jogador)
     : [];
   const porJogador = r.jogadores.some(
-    (j) => j.remates || j.recuperacoes || j.defesas || j.lancamentosGR || j.perdas || j.passes || j.positivas || j.negativas
+    (j) =>
+      j.remates ||
+      j.recuperacoes ||
+      j.defesas ||
+      j.lancamentosGR ||
+      j.perdas ||
+      j.passes ||
+      j.duelos ||
+      j.positivas ||
+      j.negativas
   );
   // "À baliza" só quer dizer alguma coisa se todos os remates tiverem resultado
   // (o escalão pode não o pedir).
@@ -89,6 +99,27 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
         {tem(REGISTO.PERDA_BOLA) ? <Total rotulo={t('registos.total.perda_bola')} valor={r.perdas} /> : null}
         {tem(REGISTO.PASSE_FALHADO) ? (
           <Total rotulo={t('registos.total.passe_falhado')} valor={r.passes} />
+        ) : null}
+        {tem(REGISTO.DUELO_DEF) ? (
+          <Total
+            rotulo={t('registos.total.duelo_def')}
+            valor={r.duelos.total}
+            extra={t('registos.duelosGanhos', { n: r.duelos.ganhos, total: r.duelos.total })}
+          />
+        ) : null}
+        {tem(REGISTO.PRESSAO_ALTA) ? (
+          <Total
+            rotulo={t('registos.total.pressao_alta')}
+            valor={r.pressao.total}
+            extra={t('registos.pressaoRecuperadas', { n: r.pressao.recuperadas, total: r.pressao.total })}
+          />
+        ) : null}
+        {tem(REGISTO.BOLA_PARADA) ? (
+          <Total
+            rotulo={t('registos.total.bola_parada')}
+            valor={r.bolasParadas.total}
+            extra={t('registos.bpDetalhe', { golos: r.bolasParadas.golos, fin: r.bolasParadas.finalizacoes })}
+          />
         ) : null}
         {tem(REGISTO.PENALTI) ? (
           <Total rotulo={t('registos.total.penalti')} valor={r.penaltis.total} extra={golosEm(r.penaltis)} />
@@ -215,6 +246,9 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                     <th title={t('registos.col.passes10Titulo')}>{t('registos.col.passes10')}</th>
                   </>
                 ) : null}
+                {tem(REGISTO.DUELO_DEF) ? (
+                  <th title={t('registos.col.duelosTitulo')}>{t('registos.col.duelos')}</th>
+                ) : null}
                 {tem(REGISTO.ACAO) ? <th>{t('registos.col.acoes')}</th> : null}
               </tr>
             </thead>
@@ -254,6 +288,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                       <td>{j.passes10 == null ? '–' : j.passes10.toFixed(1)}</td>
                     </>
                   ) : null}
+                  {tem(REGISTO.DUELO_DEF) ? <td>{deQuantos(j.duelosGanhos, j.duelos) || '–'}</td> : null}
                   {tem(REGISTO.ACAO) ? (
                     <td>{j.positivas || j.negativas ? `+${j.positivas} / −${j.negativas}` : '–'}</td>
                   ) : null}

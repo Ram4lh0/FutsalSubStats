@@ -2,7 +2,8 @@
 
 // components/registos/BlocosDaEpoca.jsx — os registos extra no painel da
 // época: remates e eficácia, recuperações, perdas de bola e passes falhados
-// por jogador, as bolas paradas e o mapa da época.
+// por jogador, duelos 1x1 defensivos, pressão alta, as bolas paradas
+// (ofensivas e as do marcador) e o mapa da época.
 //
 // Cada bloco só aparece se houver pelo menos um jogo terminado com esse
 // registo. Um escalão sem registos não vê nada de novo no painel.
@@ -20,7 +21,10 @@ import { REGISTO } from '@/domain/registos.js';
 import {
   REGISTOS_BOLA_PARADA,
   bolasParadas,
+  bolasParadasOfensivas,
   defesasPorJogador,
+  duelosDaEpoca,
+  duelosPorJogador,
   extrasDaEquipa,
   lancamentosGRPorJogador,
   eficacia,
@@ -29,6 +33,7 @@ import {
   passesPorJogador,
   perdasDaEpoca,
   perdasPorJogador,
+  pressaoDaEpoca,
   recuperacoesPorJogador,
   registosDaEpoca,
   rematesPorJogo,
@@ -57,6 +62,11 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
   const extras = useMemo(() => extrasDaEquipa(entries), [entries]);
   const defesas = useMemo(() => defesasPorJogador(entries), [entries]);
   const lancamentosGR = useMemo(() => lancamentosGRPorJogador(entries), [entries]);
+  const duelos = useMemo(() => duelosPorJogador(entries), [entries]);
+  const duelosEquipa = useMemo(() => duelosDaEpoca(entries), [entries]);
+  const pressao = useMemo(() => pressaoDaEpoca(entries), [entries]);
+  const bpOf = useMemo(() => bolasParadasOfensivas(entries), [entries]);
+  const pct = (n, total) => (total ? `${Math.round((n / total) * 100)}%` : '—');
   const temBolaParada = REGISTOS_BOLA_PARADA.some((id) => tipos.has(id));
   const golosEm = (x) => t('registos.golosEm', { golos: x.golos, total: x.total });
   // Só os registos com pontos no campo: sem zona (opção do escalão) não há mapa.
@@ -247,6 +257,74 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
               rotulo: `${j.number} ${j.name}`,
               valor: j.passes,
               texto: t('registos.epoca.perdasDetalhe', { n: j.passes, porJogo: j.porJogo.toFixed(1) }),
+            }))}
+          />
+        </Bloco>
+      ) : null}
+
+      {tipos.has(REGISTO.DUELO_DEF) ? (
+        <Bloco titulo={t('registos.epoca.duelos')}>
+          <div className="grid grid--stats">
+            <StatCard
+              label={t('registos.epoca.duelosGanhos')}
+              value={duelosEquipa.percentagem == null ? '—' : `${duelosEquipa.percentagem}%`}
+              hint={t('registos.duelosGanhos', { n: duelosEquipa.ganhos, total: duelosEquipa.duelos })}
+            />
+            <StatCard label={t('registos.total.duelo_def')} value={duelosEquipa.duelos} />
+          </div>
+          <BarrasH
+            linhas={duelos.map((j) => ({
+              rotulo: `${j.number ?? ''} ${j.name}`,
+              valor: j.ganhos,
+              texto: t('registos.epoca.duelosDetalhe', { ganhos: j.ganhos, n: j.duelos, pct: j.percentagem }),
+            }))}
+          />
+          <p className="muted small">{t('registos.epoca.duelosNota')}</p>
+        </Bloco>
+      ) : null}
+
+      {tipos.has(REGISTO.PRESSAO_ALTA) ? (
+        <Bloco titulo={t('registos.epoca.pressao')}>
+          <div className="grid grid--stats">
+            <StatCard
+              label={t('registos.epoca.pressaoEficacia')}
+              value={pressao.percentagem == null ? '—' : `${pressao.percentagem}%`}
+              hint={t('registos.pressaoRecuperadas', { n: pressao.recuperadas, total: pressao.total })}
+            />
+            <StatCard
+              label={t('registos.epoca.pressaoPorJogo')}
+              value={pressao.porJogo.toFixed(1)}
+              hint={t('painelv.emJogos', { n: pressao.jogos })}
+            />
+            <StatCard label={t('registos.total.pressao_alta')} value={pressao.total} />
+          </div>
+        </Bloco>
+      ) : null}
+
+      {tipos.has(REGISTO.BOLA_PARADA) ? (
+        <Bloco titulo={t('registos.epoca.bolasParadasOf')}>
+          <div className="grid grid--stats">
+            <StatCard
+              label={t('registos.total.bola_parada')}
+              value={bpOf.total}
+              hint={t('painelv.emJogos', { n: bpOf.jogos })}
+            />
+            <StatCard
+              label={t('registos.epoca.bpGolos')}
+              value={pct(bpOf.golos, bpOf.total)}
+              hint={t('registos.golosEm', { golos: bpOf.golos, total: bpOf.total })}
+            />
+            <StatCard
+              label={t('registos.epoca.bpFinalizacao')}
+              value={pct(bpOf.golos + bpOf.finalizacoes, bpOf.total)}
+              hint={`${bpOf.golos + bpOf.finalizacoes}/${bpOf.total}`}
+            />
+          </div>
+          <BarrasH
+            linhas={Object.entries(bpOf.porTipo).map(([tp, b]) => ({
+              rotulo: t(`registos.tipoBolaParada.${tp}`),
+              valor: b.total,
+              texto: t('registos.epoca.bpPorTipo', { total: b.total, golos: b.golos, fin: b.finalizacoes }),
             }))}
           />
         </Bloco>

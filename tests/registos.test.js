@@ -13,6 +13,7 @@ import {
   REGISTOS,
   arredondar,
   corrigirRegisto,
+  contagemPorJogador as contagemPorJogadorDe,
   marcadores,
   registar,
   registosDoJogo,
@@ -70,7 +71,7 @@ function desfazer(ctx, alvo, now) {
 /* ------------------------------------------------------------- catálogo */
 
 test('catálogo: os registos pela ordem certa (fase 1 e remates do adversário)', () => {
-  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'lancamento_gr', 'livre_10m']);
+  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'lancamento_gr', 'duelo_def', 'pressao_alta', 'bola_parada', 'livre_10m']);
   assert.equal(CATALOGO.fora.por, 'equipa');
   assert.equal(CATALOGO.canto.ponto, false);
 });
@@ -695,8 +696,8 @@ test('cada registo tem nome e resultados nas três línguas', async () => {
 test('contagem por jogador para os números dos botões do cartão', async () => {
   const { contagemPorJogador } = await import('../src/domain/registos.js');
   const c = contagemPorJogador(estado(jogoComRegistos()));
-  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, positivas: 0, negativas: 0 });
-  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, positivas: 2, negativas: 1 });
+  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, duelo_def: 0, positivas: 0, negativas: 0 });
+  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, duelo_def: 0, positivas: 2, negativas: 1 });
   assert.equal(c.get('p1').defesa_gr, 1);
   assert.equal(c.has('p7'), false);
 });
@@ -764,4 +765,96 @@ test('golo de ressalto: só se oferece com o add-on, mas conta sempre que exista
   assert.ok(goalTypesFor('THEM', { ressalto: true }).includes('RESSALTO'));
   assert.equal(addonsAtivos({ addons: ['golo-ressalto'] }).has('golo-ressalto'), true);
   assert.equal(addonsAtivos({}).has('golo-ressalto'), false);
+});
+
+/* ------------- duelos 1x1 defensivos, pressão alta, bolas paradas (17/11/2026) */
+
+test('duelo 1x1 defensivo: do jogador, ganho ou perdido, contado no cartão e no resumo', () => {
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const ev = gravar(ctx, (s) => registar(s, { registo: 'duelo_def', playerId: 'p2', resultado: 'GANHO' }, T0 + MIN), T0 + MIN);
+  assert.equal(ev.metadata.equipa, 'US');
+  assert.equal(ev.metadata.resultado, 'GANHO');
+  assert.equal(ev.metadata.x, undefined, 'sem ponto no campo');
+  gravar(ctx, (s) => registar(s, { registo: 'duelo_def', playerId: 'p2', resultado: 'PERDIDO' }, T0 + 2 * MIN), T0 + 2 * MIN);
+  gravar(ctx, (s) => registar(s, { registo: 'duelo_def', playerId: 'p3', resultado: 'GANHO' }, T0 + 3 * MIN), T0 + 3 * MIN);
+  assert.throws(() => registar(estado(ctx), { registo: 'duelo_def', resultado: 'GANHO' }), /jogador/);
+  assert.throws(() => registar(estado(ctx), { registo: 'duelo_def', playerId: 'p2', resultado: 'GOLO' }), /Resultado/);
+  const st = estado(ctx);
+  const r = resumoRegistos(st, T0 + 5 * MIN);
+  assert.deepEqual(r.duelos, { total: 3, ganhos: 2 });
+  const p2 = r.jogadores.find((j) => j.playerId === 'p2');
+  assert.equal(p2.duelos, 2);
+  assert.equal(p2.duelosGanhos, 1);
+  assert.equal(contagemPorJogadorDe(st).get('p2').duelo_def, 2);
+});
+
+test('pressão alta: sempre nossa, recuperou ou não', () => {
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const ev = gravar(ctx, (s) => registar(s, { registo: 'pressao_alta', equipa: 'THEM', resultado: 'RECUPERADA' }, T0 + MIN), T0 + MIN);
+  assert.equal(ev.metadata.equipa, 'US', 'soNos: mesmo pedido como deles, fica nosso');
+  assert.equal(ev.playerId, null);
+  gravar(ctx, (s) => registar(s, { registo: 'pressao_alta', resultado: 'NAO_RECUPERADA' }, T0 + 2 * MIN), T0 + 2 * MIN);
+  assert.throws(() => registar(estado(ctx), { registo: 'pressao_alta', resultado: 'GANHO' }), /Resultado/);
+  assert.deepEqual(resumoRegistos(estado(ctx), T0 + 3 * MIN).pressao, { total: 2, recuperadas: 1 });
+});
+
+test('bola parada ofensiva: tipo, resultado, golo preso ao golo e quem marcou', () => {
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  assert.equal(levaGolo('bola_parada'), true);
+  gravar(ctx, (s) => registar(s, { registo: 'bola_parada', tipo: 'CANTO', resultado: 'SEM_FINALIZACAO' }, T0 + MIN), T0 + MIN);
+  gravar(ctx, (s) => registar(s, { registo: 'bola_parada', tipo: 'LIVRE', resultado: 'FINALIZACAO' }, T0 + 2 * MIN), T0 + 2 * MIN);
+  const golo = gravar(ctx, (s) => A.teamGoalBy(s, 'p5', T0 + 3 * MIN), T0 + 3 * MIN);
+  const ev = gravar(
+    ctx,
+    (s) => registar(s, { registo: 'bola_parada', tipo: 'CANTO', resultado: 'GOLO', playerId: 'p5', goloEventId: golo.id }, T0 + 3 * MIN),
+    T0 + 3 * MIN
+  );
+  assert.equal(ev.metadata.tipo, 'CANTO');
+  assert.equal(ev.metadata.goloEventId, golo.id);
+  assert.equal(ev.playerId, 'p5');
+  assert.throws(() => registar(estado(ctx), { registo: 'bola_parada', tipo: 'PENALTI', resultado: 'GOLO' }), /Tipo/);
+  let r = resumoRegistos(estado(ctx), T0 + 4 * MIN);
+  assert.equal(r.bolasParadas.total, 3);
+  assert.equal(r.bolasParadas.golos, 1);
+  assert.equal(r.bolasParadas.finalizacoes, 1);
+  assert.deepEqual(r.bolasParadas.porTipo.CANTO, { total: 2, golos: 1, finalizacoes: 0 });
+  assert.deepEqual(r.bolasParadas.porTipo.LATERAL, { total: 0, golos: 0, finalizacoes: 0 });
+  // O tipo corrige-se a frio; um tipo que não existe, não.
+  const alvo = ctx.events.find((e) => e.metadata?.resultado === 'FINALIZACAO');
+  gravar(ctx, (s) => corrigirRegisto(s, { targetEventId: alvo.id, tipo: 'LATERAL' }, T0 + 5 * MIN), T0 + 5 * MIN);
+  assert.throws(() => corrigirRegisto(estado(ctx), { targetEventId: alvo.id, tipo: 'XPTO' }), /Tipo/);
+  r = resumoRegistos(estado(ctx), T0 + 5 * MIN);
+  assert.equal(r.bolasParadas.porTipo.LATERAL.total, 1);
+  // Desfeito o golo, a bola parada que deu golo desaparece com ele.
+  desfazer(ctx, golo, T0 + 6 * MIN);
+  assert.equal(resumoRegistos(estado(ctx), T0 + 6 * MIN).bolasParadas.total, 2);
+});
+
+test('época: duelos por jogador, pressão alta e bolas paradas ofensivas', async () => {
+  const { duelosPorJogador, duelosDaEpoca, pressaoDaEpoca, bolasParadasOfensivas, extrasDoAtleta, extrasDaEquipa } =
+    await import('../src/domain/dashboard.js');
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const r = (dados, m) => gravar(ctx, (s) => registar(s, dados, T0 + m * MIN), T0 + m * MIN);
+  r({ registo: 'duelo_def', playerId: 'p2', resultado: 'GANHO' }, 1);
+  r({ registo: 'duelo_def', playerId: 'p2', resultado: 'GANHO' }, 2);
+  r({ registo: 'duelo_def', playerId: 'p3', resultado: 'PERDIDO' }, 3);
+  r({ registo: 'pressao_alta', resultado: 'RECUPERADA' }, 4);
+  r({ registo: 'bola_parada', tipo: 'LATERAL', resultado: 'FINALIZACAO' }, 5);
+  const st = { ...estado(ctx), status: 'FINISHED' };
+  const entries = [{ match: { id: 'm1', scheduledAt: 1 }, state: st }];
+  const d = duelosPorJogador(entries);
+  assert.deepEqual(d.map((j) => [j.playerId, j.ganhos, j.duelos, j.percentagem]), [['p2', 2, 2, 100], ['p3', 0, 1, 0]]);
+  assert.deepEqual(duelosDaEpoca(entries), { duelos: 3, ganhos: 2, percentagem: 67 });
+  assert.deepEqual(pressaoDaEpoca(entries), { jogos: 1, total: 1, recuperadas: 1, porJogo: 1, percentagem: 100 });
+  const b = bolasParadasOfensivas(entries);
+  assert.equal(b.porTipo.LATERAL.finalizacoes, 1);
+  assert.equal(b.jogos, 1);
+  const atleta = extrasDoAtleta(entries, 'p2');
+  assert.equal(atleta.por.duelo_def.n, 2);
+  assert.deepEqual(atleta.duelos, { ganhos: 2, percentagem: 100 });
+  assert.equal(extrasDaEquipa(entries).por.duelo_def.res.GANHO, 2);
 });

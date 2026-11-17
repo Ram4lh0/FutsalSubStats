@@ -8,7 +8,7 @@ import { CATALOGO, REGISTO, REGISTOS } from '../domain/registos.js';
 /** As linhas da tabela de um jogador: `{id, nome, r: {n, porJogo, por10}, detalhe}`. */
 export function linhasExtrasAtleta(extras, t) {
   if (!extras) return [];
-  const { por, remates, acoes, penaltis } = extras;
+  const { por, remates, acoes, penaltis, duelos } = extras;
   const linhas = [];
   for (const id of REGISTOS) {
     const r = por[id];
@@ -27,6 +27,8 @@ export function linhasExtrasAtleta(extras, t) {
       detalhe = t('registos.ext.acoesDetalhe', { pos: acoes.positivas, neg: acoes.negativas });
     } else if (id === REGISTO.PENALTI) {
       detalhe = t('registos.ext.penaltisDetalhe', { golos: penaltis.golos, total: r.n });
+    } else if (id === REGISTO.DUELO_DEF && r.n && duelos) {
+      detalhe = t('registos.ext.duelosDetalhe', { ganhos: duelos.ganhos, pct: duelos.percentagem });
     }
     linhas.push({ id, nome: t(`registos.total.${id}`), r, detalhe });
   }
@@ -48,6 +50,14 @@ export function linhasExtrasEquipa(extras, tipos, t) {
       });
     } else if (id === REGISTO.ACAO) {
       detalhe = t('registos.ext.acoesDetalhe', { pos: extras.acoes.positivas, neg: extras.acoes.negativas });
+    } else if (id === REGISTO.DUELO_DEF && total) {
+      const ganhos = a.res?.GANHO || 0;
+      detalhe = t('registos.ext.duelosDetalhe', { ganhos, pct: Math.round((ganhos / total) * 100) });
+    } else if (id === REGISTO.PRESSAO_ALTA && total) {
+      const rec = a.res?.RECUPERADA || 0;
+      detalhe = t('registos.ext.pressaoDetalhe', { rec, pct: Math.round((rec / total) * 100) });
+    } else if (id === REGISTO.BOLA_PARADA) {
+      detalhe = t('registos.ext.bolaParadaDetalhe', { golos: a.res?.GOLO || 0, fin: a.res?.FINALIZACAO || 0 });
     } else if (a.US && a.THEM) {
       detalhe = t('registos.ext.nosEles', { nos: a.US, eles: a.THEM });
     }
