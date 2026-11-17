@@ -31,6 +31,7 @@ import { useT } from '@/lib/i18n/index.js';
 
 export default function Halftime({
   state,
+  teamId = null,
   ourName,
   opponentName,
   onEditGoal,
@@ -229,7 +230,7 @@ export default function Halftime({
         </div>
       ) : null}
 
-      <GraficosDoJogo state={state} linhas={linhas} classeBloco="halftime__bloco" />
+      <GraficosDoJogo state={state} linhas={linhas} classeBloco="halftime__bloco" teamId={teamId} />
 
       <div className="halftime__bloco" data-tour="halftime-player-stats">
         <h3 className="section section--tight">{t('intervalo.jogadores')}</h3>

@@ -23,6 +23,7 @@ import * as FE from '@/lib/foulEditing.jsx';
 import * as RE from '@/lib/registoEditing.jsx';
 import * as CE from '@/lib/cardEditing.jsx';
 import useRegistos from '@/lib/useRegistos.js';
+import useAddons from '@/lib/useAddons.js';
 import { editarTempos } from '@/lib/temposEditing.jsx';
 import { clubs, teams, competitions, matches, loadMatch } from '@/lib/data/repository.js';
 import * as sync from '@/lib/data/sync.js';
@@ -73,6 +74,7 @@ function Resumo() {
   const [aGerarPdf, setAGerarPdf] = useState(false);
   // Os registos extra a que o escalão tem acesso: só esses se acrescentam a frio.
   const ligados = useRegistos(dados?.match?.teamId);
+  const golosDetalhados = useAddons(dados?.match?.teamId).has('tipos-golo-detalhados');
 
   // De onde se veio. Só quando não há origem — ou seja, quando se chega aqui por
   // ter acabado o jogo — é que a saída passa a ser a casa dos clubes.
@@ -298,7 +300,7 @@ function Resumo() {
     setAGerarPdf(true);
     try {
       const { gerarPdfJogo, nomePdfJogo } = await import('@/lib/pdf/relatorioJogo.js');
-      const blob = await gerarPdfJogo({ club, match, state, team, competition });
+      const blob = await gerarPdfJogo({ club, match, state, team, competition, detalhados: golosDetalhados });
       const nome = nomePdfJogo(match);
       await entregarFicheiro(blob, nome, 'application/pdf', { titulo: nome });
     } catch (e) {
@@ -739,6 +741,7 @@ function Resumo() {
           linhas={tabela}
           classeBloco="card resumo__grafico"
           parteMs={match.periodDurationMs || 20 * 60_000}
+          teamId={match.teamId}
         />
       </div>
 

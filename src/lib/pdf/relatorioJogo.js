@@ -32,7 +32,7 @@ export function nomePdfJogo(match) {
  * @param {{club, match, state, team, competition}} p  o mesmo que o CSV recebe
  * @returns {Promise<Blob>}
  */
-export async function gerarPdfJogo({ club, match, state, team, competition }) {
+export async function gerarPdfJogo({ club, match, state, team, competition, detalhados = false }) {
   const agora = Date.now();
   const tabela = matchStatsTable(state, agora);
   const pp = powerPlayTotals(state, state.elapsedMatchMs);
@@ -252,7 +252,12 @@ export async function gerarPdfJogo({ club, match, state, team, competition }) {
     });
   }
 
-  tiposDeGoloLadoALado(r, golosPorTipoNoJogo(state, 'US'), golosPorTipoNoJogo(state, 'THEM'), t('intervalo.tiposDeGolo'));
+  tiposDeGoloLadoALado(
+    r,
+    golosPorTipoNoJogo(state, 'US', { detalhados }),
+    golosPorTipoNoJogo(state, 'THEM', { detalhados }),
+    t('intervalo.tiposDeGolo')
+  );
 
   // ------------------------------------------------------------ jogadores
   r.secao(t('resumo.jogadores'), 20);

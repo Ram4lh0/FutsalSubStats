@@ -5,7 +5,7 @@
 // treinador olha para isto de pé, no balneário — cada função devolve já a forma
 // que o gráfico quer, sem nada para decidir do lado de quem desenha.
 
-import { goalTypesFor } from './constants.js';
+import { tiposDeGoloParaContar } from './constants.js';
 
 /**
  * Média de tempo em campo de todos os convocados, contando com quem ainda não
@@ -63,9 +63,8 @@ export function amarelosAdversario(state) {
  * Golos de um só jogo por tipo, na forma que o `Pizza` quer. Golos sem tipo
  * apontado não entram — tal como no painel da época (`golosPorTipo`).
  */
-export function golosPorTipoNoJogo(state, team = 'US') {
-  const ressalto = (state.goals || []).some((g) => g.team === team && g.howScored === 'RESSALTO');
-  const tipos = goalTypesFor(team, { ressalto });
+export function golosPorTipoNoJogo(state, team = 'US', { detalhados = false } = {}) {
+  const tipos = tiposDeGoloParaContar(team, state.goals, { detalhados });
   const contagem = Object.fromEntries(tipos.map((tipo) => [tipo, 0]));
   for (const g of state.goals || []) {
     if (g.team === team && g.howScored && g.howScored in contagem) contagem[g.howScored] += 1;

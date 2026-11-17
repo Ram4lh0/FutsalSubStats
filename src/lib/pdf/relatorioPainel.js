@@ -82,7 +82,7 @@ export function nomePdfPainel(team, atleta) {
  * @param {string} [p.atletaId]
  * @returns {Promise<Blob>}
  */
-export async function gerarPdfPainel({ club, team, entries, roster = [], parteMs, provas = [], tipo = '', jogo = '', atletaId = '' }) {
+export async function gerarPdfPainel({ club, team, entries, roster = [], parteMs, provas = [], tipo = '', jogo = '', atletaId = '', detalhados = false }) {
   const atleta = atletaId ? painelDoAtleta(entries, roster, atletaId, { parteMs, quantos: 1000 }) : null;
   const jogos = formaRecente(entries, { quantos: Infinity });
 
@@ -104,7 +104,7 @@ export async function gerarPdfPainel({ club, team, entries, roster = [], parteMs
   } else if (!jogos.length && !minutosPorJogador(entries, roster).linhas.length) {
     r.paragrafo(t('painelv.semJogos'));
   } else {
-    relatorioDaEquipa(r, { entries, roster, parteMs, jogos });
+    relatorioDaEquipa(r, { entries, roster, parteMs, jogos, detalhados });
   }
   return r.terminar();
 }
@@ -180,7 +180,7 @@ export async function gerarPdfAtleta({ player, club, team, entries, roster = [],
 
 /* ------------------------------------------------------------- equipa */
 
-function relatorioDaEquipa(r, { entries, roster, parteMs, jogos }) {
+function relatorioDaEquipa(r, { entries, roster, parteMs, jogos, detalhados = false }) {
   const min = minutosPorJogador(entries, roster);
   const lados = casaEFora(entries);
   const disc = disciplina(entries);
@@ -272,7 +272,7 @@ function relatorioDaEquipa(r, { entries, roster, parteMs, jogos }) {
   }
 
   // -------------------------------------------------------- tipos de golo
-  tiposDeGoloLadoALado(r, golosPorTipo(entries), golosPorTipo(entries, 'THEM'));
+  tiposDeGoloLadoALado(r, golosPorTipo(entries, 'US', { detalhados }), golosPorTipo(entries, 'THEM', { detalhados }));
 
   // --------------------------------------------------- forma e resultados
   r.secao(t('painelv.forma'), 40);

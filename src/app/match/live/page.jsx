@@ -151,6 +151,7 @@ function Live() {
   // preparação, o jogo vai subindo durante o jogo para quem o acompanha. Sem
   // ele, tudo fica no aparelho até ao apito final, como sempre.
   const addons = useAddons(match?.teamId);
+  const detalhados = addons.has('tipos-golo-detalhados');
   useEnviarAoVivo({
     ativo: Boolean(match?.liveEnabled) && addons.has(ADDON_AO_VIVO),
     carregado,
@@ -394,8 +395,16 @@ function Live() {
     const tipo = await pickGoalType(
       ui,
       team === 'THEM' ? t('acao.comoFoiOGoloSofrido') : t('acao.comoFoiOGolo'),
-      goalTypesFor(team, { ressalto: addons.has('golo-ressalto') }),
-      team === 'US' && powerPlayAtivo(st) ? GOAL_TYPE.CINCO_V_QUATRO : null
+      goalTypesFor(team, { ressalto: addons.has('golo-ressalto'), detalhados }),
+      // Em 5v4 (GR avançado nosso) o tipo vem pré-escolhido. Na lista
+      // detalhada vale também para o golo sofrido: 5x4 ofensivo, visto de nós.
+      powerPlayAtivo(st)
+        ? detalhados
+          ? GOAL_TYPE.CINCO_V_QUATRO_OF
+          : team === 'US'
+            ? GOAL_TYPE.CINCO_V_QUATRO
+            : null
+        : null
     );
     if (tipo === undefined) return;
     await events.append(A.attributeGoal(st, { targetEventId: golo.eventId, howScored: tipo }), {
@@ -1335,6 +1344,7 @@ function Live() {
 
         <Halftime
           state={state}
+          teamId={match?.teamId}
           ourName={ourName}
           opponentName={rivalName}
           onEditGoal={editarGolo}

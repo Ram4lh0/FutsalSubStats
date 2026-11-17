@@ -90,6 +90,7 @@ function GoalDialog({
   onDelete,
   toast,
   ressalto = false,
+  detalhados = false,
 }) {
   const [equipa, setEquipa] = useState(goal.team);
   const nosso = equipa === 'US';
@@ -251,14 +252,14 @@ function GoalDialog({
           <span className="field__label">{t('golos.comoFoiOGolo')}</span>
           <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)}>
             <option value="">{t('golos.tipoPorRegistar')}</option>
-            {goalTypesFor(nosso ? 'US' : 'THEM', { ressalto }).map((g) => (
+            {goalTypesFor(nosso ? 'US' : 'THEM', { ressalto, detalhados }).map((g) => (
               <option key={g} value={g}>
                 {t(`golos.tipo.${g}`)}
               </option>
             ))}
             {/* Um tipo antigo que já não se oferece (ex.: BOLA_PARADA) continua
                 a aparecer selecionado em vez de desaparecer em silêncio. */}
-            {tipo && !goalTypesFor(nosso ? 'US' : 'THEM', { ressalto }).includes(tipo) ? (
+            {tipo && !goalTypesFor(nosso ? 'US' : 'THEM', { ressalto, detalhados }).includes(tipo) ? (
               <option value={tipo}>{t(`golos.tipo.${tipo}`)}</option>
             ) : null}
           </select>
@@ -299,14 +300,15 @@ function GoalDialog({
  * Abre a ficha de um golo e devolve o que ficou por guardar (ou null). Com
  * `apagavel`, a ficha tem também "Apagar golo", que devolve `{ apagar: true }`.
  */
-/** O add-on 'golo-ressalto' está ligado no escalão deste jogo? */
-async function ressaltoLigado(matchId) {
+/** Os add-ons de tipos de golo ligados no escalão deste jogo. */
+async function addonsDoGolo(matchId) {
   try {
     const match = matchId ? await matches.get(matchId) : null;
     const config = match?.teamId ? await statConfig.get(match.teamId) : null;
-    return addonsAtivos(config).has('golo-ressalto');
+    const ativos = addonsAtivos(config);
+    return { ressalto: ativos.has('golo-ressalto'), detalhados: ativos.has('tipos-golo-detalhados') };
   } catch {
-    return false;
+    return { ressalto: false, detalhados: false };
   }
 }
 
@@ -316,10 +318,11 @@ export async function goalDialog(
   goal,
   { title, nova = false, ourName, opponentName, apagavel = false } = {}
 ) {
-  const ressalto = await ressaltoLigado(state?.matchId);
+  const { ressalto, detalhados } = await addonsDoGolo(state?.matchId);
   return ui.open((close) => (
     <GoalDialog
       ressalto={ressalto}
+      detalhados={detalhados}
       state={state}
       goal={goal}
       title={title}

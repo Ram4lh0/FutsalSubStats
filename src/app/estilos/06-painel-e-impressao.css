@@ -106,6 +106,11 @@
 .pizza__fatia--CINCO_V_QUATRO { stroke: var(--golo-5v4); }
 .pizza__fatia--RESSALTO { stroke: var(--golo-ressalto); }
 .pizza__fatia--OUTRO { stroke: var(--muted); }
+.pizza__fatia--RECUPERACAO { stroke: #38bdf8; }
+.pizza__fatia--REMATE_EXTERIOR { stroke: #6366f1; }
+.pizza__fatia--AUTOGOLO { stroke: #78716c; }
+.pizza__fatia--CINCO_V_QUATRO_OF { stroke: var(--golo-5v4); }
+.pizza__fatia--CINCO_V_QUATRO_DEF { stroke: #0d9488; }
 .pizza__total { font-size: 28px; font-weight: 800; fill: var(--text); }
 .pizza__legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; }
 .pizza__item { display: flex; align-items: center; gap: 6px; color: var(--muted); }
@@ -123,6 +128,11 @@
 .pizza__dot--CINCO_V_QUATRO { background: var(--golo-5v4); }
 .pizza__dot--RESSALTO { background: var(--golo-ressalto); }
 .pizza__dot--OUTRO { background: var(--muted); }
+.pizza__dot--RECUPERACAO { background: #38bdf8; }
+.pizza__dot--REMATE_EXTERIOR { background: #6366f1; }
+.pizza__dot--AUTOGOLO { background: #78716c; }
+.pizza__dot--CINCO_V_QUATRO_OF { background: var(--golo-5v4); }
+.pizza__dot--CINCO_V_QUATRO_DEF { background: #0d9488; }
 
 /* A fita dos últimos jogos. Desliza ao lado quando não couber, em vez de
    embrulhar: uma série lê-se numa linha só ou deixa de ser uma série. */

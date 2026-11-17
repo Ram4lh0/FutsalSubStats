@@ -79,3 +79,37 @@ test('tipos de golo de um jogo: ignora golos sem tipo e separa marcados de sofri
   assert.equal(deles.ERRO_INDIVIDUAL, 1);
   assert.equal(deles.CANTO, 1);
 });
+
+test('tipos de golo detalhados: lista própria, 10 m e antigos no fim, deteção pelos golos', async () => {
+  const { goalTypesFor } = await import('../src/domain/constants.js');
+  const us = goalTypesFor('US', { detalhados: true });
+  assert.deepEqual(us, [
+    'FORA', 'LIVRE', 'CANTO', 'PENALTI', 'TRANSICAO', 'RECUPERACAO', 'ORGANIZACAO',
+    'REMATE_EXTERIOR', 'AUTOGOLO', 'CINCO_V_QUATRO_OF', 'CINCO_V_QUATRO_DEF',
+  ]);
+  const them = goalTypesFor('THEM', { detalhados: true });
+  assert.ok(them.includes('ERRO_INDIVIDUAL') && !them.includes('RECUPERACAO'));
+  assert.equal(us.includes('LIVRE_10M'), false);
+  // A lista de sempre não muda.
+  assert.equal(goalTypesFor('US').includes('AUTOGOLO'), false);
+  assert.deepEqual(goalTypesFor('US', { detalhados: true, ressalto: true }).at(-1), 'RESSALTO');
+
+  const state = {
+    goals: [
+      { team: 'US', howScored: 'RECUPERACAO' },
+      { team: 'US', howScored: 'LIVRE_10M' },
+      { team: 'US', howScored: 'FORA' },
+      { team: 'THEM', howScored: 'CINCO_V_QUATRO_OF' },
+    ],
+  };
+  // Sem a flag, deteta pela RECUPERACAO; o 10 m entra no fim.
+  const nossos = golosPorTipoNoJogo(state, 'US');
+  assert.equal(nossos[0].chave, 'FORA');
+  assert.deepEqual(nossos.at(-1), { chave: 'LIVRE_10M', valor: 1 });
+  assert.equal(nossos.find((f) => f.chave === 'RECUPERACAO').valor, 1);
+  const deles = golosPorTipoNoJogo(state, 'THEM');
+  assert.equal(deles.find((f) => f.chave === 'CINCO_V_QUATRO_OF').valor, 1);
+  // Com a flag, a lista detalhada aparece mesmo sem golos.
+  assert.equal(golosPorTipoNoJogo({ goals: [] }, 'US', { detalhados: true }).length, us.length);
+  assert.equal(golosPorTipoNoJogo({ goals: [] }, 'US').length, goalTypesFor('US').length);
+});

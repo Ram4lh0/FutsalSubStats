@@ -302,6 +302,7 @@ function Assistir() {
           linhas={tabela}
           classeBloco="card resumo__grafico"
           parteMs={match.periodDurationMs || 20 * 60_000}
+          teamId={match.teamId}
         />
       </div>
 

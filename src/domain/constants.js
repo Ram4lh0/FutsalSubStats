@@ -170,10 +170,31 @@ export const GOAL_TYPE = {
   // nos escalões com 'golo-ressalto' ligado (ver `goalTypesFor`).
   RESSALTO: 'RESSALTO',
   OUTRO: 'OUTRO',
+  // Só na lista "detalhada" (add-on 'tipos-golo-detalhados', 17/11/2026,
+  // pedido do AEIST). O 5x4 vem aqui partido em dois e visto do NOSSO lado,
+  // seja o golo marcado ou sofrido: ofensivo = nós em 5x4 (GR avançado),
+  // defensivo = o adversário em 5x4. O CINCO_V_QUATRO de cima fica como está.
+  RECUPERACAO: 'RECUPERACAO',
+  REMATE_EXTERIOR: 'REMATE_EXTERIOR',
+  AUTOGOLO: 'AUTOGOLO',
+  CINCO_V_QUATRO_OF: 'CINCO_V_QUATRO_OF',
+  CINCO_V_QUATRO_DEF: 'CINCO_V_QUATRO_DEF',
 };
 
-// Sem o RESSALTO, que é um add-on: entra pela opção `ressalto` de `goalTypesFor`.
-export const GOAL_TYPES = Object.values(GOAL_TYPE).filter((g) => g !== GOAL_TYPE.RESSALTO);
+// A lista de sempre. Sem o RESSALTO, que é um add-on: entra pela opção
+// `ressalto` de `goalTypesFor`; sem os da lista detalhada.
+export const GOAL_TYPES = [
+  GOAL_TYPE.FORA,
+  GOAL_TYPE.CANTO,
+  GOAL_TYPE.LIVRE,
+  GOAL_TYPE.PENALTI,
+  GOAL_TYPE.LIVRE_10M,
+  GOAL_TYPE.TRANSICAO,
+  GOAL_TYPE.ORGANIZACAO,
+  GOAL_TYPE.INDIVIDUAL,
+  GOAL_TYPE.CINCO_V_QUATRO,
+  GOAL_TYPE.OUTRO,
+];
 
 // Como foi o golo SOFRIDO (pedido a 04/10/2026). Os mesmos lances, com uma
 // troca: num golo sofrido a "jogada individual" que interessa ao treinador é o
@@ -194,16 +215,71 @@ export const CONCEDED_GOAL_TYPES = [
   GOAL_TYPE.OUTRO,
 ];
 
+// A lista detalhada (add-on 'tipos-golo-detalhados'), pela ordem que o
+// treinador deu. Sem o livre de 10 m: esse golo já vem com o tipo apontado
+// pelo registo do 10 m, sem se perguntar. Nos sofridos, a "recuperação" deles
+// é o erro individual nosso.
+export const GOAL_TYPES_DETALHADOS = [
+  GOAL_TYPE.FORA,
+  GOAL_TYPE.LIVRE,
+  GOAL_TYPE.CANTO,
+  GOAL_TYPE.PENALTI,
+  GOAL_TYPE.TRANSICAO,
+  GOAL_TYPE.RECUPERACAO,
+  GOAL_TYPE.ORGANIZACAO,
+  GOAL_TYPE.REMATE_EXTERIOR,
+  GOAL_TYPE.AUTOGOLO,
+  GOAL_TYPE.CINCO_V_QUATRO_OF,
+  GOAL_TYPE.CINCO_V_QUATRO_DEF,
+];
+export const CONCEDED_GOAL_TYPES_DETALHADOS = GOAL_TYPES_DETALHADOS.map((g) =>
+  g === GOAL_TYPE.RECUPERACAO ? 'ERRO_INDIVIDUAL' : g
+);
+
+const SO_DETALHADOS = new Set([
+  GOAL_TYPE.RECUPERACAO,
+  GOAL_TYPE.REMATE_EXTERIOR,
+  GOAL_TYPE.AUTOGOLO,
+  GOAL_TYPE.CINCO_V_QUATRO_OF,
+  GOAL_TYPE.CINCO_V_QUATRO_DEF,
+]);
+
 /**
  * Os tipos que fazem sentido para um golo nosso ('US') ou sofrido ('THEM').
  * Com `ressalto` (o add-on 'golo-ressalto' ligado, ou um golo que já o tenha)
- * entra também o RESSALTO, antes do "Outro".
+ * entra também o RESSALTO, antes do "Outro". Com `detalhados` (o add-on
+ * 'tipos-golo-detalhados') a lista é a detalhada.
  */
-export function goalTypesFor(team, { ressalto = false } = {}) {
-  const base = team === 'THEM' ? CONCEDED_GOAL_TYPES : GOAL_TYPES;
+export function goalTypesFor(team, { ressalto = false, detalhados = false } = {}) {
+  const base = detalhados
+    ? team === 'THEM'
+      ? CONCEDED_GOAL_TYPES_DETALHADOS
+      : GOAL_TYPES_DETALHADOS
+    : team === 'THEM'
+      ? CONCEDED_GOAL_TYPES
+      : GOAL_TYPES;
   if (!ressalto) return base;
   const i = base.indexOf(GOAL_TYPE.OUTRO);
+  if (i < 0) return [...base, GOAL_TYPE.RESSALTO];
   return [...base.slice(0, i), GOAL_TYPE.RESSALTO, ...base.slice(i)];
+}
+
+/**
+ * Os tipos a contar nos gráficos (painel, intervalo, resumo, PDF) a partir dos
+ * golos que há. Detalhada se o escalão a tiver ligada OU se algum golo já
+ * tiver um tipo que só ela tem (assim um PDF ou gráfico sem acesso à config
+ * também acerta); ressalto se houver golos de ressalto. Os tipos que já não se
+ * oferecem mas estão nos golos (ex.: o livre de 10 m, que vem do registo, ou
+ * golos gravados antes de mudar de lista) entram no fim, para não se perderem.
+ */
+export function tiposDeGoloParaContar(team, golos, { detalhados = false } = {}) {
+  const usados = new Set();
+  for (const g of golos || []) if (g.team === team && g.howScored) usados.add(g.howScored);
+  const det = detalhados || [...usados].some((x) => SO_DETALHADOS.has(x));
+  const tipos = goalTypesFor(team, { ressalto: usados.has(GOAL_TYPE.RESSALTO), detalhados: det });
+  if (!det) return tipos;
+  const extra = [...usados].filter((x) => !tipos.includes(x) && x !== 'BOLA_PARADA');
+  return [...tipos, ...extra];
 }
 
 export const STINT_END_REASON = {

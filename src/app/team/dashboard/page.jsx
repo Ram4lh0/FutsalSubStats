@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import TeamShell from '@/components/TeamShell.jsx';
 import Pagina from '@/components/Pagina.jsx';
 import useRouteParams from '@/lib/useRouteParams.js';
+import useAddons from '@/lib/useAddons.js';
 import { rotas, comOrigem } from '@/lib/routes.js';
 import { Badge, Empty, StatCard, Ved } from '@/components/bits.jsx';
 import DataTable from '@/components/DataTable.jsx';
@@ -629,8 +630,9 @@ function Painel({ club, team, entries, roster, competitions }) {
   const disc = useMemo(() => disciplina(filtrados), [filtrados]);
   const faixas = useMemo(() => golosPorFaixa(base, { parteMs }), [base, parteMs]);
   const desempates = useMemo(() => penaltisDaEpoca(filtrados), [filtrados]);
-  const tiposDeGolo = useMemo(() => golosPorTipo(filtrados), [filtrados]);
-  const tiposDeGoloSofrido = useMemo(() => golosPorTipo(filtrados, 'THEM'), [filtrados]);
+  const detalhados = useAddons(team?.id).has('tipos-golo-detalhados');
+  const tiposDeGolo = useMemo(() => golosPorTipo(filtrados, 'US', { detalhados }), [filtrados, detalhados]);
+  const tiposDeGoloSofrido = useMemo(() => golosPorTipo(filtrados, 'THEM', { detalhados }), [filtrados, detalhados]);
   const atleta = useMemo(
     () => painelDoAtleta(filtrados, roster, atletaId, { parteMs, quantos: 5 }),
     [filtrados, roster, atletaId, parteMs]
@@ -680,6 +682,7 @@ function Painel({ club, team, entries, roster, competitions }) {
         entries: filtrados,
         roster,
         parteMs,
+        detalhados,
         provas: provas.filter((p) => provasEscolhidas.includes(p.id)).map((p) => p.shortName || p.name),
         tipo:
           tipo === MATCH_TIMING.TIMED

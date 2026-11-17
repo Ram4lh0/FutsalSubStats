@@ -100,6 +100,15 @@ export const ADDONS = {
     grupo: 'jogo',
     nome: 'Golo de ressalto',
   },
+  // Lista detalhada na pergunta "Como foi o golo?" (17/11/2026, AEIST):
+  // fora, livre, canto, penálti, transição, recuperação (erro individual nos
+  // sofridos), ataque organizado, remate exterior, autogolo, 5x4 ofensivo e
+  // 5x4 defensivo. Os gráficos e os PDF passam a contar por esta lista. Ver
+  // `GOAL_TYPES_DETALHADOS` em domain/constants.js.
+  'tipos-golo-detalhados': {
+    grupo: 'jogo',
+    nome: 'Tipos de golo detalhados (recuperação, remate exterior, autogolo, 5x4 of./def.)',
+  },
   // Subaba "Análise de vídeo" na aba Treino: vídeos do YouTube (só o link),
   // clipes por categoria, sessões e a fila de conversas por jogador. Ver
   // domain/analiseVideo.js. Os dados ficam em tabelas próprias (video_*).

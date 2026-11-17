@@ -10,6 +10,7 @@
 // por cima.
 
 import { useT } from '@/lib/i18n/index.js';
+import useAddons from '@/lib/useAddons.js';
 import { fmt } from '@/domain/clock.js';
 import { MATCH_STATUS } from '@/domain/constants.js';
 import { golosPorFaixa } from '@/domain/dashboard.js';
@@ -26,16 +27,18 @@ import { BarrasH, ColunasEspelhadas, Pizza } from '@/components/stats/graficos.j
  * @param {array}   linhas        `playerMatchStats` de cada convocado
  * @param {string}  classeBloco   classe do invólucro de cada bloco
  * @param {number}  [parteMs]     duração de uma parte; com ela aparecem os golos por período
+ * @param {string}  [teamId]      escalão do jogo (para os tipos de golo detalhados)
  */
-export default function GraficosDoJogo({ state, linhas, classeBloco, parteMs = null }) {
+export default function GraficosDoJogo({ state, linhas, classeBloco, parteMs = null, teamId = null }) {
   const t = useT();
+  const detalhados = useAddons(teamId).has('tipos-golo-detalhados');
 
   const porMinutos = [...linhas].sort((a, b) => b.courtMs - a.courtMs);
   const media = mediaEmCampo(linhas);
   const faltas = faltasPorJogador(linhas);
   const amarelos = amarelosAdversario(state);
-  const tiposMarcados = golosPorTipoNoJogo(state, 'US');
-  const tiposSofridos = golosPorTipoNoJogo(state, 'THEM');
+  const tiposMarcados = golosPorTipoNoJogo(state, 'US', { detalhados });
+  const tiposSofridos = golosPorTipoNoJogo(state, 'THEM', { detalhados });
   const haTiposDeGolo = [...tiposMarcados, ...tiposSofridos].some((f) => f.valor > 0);
   const comRotulo = (fatias) => fatias.map((f) => ({ ...f, rotulo: t(`golos.tipo.${f.chave}`) }));
 

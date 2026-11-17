@@ -247,7 +247,7 @@ function Registos() {
     const tipo = await pickGoalType(
       ui,
       team === 'THEM' ? t('acao.comoFoiOGoloSofrido') : t('acao.comoFoiOGolo'),
-      goalTypesFor(team, { ressalto: addons.has('golo-ressalto') })
+      goalTypesFor(team, { ressalto: addons.has('golo-ressalto'), detalhados: addons.has('tipos-golo-detalhados') })
     );
     if (tipo === undefined) return;
     await commit(A.attributeGoal(st, { targetEventId: g.eventId, howScored: tipo }));
