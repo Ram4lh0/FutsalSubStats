@@ -120,6 +120,12 @@ export const ADDONS = {
   // regista os tempos e o outro os registos, e no fim juntam-se num jogo só
   // (botão "Juntar" no resumo). Ver domain/partilha.js. Um jogo criado como
   // partilhado continua a sê-lo mesmo que o add-on se desligue depois.
+  // A mensagem "Partilhar no WhatsApp" do resumo só com os golos (minuto e
+  // marcador), sem as assistências (18/11/2026, Patameiras).
+  'whatsapp-sem-assistencias': {
+    grupo: 'resumo',
+    nome: 'WhatsApp do resumo sem assistências',
+  },
   'jogo-partilhado': {
     grupo: 'jogo',
     nome: 'Jogo com registo partilhado (Tempos + Registos)',

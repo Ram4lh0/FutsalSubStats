@@ -74,7 +74,8 @@ function Resumo() {
   const [aGerarPdf, setAGerarPdf] = useState(false);
   // Os registos extra a que o escalão tem acesso: só esses se acrescentam a frio.
   const ligados = useRegistos(dados?.match?.teamId);
-  const golosDetalhados = useAddons(dados?.match?.teamId).has('tipos-golo-detalhados');
+  const addonsDoEscalao = useAddons(dados?.match?.teamId);
+  const golosDetalhados = addonsDoEscalao.has('tipos-golo-detalhados');
 
   // De onde se veio. Só quando não há origem — ou seja, quando se chega aqui por
   // ter acabado o jogo — é que a saída passa a ser a casa dos clubes.
@@ -322,6 +323,7 @@ function Resumo() {
       opponentName: opponentShort(match),
       team,
       competition,
+      semAssistencias: addonsDoEscalao.has('whatsapp-sem-assistencias'),
     });
     abrirFora(linkWhatsApp(texto));
   }

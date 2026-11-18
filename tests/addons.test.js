@@ -115,3 +115,19 @@ test('a análise de vídeo é um add-on do treino, desligado por omissão', () =
   assert.equal(noPainel.grupo, 'treino');
   assert.equal(noPainel.campo, 'addons');
 });
+
+test('WhatsApp do resumo: sem assistências com o add-on ligado', async () => {
+  const { textoResumoWhatsApp } = await import('../src/lib/resumoWhatsApp.js');
+  const state = {
+    teamScore: 1,
+    opponentScore: 0,
+    players: { a: { name: 'Rui' }, b: { name: 'Tiago' } },
+    goals: [{ team: 'US', period: 1, matchElapsedMs: 125_000, scorerId: 'a', assistId: 'b' }],
+    cards: [],
+  };
+  const base = { state, match: { homeOrAway: 'HOME' }, ourName: 'Nós', opponentName: 'Eles' };
+  assert.match(textoResumoWhatsApp(base), /3' Rui \(.*Tiago.*\)/);
+  const sem = textoResumoWhatsApp({ ...base, semAssistencias: true });
+  assert.match(sem, /3' Rui$/m);
+  assert.doesNotMatch(sem, /Tiago/);
+});

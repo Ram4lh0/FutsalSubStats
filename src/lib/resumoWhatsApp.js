@@ -31,7 +31,11 @@ function expulsoesDoAdversario(state) {
   return Math.max(state.opponentExpulsions || 0, segundos);
 }
 
-export function textoResumoWhatsApp({ state, match, ourName, opponentName, team, competition }) {
+/**
+ * `semAssistencias` (add-on 'whatsapp-sem-assistencias'): cada golo fica só com
+ * o minuto e quem marcou.
+ */
+export function textoResumoWhatsApp({ state, match, ourName, opponentName, team, competition, semAssistencias = false }) {
   const linhas = [];
   const casa = match.homeOrAway !== 'AWAY';
   linhas.push(
@@ -64,7 +68,7 @@ export function textoResumoWhatsApp({ state, match, ourName, opponentName, team,
       const quem = g.ownGoal
         ? t('golos.autogolo')
         : nomeDe(state, g.scorerId) || t('golos.marcadorPorRegistar');
-      const assist = !g.ownGoal ? nomeDe(state, g.assistId) : null;
+      const assist = !g.ownGoal && !semAssistencias ? nomeDe(state, g.assistId) : null;
       linhas.push(
         `${minuto(g.matchElapsedMs)} ${quem}${assist ? ` (${t('golos.assist', { nome: assist })})` : ''}`
       );
