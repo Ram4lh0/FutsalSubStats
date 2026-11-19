@@ -57,6 +57,9 @@ export const NOME_REGISTO = {
   duelo_def: 'Duelos 1x1 defensivos',
   pressao_alta: 'Pressão alta',
   bola_parada: 'Bolas paradas ofensivas',
+  duelo: 'Duelos ganhos / perdidos (dois botões)',
+  oportunidade_criada: 'Oportunidades criadas (nossas e do adversário)',
+  oportunidade_falhada: 'Oportunidades falhadas (nossas e do adversário)',
 };
 
 /**
@@ -129,6 +132,30 @@ export const ADDONS = {
   'jogo-partilhado': {
     grupo: 'jogo',
     nome: 'Jogo com registo partilhado (Tempos + Registos)',
+  },
+  // Pedidos a 19/11/2026 (Leões de Porto Salvo, Juniores Fem.). Ver
+  // domain/analise.js. Leem os registos que houver (remates, duelos,
+  // oportunidades, recuperações, perdas, defesas): ligam-se sem dependências,
+  // e cada linha só aparece quando o jogo ou a época têm esses dados.
+  //
+  // No resumo do jogo (e no PDF): a tabela "nós vs adversário" frente a
+  // frente e o desempenho individual de cada jogador.
+  'relatorio-pos-jogo': {
+    grupo: 'resumo',
+    nome: 'Relatório pós-jogo (nós vs adversário + desempenho individual)',
+  },
+  // No painel da época: o filtro "últimos 5 / 10 jogos", os indicadores da
+  // equipa (eficácia, duelos, recuperações por 40') e, com um jogador
+  // escolhido, os indicadores individuais (e os do GR).
+  'analise-indicadores': {
+    grupo: 'dashboard',
+    nome: 'Análise: indicadores da equipa e individuais, últimos 5/10 jogos',
+  },
+  // No painel da época: a tabela por posição (alas canhotos, destros, pivôs,
+  // …) com minutos, golos, golos por 40' e diferença de golos por 40'.
+  'analise-posicoes': {
+    grupo: 'dashboard',
+    nome: "Análise por posição (minutos, golos, golos/40', GM−GS/40')",
   },
 };
 

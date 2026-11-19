@@ -117,7 +117,7 @@ export function chaveResultado(r) {
   if (r.registo === 'penalti') return 'resultadoPenalti';
   if (r.registo === 'penalti_adv') return 'resultadoPenaltiAdv';
   if (r.registo === 'livre_10m') return 'resultado10m';
-  if (r.registo === 'duelo_def') return 'resultadoDuelo';
+  if (r.registo === 'duelo_def' || r.registo === 'duelo') return 'resultadoDuelo';
   if (r.registo === 'pressao_alta') return 'resultadoPressao';
   if (r.registo === 'bola_parada') return 'resultadoBolaParada';
   return 'resultado';

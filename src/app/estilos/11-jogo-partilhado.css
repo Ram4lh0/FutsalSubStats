@@ -134,6 +134,10 @@
 .regpasso--lanc { --cor: #67e8f9; }
 .regpasso--positiva { --cor: #4ade80; }
 .regpasso--negativa { --cor: #f87171; }
+.regpasso--duelo-ganho { --cor: #4ade80; }
+.regpasso--duelo-perdido { --cor: #f87171; }
+.regpasso--op-criada { --cor: #7dd3fc; }
+.regpasso--op-falhada { --cor: #fda4af; }
 @media (hover: hover) {
   .regpasso > button:not(:disabled):hover { background: rgba(255, 255, 255, 0.06); }
 }

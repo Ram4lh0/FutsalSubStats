@@ -72,6 +72,19 @@ export function colunasRegistos(state, ligados, on) {
       US: contador(REGISTO.BOLA_PARADA, r.bolasParadas.total, on.registarBolaParada),
       THEM: null,
     },
+    // Oportunidades: as nossas também têm botão no cartão do jogador; aqui o
+    // "+" pergunta quem. As do adversário só se contam.
+    ...[
+      [REGISTO.OPORTUNIDADE_CRIADA, 'opCriadas', r.opCriadas],
+      [REGISTO.OPORTUNIDADE_FALHADA, 'opFalhadas', r.opFalhadas],
+    ].map(
+      ([registo, id, valores]) =>
+        ligados.has(registo) && {
+          id,
+          US: contador(registo, valores.US, () => on.registarOportunidadeBarra(registo, 'US'), 'US'),
+          THEM: contador(registo, valores.THEM, () => on.registarOportunidadeBarra(registo, 'THEM'), 'THEM'),
+        }
+    ),
     passeNaBarra && {
       id: 'passes',
       US: contador(REGISTO.PASSE_FALHADO, r.passes, on.registarPasseBarra),
@@ -173,6 +186,7 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
     [REGISTO.LANCAMENTO_GR, r.lancamentosGR],
     [REGISTO.PERDA_BOLA, r.perdas],
     [REGISTO.DUELO_DEF, r.duelos.total],
+    [REGISTO.DUELO, r.dueloGeral.total],
     ...(passeNaBarra ? [] : [[REGISTO.PASSE_FALHADO, r.passes]]),
   ]
     .filter(([id]) => ligados.has(id))

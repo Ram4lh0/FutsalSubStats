@@ -21,6 +21,7 @@ import { dataParaNome, nomeLimpo } from '../ficheiros.js';
 import { COR, novoRelatorio } from './base.js';
 import { partesLadoALado, tiposDeGoloLadoALado } from './relatorioPainel.js';
 import { mapaDosRemates, mapasDosRegistos } from './registos.js';
+import { desempenhoIndividual, espelhoDoJogo } from '../../domain/analise.js';
 
 /** `jogo-adversario-2026-10-25.pdf`, com a data do jogo. */
 export function nomePdfJogo(match) {
@@ -32,7 +33,7 @@ export function nomePdfJogo(match) {
  * @param {{club, match, state, team, competition}} p  o mesmo que o CSV recebe
  * @returns {Promise<Blob>}
  */
-export async function gerarPdfJogo({ club, match, state, team, competition, detalhados = false }) {
+export async function gerarPdfJogo({ club, match, state, team, competition, detalhados = false, relatorio = null }) {
   const agora = Date.now();
   const tabela = matchStatsTable(state, agora);
   const pp = powerPlayTotals(state, state.elapsedMatchMs);
@@ -86,6 +87,11 @@ export async function gerarPdfJogo({ club, match, state, team, competition, deta
     ],
     { porLinha: pp.count ? 5 : 4 }
   );
+
+  // ----------------------------------------- relatório pós-jogo (add-on)
+  // 'relatorio-pos-jogo': nós vs adversário e o desempenho individual, como
+  // no resumo (components/stats/RelatorioPosJogo.jsx).
+  if (relatorio && state.startedAt) relatorioPosJogo(r, state, { nos, eles, ligados: relatorio.ligados });
 
   // ------------------------------------------------------------ titulares
   // Quem começou cada parte, lado a lado (domain/titulares.js).
@@ -366,6 +372,27 @@ function registosDoJogo(r, state, match, nos) {
       detalhe: t('registos.duelosGanhos', { n: reg.duelos.ganhos, total: reg.duelos.total }),
     });
   }
+  if (tem(REGISTO.DUELO)) {
+    cartoes.push({
+      rotulo: t('registos.total.duelo'),
+      valor: reg.dueloGeral.total,
+      detalhe: t('registos.duelosGanhos', { n: reg.dueloGeral.ganhos, total: reg.dueloGeral.total }),
+    });
+  }
+  if (tem(REGISTO.OPORTUNIDADE_CRIADA)) {
+    cartoes.push({
+      rotulo: t('registos.total.oportunidade_criada'),
+      valor: `${reg.opCriadas.US} – ${reg.opCriadas.THEM}`,
+      detalhe: nosEles,
+    });
+  }
+  if (tem(REGISTO.OPORTUNIDADE_FALHADA)) {
+    cartoes.push({
+      rotulo: t('registos.total.oportunidade_falhada'),
+      valor: `${reg.opFalhadas.US} – ${reg.opFalhadas.THEM}`,
+      detalhe: nosEles,
+    });
+  }
   if (tem(REGISTO.PRESSAO_ALTA)) {
     cartoes.push({
       rotulo: t('registos.total.pressao_alta'),
@@ -469,6 +496,9 @@ function registosDoJogo(r, state, match, nos) {
       j.perdas ||
       j.passes ||
       j.duelos ||
+      j.duelosG ||
+      j.opCriadas ||
+      j.opFalhadas ||
       j.positivas ||
       j.negativas
   );
@@ -509,6 +539,9 @@ function registosDoJogo(r, state, match, nos) {
     por10((j) => um(j.passes10));
   }
   if (tem(REGISTO.DUELO_DEF)) col(t('registos.col.duelos'), (j) => deQuantos(j.duelosGanhos, j.duelos) || '–');
+  if (tem(REGISTO.DUELO)) col(t('registos.col.duelosG'), (j) => deQuantos(j.duelosGGanhos, j.duelosG) || '–');
+  if (tem(REGISTO.OPORTUNIDADE_CRIADA)) col(t('registos.col.opCriadas'), (j) => j.opCriadas || '–');
+  if (tem(REGISTO.OPORTUNIDADE_FALHADA)) col(t('registos.col.opFalhadas'), (j) => j.opFalhadas || '–');
   if (tem(REGISTO.ACAO)) {
     col(t('registos.col.acoes'), (j) => (j.positivas || j.negativas ? `+${j.positivas} / -${j.negativas}` : '–'));
   }
@@ -519,4 +552,59 @@ function registosDoJogo(r, state, match, nos) {
     tamanho: colunas.length > 9 ? 7.2 : 7.8,
   });
   if (colunas.some((c) => c.titulo === "/10'")) r.paragrafo(t('registos.ext.por10Titulo') + " (/10').");
+}
+
+/** As linhas em que ter mais é mau (como no ecrã). */
+const MAU = new Set(['faltas', 'amarelos', 'vermelhos', 'opFalhadas']);
+
+/**
+ * O relatório pós-jogo no PDF: a tabela espelhada (o lado que ganha cada
+ * linha a negrito, verde, ou vermelho nas linhas em que mais é pior) e a
+ * tabela do desempenho individual.
+ */
+function relatorioPosJogo(r, state, { nos, eles, ligados }) {
+  const linhas = espelhoDoJogo(state, { ligados });
+  r.secao(t('relatorio.espelhoTitulo', { nos, eles }), 20);
+  const celula = (l, v, outro) => {
+    if (v == null) return { texto: '—' };
+    if (l.sub || v <= (outro ?? 0)) return { texto: String(v) };
+    return { texto: String(v), negrito: true, cor: MAU.has(l.id) ? COR.vermelho : COR.verdeTinta };
+  };
+  r.tabela({
+    colunas: [
+      { titulo: nos, peso: 1, alinhar: 'right' },
+      { titulo: '', peso: 1.6, alinhar: 'center' },
+      { titulo: eles, peso: 1, alinhar: 'left' },
+    ],
+    linhas: linhas.map((l) => [
+      celula(l, l.US, l.THEM),
+      { texto: `${l.sub ? '· ' : ''}${t(`relatorio.linha.${l.id}`)}`, negrito: !l.sub },
+      celula(l, l.THEM, l.US),
+    ]),
+  });
+
+  const { colunas: c, jogadores } = desempenhoIndividual(state, { ligados });
+  if (!jogadores.length) return;
+  r.secao(t('relatorio.individualTitulo'), 15);
+  const num = (v) => (v ? String(v) : '–');
+  const colunas = [
+    { titulo: '#', largura: 8, alinhar: 'right' },
+    { titulo: t('stats.jogador'), peso: 2.4 },
+    { titulo: t('relatorio.col.min'), largura: 14, alinhar: 'right' },
+    { titulo: t('relatorio.col.g'), largura: 9, alinhar: 'right' },
+    { titulo: t('relatorio.col.a'), largura: 9, alinhar: 'right' },
+  ];
+  const valores = [(j) => j.number ?? '', (j) => j.name, (j) => fmt(j.courtMs), (j) => num(j.golos), (j) => num(j.assistencias)];
+  const col = (titulo, f, largura = 13) => {
+    colunas.push({ titulo, largura, alinhar: 'right' });
+    valores.push(f);
+  };
+  if (c.remates) col(t('relatorio.col.remates'), (j) => num(j.remates));
+  if (c.opCriadas) col(t('relatorio.col.opCriadas'), (j) => num(j.opCriadas));
+  if (c.recuperacoes) col(t('relatorio.col.recup'), (j) => num(j.recuperacoes));
+  if (c.perdas) col(t('relatorio.col.perdas'), (j) => num(j.perdas));
+  if (c.duelos) col(t('relatorio.col.duelos'), (j) => deQuantos(j.duelosGanhos, j.duelos) || '–', 22);
+  if (c.opFalhadas) col(t('relatorio.col.opFalhadas'), (j) => num(j.opFalhadas));
+  if (c.defesas) col(t('relatorio.col.defesas'), (j) => num(j.defesas));
+  r.tabela({ colunas, linhas: jogadores.map((j) => valores.map((f) => f(j))) });
 }

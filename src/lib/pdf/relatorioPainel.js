@@ -48,7 +48,8 @@ import {
 } from '../../domain/dashboard.js';
 import { clubAggregate } from '../../domain/stats.js';
 import { REGISTO } from '../../domain/registos.js';
-import { dayLabel } from '../format.js';
+import { dayLabel, footLabel, positionShort } from '../format.js';
+import { analisePorPosicao, indicadoresDaEquipa, indicadoresDoAtleta } from '../../domain/analise.js';
 import { t } from '../i18n/index.js';
 import { dataParaNome, nomeLimpo } from '../ficheiros.js';
 import { COR, COR_TIPO_GOLO, Relatorio, linhaDeFiltros, novoRelatorio } from './base.js';
@@ -82,13 +83,14 @@ export function nomePdfPainel(team, atleta) {
  * @param {string} [p.atletaId]
  * @returns {Promise<Blob>}
  */
-export async function gerarPdfPainel({ club, team, entries, roster = [], parteMs, provas = [], tipo = '', jogo = '', atletaId = '', detalhados = false }) {
+export async function gerarPdfPainel({ club, team, entries, roster = [], parteMs, provas = [], tipo = '', jogo = '', atletaId = '', detalhados = false, analise = null }) {
   const atleta = atletaId ? painelDoAtleta(entries, roster, atletaId, { parteMs, quantos: 1000 }) : null;
   const jogos = formaRecente(entries, { quantos: Infinity });
 
   const filtros = linhaDeFiltros([
     [t('painelv.competicao'), provas.length ? provas.join(', ') : t('painelv.todas')],
     [t('painelv.tipoDeJogo'), tipo],
+    [t('analise.jogos'), analise?.ultimos ? t('analise.ultimos', { n: analise.ultimos }) : ''],
     [t('painelv.jogo'), jogo],
     [t('pdf.jogos'), t('pdf.jogosTerminados', { n: jogos.length })],
   ]);
@@ -99,12 +101,15 @@ export async function gerarPdfPainel({ club, team, entries, roster = [], parteMs
   });
 
   if (atletaId) {
-    if (atleta) relatorioDoAtleta(r, atleta, { entries, atletaId });
-    else r.paragrafo(t('painelv.atletaSemDados'));
+    if (atleta) {
+      // Add-on 'analise-indicadores': os indicadores individuais primeiro, como no ecrã.
+      if (analise?.indicadores) analiseDoAtletaPdf(r, entries, roster, atletaId);
+      relatorioDoAtleta(r, atleta, { entries, atletaId });
+    } else r.paragrafo(t('painelv.atletaSemDados'));
   } else if (!jogos.length && !minutosPorJogador(entries, roster).linhas.length) {
     r.paragrafo(t('painelv.semJogos'));
   } else {
-    relatorioDaEquipa(r, { entries, roster, parteMs, jogos, detalhados });
+    relatorioDaEquipa(r, { entries, roster, parteMs, jogos, detalhados, analise });
   }
   return r.terminar();
 }
@@ -180,7 +185,7 @@ export async function gerarPdfAtleta({ player, club, team, entries, roster = [],
 
 /* ------------------------------------------------------------- equipa */
 
-function relatorioDaEquipa(r, { entries, roster, parteMs, jogos, detalhados = false }) {
+function relatorioDaEquipa(r, { entries, roster, parteMs, jogos, detalhados = false, analise = null }) {
   const min = minutosPorJogador(entries, roster);
   const lados = casaEFora(entries);
   const disc = disciplina(entries);
@@ -198,6 +203,10 @@ function relatorioDaEquipa(r, { entries, roster, parteMs, jogos, detalhados = fa
     { rotulo: t('pdf.golosMarcadosSofridos'), valor: `${soma('golosA')}–${soma('golosContra')}` },
     { rotulo: t('painelv.difCurta'), valor: comSinal(dif), tom: dif > 0 ? 'win' : dif < 0 ? 'loss' : undefined },
   ]);
+
+  // Add-ons de análise (19/11/2026): indicadores e tabela por posição.
+  if (analise?.indicadores) analiseDaEquipaPdf(r, entries);
+  if (analise?.posicoes) analisePosicoesPdf(r, entries, roster);
 
   // ---------------------------------------------------- rotação e minutos
   r.secao(t('painelv.minutos'), 20);
@@ -859,4 +868,137 @@ export function tiposDeGoloLadoALado(r, marcados, sofridos, titulo = t('painelv.
     r.donut(lista, { x, y: r.y + 2, w, vazio: t('painelv.semGolosClassificados') });
   });
   r.y += alt + 6;
+}
+
+/* ------------------------------------------- análise (add-ons 19/11/2026) */
+
+const pctTxt = (v) => (v == null ? '—' : `${v}%`);
+const umaCasa = (v) => (v == null ? '—' : v.toFixed(1));
+const duasCasas = (v) => (v == null ? '—' : v.toFixed(2));
+const assinado = (v) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(2)}`);
+const quemE = (j) => `${j.number != null ? `#${j.number} ` : ''}${j.name}`;
+
+/** Os indicadores da equipa (add-on 'analise-indicadores'). */
+function analiseDaEquipaPdf(r, entries) {
+  const { finalizacao: f, duelos: d, recuperacoes: rc } = indicadoresDaEquipa(entries);
+  if (!f.jogos && !d.jogos && !rc.jogos) return;
+  r.secao(t('analise.indicadoresTitulo'), 24);
+  const melhor = (m, valor, detalhe) => (m ? t('analise.melhor', { quem: quemE(m), valor, detalhe }) : null);
+  const junta = (...partes) => partes.filter(Boolean).join(' · ');
+  r.cartoes(
+    [
+      {
+        rotulo: t('analise.eficacia'),
+        valor: pctTxt(f.pct),
+        detalhe: f.jogos
+          ? junta(
+              t('analise.golosRemates', { golos: f.golos, remates: f.remates }),
+              f.melhor && melhor(f.melhor, `${f.melhor.pct}%`, `${f.melhor.golos}/${f.melhor.remates}`)
+            )
+          : t('analise.semDados'),
+      },
+      {
+        rotulo: t('analise.duelosGanhos'),
+        valor: pctTxt(d.pct),
+        detalhe: d.jogos
+          ? junta(
+              t('analise.ganhosTotal', { ganhos: d.ganhos, total: d.total }),
+              d.melhor && melhor(d.melhor, `${d.melhor.pct}%`, `${d.melhor.ganhos}/${d.melhor.duelos}`)
+            )
+          : t('analise.semDados'),
+      },
+      {
+        rotulo: t('analise.recup40'),
+        valor: umaCasa(rc.por40),
+        detalhe: rc.jogos
+          ? junta(
+              t('analise.totalEmJogos', { total: rc.total, jogos: rc.jogos }),
+              rc.melhor && melhor(rc.melhor, umaCasa(rc.melhor.por40), t('analise.recupTotal', { n: rc.melhor.recuperacoes }))
+            )
+          : t('analise.semDados'),
+      },
+    ],
+    { porLinha: 3 }
+  );
+}
+
+/** A tabela por posição, com todas as posições (add-on 'analise-posicoes'). */
+function analisePosicoesPdf(r, entries, roster) {
+  const { linhas, total } = analisePorPosicao(entries, roster);
+  if (!linhas.length) return;
+  r.secao(t('analise.posicoesTitulo'), 20);
+  // Agrupadas por posição (GR, fixo, alas, pivô, universal).
+  const ordem = ['GOALKEEPER', 'FIXO', 'LEFT_WINGER', 'RIGHT_WINGER', 'PIVOT', 'UNIVERSAL'];
+  const ord = (p) => (ordem.indexOf(p) === -1 ? 99 : ordem.indexOf(p));
+  const lista = [...linhas].sort((a, b) => ord(a.posicao) - ord(b.posicao) || b.courtMs - a.courtMs);
+  const corDif = (v) => (v > 0 ? COR.verdeTinta : v < 0 ? COR.vermelho : undefined);
+  r.tabela({
+    colunas: [
+      { titulo: '#', largura: 8, alinhar: 'right' },
+      { titulo: t('stats.jogador'), peso: 2.4 },
+      { titulo: t('analise.col.pos'), largura: 14 },
+      { titulo: t('analise.col.pe'), largura: 20 },
+      { titulo: t('analise.col.minutos'), largura: 12, alinhar: 'right' },
+      { titulo: t('analise.col.golos'), largura: 13, alinhar: 'right' },
+      { titulo: t('analise.col.golos40'), largura: 14, alinhar: 'right' },
+      { titulo: t('analise.col.gm'), largura: 10, alinhar: 'right' },
+      { titulo: t('analise.col.gs'), largura: 10, alinhar: 'right' },
+      { titulo: t('analise.col.dif40'), largura: 22, alinhar: 'right' },
+    ],
+    linhas: [
+      ...lista.map((l) => [
+        l.number ?? '',
+        l.name,
+        positionShort(l.posicao),
+        footLabel(l.pe),
+        Math.round(l.courtMs / 60_000),
+        l.golos,
+        duasCasas(l.golos40),
+        l.gm,
+        l.gs,
+        { texto: assinado(l.dif40), cor: corDif(l.dif40) },
+      ]),
+      [
+        '',
+        t('analise.totalGrupo', { n: total.jogadores }),
+        '',
+        '',
+        lista.reduce((n, l) => n + Math.round(l.courtMs / 60_000), 0),
+        total.golos,
+        duasCasas(total.golos40),
+        total.gm,
+        total.gs,
+        { texto: assinado(total.dif40), cor: corDif(total.dif40) },
+      ],
+    ],
+    destaque: new Set([lista.length]),
+  });
+  r.paragrafo(t('analise.notaPosicoes'));
+}
+
+/** Os indicadores de um jogador (e os do GR). */
+function analiseDoAtletaPdf(r, entries, roster, atletaId) {
+  const a = indicadoresDoAtleta(entries, roster, atletaId);
+  if (!a) return;
+  const { finalizacao: f, conversao: c, duelos: d, gr } = a;
+  const sem = t('analise.semDados');
+  r.secao(t('analise.atletaTitulo'), 24);
+  r.cartoes([
+    { rotulo: t('analise.eficacia'), valor: pctTxt(f.pct), detalhe: f.jogos ? t('analise.golosRemates', { golos: f.golos, remates: f.remates }) : sem },
+    { rotulo: t('analise.conversao'), valor: pctTxt(c.pct), detalhe: c.jogos ? t('analise.conversaoDetalhe', { golos: c.golos, total: c.golos + c.falhadas }) : sem },
+    { rotulo: t('analise.duelosGanhos'), valor: pctTxt(d.pct), detalhe: d.jogos ? t('analise.ganhosTotal', { ganhos: d.ganhos, total: d.total }) : sem },
+    { rotulo: t('analise.remates40'), valor: umaCasa(f.por40), detalhe: f.jogos ? t('analise.rematesTotal', { n: f.remates }) : sem },
+  ]);
+  if (!a.guardaRedes) return;
+  r.secao(t('analise.grTitulo'), 24);
+  r.cartoes([
+    { rotulo: t('analise.minutosJogados'), valor: fmt(a.minutosMs), detalhe: t('painelv.emJogos', { n: a.jogos }) },
+    { rotulo: t('analise.totalDefesas'), valor: gr.jogosDefesas ? gr.defesas : '—', detalhe: gr.jogosDefesas ? t('painelv.emJogos', { n: gr.jogosDefesas }) : sem },
+    { rotulo: t('analise.sofridos40'), valor: duasCasas(gr.sofridos40), detalhe: t('analise.sofridosTotal', { n: gr.sofridos }) },
+    {
+      rotulo: t('analise.pctDefesas'),
+      valor: pctTxt(gr.pctDefesas),
+      detalhe: gr.jogosDefesas ? t('analise.defesasDetalhe', { defesas: gr.defesas, total: gr.defesas + gr.sofridosComDefesas }) : sem,
+    },
+  ]);
 }

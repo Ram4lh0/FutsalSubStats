@@ -17,7 +17,7 @@ const T0 = 1_700_000_000_000;
 const START = { p1: 'GOALKEEPER', p2: 'FIXO', p3: 'LEFT_WINGER', p4: 'RIGHT_WINGER', p5: 'PIVOT' };
 const match = { id: 'm1', clubId: 'c1', periodDurationMs: 20 * MIN, opponentName: 'Rival', scheduledAt: new Date(T0).toISOString() };
 
-function jogoComPontos({ lancamentos = false, novos = false } = {}) {
+function jogoComPontos({ lancamentos = false, novos = false, lps = false } = {}) {
   const squad = ['Ana', 'Bruno', 'Carlos', 'Diogo', 'Eduardo', 'Filipe'].map((name, i) => {
     const id = `p${i + 1}`;
     return {
@@ -48,6 +48,14 @@ function jogoComPontos({ lancamentos = false, novos = false } = {}) {
   if (lancamentos) {
     reg({ registo: 'lancamento_gr', playerId: 'p1', x: 0.6, y: 0.2 }, T0 + 7 * MIN);
     reg({ registo: 'lancamento_gr', playerId: 'p1', x: 0.35, y: 0.85 }, T0 + 8 * MIN);
+  }
+  if (lps) {
+    reg({ registo: 'duelo', playerId: 'p3', resultado: 'GANHO' }, T0 + 9 * MIN);
+    reg({ registo: 'duelo', playerId: 'p3', resultado: 'PERDIDO' }, T0 + 9 * MIN + 1000);
+    reg({ registo: 'oportunidade_criada', equipa: 'US', playerId: 'p4' }, T0 + 10 * MIN);
+    reg({ registo: 'oportunidade_criada', equipa: 'THEM' }, T0 + 10 * MIN + 1000);
+    reg({ registo: 'oportunidade_falhada', equipa: 'US', playerId: 'p5' }, T0 + 11 * MIN);
+    reg({ registo: 'perda_bola', playerId: 'p2' }, T0 + 12 * MIN);
   }
   if (novos) {
     reg({ registo: 'duelo_def', playerId: 'p2', resultado: 'GANHO' }, T0 + 9 * MIN);
@@ -92,6 +100,28 @@ test('lançamentos do GR: legenda com contagem e mais conteúdo nos três PDF', 
   assert.ok(b.jogo > a.jogo, 'PDF do jogo');
   assert.ok(b.painel > a.painel, 'PDF do painel');
   assert.ok(b.atleta > a.atleta, 'PDF do atleta');
+});
+
+test('relatório pós-jogo e análise (add-ons de 19/11/2026) acrescentam conteúdo aos PDF', async () => {
+  const state = jogoComPontos({ lps: true });
+  const club = { name: 'Clube' };
+  const team = { name: 'Juniores' };
+  const sem = await gerarPdfJogo({ club, match, state, team });
+  const com = await gerarPdfJogo({ club, match, state, team, relatorio: { ligados: new Set(['remate', 'duelo']) } });
+  assert.ok(com.size > sem.size, 'PDF do jogo com o relatório');
+  const entries = [{ match: { ...match, status: 'FINISHED' }, state }];
+  const roster = [
+    { id: 'p1', name: 'Ana', number: 1, preferredPosition: 'GOALKEEPER', strongFoot: 'RIGHT' },
+    { id: 'p3', name: 'Carlos', number: 3, preferredPosition: 'LEFT_WINGER', strongFoot: 'RIGHT' },
+    { id: 'p4', name: 'Diogo', number: 4, preferredPosition: 'RIGHT_WINGER', strongFoot: 'LEFT' },
+  ];
+  const base = { club, team, entries, roster, parteMs: 20 * MIN };
+  const p0 = await gerarPdfPainel(base);
+  const p1 = await gerarPdfPainel({ ...base, analise: { indicadores: true, posicoes: true, ultimos: 5 } });
+  assert.ok(p1.size > p0.size, 'PDF do painel com a análise');
+  const a0 = await gerarPdfPainel({ ...base, atletaId: 'p1' });
+  const a1 = await gerarPdfPainel({ ...base, atletaId: 'p1', analise: { indicadores: true } });
+  assert.ok(a1.size > a0.size, 'PDF do GR com os indicadores');
 });
 
 test('os PDF do jogo e do painel saem com os campos dos registos', async () => {

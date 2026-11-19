@@ -71,7 +71,7 @@ function desfazer(ctx, alvo, now) {
 /* ------------------------------------------------------------- catálogo */
 
 test('catálogo: os registos pela ordem certa (fase 1 e remates do adversário)', () => {
-  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'lancamento_gr', 'duelo_def', 'pressao_alta', 'bola_parada', 'livre_10m']);
+  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'lancamento_gr', 'duelo_def', 'pressao_alta', 'bola_parada', 'duelo', 'oportunidade_criada', 'oportunidade_falhada', 'livre_10m']);
   assert.equal(CATALOGO.fora.por, 'equipa');
   assert.equal(CATALOGO.canto.ponto, false);
 });
@@ -254,7 +254,7 @@ test('registo desconhecido (fase 2) é ignorado sem partir nada', () => {
   gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
   const futuro = A.makeEvent(estado(ctx), EVENT.STAT_RECORDED, {
     playerId: 'p2',
-    metadata: { v: 2, registo: 'duelo', equipa: 'US', resultado: 'GANHO' },
+    metadata: { v: 2, registo: 'registo_do_futuro', equipa: 'US', resultado: 'GANHO' },
   });
   futuro.seq = ctx.events.length + 1;
   ctx.events.push(futuro);
@@ -689,15 +689,15 @@ test('cada registo tem nome e resultados nas três línguas', async () => {
     definirIdioma('pt');
   }
   // Um registo que esta versão não conhece fica com o nome genérico.
-  assert.equal(eventLabel('STAT_RECORDED', { metadata: { registo: 'duelo' } }), 'Registo');
+  assert.equal(eventLabel('STAT_RECORDED', { metadata: { registo: 'registo_do_futuro' } }), 'Registo');
   assert.equal(eventLabel('STAT_CORRECTED'), 'Registo corrigido');
 });
 
 test('contagem por jogador para os números dos botões do cartão', async () => {
   const { contagemPorJogador } = await import('../src/domain/registos.js');
   const c = contagemPorJogador(estado(jogoComRegistos()));
-  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, duelo_def: 0, positivas: 0, negativas: 0 });
-  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, duelo_def: 0, positivas: 2, negativas: 1 });
+  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, duelo_def: 0, positivas: 0, negativas: 0, duelosGanhos: 0, duelosPerdidos: 0, oportunidade_criada: 0, oportunidade_falhada: 0 });
+  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, duelo_def: 0, positivas: 2, negativas: 1, duelosGanhos: 0, duelosPerdidos: 0, oportunidade_criada: 0, oportunidade_falhada: 0 });
   assert.equal(c.get('p1').defesa_gr, 1);
   assert.equal(c.has('p7'), false);
 });

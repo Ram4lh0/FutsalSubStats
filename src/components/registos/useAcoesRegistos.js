@@ -283,6 +283,38 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     await commit(registar(state, { registo: REGISTO.DUELO_DEF, playerId: p.playerId, resultado: r.opcao }));
   }
 
+  /**
+   * Duelo (registo `duelo`): o cartão tem um botão para "ganhou" e outro para
+   * "perdeu", e cada toque grava logo, sem perguntas.
+   */
+  async function registarDueloGeral(p, resultado) {
+    await commit(registar(state, { registo: REGISTO.DUELO, playerId: p.playerId, resultado }));
+  }
+
+  /** Oportunidade criada ou falhada, no cartão de um jogador nosso: grava logo. */
+  async function registarOportunidade(registo, p) {
+    await commit(registar(state, { registo, equipa: 'US', playerId: p.playerId }));
+  }
+
+  /**
+   * A mesma oportunidade, na barra de cima: primeiro quem (pode ficar por
+   * dizer). As do adversário (`equipa` THEM) só se contam.
+   */
+  async function registarOportunidadeBarra(registo, equipa = 'US') {
+    if (equipa === 'THEM') {
+      await commit(registar(state, { registo, equipa: 'THEM' }));
+      return;
+    }
+    const titulo =
+      registo === REGISTO.OPORTUNIDADE_CRIADA ? t('registos.quemCriou') : t('registos.quemFalhou');
+    const playerId = await pickPlayer(ui, state, titulo, {
+      allowNone: true,
+      noneLabel: t('registos.semDizerQuem'),
+    });
+    if (playerId === undefined) return;
+    await commit(registar(state, { registo, equipa: 'US', playerId: playerId || null }));
+  }
+
   /** Pressão alta (nossa, na barra): a pressão recuperou a bola ou não. */
   async function registarPressao() {
     const { nos } = nomes();
@@ -540,6 +572,9 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
       registarPasseBarra,
       registarAcao,
       registarDuelo,
+      registarDueloGeral,
+      registarOportunidade,
+      registarOportunidadeBarra,
       registarPressao,
       registarBolaParada,
       registarFora,

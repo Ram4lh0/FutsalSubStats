@@ -50,6 +50,7 @@ import {
   A_BALIZA,
   REGISTO,
   RESULTADO_ACAO,
+  RESULTADO_DUELO,
   RESULTADO_REMATE,
   contagemPorJogador,
   registar,
@@ -549,6 +550,20 @@ function Registos() {
     if (ligados.has(REGISTO.DUELO_DEF)) {
       reg('duelo', t('registos.nome.duelo_def'), c.duelo_def, () => on.registarDuelo(p), dele(REGISTO.DUELO_DEF));
     }
+    if (ligados.has(REGISTO.DUELO)) {
+      reg('duelo-ganho', t('registos.dueloGanho'), c.duelosGanhos, () => on.registarDueloGeral(p, RESULTADO_DUELO.GANHO),
+        dele(REGISTO.DUELO, (r) => r.resultado === RESULTADO_DUELO.GANHO));
+      reg('duelo-perdido', t('registos.dueloPerdido'), c.duelosPerdidos, () => on.registarDueloGeral(p, RESULTADO_DUELO.PERDIDO),
+        dele(REGISTO.DUELO, (r) => r.resultado === RESULTADO_DUELO.PERDIDO));
+    }
+    if (ligados.has(REGISTO.OPORTUNIDADE_CRIADA)) {
+      reg('op-criada', t('registos.nome.oportunidade_criada'), c.oportunidade_criada,
+        () => on.registarOportunidade(REGISTO.OPORTUNIDADE_CRIADA, p), dele(REGISTO.OPORTUNIDADE_CRIADA));
+    }
+    if (ligados.has(REGISTO.OPORTUNIDADE_FALHADA)) {
+      reg('op-falhada', t('registos.nome.oportunidade_falhada'), c.oportunidade_falhada,
+        () => on.registarOportunidade(REGISTO.OPORTUNIDADE_FALHADA, p), dele(REGISTO.OPORTUNIDADE_FALHADA));
+    }
     if (ligados.has(REGISTO.PASSE_FALHADO)) {
       reg('passe', t('registos.nome.passe_falhado'), c.passe_falhado, () => on.registarPasse(p), dele(REGISTO.PASSE_FALHADO));
     }
@@ -561,8 +576,10 @@ function Registos() {
     if (ligados.has(REGISTO.ACAO)) {
       reg('positiva', t('registos.acaoPositiva'), c.positivas, () => on.registarAcao(p, RESULTADO_ACAO.POSITIVA),
         dele(REGISTO.ACAO, (r) => r.resultado === RESULTADO_ACAO.POSITIVA));
-      reg('negativa', t('registos.acaoNegativa'), c.negativas, () => on.registarAcao(p, RESULTADO_ACAO.NEGATIVA),
-        dele(REGISTO.ACAO, (r) => r.resultado === RESULTADO_ACAO.NEGATIVA));
+      if (ligados.opcoes?.acao?.negativa !== false) {
+        reg('negativa', t('registos.acaoNegativa'), c.negativas, () => on.registarAcao(p, RESULTADO_ACAO.NEGATIVA),
+          dele(REGISTO.ACAO, (r) => r.resultado === RESULTADO_ACAO.NEGATIVA));
+      }
     }
     return b;
   }

@@ -31,7 +31,7 @@ export function toCsv(rows) {
 
 /** As colunas dos registos extra de um jogador, pela ordem do cabeçalho. */
 function colunasDeRegistos(j) {
-  if (!j) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  if (!j) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   // As perdas de bola, os passes falhados, os lançamentos do GR e os duelos
   // 1x1 defensivos vieram depois: ficam no fim, para não mexer nas colunas de
   // antes.
@@ -47,6 +47,11 @@ function colunasDeRegistos(j) {
     j.lancamentosGR,
     j.duelosGanhos,
     j.duelos - j.duelosGanhos,
+    // 19/11/2026: duelos (gerais) e oportunidades, também no fim.
+    j.duelosGGanhos,
+    j.duelosG - j.duelosGGanhos,
+    j.opCriadas,
+    j.opFalhadas,
   ];
 }
 
@@ -112,6 +117,12 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
     ...(reg?.tipos.has(REGISTO.LANCAMENTO_BALIZA)
       ? [[t('registos.csv.lancamentos'), `${reg.lancamentos.US}-${reg.lancamentos.THEM}`]]
       : []),
+    ...(reg?.tipos.has(REGISTO.OPORTUNIDADE_CRIADA)
+      ? [[t('registos.total.oportunidade_criada'), `${reg.opCriadas.US}-${reg.opCriadas.THEM}`]]
+      : []),
+    ...(reg?.tipos.has(REGISTO.OPORTUNIDADE_FALHADA)
+      ? [[t('registos.total.oportunidade_falhada'), `${reg.opFalhadas.US}-${reg.opFalhadas.THEM}`]]
+      : []),
     ...(reg?.tipos.has(REGISTO.PRESSAO_ALTA)
       ? [[t('registos.csv.pressao'), `${reg.pressao.recuperadas}/${reg.pressao.total}`]]
       : []),
@@ -167,6 +178,10 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
             t('registos.total.lancamento_gr'),
             t('registos.csv.duelosGanhos'),
             t('registos.csv.duelosPerdidos'),
+            t('registos.csv.duelosGGanhos'),
+            t('registos.csv.duelosGPerdidos'),
+            t('registos.total.oportunidade_criada'),
+            t('registos.total.oportunidade_falhada'),
           ]
         : []),
     ],

@@ -68,6 +68,13 @@ export const REGISTO = {
   DUELO_DEF: 'duelo_def',
   PRESSAO_ALTA: 'pressao_alta',
   BOLA_PARADA: 'bola_parada',
+  // Pedidos a 19/11/2026 (Leões de Porto Salvo, Juniores Fem.), para o
+  // relatório pós-jogo e a análise: duelos (de qualquer tipo, ganhos ou
+  // perdidos, com um botão para cada), as oportunidades de golo criadas e as
+  // falhadas (nossas, por jogador, e as do adversário, só contadas).
+  DUELO: 'duelo',
+  OPORTUNIDADE_CRIADA: 'oportunidade_criada',
+  OPORTUNIDADE_FALHADA: 'oportunidade_falhada',
   // O livre de 10 metros, da 6.ª falta da parte em diante. É de TODOS os
   // escalões: não se liga no painel, grava-se sempre que o treinador diz se
   // foi golo. `equipa` é quem bate o livre.
@@ -136,6 +143,9 @@ export const OPCOES = {
   // "Remate enquadrado" (grava DEFENDIDO: foi à baliza) e "Remate fora"
   // (grava FORA) — e só se pergunta a zona. Pedido do Elétrico FC (14/11/2026).
   enquadrado: { nome: 'registo partilhado: dois botões (enquadrado / fora), só com a zona', omissao: false },
+  // Nas ações +/−: sem ela fica só o polegar verde ("boa ação"). Pedido do
+  // LPS (19/11/2026), que só quer marcar as boas ações.
+  negativa: { nome: 'botão da ação negativa (polegar para baixo)', omissao: true },
 };
 
 /**
@@ -180,6 +190,7 @@ export const CATALOGO = {
     por: 'jogador',
     ponto: false,
     resultados: Object.values(RESULTADO_ACAO),
+    opcoes: ['negativa'],
     disponivel: true,
   },
   // Os mesmos resultados de um remate nosso, vistos da nossa baliza: GOLO é
@@ -273,6 +284,33 @@ export const CATALOGO = {
     ponto: false,
     resultados: Object.values(RESULTADO_BOLA_PARADA),
     tipos: Object.values(TIPO_BOLA_PARADA),
+    disponivel: true,
+  },
+  // Duelo (qualquer duelo, não só o 1x1 defensivo): dois botões no cartão,
+  // "ganhou" e "perdeu", cada um grava logo. Os duelos ganhos do adversário
+  // são os nossos perdidos.
+  [REGISTO.DUELO]: {
+    por: 'jogador',
+    ponto: false,
+    resultados: Object.values(RESULTADO_DUELO),
+    disponivel: true,
+  },
+  // Oportunidades de golo: as nossas com quem a criou (ou quem a falhou), no
+  // cartão do jogador ou na barra (pergunta quem); as do adversário só se
+  // contam, na barra. Uma oportunidade falhada é uma ocasião clara que não
+  // deu golo.
+  [REGISTO.OPORTUNIDADE_CRIADA]: {
+    por: 'equipa',
+    jogadorOpcional: true,
+    ponto: false,
+    resultados: null,
+    disponivel: true,
+  },
+  [REGISTO.OPORTUNIDADE_FALHADA]: {
+    por: 'equipa',
+    jogadorOpcional: true,
+    ponto: false,
+    resultados: null,
     disponivel: true,
   },
   // `sempre`: não vai ao painel nem precisa de estar ligado. `jogadorOpcional`:
@@ -726,6 +764,7 @@ export function resumoRegistos(state, now = Date.now()) {
   const duelos = de(REGISTO.DUELO_DEF);
   const pressoes = de(REGISTO.PRESSAO_ALTA);
   const bolasParadas = de(REGISTO.BOLA_PARADA);
+  const duelosG = de(REGISTO.DUELO);
 
   const tempos = new Map(matchStatsTable(state, now).map((r) => [r.playerId, r.courtMs]));
   const jogadores = Object.values(state.players || {})
@@ -738,6 +777,8 @@ export function resumoRegistos(state, now = Date.now()) {
       const passes = meus.filter((r) => r.registo === REGISTO.PASSE_FALHADO).length;
       const lancamentosGR = meus.filter((r) => r.registo === REGISTO.LANCAMENTO_GR).length;
       const meusDuelos = meus.filter((r) => r.registo === REGISTO.DUELO_DEF);
+      const meusDuelosG = meus.filter((r) => r.registo === REGISTO.DUELO);
+      const minhasOp = (id) => meus.filter((r) => r.registo === id && r.equipa === 'US').length;
       return {
         playerId: p.playerId,
         number: p.number,
@@ -756,6 +797,11 @@ export function resumoRegistos(state, now = Date.now()) {
         passes10: recuperacoesPor10(passes, courtMs),
         duelos: meusDuelos.length,
         duelosGanhos: meusDuelos.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length,
+        // Os duelos gerais (registo `duelo`), à parte dos 1x1 defensivos.
+        duelosG: meusDuelosG.length,
+        duelosGGanhos: meusDuelosG.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length,
+        opCriadas: minhasOp(REGISTO.OPORTUNIDADE_CRIADA),
+        opFalhadas: minhasOp(REGISTO.OPORTUNIDADE_FALHADA),
         positivas: meus.filter(
           (r) => r.registo === REGISTO.ACAO && r.resultado === RESULTADO_ACAO.POSITIVA
         ).length,
@@ -774,6 +820,9 @@ export function resumoRegistos(state, now = Date.now()) {
         j.perdas ||
         j.passes ||
         j.duelos ||
+        j.duelosG ||
+        j.opCriadas ||
+        j.opFalhadas ||
         j.positivas ||
         j.negativas
     )
@@ -817,6 +866,12 @@ export function resumoRegistos(state, now = Date.now()) {
       total: duelos.length,
       ganhos: duelos.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length,
     },
+    dueloGeral: {
+      total: duelosG.length,
+      ganhos: duelosG.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length,
+    },
+    opCriadas: porEquipa(REGISTO.OPORTUNIDADE_CRIADA),
+    opFalhadas: porEquipa(REGISTO.OPORTUNIDADE_FALHADA),
     pressao: {
       total: pressoes.length,
       recuperadas: pressoes.filter((r) => r.resultado === RESULTADO_PRESSAO.RECUPERADA).length,
@@ -833,7 +888,8 @@ export function resumoRegistos(state, now = Date.now()) {
 /**
  * Quantos de cada registo tem cada jogador, para os números nos botões do
  * cartão: Map playerId → { remate, recuperacao, defesa_gr, lancamento_gr, perda_bola,
- * passe_falhado, duelo_def, positivas, negativas }.
+ * passe_falhado, duelo_def, positivas, negativas, duelosGanhos, duelosPerdidos,
+ * oportunidade_criada, oportunidade_falhada }.
  */
 export function contagemPorJogador(state) {
   const out = new Map();
@@ -850,12 +906,21 @@ export function contagemPorJogador(state) {
         duelo_def: 0,
         positivas: 0,
         negativas: 0,
+        duelosGanhos: 0,
+        duelosPerdidos: 0,
+        oportunidade_criada: 0,
+        oportunidade_falhada: 0,
       });
     }
     const c = out.get(r.playerId);
     if (r.registo === REGISTO.ACAO) {
       if (r.resultado === RESULTADO_ACAO.POSITIVA) c.positivas += 1;
       else if (r.resultado === RESULTADO_ACAO.NEGATIVA) c.negativas += 1;
+    } else if (r.registo === REGISTO.DUELO) {
+      if (r.resultado === RESULTADO_DUELO.GANHO) c.duelosGanhos += 1;
+      else if (r.resultado === RESULTADO_DUELO.PERDIDO) c.duelosPerdidos += 1;
+    } else if (r.equipa === 'THEM') {
+      // As oportunidades do adversário não têm jogador nosso.
     } else if (r.registo in c) {
       c[r.registo] += 1;
     }

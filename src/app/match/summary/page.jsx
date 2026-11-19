@@ -13,6 +13,7 @@ import { FoulsByHalf } from '@/components/Fouls.jsx';
 import { CardsTimeline } from '@/components/Cards.jsx';
 import GraficosDoJogo from '@/components/stats/GraficosDoJogo.jsx';
 import PainelRegistos from '@/components/registos/PainelRegistos.jsx';
+import RelatorioPosJogo from '@/components/stats/RelatorioPosJogo.jsx';
 import ListaRegistos from '@/components/registos/ListaRegistos.jsx';
 import { Badge, Empty, StatCard, StatusBadge } from '@/components/bits.jsx';
 import { useUI, Dialog } from '@/lib/ui.jsx';
@@ -76,6 +77,7 @@ function Resumo() {
   const ligados = useRegistos(dados?.match?.teamId);
   const addonsDoEscalao = useAddons(dados?.match?.teamId);
   const golosDetalhados = addonsDoEscalao.has('tipos-golo-detalhados');
+  const comRelatorio = addonsDoEscalao.has('relatorio-pos-jogo');
 
   // De onde se veio. Só quando não há origem — ou seja, quando se chega aqui por
   // ter acabado o jogo — é que a saída passa a ser a casa dos clubes.
@@ -301,7 +303,15 @@ function Resumo() {
     setAGerarPdf(true);
     try {
       const { gerarPdfJogo, nomePdfJogo } = await import('@/lib/pdf/relatorioJogo.js');
-      const blob = await gerarPdfJogo({ club, match, state, team, competition, detalhados: golosDetalhados });
+      const blob = await gerarPdfJogo({
+        club,
+        match,
+        state,
+        team,
+        competition,
+        detalhados: golosDetalhados,
+        relatorio: comRelatorio ? { ligados } : null,
+      });
       const nome = nomePdfJogo(match);
       await entregarFicheiro(blob, nome, 'application/pdf', { titulo: nome });
     } catch (e) {
@@ -604,6 +614,16 @@ function Resumo() {
             />
           ) : null}
         </div>
+
+      {/* Relatório pós-jogo (add-on): nós vs adversário e o desempenho individual. */}
+      {comRelatorio && state.startedAt ? (
+        <RelatorioPosJogo
+          state={state}
+          ligados={ligados}
+          ourName={clubShort(club)}
+          opponentName={opponentShort(match)}
+        />
+      ) : null}
 
       {titulares.length ? (
         <>

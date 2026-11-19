@@ -60,6 +60,9 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
       j.perdas ||
       j.passes ||
       j.duelos ||
+      j.duelosG ||
+      j.opCriadas ||
+      j.opFalhadas ||
       j.positivas ||
       j.negativas
   );
@@ -105,6 +108,27 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
             rotulo={t('registos.total.duelo_def')}
             valor={r.duelos.total}
             extra={t('registos.duelosGanhos', { n: r.duelos.ganhos, total: r.duelos.total })}
+          />
+        ) : null}
+        {tem(REGISTO.DUELO) ? (
+          <Total
+            rotulo={t('registos.total.duelo')}
+            valor={r.dueloGeral.total}
+            extra={t('registos.duelosGanhos', { n: r.dueloGeral.ganhos, total: r.dueloGeral.total })}
+          />
+        ) : null}
+        {tem(REGISTO.OPORTUNIDADE_CRIADA) ? (
+          <Total
+            rotulo={t('registos.total.oportunidade_criada')}
+            valor={`${r.opCriadas.US} – ${r.opCriadas.THEM}`}
+            extra={`${ourName} – ${opponentName}`}
+          />
+        ) : null}
+        {tem(REGISTO.OPORTUNIDADE_FALHADA) ? (
+          <Total
+            rotulo={t('registos.total.oportunidade_falhada')}
+            valor={`${r.opFalhadas.US} – ${r.opFalhadas.THEM}`}
+            extra={`${ourName} – ${opponentName}`}
           />
         ) : null}
         {tem(REGISTO.PRESSAO_ALTA) ? (
@@ -249,6 +273,15 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                 {tem(REGISTO.DUELO_DEF) ? (
                   <th title={t('registos.col.duelosTitulo')}>{t('registos.col.duelos')}</th>
                 ) : null}
+                {tem(REGISTO.DUELO) ? (
+                  <th title={t('registos.col.duelosGTitulo')}>{t('registos.col.duelosG')}</th>
+                ) : null}
+                {tem(REGISTO.OPORTUNIDADE_CRIADA) ? (
+                  <th title={t('registos.total.oportunidade_criada')}>{t('registos.col.opCriadas')}</th>
+                ) : null}
+                {tem(REGISTO.OPORTUNIDADE_FALHADA) ? (
+                  <th title={t('registos.total.oportunidade_falhada')}>{t('registos.col.opFalhadas')}</th>
+                ) : null}
                 {tem(REGISTO.ACAO) ? <th>{t('registos.col.acoes')}</th> : null}
               </tr>
             </thead>
@@ -289,6 +322,9 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                     </>
                   ) : null}
                   {tem(REGISTO.DUELO_DEF) ? <td>{deQuantos(j.duelosGanhos, j.duelos) || '–'}</td> : null}
+                  {tem(REGISTO.DUELO) ? <td>{deQuantos(j.duelosGGanhos, j.duelosG) || '–'}</td> : null}
+                  {tem(REGISTO.OPORTUNIDADE_CRIADA) ? <td>{j.opCriadas || '–'}</td> : null}
+                  {tem(REGISTO.OPORTUNIDADE_FALHADA) ? <td>{j.opFalhadas || '–'}</td> : null}
                   {tem(REGISTO.ACAO) ? (
                     <td>{j.positivas || j.negativas ? `+${j.positivas} / −${j.negativas}` : '–'}</td>
                   ) : null}

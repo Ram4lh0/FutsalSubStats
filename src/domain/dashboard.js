@@ -1068,6 +1068,9 @@ const REGISTOS_DO_ATLETA = [
   REGISTO.PERDA_BOLA,
   REGISTO.PASSE_FALHADO,
   REGISTO.DUELO_DEF,
+  REGISTO.DUELO,
+  REGISTO.OPORTUNIDADE_CRIADA,
+  REGISTO.OPORTUNIDADE_FALHADA,
   REGISTO.ACAO,
   REGISTO.PENALTI,
 ];
@@ -1088,6 +1091,7 @@ export function extrasDoAtleta(entries, playerId) {
   const acoes = { positivas: 0, negativas: 0 };
   const penaltis = { golos: 0 };
   const duelos = { ganhos: 0 };
+  const duelosG = { ganhos: 0 };
 
   for (const e of terminados(entries)) {
     const s = statsDoJogador(e.state, playerId);
@@ -1118,6 +1122,8 @@ export function extrasDoAtleta(entries, playerId) {
         penaltis.golos += meus.filter((r) => r.resultado === RESULTADO_REMATE.GOLO).length;
       } else if (id === REGISTO.DUELO_DEF) {
         duelos.ganhos += meus.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length;
+      } else if (id === REGISTO.DUELO) {
+        duelosG.ganhos += meus.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length;
       }
     }
   }
@@ -1141,6 +1147,10 @@ export function extrasDoAtleta(entries, playerId) {
     duelos: {
       ...duelos,
       percentagem: por[REGISTO.DUELO_DEF].n ? Math.round((duelos.ganhos / por[REGISTO.DUELO_DEF].n) * 100) : null,
+    },
+    duelosG: {
+      ...duelosG,
+      percentagem: por[REGISTO.DUELO].n ? Math.round((duelosG.ganhos / por[REGISTO.DUELO].n) * 100) : null,
     },
   };
 }

@@ -40,6 +40,10 @@
 .pcard__regbtn--perda { border-color: rgba(251, 146, 60, 0.75); }
 .pcard__regbtn--passe { border-color: rgba(250, 204, 21, 0.75); }
 .pcard__regbtn--duelo { border-color: rgba(167, 139, 250, 0.8); }
+.pcard__regbtn--duelo-ganho { border-color: rgba(34, 197, 94, 0.75); color: #4ade80; }
+.pcard__regbtn--duelo-perdido { border-color: rgba(239, 68, 68, 0.75); color: #f87171; }
+.pcard__regbtn--op-criada { border-color: rgba(56, 189, 248, 0.8); }
+.pcard__regbtn--op-falhada { border-color: rgba(251, 113, 133, 0.8); }
 .pcard__regbtn--positiva, .pcard__regbtn--negativa { padding: 0 6px; }
 .pcard__regbtn--positiva { border-color: rgba(34, 197, 94, 0.75); color: #4ade80; }
 .pcard__regbtn--negativa { border-color: rgba(239, 68, 68, 0.75); color: #f87171; }

@@ -28,6 +28,8 @@ import BlocosDaEpoca from '@/components/registos/BlocosDaEpoca.jsx';
 import JanelaTempo from '@/components/JanelaTempo.jsx';
 import { BlocosExtrasAtleta } from '@/components/registos/ExtrasRegistos.jsx';
 import PenaltisAtleta from '@/components/penaltis/PenaltisAtleta.jsx';
+import { AnalisePosicoes, IndicadoresAtleta, IndicadoresEquipa } from '@/components/stats/AnaliseEpoca.jsx';
+import { ultimosJogos } from '@/domain/analise.js';
 import {
   minutosPorJogador,
   golosPorFaixa,
@@ -125,6 +127,9 @@ function Filtros({
   aoTrocarJanela,
   aoExportarPdf,
   aGerarPdf = false,
+  comUltimos = false,
+  ultimos = null,
+  aoTrocarUltimos,
 }) {
   const t = useT();
   const [escondidos, setEscondidos] = useState(false);
@@ -210,6 +215,27 @@ function Filtros({
               onClick={() => aoTrocarProva(p.id)}
             >
               {p.shortName || p.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Add-on 'analise-indicadores': a época toda ou só os últimos jogos. */}
+      {comUltimos ? (
+        <div className="filtros__grupo">
+          <span className="filtros__rotulo">{t('analise.jogos')}</span>
+          {[
+            [null, t('analise.epocaToda')],
+            [5, t('analise.ultimos', { n: 5 })],
+            [10, t('analise.ultimos', { n: 10 })],
+          ].map(([n, texto]) => (
+            <button
+              key={n || 'todos'}
+              type="button"
+              className={`chip ${ultimos === n ? 'is-on' : ''}`}
+              onClick={() => aoTrocarUltimos(n)}
+            >
+              {texto}
             </button>
           ))}
         </div>
@@ -318,7 +344,7 @@ function estadoAtletaJogo(j, t) {
   return { texto: t('painelv.entrou'), kind: 'info' };
 }
 
-function PainelAtleta({ periodosBase, faixasDe, alternarFaixa, limparJanela, dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo, extras, entries, atletaId }) {
+function PainelAtleta({ periodosBase, faixasDe, alternarFaixa, limparJanela, dados, etiquetas, faixaAtiva, setFaixaAtiva, abrirResumo, extras, entries, atletaId, roster, comAnalise = false }) {
   const t = useT();
   const min = dados.minutos;
   const u = dados.utilizacao;
@@ -357,6 +383,9 @@ function PainelAtleta({ periodosBase, faixasDe, alternarFaixa, limparJanela, dad
 
   return (
     <>
+      {/* Add-on 'analise-indicadores': os indicadores individuais (e os do GR). */}
+      {comAnalise ? <IndicadoresAtleta entries={entries} roster={roster} playerId={atletaId} Bloco={Bloco} /> : null}
+
       <Bloco titulo={t('painelv.atletaMinutos', { nome: dados.jogador.name })} className="painelv__bloco--minutos-atleta">
         <div className="grid grid--stats painelv__metricas-atleta">
           <StatCard label={t('stats.tempoTotal')} value={fmt(min.totalMs)} />
@@ -559,6 +588,11 @@ function Painel({ club, team, entries, roster, competitions }) {
   const [atletaId, setAtletaId] = useState('');
   const [jogoEscolhido, setJogo] = useState('');
   const [aGerarPdf, setAGerarPdf] = useState(false);
+  // "Últimos N jogos" (add-on 'analise-indicadores'); null = a época toda.
+  const [ultimos, setUltimos] = useState(null);
+  const addons = useAddons(team?.id);
+  const comIndicadores = addons.has('analise-indicadores');
+  const comPosicoes = addons.has('analise-posicoes');
   const formaMobile = useFormaMobile();
   // A faixa por cima da qual está o dedo, uma por parte.
   const [faixaAtiva, setFaixaAtiva] = useState({ parte: null, i: null });
@@ -568,10 +602,12 @@ function Painel({ club, team, entries, roster, competitions }) {
   const provas = useMemo(() => provasComJogos(entries, competitions), [entries, competitions]);
   const tipos = useMemo(() => tiposDeJogo(entries), [entries]);
 
-  const porProvaETipo = useMemo(
-    () => filtrar(entries, { provas: provasEscolhidas, tipo }),
-    [entries, provasEscolhidas, tipo]
-  );
+  const porProvaETipo = useMemo(() => {
+    const filtrados = filtrar(entries, { provas: provasEscolhidas, tipo });
+    // Os últimos N jogos contam-se depois da competição e do tipo: "os últimos
+    // 5 do campeonato", e não os do campeonato entre os últimos 5.
+    return comIndicadores && ultimos ? ultimosJogos(filtrados, ultimos) : filtrados;
+  }, [entries, provasEscolhidas, tipo, comIndicadores, ultimos]);
   // A lista de jogos segue a competição e o tipo. Se o jogo escolhido deixar de
   // lá estar (trocou-se de competição), volta-se a todos em vez de mostrar um
   // painel vazio.
@@ -630,7 +666,7 @@ function Painel({ club, team, entries, roster, competitions }) {
   const disc = useMemo(() => disciplina(filtrados), [filtrados]);
   const faixas = useMemo(() => golosPorFaixa(base, { parteMs }), [base, parteMs]);
   const desempates = useMemo(() => penaltisDaEpoca(filtrados), [filtrados]);
-  const detalhados = useAddons(team?.id).has('tipos-golo-detalhados');
+  const detalhados = addons.has('tipos-golo-detalhados');
   const tiposDeGolo = useMemo(() => golosPorTipo(filtrados, 'US', { detalhados }), [filtrados, detalhados]);
   const tiposDeGoloSofrido = useMemo(() => golosPorTipo(filtrados, 'THEM', { detalhados }), [filtrados, detalhados]);
   const atleta = useMemo(
@@ -692,6 +728,7 @@ function Painel({ club, team, entries, roster, competitions }) {
               : '',
         jogo: jogoId ? rotuloDoJogo(jogos.find((j) => j.id === jogoId)) : '',
         atletaId,
+        analise: { indicadores: comIndicadores, posicoes: comPosicoes, ultimos: comIndicadores ? ultimos : null },
       });
       const nome = nomePdfPainel(team, atletaId ? atleta?.jogador?.name : null);
       await entregarFicheiro(blob, nome, 'application/pdf', { titulo: nome });
@@ -791,6 +828,9 @@ function Painel({ club, team, entries, roster, competitions }) {
           aoTrocarJanela={setJanela}
           aoExportarPdf={exportarPdf}
           aGerarPdf={aGerarPdf}
+          comUltimos={comIndicadores}
+          ultimos={ultimos}
+          aoTrocarUltimos={setUltimos}
         />
       </div>
 
@@ -809,6 +849,8 @@ function Painel({ club, team, entries, roster, competitions }) {
             extras={extrasAtleta}
             entries={filtrados}
             atletaId={atletaId}
+            roster={roster}
+            comAnalise={comIndicadores}
           />
         ) : (
           <Empty>{t('painelv.atletaSemDados')}</Empty>
@@ -817,6 +859,10 @@ function Painel({ club, team, entries, roster, competitions }) {
         <Empty>{t('painelv.semJogos')}</Empty>
       ) : (
         <>
+          {/* ------------------------------- análise (add-ons de 19/11/2026) */}
+          {comIndicadores ? <IndicadoresEquipa entries={filtrados} Bloco={Bloco} /> : null}
+          {comPosicoes ? <AnalisePosicoes entries={filtrados} roster={roster} Bloco={Bloco} /> : null}
+
           {/* ------------------------------------------ rotação e minutos */}
           <Bloco titulo={t('painelv.minutos')}>
             {min.linhas.length ? (

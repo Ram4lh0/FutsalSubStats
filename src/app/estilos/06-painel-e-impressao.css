@@ -578,3 +578,56 @@
   .painelv .grid--stats > * { flex-basis: 130px; }
   .painelv .painelv__lados.grid--stats > * { flex-basis: 100%; }
 }
+
+/* ------------------------------------------------------------------------
+ * Relatório pós-jogo (add-on 'relatorio-pos-jogo'): a tabela espelhada
+ * "nós vs adversário". Três colunas — o nosso número, o rótulo com a barra
+ * partida ao meio, o número deles — numa grelha que cabe num telemóvel.
+ * --------------------------------------------------------------------- */
+.espelho { display: grid; gap: 2px; }
+.espelho__cab,
+.espelho__linha {
+  display: grid;
+  grid-template-columns: minmax(48px, 1fr) minmax(120px, 2.2fr) minmax(48px, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.espelho__cab { padding-bottom: 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.espelho__eq { font-weight: 800; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.espelho__eq--nos { text-align: right; color: var(--primary); }
+.espelho__eq--eles { text-align: left; color: var(--danger); }
+.espelho__linha { padding: 7px 0; border-bottom: 1px solid rgba(42, 61, 95, 0.5); }
+.espelho__linha:last-child { border-bottom: 0; }
+.espelho__linha--sub { padding: 3px 0; border-bottom: 0; }
+.espelho__v { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.espelho__v--nos { text-align: right; }
+.espelho__v--eles { text-align: left; }
+.espelho__linha--sub .espelho__v { font-size: 0.95rem; font-weight: 500; color: var(--muted); }
+.espelho__v.is-melhor { color: var(--primary); }
+.espelho__v.is-pior { color: var(--danger); }
+.espelho__meio { display: grid; gap: 4px; justify-items: center; text-align: center; }
+.espelho__rot { font-size: 0.86rem; color: var(--text); }
+.espelho__linha--sub .espelho__rot { font-size: 0.8rem; color: var(--muted); }
+.espelho__linha--sub .espelho__rot::before { content: '· '; }
+.espelho__barra { display: flex; width: 100%; height: 5px; border-radius: 999px; overflow: hidden; background: var(--card-2); }
+.espelho__barra-nos { background: var(--primary); }
+.espelho__barra-eles { background: var(--danger); opacity: 0.85; }
+.espelho__barra-nos.is-mau { background: rgba(34, 197, 94, 0.45); }
+.espelho__barra-eles.is-mau { background: rgba(239, 68, 68, 0.45); }
+.espelho__nota { margin: 10px 0 0; }
+
+/* ------------------------------------------------------------------------
+ * Análise da época (add-ons 'analise-indicadores' e 'analise-posicoes').
+ * --------------------------------------------------------------------- */
+.analise__cartoes { align-items: start; }
+.analise__ind { display: grid; gap: 6px; }
+.analise__ind .stat { height: 100%; }
+.analise__melhor { margin: 0; font-size: 0.82rem; color: var(--muted); }
+.analise__filtros { margin-bottom: 10px; }
+.analise__total td { font-weight: 800; border-top: 2px solid var(--line); }
+td.is-win { color: var(--primary); }
+td.is-loss { color: var(--danger); }
+
+@media print {
+  .espelho__barra { border: 1px solid #cbd5e1; }
+}

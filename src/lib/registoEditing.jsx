@@ -53,7 +53,7 @@ function coresDe(registo, equipa) {
   if (registo === 'penalti') return COR_PENALTI;
   if (registo === 'penalti_adv') return COR_PENALTI_ADV;
   if (registo === 'livre_10m') return equipa === 'THEM' ? COR_PENALTI_ADV : COR_PENALTI;
-  if (registo === 'duelo_def') return COR_DUELO;
+  if (registo === 'duelo_def' || registo === 'duelo') return COR_DUELO;
   if (registo === 'pressao_alta') return COR_PRESSAO;
   if (registo === 'bola_parada') return COR_BOLA_PARADA;
   return CATALOGO[registo]?.soAdversario ? COR_RESULTADO_ADV : COR_RESULTADO;

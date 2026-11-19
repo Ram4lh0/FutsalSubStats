@@ -3,13 +3,15 @@
 // components/registos/BotoesRegistos.jsx — os botões dos registos extra no
 // cartão do jogador em campo: ação + e −, defesa e lançamento (só no
 // guarda-redes), remate,
-// recuperação, perda de bola, duelo 1x1 defensivo e passe falhado (se o
-// escalão o quiser no cartão), cada um só se o escalão o tiver ligado, e o G no fim.
+// recuperação, perda de bola, duelo 1x1 defensivo, duelo ganho / perdido,
+// oportunidade criada / falhada e passe falhado (se o escalão o quiser no
+// cartão), cada um só se o escalão o tiver ligado, e o G no fim. A ação − sai
+// se o escalão tiver desligado a opção `negativa` (fica só a "boa ação").
 //
 // São `span` como o G e o F: o cartão inteiro já é um botão, e um botão dentro
 // de outro não é HTML válido.
 
-import { REGISTO, RESULTADO_ACAO } from '@/domain/registos.js';
+import { REGISTO, RESULTADO_ACAO, RESULTADO_DUELO } from '@/domain/registos.js';
 import { t } from '@/lib/i18n/index.js';
 
 // Um toque nos botões não pode começar a arrastar o cartão.
@@ -32,6 +34,9 @@ export function temBotoesNoCartao(ligados, pos) {
     ligados.has(REGISTO.RECUPERACAO) ||
     ligados.has(REGISTO.PERDA_BOLA) ||
     ligados.has(REGISTO.DUELO_DEF) ||
+    ligados.has(REGISTO.DUELO) ||
+    ligados.has(REGISTO.OPORTUNIDADE_CRIADA) ||
+    ligados.has(REGISTO.OPORTUNIDADE_FALHADA) ||
     passeNoCartao(ligados) ||
     ligados.has(REGISTO.ACAO) ||
     (pos === 'GOALKEEPER' && (ligados.has(REGISTO.DEFESA_GR) || ligados.has(REGISTO.LANCAMENTO_GR)))
@@ -69,9 +74,11 @@ export default function BotoesRegistos({ pos, p, ligados, contagem, on, golo }) 
           {botao('positiva', <Polegar />, t('registos.acaoPositiva'), c.positivas, () =>
             on.registarAcao(p, RESULTADO_ACAO.POSITIVA)
           )}
-          {botao('negativa', <Polegar baixo />, t('registos.acaoNegativa'), c.negativas, () =>
-            on.registarAcao(p, RESULTADO_ACAO.NEGATIVA)
-          )}
+          {ligados.opcoes?.acao?.negativa !== false
+            ? botao('negativa', <Polegar baixo />, t('registos.acaoNegativa'), c.negativas, () =>
+                on.registarAcao(p, RESULTADO_ACAO.NEGATIVA)
+              )
+            : null}
         </>
       ) : null}
       {pos === 'GOALKEEPER' && ligados.has(REGISTO.DEFESA_GR)
@@ -102,6 +109,34 @@ export default function BotoesRegistos({ pos, p, ligados, contagem, on, golo }) 
       {ligados.has(REGISTO.DUELO_DEF)
         ? botao('duelo', t('registos.btn.duelo_def'), t('registos.nome.duelo_def'), c.duelo_def, () =>
             on.registarDuelo(p)
+          )
+        : null}
+      {ligados.has(REGISTO.DUELO) ? (
+        <>
+          {botao('duelo-ganho', t('registos.btn.dueloGanho'), t('registos.dueloGanho'), c.duelosGanhos, () =>
+            on.registarDueloGeral(p, RESULTADO_DUELO.GANHO)
+          )}
+          {botao('duelo-perdido', t('registos.btn.dueloPerdido'), t('registos.dueloPerdido'), c.duelosPerdidos, () =>
+            on.registarDueloGeral(p, RESULTADO_DUELO.PERDIDO)
+          )}
+        </>
+      ) : null}
+      {ligados.has(REGISTO.OPORTUNIDADE_CRIADA)
+        ? botao(
+            'op-criada',
+            t('registos.btn.oportunidade_criada'),
+            t('registos.nome.oportunidade_criada'),
+            c.oportunidade_criada,
+            () => on.registarOportunidade(REGISTO.OPORTUNIDADE_CRIADA, p)
+          )
+        : null}
+      {ligados.has(REGISTO.OPORTUNIDADE_FALHADA)
+        ? botao(
+            'op-falhada',
+            t('registos.btn.oportunidade_falhada'),
+            t('registos.nome.oportunidade_falhada'),
+            c.oportunidade_falhada,
+            () => on.registarOportunidade(REGISTO.OPORTUNIDADE_FALHADA, p)
           )
         : null}
       {passeNoCartao(ligados)
