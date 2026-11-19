@@ -436,7 +436,7 @@ test('uma conta que não existe dá uma mensagem clara', async () => {
 test('o catálogo do painel tem os registos todos (fase 1, remates do adversário e perdas)', () => {
   assert.deepEqual(
     catalogoDoPainel().map((r) => r.id),
-    ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'lancamento_gr', 'duelo_def', 'pressao_alta', 'bola_parada', 'duelo', 'oportunidade_criada', 'oportunidade_falhada']
+    ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'lancamento_gr', 'duelo_def', 'pressao_alta', 'bola_parada', 'duelo', 'oportunidade_criada', 'oportunidade_falhada', 'passe']
   );
   assert.equal(catalogoDoPainel().find((r) => r.id === 'perda_bola').nome, 'Perdas de bola');
 });
@@ -586,7 +586,7 @@ test('os registos do clube vêm por escalão activo', async () => {
     r.escaloes.map((e) => [e.teamId, e.registos]),
     [['t-1', []], ['t-2', ['fora', 'canto']]]
   );
-  assert.equal(r.catalogo.length, 19);
+  assert.equal(r.catalogo.length, 20);
 });
 
 test('cada conta traz os últimos jogos que vê, do mais recente para o mais antigo', async () => {

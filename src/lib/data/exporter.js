@@ -31,7 +31,7 @@ export function toCsv(rows) {
 
 /** As colunas dos registos extra de um jogador, pela ordem do cabeçalho. */
 function colunasDeRegistos(j) {
-  if (!j) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  if (!j) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   // As perdas de bola, os passes falhados, os lançamentos do GR e os duelos
   // 1x1 defensivos vieram depois: ficam no fim, para não mexer nas colunas de
   // antes.
@@ -52,6 +52,10 @@ function colunasDeRegistos(j) {
     j.duelosG - j.duelosGGanhos,
     j.opCriadas,
     j.opFalhadas,
+    // 19/11/2026 (ORDEM): passes errados, perigosos e grandes oportunidades.
+    j.passe?.ERRADO || 0,
+    j.passe?.PERIGOSO || 0,
+    j.passe?.GRANDE_OPORTUNIDADE || 0,
   ];
 }
 
@@ -123,6 +127,14 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
     ...(reg?.tipos.has(REGISTO.OPORTUNIDADE_FALHADA)
       ? [[t('registos.total.oportunidade_falhada'), `${reg.opFalhadas.US}-${reg.opFalhadas.THEM}`]]
       : []),
+    ...(reg?.tipos.has(REGISTO.PASSE)
+      ? [
+          [
+            t('registos.csv.passes'),
+            `${reg.passe.ERRADO}/${reg.passe.PERIGOSO}/${reg.passe.GRANDE_OPORTUNIDADE}`,
+          ],
+        ]
+      : []),
     ...(reg?.tipos.has(REGISTO.PRESSAO_ALTA)
       ? [[t('registos.csv.pressao'), `${reg.pressao.recuperadas}/${reg.pressao.total}`]]
       : []),
@@ -182,6 +194,9 @@ export function matchSummaryCsv({ club, match, state, team, competition }) {
             t('registos.csv.duelosGPerdidos'),
             t('registos.total.oportunidade_criada'),
             t('registos.total.oportunidade_falhada'),
+            t('registos.csv.passeErrado'),
+            t('registos.csv.passePerigoso'),
+            t('registos.csv.passeGrandeOp'),
           ]
         : []),
     ],

@@ -19,6 +19,7 @@ import {
   REGISTO,
   RESULTADO_REMATE,
   deQuantos,
+  passesEPGO,
   marcadores,
   resumoRegistos,
 } from '@/domain/registos.js';
@@ -105,6 +106,17 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
         {tem(REGISTO.PERDA_BOLA) ? <Total rotulo={t('registos.total.perda_bola')} valor={r.perdas} /> : null}
         {tem(REGISTO.PASSE_FALHADO) ? (
           <Total rotulo={t('registos.total.passe_falhado')} valor={r.passes} />
+        ) : null}
+        {tem(REGISTO.PASSE) ? (
+          <Total
+            rotulo={t('registos.total.passe')}
+            valor={r.passe.total}
+            extra={t('registos.ext.passeDetalhe', {
+              e: r.passe.ERRADO,
+              p: r.passe.PERIGOSO,
+              go: r.passe.GRANDE_OPORTUNIDADE,
+            })}
+          />
         ) : null}
         {tem(REGISTO.DUELO_DEF) ? (
           <Total
@@ -273,6 +285,9 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                     <th title={t('registos.col.passes10Titulo')}>{t('registos.col.passes10')}</th>
                   </>
                 ) : null}
+                {tem(REGISTO.PASSE) ? (
+                  <th title={t('registos.col.passeTitulo')}>{t('registos.col.passe')}</th>
+                ) : null}
                 {tem(REGISTO.DUELO_DEF) ? (
                   <th title={t('registos.col.duelosTitulo')}>{t('registos.col.duelos')}</th>
                 ) : null}
@@ -324,6 +339,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
                       <td>{j.passes10 == null ? '–' : j.passes10.toFixed(1)}</td>
                     </>
                   ) : null}
+                  {tem(REGISTO.PASSE) ? <td>{passesEPGO(j)}</td> : null}
                   {tem(REGISTO.DUELO_DEF) ? <td>{deQuantos(j.duelosGanhos, j.duelos) || '–'}</td> : null}
                   {tem(REGISTO.DUELO) ? <td>{deQuantos(j.duelosGGanhos, j.duelosG) || '–'}</td> : null}
                   {tem(REGISTO.OPORTUNIDADE_CRIADA) ? <td>{j.opCriadas || '–'}</td> : null}

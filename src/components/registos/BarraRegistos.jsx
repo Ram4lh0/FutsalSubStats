@@ -41,6 +41,7 @@ function lerEscondida() {
 export function colunasRegistos(state, ligados, on) {
   const r = resumoRegistos(state);
   const passeNaBarra = ligados.has(REGISTO.PASSE_FALHADO) && ligados.opcoes?.passe_falhado?.barra;
+  const passeQNaBarra = ligados.has(REGISTO.PASSE) && ligados.opcoes?.passe?.barra;
 
   // Cada coluna: o rótulo e, para cada equipa, o valor e o que fazem os
   // botões (`registo` é o que o "−" tira). `null` deixa a célula vazia.
@@ -85,6 +86,11 @@ export function colunasRegistos(state, ligados, on) {
           THEM: contador(registo, valores.THEM, () => on.registarOportunidadeBarra(registo, 'THEM'), 'THEM'),
         }
     ),
+    passeQNaBarra && {
+      id: 'passeQ',
+      US: contador(REGISTO.PASSE, r.passe.total, on.registarPasseQBarra),
+      THEM: null,
+    },
     passeNaBarra && {
       id: 'passes',
       US: contador(REGISTO.PASSE_FALHADO, r.passes, on.registarPasseBarra),
@@ -103,7 +109,7 @@ export function colunasRegistos(state, ligados, on) {
         }
     ),
   ].filter(Boolean);
-  return { colunas, r, passeNaBarra };
+  return { colunas, r, passeNaBarra, passeQNaBarra };
 
 }
 
@@ -198,7 +204,7 @@ export function LateralRegistos({ state, ligados, equipa, nome, on }) {
 }
 
 export default function BarraRegistos({ state, ligados, ourName, opponentName, on, compacta = false, semNomes = false }) {
-  const { colunas, r, passeNaBarra } = colunasRegistos(state, ligados, on);
+  const { colunas, r, passeNaBarra, passeQNaBarra } = colunasRegistos(state, ligados, on);
   const [escondida, setEscondida] = useState(lerEscondida);
   const mudar = (valor) => {
     setEscondida(valor);
@@ -217,6 +223,7 @@ export default function BarraRegistos({ state, ligados, ourName, opponentName, o
     [REGISTO.DUELO_DEF, r.duelos.total],
     [REGISTO.DUELO, r.dueloGeral.total],
     ...(passeNaBarra ? [] : [[REGISTO.PASSE_FALHADO, r.passes]]),
+    ...(passeQNaBarra ? [] : [[REGISTO.PASSE, r.passe.total]]),
   ]
     .filter(([id]) => ligados.has(id))
     .map(([id, n]) => t(`registos.curto.${id}`, { n }))

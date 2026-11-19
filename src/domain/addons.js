@@ -60,6 +60,7 @@ export const NOME_REGISTO = {
   duelo: 'Duelos ganhos / perdidos (dois botões)',
   oportunidade_criada: 'Oportunidades criadas (nossas e do adversário)',
   oportunidade_falhada: 'Oportunidades falhadas (nossas e do adversário)',
+  passe: 'Passes (errado / perigoso / grande oportunidade)',
 };
 
 /**

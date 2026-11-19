@@ -25,6 +25,7 @@ import {
   COR_PENALTI_ADV,
   COR_RESULTADO,
   COR_PRESSAO,
+  COR_PASSE,
   COR_RESULTADO_ADV,
   GOLO_DA_BOLA_PARADA,
   REGISTO,
@@ -33,6 +34,7 @@ import {
   RESULTADO_DUELO,
   RESULTADO_PENALTI,
   RESULTADO_PRESSAO,
+  RESULTADO_PASSE,
   RESULTADO_REMATE,
   TIPO_BOLA_PARADA,
   levaGolo,
@@ -265,6 +267,37 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
     const playerId = await pickPlayer(ui, state, t('registos.quemFalhouPasse'));
     if (!playerId) return;
     await commit(registar(state, { registo: REGISTO.PASSE_FALHADO, playerId }));
+  }
+
+  /** Passe (registo `passe`): o que valeu — errado, perigoso ou grande oportunidade. */
+  async function perguntarPasse(titulo) {
+    const r = await perguntarOnde(ui, {
+      titulo,
+      subtitulo: t('registos.passeSub'),
+      opcoes: Object.values(RESULTADO_PASSE).map((o) => ({
+        id: o,
+        rotulo: t(`registos.resultadoPasse.${o}`),
+        cor: COR_PASSE[o],
+      })),
+      semCampo: true,
+    });
+    return r?.opcao || null;
+  }
+
+  async function registarPasseQ(p) {
+    const resultado = await perguntarPasse(t('registos.passeDe', quem(p)));
+    if (!resultado) return;
+    await commit(registar(state, { registo: REGISTO.PASSE, playerId: p.playerId, resultado }));
+  }
+
+  /** O mesmo na barra de cima: primeiro quem passou, dos que estão em campo. */
+  async function registarPasseQBarra() {
+    const playerId = await pickPlayer(ui, state, t('registos.quemPassou'));
+    if (!playerId) return;
+    const p = state.players?.[playerId] || { number: '', name: '' };
+    const resultado = await perguntarPasse(t('registos.passeDe', quem(p)));
+    if (!resultado) return;
+    await commit(registar(state, { registo: REGISTO.PASSE, playerId, resultado }));
   }
 
   /** Duelo 1x1 defensivo: um toque no "1x1" do cartão e ganhou ou perdeu. */
@@ -570,6 +603,8 @@ export default function useAcoesRegistos({ state, ligados, commit, marcarGolo, m
       registarPerda,
       registarPasse,
       registarPasseBarra,
+      registarPasseQ,
+      registarPasseQBarra,
       registarAcao,
       registarDuelo,
       registarDueloGeral,

@@ -32,6 +32,8 @@ import {
   perdasPorJogador,
   passesDaEpoca,
   passesPorJogador,
+  passesQDaEpoca,
+  passesQPorJogador,
   bolasParadas,
   bolasParadasOfensivas,
   duelosDaEpoca,
@@ -506,6 +508,27 @@ function registosExtra(r, entries) {
       })),
       { cor: COR.vermelho }
     );
+  }
+  if (tipos.has(REGISTO.PASSE)) {
+    const q = passesQDaEpoca(entries);
+    const pctQ = (n) => (q.total ? `${Math.round((n / q.total) * 100)}%` : undefined);
+    r.secao(t('registos.total.passe'), 30);
+    r.cartoes([
+      { rotulo: t('registos.epoca.passeQPorJogo'), valor: q.porJogo.toFixed(1), detalhe: t('painelv.emJogos', { n: q.jogos }) },
+      ...['ERRADO', 'PERIGOSO', 'GRANDE_OPORTUNIDADE'].map((o) => ({
+        rotulo: t(`registos.resultadoPasse.${o}`),
+        valor: q[o],
+        detalhe: pctQ(q[o]),
+      })),
+    ]);
+    r.barrasH(
+      passesQPorJogador(entries).map((j) => ({
+        rotulo: `${j.number ?? ''} ${j.name}`.trim(),
+        valor: j.PERIGOSO + j.GRANDE_OPORTUNIDADE,
+        texto: t('registos.ext.passeDetalhe', { e: j.ERRADO, p: j.PERIGOSO, go: j.GRANDE_OPORTUNIDADE }),
+      }))
+    );
+    r.paragrafo(t('registos.epoca.passeQNota'));
   }
   if (tipos.has(REGISTO.DUELO_DEF)) {
     const equipa = duelosDaEpoca(entries);

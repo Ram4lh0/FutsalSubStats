@@ -17,7 +17,10 @@ import { BarrasH } from '@/components/stats/graficos.jsx';
 import { CampoSvg } from './CampoToque.jsx';
 import { LegendaMapa, TabelaExtrasEquipa } from './ExtrasRegistos.jsx';
 import MapasCalorRemates from './MapasCalorRemates.jsx';
-import { REGISTO } from '@/domain/registos.js';
+import { COR_PASSE, REGISTO } from '@/domain/registos.js';
+
+/** "40%" de um total, ou nada. */
+const pctDe = (n, total) => (total ? `${Math.round((n / total) * 100)}%` : undefined);
 import {
   REGISTOS_BOLA_PARADA,
   bolasParadas,
@@ -31,6 +34,8 @@ import {
   mapaDaEpoca,
   passesDaEpoca,
   passesPorJogador,
+  passesQDaEpoca,
+  passesQPorJogador,
   perdasDaEpoca,
   perdasPorJogador,
   pressaoDaEpoca,
@@ -58,6 +63,8 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
   const advSimples = useMemo(() => rematesAdvSimplesDaEpoca(entries), [entries]);
   const passes = useMemo(() => passesPorJogador(entries), [entries]);
   const passesEquipa = useMemo(() => passesDaEpoca(entries), [entries]);
+  const passesQ = useMemo(() => passesQPorJogador(entries), [entries]);
+  const passesQEquipa = useMemo(() => passesQDaEpoca(entries), [entries]);
   const bp = useMemo(() => bolasParadas(entries), [entries]);
   const extras = useMemo(() => extrasDaEquipa(entries), [entries]);
   const defesas = useMemo(() => defesasPorJogador(entries), [entries]);
@@ -263,6 +270,34 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
               texto: t('registos.epoca.perdasDetalhe', { n: j.passes, porJogo: j.porJogo.toFixed(1) }),
             }))}
           />
+        </Bloco>
+      ) : null}
+
+      {tipos.has(REGISTO.PASSE) ? (
+        <Bloco titulo={t('registos.total.passe')}>
+          <div className="grid grid--stats">
+            <StatCard
+              label={t('registos.epoca.passeQPorJogo')}
+              value={passesQEquipa.porJogo.toFixed(1)}
+              hint={t('painelv.emJogos', { n: passesQEquipa.jogos })}
+            />
+            {Object.keys(COR_PASSE).map((o) => (
+              <StatCard
+                key={o}
+                label={t(`registos.resultadoPasse.${o}`)}
+                value={passesQEquipa[o]}
+                hint={pctDe(passesQEquipa[o], passesQEquipa.total)}
+              />
+            ))}
+          </div>
+          <BarrasH
+            linhas={passesQ.map((j) => ({
+              rotulo: `${j.number ?? ''} ${j.name}`,
+              valor: j.PERIGOSO + j.GRANDE_OPORTUNIDADE,
+              texto: t('registos.ext.passeDetalhe', { e: j.ERRADO, p: j.PERIGOSO, go: j.GRANDE_OPORTUNIDADE }),
+            }))}
+          />
+          <p className="muted small">{t('registos.epoca.passeQNota')}</p>
         </Bloco>
       ) : null}
 

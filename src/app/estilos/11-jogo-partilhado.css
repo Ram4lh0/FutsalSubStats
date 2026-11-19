@@ -131,6 +131,7 @@
 .regpasso--recup { --cor: #f9a8d4; }
 .regpasso--perda { --cor: #fdba74; }
 .regpasso--passe, .regpasso--defesa { --cor: #fde047; }
+.regpasso--passeq { --cor: #38bdf8; }
 .regpasso--lanc { --cor: #67e8f9; }
 .regpasso--positiva { --cor: #4ade80; }
 .regpasso--negativa { --cor: #f87171; }

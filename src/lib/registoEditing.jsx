@@ -24,6 +24,7 @@ import {
   COR_PENALTI_ADV,
   COR_RESULTADO,
   COR_PRESSAO,
+  COR_PASSE,
   COR_RESULTADO_ADV,
   RESULTADO_REMATE,
   corDoRegisto,
@@ -55,6 +56,7 @@ function coresDe(registo, equipa) {
   if (registo === 'livre_10m') return equipa === 'THEM' ? COR_PENALTI_ADV : COR_PENALTI;
   if (registo === 'duelo_def' || registo === 'duelo') return COR_DUELO;
   if (registo === 'pressao_alta') return COR_PRESSAO;
+  if (registo === 'passe') return COR_PASSE;
   if (registo === 'bola_parada') return COR_BOLA_PARADA;
   return CATALOGO[registo]?.soAdversario ? COR_RESULTADO_ADV : COR_RESULTADO;
 }

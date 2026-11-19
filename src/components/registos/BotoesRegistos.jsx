@@ -38,9 +38,15 @@ export function temBotoesNoCartao(ligados, pos) {
     ligados.has(REGISTO.OPORTUNIDADE_CRIADA) ||
     ligados.has(REGISTO.OPORTUNIDADE_FALHADA) ||
     passeNoCartao(ligados) ||
+    passeQNoCartao(ligados) ||
     ligados.has(REGISTO.ACAO) ||
     (pos === 'GOALKEEPER' && (ligados.has(REGISTO.DEFESA_GR) || ligados.has(REGISTO.LANCAMENTO_GR)))
   );
+}
+
+/** O passe (errado / perigoso / grande oportunidade) tem botão no cartão? */
+function passeQNoCartao(ligados) {
+  return ligados.has(REGISTO.PASSE) && ligados.opcoes?.passe?.cartao !== false;
 }
 
 /** O passe falhado tem botão no cartão? (O escalão pode querê-lo só na barra.) */
@@ -138,6 +144,9 @@ export default function BotoesRegistos({ pos, p, ligados, contagem, on, golo }) 
             c.oportunidade_falhada,
             () => on.registarOportunidade(REGISTO.OPORTUNIDADE_FALHADA, p)
           )
+        : null}
+      {passeQNoCartao(ligados)
+        ? botao('passeq', t('registos.btn.passe'), t('registos.nome.passe'), c.passe, () => on.registarPasseQ(p))
         : null}
       {passeNoCartao(ligados)
         ? botao('passe', t('registos.btn.passe_falhado'), t('registos.nome.passe_falhado'), c.passe_falhado, () =>

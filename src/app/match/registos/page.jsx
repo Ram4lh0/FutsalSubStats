@@ -564,6 +564,9 @@ function Registos() {
       reg('op-falhada', t('registos.nome.oportunidade_falhada'), c.oportunidade_falhada,
         () => on.registarOportunidade(REGISTO.OPORTUNIDADE_FALHADA, p), dele(REGISTO.OPORTUNIDADE_FALHADA));
     }
+    if (ligados.has(REGISTO.PASSE)) {
+      reg('passeq', t('registos.nome.passe'), c.passe, () => on.registarPasseQ(p), dele(REGISTO.PASSE));
+    }
     if (ligados.has(REGISTO.PASSE_FALHADO)) {
       reg('passe', t('registos.nome.passe_falhado'), c.passe_falhado, () => on.registarPasse(p), dele(REGISTO.PASSE_FALHADO));
     }

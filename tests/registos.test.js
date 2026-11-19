@@ -71,7 +71,7 @@ function desfazer(ctx, alvo, now) {
 /* ------------------------------------------------------------- catálogo */
 
 test('catálogo: os registos pela ordem certa (fase 1 e remates do adversário)', () => {
-  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'lancamento_gr', 'duelo_def', 'pressao_alta', 'bola_parada', 'duelo', 'oportunidade_criada', 'oportunidade_falhada', 'livre_10m']);
+  assert.deepEqual(REGISTOS, ['remate', 'defesa_gr', 'recuperacao', 'fora', 'canto', 'acao', 'remate_adv', 'perda_bola', 'remate_adv_simples', 'passe_falhado', 'penalti', 'penalti_adv', 'lancamento_baliza', 'lancamento_gr', 'duelo_def', 'pressao_alta', 'bola_parada', 'duelo', 'oportunidade_criada', 'oportunidade_falhada', 'passe', 'livre_10m']);
   assert.equal(CATALOGO.fora.por, 'equipa');
   assert.equal(CATALOGO.canto.ponto, false);
 });
@@ -696,8 +696,8 @@ test('cada registo tem nome e resultados nas três línguas', async () => {
 test('contagem por jogador para os números dos botões do cartão', async () => {
   const { contagemPorJogador } = await import('../src/domain/registos.js');
   const c = contagemPorJogador(estado(jogoComRegistos()));
-  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, duelo_def: 0, positivas: 0, negativas: 0, duelosGanhos: 0, duelosPerdidos: 0, oportunidade_criada: 0, oportunidade_falhada: 0 });
-  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, duelo_def: 0, positivas: 2, negativas: 1, duelosGanhos: 0, duelosPerdidos: 0, oportunidade_criada: 0, oportunidade_falhada: 0 });
+  assert.deepEqual(c.get('p5'), { remate: 2, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, duelo_def: 0, positivas: 0, negativas: 0, duelosGanhos: 0, duelosPerdidos: 0, oportunidade_criada: 0, oportunidade_falhada: 0, passe: 0 });
+  assert.deepEqual(c.get('p4'), { remate: 0, recuperacao: 0, defesa_gr: 0, lancamento_gr: 0, perda_bola: 0, passe_falhado: 0, duelo_def: 0, positivas: 2, negativas: 1, duelosGanhos: 0, duelosPerdidos: 0, oportunidade_criada: 0, oportunidade_falhada: 0, passe: 0 });
   assert.equal(c.get('p1').defesa_gr, 1);
   assert.equal(c.has('p7'), false);
 });
@@ -864,9 +864,9 @@ test('os registos novos têm etiqueta com resultado (e tipo) nas três línguas'
   const { definirIdioma } = await import('../src/lib/i18n/index.js');
   const jogadores = { p7: { number: 7, name: 'Zé' } };
   const esperado = {
-    pt: ['Duelo 1x1 defensivo · #7 · Ganhou', 'Pressão alta · Recuperou a bola', 'Bola parada ofensiva · Canto · #7 · Golo'],
-    en: ['Defensive 1v1 duel · #7 · Won', 'High press · Won the ball', 'Attacking set piece · Corner · #7 · Goal'],
-    es: ['Duelo 1x1 defensivo · #7 · Ganado', 'Presión alta · Recuperó el balón', 'Balón parado ofensivo · Córner · #7 · Gol'],
+    pt: ['Duelo 1x1 defensivo · #7 · Ganhou', 'Pressão alta · + Roubou a bola ou forçou erro', 'Bola parada ofensiva · Canto · #7 · Golo'],
+    en: ['Defensive 1v1 duel · #7 · Won', 'High press · + Won the ball or forced an error', 'Attacking set piece · Corner · #7 · Goal'],
+    es: ['Duelo 1x1 defensivo · #7 · Ganado', 'Presión alta · + Robó el balón o forzó error', 'Balón parado ofensivo · Córner · #7 · Gol'],
   };
   try {
     for (const [lingua, [duelo, pressao, bp]] of Object.entries(esperado)) {
@@ -881,4 +881,44 @@ test('os registos novos têm etiqueta com resultado (e tipo) nas três línguas'
   } finally {
     definirIdioma('pt');
   }
+});
+
+/* ---------------------------------- passes com resultado (19/11/2026, ORDEM) */
+
+test('passe: do jogador, errado / perigoso / grande oportunidade, no cartão, no resumo e na época', async () => {
+  const { passesQPorJogador, passesQDaEpoca, extrasDoAtleta, extrasDaEquipa } = await import('../src/domain/dashboard.js');
+  const { registoLabel } = await import('../src/lib/format.js');
+  const { passesEPGO } = await import('../src/domain/registos.js');
+  const ctx = novoJogo();
+  gravar(ctx, (s) => A.startFirstHalf(s, T0), T0);
+  const r = (dados, m) => gravar(ctx, (s) => registar(s, dados, T0 + m * MIN), T0 + m * MIN);
+  const ev = r({ registo: 'passe', playerId: 'p2', resultado: 'PERIGOSO' }, 1);
+  assert.equal(ev.metadata.equipa, 'US');
+  assert.equal(ev.metadata.x, undefined, 'sem ponto no campo');
+  r({ registo: 'passe', playerId: 'p2', resultado: 'GRANDE_OPORTUNIDADE' }, 2);
+  r({ registo: 'passe', playerId: 'p2', resultado: 'ERRADO' }, 3);
+  r({ registo: 'passe', playerId: 'p3', resultado: 'ERRADO' }, 4);
+  assert.throws(() => registar(estado(ctx), { registo: 'passe', resultado: 'ERRADO' }), /jogador/);
+  assert.throws(() => registar(estado(ctx), { registo: 'passe', playerId: 'p2', resultado: 'GANHO' }), /Resultado/);
+  const st = { ...estado(ctx), status: 'FINISHED' };
+  const res = resumoRegistos(st, T0 + 5 * MIN);
+  assert.deepEqual(res.passe, { total: 4, ERRADO: 2, PERIGOSO: 1, GRANDE_OPORTUNIDADE: 1 });
+  const p2 = res.jogadores.find((j) => j.playerId === 'p2');
+  assert.equal(p2.passesT, 3);
+  assert.equal(passesEPGO(p2), '1/1/1');
+  assert.equal(contagemPorJogadorDe(st).get('p2').passe, 3);
+  assert.equal(
+    registoLabel({ registo: 'passe', playerId: 'p7', resultado: 'GRANDE_OPORTUNIDADE' }, { p7: { number: 7, name: 'Zé' } }),
+    'Passe · #7 · Grande oportunidade'
+  );
+  const entries = [{ match: { id: 'm1', scheduledAt: 1 }, state: st }];
+  assert.deepEqual(
+    passesQPorJogador(entries).map((j) => [j.playerId, j.ERRADO, j.PERIGOSO, j.GRANDE_OPORTUNIDADE]),
+    [['p2', 1, 1, 1], ['p3', 1, 0, 0]]
+  );
+  assert.deepEqual(passesQDaEpoca(entries), { jogos: 1, total: 4, ERRADO: 2, PERIGOSO: 1, GRANDE_OPORTUNIDADE: 1, porJogo: 4 });
+  const atleta = extrasDoAtleta(entries, 'p2');
+  assert.equal(atleta.por.passe.n, 3);
+  assert.deepEqual(atleta.passeQ, { ERRADO: 1, PERIGOSO: 1, GRANDE_OPORTUNIDADE: 1 });
+  assert.equal(extrasDaEquipa(entries).por.passe.res.ERRADO, 2);
 });

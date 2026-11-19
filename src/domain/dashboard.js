@@ -23,6 +23,7 @@ import {
   REGISTO,
   RESULTADO_DUELO,
   RESULTADO_PRESSAO,
+  RESULTADO_PASSE,
   RESULTADO_REMATE,
   paraMarcadores,
   recuperacoesPor10,
@@ -910,6 +911,50 @@ export function passesDaEpoca(entries) {
 }
 
 /**
+ * Passes (registo `passe`) por jogador na época: quantos de cada resultado
+ * (errado, perigoso, grande oportunidade). Ordenado pelos perigosos +
+ * grandes oportunidades.
+ */
+export function passesQPorJogador(entries) {
+  const porJogador = new Map();
+  for (const e of terminados(entries)) {
+    for (const r of registosDoJogo(e.state)) {
+      if (r.registo !== REGISTO.PASSE || !r.playerId) continue;
+      const p = e.state.players?.[r.playerId];
+      if (!porJogador.has(r.playerId)) {
+        porJogador.set(r.playerId, {
+          playerId: r.playerId,
+          number: p?.number,
+          name: p?.name || '',
+          total: 0,
+          ...Object.fromEntries(Object.values(RESULTADO_PASSE).map((o) => [o, 0])),
+        });
+      }
+      const j = porJogador.get(r.playerId);
+      j.total += 1;
+      if (r.resultado in j) j[r.resultado] += 1;
+    }
+  }
+  const bons = (j) => j.PERIGOSO + j.GRANDE_OPORTUNIDADE;
+  return [...porJogador.values()].sort(
+    (a, b) => bons(b) - bons(a) || a.ERRADO - b.ERRADO || (a.number ?? 0) - (b.number ?? 0)
+  );
+}
+
+/** Os passes (registo `passe`) da equipa na época: por resultado e por jogo. */
+export function passesQDaEpoca(entries) {
+  const out = { jogos: 0, total: 0, ...Object.fromEntries(Object.values(RESULTADO_PASSE).map((o) => [o, 0])) };
+  for (const e of terminados(entries)) {
+    const lista = registosDoJogo(e.state).filter((r) => r.registo === REGISTO.PASSE);
+    if (!lista.length) continue;
+    out.jogos += 1;
+    out.total += lista.length;
+    for (const r of lista) if (r.resultado in out) out[r.resultado] += 1;
+  }
+  return { ...out, porJogo: out.jogos ? out.total / out.jogos : 0 };
+}
+
+/**
  * Duelos 1x1 defensivos por jogador na época: quantos, quantos ganhou e a
  * percentagem. Ordenado pelos ganhos.
  */
@@ -1067,6 +1112,7 @@ const REGISTOS_DO_ATLETA = [
   REGISTO.LANCAMENTO_GR,
   REGISTO.PERDA_BOLA,
   REGISTO.PASSE_FALHADO,
+  REGISTO.PASSE,
   REGISTO.DUELO_DEF,
   REGISTO.DUELO,
   REGISTO.OPORTUNIDADE_CRIADA,
@@ -1092,6 +1138,7 @@ export function extrasDoAtleta(entries, playerId) {
   const penaltis = { golos: 0 };
   const duelos = { ganhos: 0 };
   const duelosG = { ganhos: 0 };
+  const passeQ = Object.fromEntries(Object.values(RESULTADO_PASSE).map((o) => [o, 0]));
 
   for (const e of terminados(entries)) {
     const s = statsDoJogador(e.state, playerId);
@@ -1124,6 +1171,8 @@ export function extrasDoAtleta(entries, playerId) {
         duelos.ganhos += meus.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length;
       } else if (id === REGISTO.DUELO) {
         duelosG.ganhos += meus.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length;
+      } else if (id === REGISTO.PASSE) {
+        for (const r of meus) if (r.resultado in passeQ) passeQ[r.resultado] += 1;
       }
     }
   }
@@ -1144,6 +1193,7 @@ export function extrasDoAtleta(entries, playerId) {
     },
     acoes,
     penaltis,
+    passeQ,
     duelos: {
       ...duelos,
       percentagem: por[REGISTO.DUELO_DEF].n ? Math.round((duelos.ganhos / por[REGISTO.DUELO_DEF].n) * 100) : null,

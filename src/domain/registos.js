@@ -75,6 +75,9 @@ export const REGISTO = {
   DUELO: 'duelo',
   OPORTUNIDADE_CRIADA: 'oportunidade_criada',
   OPORTUNIDADE_FALHADA: 'oportunidade_falhada',
+  // Pedido a 19/11/2026 (ORDEM, Iniciados): os passes de cada jogador, com
+  // o que valeram — errado, perigoso ou grande oportunidade.
+  PASSE: 'passe',
   // O livre de 10 metros, da 6.ª falta da parte em diante. É de TODOS os
   // escalões: não se liga no painel, grava-se sempre que o treinador diz se
   // foi golo. `equipa` é quem bate o livre.
@@ -104,7 +107,12 @@ export const RESULTADO_10M = { GOLO: 'GOLO', FALHADO: 'FALHADO' };
 /** Duelo 1x1 defensivo: o defensor ganhou-o ou perdeu-o. */
 export const RESULTADO_DUELO = { GANHO: 'GANHO', PERDIDO: 'PERDIDO' };
 
-/** Pressão alta: a equipa recuperou a bola com a pressão, ou não. */
+/**
+ * Pressão alta: a equipa recuperou a bola com a pressão, ou não. Desde
+ * 19/11/2026 (pedido do ORDEM) mostra-se como "+" (roubou a bola ou forçou
+ * erro direto no meio-campo adversário) e "−" (pressão mal executada): o
+ * significado é o mesmo, só mudou o texto.
+ */
 export const RESULTADO_PRESSAO = { RECUPERADA: 'RECUPERADA', NAO_RECUPERADA: 'NAO_RECUPERADA' };
 
 /**
@@ -115,6 +123,13 @@ export const RESULTADO_BOLA_PARADA = {
   GOLO: 'GOLO',
   FINALIZACAO: 'FINALIZACAO',
   SEM_FINALIZACAO: 'SEM_FINALIZACAO',
+};
+
+/** Passe: o que valeu. */
+export const RESULTADO_PASSE = {
+  ERRADO: 'ERRADO',
+  PERIGOSO: 'PERIGOSO',
+  GRANDE_OPORTUNIDADE: 'GRANDE_OPORTUNIDADE',
 };
 
 /** De que bola parada se trata. `LATERAL` é o pontapé de linha lateral. */
@@ -313,6 +328,15 @@ export const CATALOGO = {
     resultados: null,
     disponivel: true,
   },
+  // Passe: o botão no cartão (ou na barra, que pergunta quem) e depois o
+  // que valeu.
+  [REGISTO.PASSE]: {
+    por: 'jogador',
+    ponto: false,
+    resultados: Object.values(RESULTADO_PASSE),
+    opcoes: ['cartao', 'barra'],
+    disponivel: true,
+  },
   // `sempre`: não vai ao painel nem precisa de estar ligado. `jogadorOpcional`:
   // num livre nosso guarda-se quem bateu, se o treinador o disser.
   [REGISTO.LIVRE_10M]: {
@@ -372,7 +396,8 @@ export const COR_PENALTI_ADV = { ...COR_PENALTI, GOLO: '#f43f5e' };
 
 /** Os botões dos resultados dos registos de 17/11/2026. */
 export const COR_DUELO = { GANHO: '#22c55e', PERDIDO: '#f43f5e' };
-export const COR_PRESSAO = { RECUPERADA: '#22c55e', NAO_RECUPERADA: '#94a3b8' };
+export const COR_PRESSAO = { RECUPERADA: '#22c55e', NAO_RECUPERADA: '#f43f5e' };
+export const COR_PASSE = { ERRADO: '#f43f5e', PERIGOSO: '#f59e0b', GRANDE_OPORTUNIDADE: '#22c55e' };
 export const COR_BOLA_PARADA = { GOLO: '#22c55e', FINALIZACAO: '#38bdf8', SEM_FINALIZACAO: '#94a3b8' };
 
 export const COR_REGISTO = {
@@ -765,6 +790,11 @@ export function resumoRegistos(state, now = Date.now()) {
   const pressoes = de(REGISTO.PRESSAO_ALTA);
   const bolasParadas = de(REGISTO.BOLA_PARADA);
   const duelosG = de(REGISTO.DUELO);
+  const passesQ = de(REGISTO.PASSE);
+  const porPasse = (l) =>
+    Object.fromEntries(
+      Object.values(RESULTADO_PASSE).map((o) => [o, l.filter((r) => r.resultado === o).length])
+    );
 
   const tempos = new Map(matchStatsTable(state, now).map((r) => [r.playerId, r.courtMs]));
   const jogadores = Object.values(state.players || {})
@@ -778,6 +808,7 @@ export function resumoRegistos(state, now = Date.now()) {
       const lancamentosGR = meus.filter((r) => r.registo === REGISTO.LANCAMENTO_GR).length;
       const meusDuelos = meus.filter((r) => r.registo === REGISTO.DUELO_DEF);
       const meusDuelosG = meus.filter((r) => r.registo === REGISTO.DUELO);
+      const meusPasses = meus.filter((r) => r.registo === REGISTO.PASSE);
       const minhasOp = (id) => meus.filter((r) => r.registo === id && r.equipa === 'US').length;
       return {
         playerId: p.playerId,
@@ -800,6 +831,9 @@ export function resumoRegistos(state, now = Date.now()) {
         // Os duelos gerais (registo `duelo`), à parte dos 1x1 defensivos.
         duelosG: meusDuelosG.length,
         duelosGGanhos: meusDuelosG.filter((r) => r.resultado === RESULTADO_DUELO.GANHO).length,
+        // Os passes (registo `passe`), por resultado.
+        passesT: meusPasses.length,
+        passe: porPasse(meusPasses),
         opCriadas: minhasOp(REGISTO.OPORTUNIDADE_CRIADA),
         opFalhadas: minhasOp(REGISTO.OPORTUNIDADE_FALHADA),
         positivas: meus.filter(
@@ -821,6 +855,7 @@ export function resumoRegistos(state, now = Date.now()) {
         j.passes ||
         j.duelos ||
         j.duelosG ||
+        j.passesT ||
         j.opCriadas ||
         j.opFalhadas ||
         j.positivas ||
@@ -872,6 +907,7 @@ export function resumoRegistos(state, now = Date.now()) {
     },
     opCriadas: porEquipa(REGISTO.OPORTUNIDADE_CRIADA),
     opFalhadas: porEquipa(REGISTO.OPORTUNIDADE_FALHADA),
+    passe: { total: passesQ.length, ...porPasse(passesQ) },
     pressao: {
       total: pressoes.length,
       recuperadas: pressoes.filter((r) => r.resultado === RESULTADO_PRESSAO.RECUPERADA).length,
@@ -889,7 +925,7 @@ export function resumoRegistos(state, now = Date.now()) {
  * Quantos de cada registo tem cada jogador, para os números nos botões do
  * cartão: Map playerId → { remate, recuperacao, defesa_gr, lancamento_gr, perda_bola,
  * passe_falhado, duelo_def, positivas, negativas, duelosGanhos, duelosPerdidos,
- * oportunidade_criada, oportunidade_falhada }.
+ * oportunidade_criada, oportunidade_falhada, passe }.
  */
 export function contagemPorJogador(state) {
   const out = new Map();
@@ -910,6 +946,7 @@ export function contagemPorJogador(state) {
         duelosPerdidos: 0,
         oportunidade_criada: 0,
         oportunidade_falhada: 0,
+        passe: 0,
       });
     }
     const c = out.get(r.playerId);
@@ -946,6 +983,12 @@ export function resumoBolasParadas(lista) {
       Object.values(TIPO_BOLA_PARADA).map((tp) => [tp, conta(bps.filter((r) => r.tipo === tp))])
     ),
   };
+}
+
+/** Os passes de um jogador em "errados/perigosos/grandes oport." ("2/3/1"), ou "–". */
+export function passesEPGO(j) {
+  if (!j?.passesT) return '–';
+  return `${j.passe.ERRADO}/${j.passe.PERIGOSO}/${j.passe.GRANDE_OPORTUNIDADE}`;
 }
 
 /** "x/y (z%)": quantos de quantos, com a percentagem. `null` sem nenhum. */

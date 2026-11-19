@@ -12,7 +12,15 @@ import { golosPorFaixa } from '../../domain/dashboard.js';
 import { amarelosAdversario, faltasPorJogador, golosPorTipoNoJogo, mediaEmCampo } from '../../domain/intervalo.js';
 import { foulsInPeriod, foulsTotal } from '../../domain/reducer.js';
 import { matchResult, matchStatsTable, powerPlayTotals } from '../../domain/stats.js';
-import { REGISTO, RESULTADO_REMATE, deQuantos, marcadores, resumoRegistos, temRegistos } from '../../domain/registos.js';
+import {
+  REGISTO,
+  RESULTADO_REMATE,
+  deQuantos,
+  marcadores,
+  passesEPGO,
+  resumoRegistos,
+  temRegistos,
+} from '../../domain/registos.js';
 import { clubShort, dateLabel, homeAwayLabel, opponentShort, statusLabel, sufixoDesempate, parteCurtaLabel, parteLabel, positionShort } from '../format.js';
 import { resumoPenaltis } from '../../domain/prolongamento.js';
 import { titularesPorParte } from '../../domain/titulares.js';
@@ -365,6 +373,17 @@ function registosDoJogo(r, state, match, nos) {
   }
   if (tem(REGISTO.PERDA_BOLA)) cartoes.push({ rotulo: t('registos.total.perda_bola'), valor: reg.perdas });
   if (tem(REGISTO.PASSE_FALHADO)) cartoes.push({ rotulo: t('registos.total.passe_falhado'), valor: reg.passes });
+  if (tem(REGISTO.PASSE)) {
+    cartoes.push({
+      rotulo: t('registos.total.passe'),
+      valor: reg.passe.total,
+      detalhe: t('registos.ext.passeDetalhe', {
+        e: reg.passe.ERRADO,
+        p: reg.passe.PERIGOSO,
+        go: reg.passe.GRANDE_OPORTUNIDADE,
+      }),
+    });
+  }
   if (tem(REGISTO.DUELO_DEF)) {
     cartoes.push({
       rotulo: t('registos.total.duelo_def'),
@@ -538,6 +557,7 @@ function registosDoJogo(r, state, match, nos) {
     col(t('registos.col.passes'), (j) => j.passes || '–');
     por10((j) => um(j.passes10));
   }
+  if (tem(REGISTO.PASSE)) col(t('registos.col.passe'), (j) => passesEPGO(j));
   if (tem(REGISTO.DUELO_DEF)) col(t('registos.col.duelos'), (j) => deQuantos(j.duelosGanhos, j.duelos) || '–');
   if (tem(REGISTO.DUELO)) col(t('registos.col.duelosG'), (j) => deQuantos(j.duelosGGanhos, j.duelosG) || '–');
   if (tem(REGISTO.OPORTUNIDADE_CRIADA)) col(t('registos.col.opCriadas'), (j) => j.opCriadas || '–');
