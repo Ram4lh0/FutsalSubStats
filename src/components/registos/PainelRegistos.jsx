@@ -30,24 +30,27 @@ const NO_MAPA = [REGISTO.REMATE, REGISTO.REMATE_ADV, REGISTO.RECUPERACAO, REGIST
 
 export default function PainelRegistos({ state, ourName, opponentName, now }) {
   const r = resumoRegistos(state, now);
-  // Só os registos com pontos no campo: sem zona (opção do escalão) não há mapa.
-  const filtros = NO_MAPA.filter((id) => r.tipos.has(id) && marcadores(state, { registos: [id] }).length);
   const [escolhido, setFiltro] = useState(null);
   const [jogador, setJogador] = useState(null);
+  const calorNos = marcadores(state, { registos: [REGISTO.REMATE] });
+  const calorEles = marcadores(state, { registos: [REGISTO.REMATE_ADV] });
+  // Os remates (nossos e deles) já têm o "Mapa dos remates" por baixo, com a
+  // legenda que filtra: no campo de cima repetiam-se. Só voltam a ele com um
+  // jogador escolhido na tabela, que o mapa dos remates não filtra.
+  const noCalor = (id) =>
+    !jogador &&
+    ((id === REGISTO.REMATE && calorNos.length > 0) || (id === REGISTO.REMATE_ADV && calorEles.length > 0));
+  // Só os registos com pontos no campo: sem zona (opção do escalão) não há mapa.
+  const filtros = NO_MAPA.filter(
+    (id) => r.tipos.has(id) && !noCalor(id) && marcadores(state, { registos: [id] }).length
+  );
   const filtro = filtros.includes(escolhido) ? escolhido : filtros[0] || null;
 
   if (!r.total) return <p className="muted">{t('registos.nadaApontado')}</p>;
 
   const tem = (id) => r.tipos.has(id);
-  const calorNos = marcadores(state, { registos: [REGISTO.REMATE] });
-  const calorEles = marcadores(state, { registos: [REGISTO.REMATE_ADV] });
-  // Só remates: o mapa dos remates (com legenda que filtra) já os mostra, e o
-  // campo de cima ficava repetido, com um único botão "Remates".
-  const soRemates =
-    filtros.length > 0 &&
-    filtros.every((f) => f === REGISTO.REMATE || f === REGISTO.REMATE_ADV) &&
-    (calorNos.length > 0 || calorEles.length > 0) &&
-    !jogador;
+  // A legenda dos resultados dos remates também já vem no mapa dos remates.
+  const soRemates = noCalor(REGISTO.REMATE);
   const marcas = filtro
     ? marcadores(state, { registos: [filtro] }).filter((m) => !jogador || m.playerId === jogador)
     : [];
@@ -198,7 +201,7 @@ export default function PainelRegistos({ state, ourName, opponentName, now }) {
         </div>
       ) : null}
 
-      {filtros.length && !soRemates ? (
+      {filtros.length ? (
         <>
           <div className="regpainel__filtros">
             {filtros.map((f) => (

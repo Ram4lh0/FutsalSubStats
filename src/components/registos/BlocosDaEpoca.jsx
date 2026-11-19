@@ -69,17 +69,21 @@ export default function BlocosDaEpoca({ entries, Bloco }) {
   const pct = (n, total) => (total ? `${Math.round((n / total) * 100)}%` : '—');
   const temBolaParada = REGISTOS_BOLA_PARADA.some((id) => tipos.has(id));
   const golosEm = (x) => t('registos.golosEm', { golos: x.golos, total: x.total });
+  // Mapa de calor: um campo para os nossos remates e outro para os deles.
+  const calorNos = useMemo(() => mapaDaEpoca(entries, REGISTO.REMATE), [entries]);
+  const calorEles = useMemo(() => mapaDaEpoca(entries, REGISTO.REMATE_ADV), [entries]);
   // Só os registos com pontos no campo: sem zona (opção do escalão) não há mapa.
+  // Os remates ficam de fora: já têm o mapa deles, e aqui repetiam-se.
   const filtros = useMemo(
-    () => NO_MAPA.filter((id) => tipos.has(id) && mapaDaEpoca(entries, id).length),
+    () =>
+      NO_MAPA.filter(
+        (id) => id !== REGISTO.REMATE && id !== REGISTO.REMATE_ADV && tipos.has(id) && mapaDaEpoca(entries, id).length
+      ),
     [entries, tipos]
   );
   const [escolhido, setFiltro] = useState(null);
   const filtro = filtros.includes(escolhido) ? escolhido : filtros[0] || null;
   const pontos = useMemo(() => (filtro ? mapaDaEpoca(entries, filtro) : []), [entries, filtro]);
-  // Mapa de calor: um campo para os nossos remates e outro para os deles.
-  const calorNos = useMemo(() => mapaDaEpoca(entries, REGISTO.REMATE), [entries]);
-  const calorEles = useMemo(() => mapaDaEpoca(entries, REGISTO.REMATE_ADV), [entries]);
 
   if (!tipos.size) return null;
 
