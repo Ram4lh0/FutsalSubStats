@@ -464,10 +464,8 @@ function CourtCard({ pos, p, state, sel, clockMs, on, arrasto, ligados = SEM_REG
       </div>
       <div className="pcard__name">{p.name}</div>
       <div className="pcard__times">
-        <span className="pcard__t pcard__t--jogo">{t('vivo.tempoDeJogo', { tempo: fmt(s.courtMs) })}</span>
-        <span className="pcard__t pcard__t--hi">
-          {t('vivo.emJogoHa', { tempo: fmt(s.currentStintMs ?? 0) })}
-        </span>
+        <TempoCartao chave="vivo.tempoDeJogo" ms={s.courtMs} classe="pcard__t--jogo" />
+        <TempoCartao chave="vivo.emJogoHa" ms={s.currentStintMs ?? 0} classe="pcard__t--hi" />
       </div>
       {temBotoesNoCartao(ligados, pos) ? (
         <BotoesRegistos
@@ -483,6 +481,23 @@ function CourtCard({ pos, p, state, sel, clockMs, on, arrasto, ligados = SEM_REG
       )}
       {selecionado ? <span className="pcard__flag">{t('vivo.aSair')}</span> : null}
     </button>
+  );
+}
+
+/**
+ * Um tempo do cartão de campo ("Tempo de jogo 12:34", "Em jogo há 03:10")
+ * com o número à parte do rótulo, para o tablet o poder mostrar grande sem
+ * o rótulo crescer com ele. No telemóvel lê-se igual a antes.
+ */
+function TempoCartao({ chave, ms, classe }) {
+  const MARCA = '';
+  const [antes, depois = ''] = t(chave, { tempo: MARCA }).split(MARCA);
+  return (
+    <span className={`pcard__t ${classe}`}>
+      {antes.trim() ? <span className="pcard__tl">{antes.trim()}</span> : null}
+      <span className="pcard__tv">{fmt(ms)}</span>
+      {depois.trim() ? <span className="pcard__tl pcard__tl--depois">{depois.trim()}</span> : null}
+    </span>
   );
 }
 

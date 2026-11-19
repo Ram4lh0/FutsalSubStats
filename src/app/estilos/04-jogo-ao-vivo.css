@@ -419,6 +419,10 @@
 .pcard__times { display: flex; flex-direction: column; gap: 1px; }
 .pcard__t { font-size: 0.74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .pcard__t--hi { color: var(--primary); font-weight: 700; }
+/* O número de um tempo (TempoCartao): no telemóvel igual ao texto à volta. */
+.pcard__tv { margin-left: 0.25em; }
+.pcard__tl--depois { margin-left: 0.25em; }
+.pcard__tv:first-child { margin-left: 0; }
 .pcard__empty { font-size: 0.8rem; }
 .pcard__flag { position: absolute; top: -10px; left: 10px; background: var(--warn); color: #201400; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.06em; padding: 2px 8px; border-radius: 999px; }
 .pcard__flag--in { background: var(--info); color: #04202c; }
@@ -972,4 +976,26 @@
   .live__palco .court:has(.pcard__registos) .pcard--court.slot--goalkeeper { grid-area: gr; }
   /* Com a grelha o "tempo de jogo" volta a caber no cartão. */
   .live__palco .court:has(.pcard__registos) .pcard__times .pcard__t:first-child { display: inline; }
+}
+
+/* Tempos maiores nos cartões de campo (tablet e PC), pedido de 19/11/2026:
+   lêem-se de pé, a um passo do tablet. O "em jogo há" é o que decide a troca,
+   por isso é o maior. Ao alto o "tempo de jogo" volta a aparecer (há espaço). */
+@media (min-width: 721px) and (min-height: 600px) {
+  .live .court .pcard__t { font-size: 0.85rem; white-space: nowrap; }
+  .live .court .pcard__tv { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .live .court .pcard__t--hi .pcard__tv { font-size: 1.4rem; }
+  .live .court .pcard__times .pcard__t:first-child { display: inline; }
+}
+/* Cartões estreitos (tablet deitado com os painéis): rótulo pequeno e número
+   grande na mesma linha, para o cartão não crescer e os alas não se tocarem. */
+@media (min-width: 721px) and (max-width: 1279px) and (min-height: 600px) {
+  .live .court .pcard__t { font-size: 0.7rem; }
+  .live .court .pcard__tv { font-size: 1rem; }
+  .live .court .pcard__t--hi .pcard__tv { font-size: 1.2rem; }
+  /* Os dois alas partilham a mesma coluna: cada píxel de altura conta. */
+  .live .court .pcard--court { gap: 1px; }
+  .live .court .pcard__registos { row-gap: 2px; }
+  .live .court .pcard--court.slot--left_winger { top: 5px; }
+  .live .court .pcard--court.slot--right_winger { bottom: 5px; }
 }
