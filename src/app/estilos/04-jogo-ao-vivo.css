@@ -836,11 +836,12 @@
 .reglat .regbar__menos, .reglat .regbar__mais { width: 38px; }
 .reglat__stats { margin-top: 2px; }
 
-@media (min-width: 1100px) and (orientation: landscape) {
+@media (min-width: 1001px) and (orientation: landscape) {
   .live__regtopo { display: none; }
   .live__palco--laterais {
     display: grid;
-    grid-template-columns: minmax(140px, 180px) minmax(0, 1fr) minmax(140px, 180px);
+    /* Num tablet deitado (1024px) os painéis encolhem para o campo caber. */
+    grid-template-columns: minmax(118px, 180px) minmax(0, 1fr) minmax(118px, 180px);
     column-gap: 10px;
     row-gap: 8px;
     align-items: start;
@@ -848,6 +849,14 @@
   .live__palco--laterais .reglat { display: flex; }
   .live__palco--laterais > .court { max-width: none; }
   .live__palco--laterais > .bench { grid-column: 1 / -1; }
+}
+/* Tablet deitado: painéis estreitos e fixos (uma coluna minmax cresceria até
+   ao máximo antes de o campo receber o resto, e os cartões encavalitavam-se). */
+@media (min-width: 1001px) and (max-width: 1279px) and (orientation: landscape) {
+  .live__palco--laterais { grid-template-columns: 120px minmax(0, 1fr) 120px; column-gap: 8px; }
+  .live__palco--laterais .reglat { padding: 8px; }
+  .live__palco--laterais .reglat .regbar__menos,
+  .live__palco--laterais .reglat .regbar__mais { width: 30px; }
 }
 
 @media (min-width: 1001px) {
@@ -881,4 +890,12 @@
   }
   .pcard__banco-nunca { font-size: 0.72rem; font-weight: 700; color: var(--primary); padding: 6px 0 4px; }
   .pcard__banco-jogo { font-size: 0.74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+}
+
+/* Tablet deitado de 1024px: o cabeçalho de quatro colunas não cabia e o
+   "Parar tempo" ficava por cima dos cartões do adversário. Os dois botões
+   empilham-se, mais baixos. */
+@media (min-width: 1001px) and (max-width: 1140px) {
+  .live__head > .live__controls { flex-direction: column; flex-wrap: nowrap; gap: 6px; align-items: stretch; }
+  .live__head > .live__controls .btn--big { min-height: 44px; font-size: 0.92rem; padding: 0 14px; }
 }

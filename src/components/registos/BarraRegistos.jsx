@@ -173,7 +173,7 @@ export function RegistoNoCard({ unico, nome, on }) {
  * do campo: o nosso à esquerda e o do adversário à direita, como no marcador.
  * Assim o campo sobe e o banco aparece logo, sem deslizar (pedido do António,
  * 19/11/2026). Um registo por linha: o nome e o "− n +". O nosso painel abre
- * as estatísticas do jogo. Abaixo dessa largura fica a barra de cima (o CSS
+ * as estatísticas do jogo. Abaixo de 1001px (ou ao alto) fica a barra de cima (o CSS
  * escolhe: `.live__palco--laterais`).
  */
 export function LateralRegistos({ state, ligados, equipa, nome, on }) {
