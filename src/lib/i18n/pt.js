@@ -3004,4 +3004,8 @@ export default {
   "analise.totalGrupo": "Grupo ({n} jogadores)",
   "analise.semJogadoresGrupo": "Nenhum jogador desta posição jogou nestes jogos.",
   "analise.notaPosicoes": "Posição e pé vêm do plantel. GM/GS: golos da equipa com o jogador em campo. Por 40' = por 40 minutos em campo. A linha do grupo soma os jogadores filtrados.",
+
+  // Jogo ao vivo em ecrã largo: banco compacto (19/11/2026)
+  "vivo.bancoHa": "No banco há",
+  "vivo.jogoTotal": "Jogou {tempo}",
 };

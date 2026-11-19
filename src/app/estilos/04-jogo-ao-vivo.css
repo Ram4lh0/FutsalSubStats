@@ -798,3 +798,87 @@
     min-height: 0; padding-top: 9px; padding-bottom: 9px;
   }
 }
+
+/* ------------------------------------------------------------------------
+ * Jogo ao vivo em ecrã largo (PC, tablet deitado) — 19/11/2026.
+ *
+ *  - Os contadores dos registos de equipa saem da barra de cima e ficam em
+ *    dois painéis ao lado do campo: nós à esquerda, eles à direita, como no
+ *    marcador. O campo sobe e o banco aparece logo.
+ *  - GR e pivô encostados às pontas do campo, e cartões mais largos, para os
+ *    botões dos registos caberem em menos linhas. Os alas prendem-se às
+ *    linhas laterais (em cima e em baixo), para nunca saírem do campo.
+ *  - O banco numa fila de 9–10 cartões estreitos, só com o tempo no banco
+ *    (grande) e o tempo de jogo.
+ * Abaixo destas larguras fica tudo como estava.
+ * --------------------------------------------------------------------- */
+
+/* O bloco compacto do banco só existe em ecrã largo. */
+.pcard__banco { display: none; }
+/* Os painéis laterais também: no telemóvel manda a barra de cima. */
+.reglat { display: none; }
+
+.reglat {
+  flex-direction: column; gap: 8px; align-self: start;
+  padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-2);
+}
+.reglat--eles { border-color: rgba(251, 113, 133, 0.35); }
+.reglat__eq {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 800;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.reglat__eq::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex: none; }
+.reglat__eq--deles::before { background: #fb7185; }
+.reglat__linha { display: grid; gap: 3px; }
+.reglat__rot { font-size: 0.66rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.reglat .regbar__passo { width: 100%; justify-content: space-between; height: 38px; }
+.reglat--eles .regbar__passo { border-color: rgba(251, 113, 133, 0.4); }
+.reglat .regbar__menos, .reglat .regbar__mais { width: 38px; }
+.reglat__stats { margin-top: 2px; }
+
+@media (min-width: 1100px) and (orientation: landscape) {
+  .live__regtopo { display: none; }
+  .live__palco--laterais {
+    display: grid;
+    grid-template-columns: minmax(140px, 180px) minmax(0, 1fr) minmax(140px, 180px);
+    column-gap: 10px;
+    row-gap: 8px;
+    align-items: start;
+  }
+  .live__palco--laterais .reglat { display: flex; }
+  .live__palco--laterais > .court { max-width: none; }
+  .live__palco--laterais > .bench { grid-column: 1 / -1; }
+}
+
+@media (min-width: 1001px) {
+  /* GR e pivô nas pontas, cartões a ~23% do campo (cabem quatro colunas). */
+  .live .court .pcard--court { width: clamp(160px, 23%, 290px); }
+  .live .court .pcard--court.slot--goalkeeper { left: 12.5%; }
+  .live .court .pcard--court.slot--fixo { left: 37%; }
+  .live .court .pcard--court.slot--pivot { left: 87.5%; }
+  /* Os alas presos às linhas laterais: o cartão cresce para dentro do campo. */
+  .live .court .pcard--court.slot--left_winger { left: 62%; top: 10px; transform: translate(-50%, 0); }
+  .live .court .pcard--court.slot--right_winger { left: 62%; top: auto; bottom: 10px; transform: translate(-50%, 0); }
+  /* Com os botões dos registos os cartões são mais altos: o campo dá-lhes
+     espaço para os dois alas sem se tocarem. */
+  .live .court:has(.pcard__registos) { min-height: max(clamp(320px, 54vh, 680px), 470px); }
+
+  /* Banco compacto. */
+  .live .bench__row { grid-template-columns: repeat(var(--bench-cols-largo, 9), minmax(0, 1fr)); gap: 6px; }
+  .live .pcard--bench { padding: 6px 8px; gap: 2px; }
+  .live .pcard--bench .pcard__top { gap: 4px; }
+  .live .pcard--bench .pcard__num { font-size: 1rem; }
+  .live .pcard--bench .pcard__name { font-size: 0.82rem; }
+  .live .pcard--bench .pcard__discipline { width: 24px; height: 24px; border-radius: 7px; }
+  .live .pcard--bench .pcard__discipline .cardchip { width: 7px; height: 12px; }
+  .live .pcard--bench .pcard__more { width: 22px; height: 24px; font-size: 1rem; }
+  .live .pcard--bench:has(.pcard__banco) .pcard__times { display: none; }
+  .live .pcard__banco { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+  .pcard__banco-rot { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .pcard__banco-t {
+    font-size: 1.55rem; font-weight: 800; line-height: 1.05; color: var(--primary);
+    font-variant-numeric: tabular-nums; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  .pcard__banco-nunca { font-size: 0.72rem; font-weight: 700; color: var(--primary); padding: 6px 0 4px; }
+  .pcard__banco-jogo { font-size: 0.74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+}

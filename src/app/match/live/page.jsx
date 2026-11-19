@@ -76,6 +76,7 @@ import BarraRegistos, {
   colunasRegistos,
   registoUnicoPorEquipa,
   RegistoNoCard,
+  LateralRegistos,
 } from '@/components/registos/BarraRegistos.jsx';
 import useAddons from '@/lib/useAddons.js';
 import useEnviarAoVivo from '@/lib/useEnviarAoVivo.js';
@@ -1410,6 +1411,9 @@ function Live() {
   const unico = ligados.size ? registoUnicoPorEquipa(colunasRegistos(state, ligados, on).colunas) : null;
   const regNosso = unico ? <RegistoNoCard unico={unico.US} nome={ourName} on={on} /> : null;
   const regDeles = unico ? <RegistoNoCard unico={unico.THEM} nome={rivalName} on={on} /> : null;
+  // Mais do que um contador de um dos lados: em ecrã largo vão para dois
+  // painéis ao lado do campo (o CSS esconde a barra de cima e mostra-os).
+  const comLaterais = Boolean(ligados.size) && !unico && !soTempos;
 
   return (
     <div className={`live ${soTempos ? 'live--so-tempos' : ''}`}>
@@ -1488,17 +1492,22 @@ function Live() {
       <Penalties state={state} clockMs={clockMs} penaltyMs={penaltyMs()} on={on} />
 
       {ligados.size ? (
-        <BarraRegistos
-          state={state}
-          ligados={ligados}
-          ourName={ourName}
-          opponentName={rivalName}
-          on={on}
-          compacta={!!unico}
-        />
+        <div className={comLaterais ? 'live__regtopo' : undefined}>
+          <BarraRegistos
+            state={state}
+            ligados={ligados}
+            ourName={ourName}
+            opponentName={rivalName}
+            on={on}
+            compacta={!!unico}
+          />
+        </div>
       ) : null}
 
-      <div data-tour="live-court">
+      <div data-tour="live-court" className={`live__palco ${comLaterais ? 'live__palco--laterais' : ''}`}>
+        {comLaterais ? (
+          <LateralRegistos state={state} ligados={ligados} equipa="US" nome={ourName} on={on} />
+        ) : null}
         <Court
           state={state}
           sel={sel}
@@ -1508,6 +1517,9 @@ function Live() {
           arrasto={arrasto}
           ligados={ligados}
         />
+        {comLaterais ? (
+          <LateralRegistos state={state} ligados={ligados} equipa="THEM" nome={rivalName} on={on} />
+        ) : null}
 
         <Bench state={state} sel={sel} clockMs={clockMs} on={on} arrasto={arrasto} />
       </div>

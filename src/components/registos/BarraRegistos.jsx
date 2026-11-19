@@ -168,6 +168,35 @@ export function RegistoNoCard({ unico, nome, on }) {
   );
 }
 
+/**
+ * Em ecrã largo (PC, tablet deitado), a barra parte-se em dois painéis ao lado
+ * do campo: o nosso à esquerda e o do adversário à direita, como no marcador.
+ * Assim o campo sobe e o banco aparece logo, sem deslizar (pedido do António,
+ * 19/11/2026). Um registo por linha: o nome e o "− n +". O nosso painel abre
+ * as estatísticas do jogo. Abaixo dessa largura fica a barra de cima (o CSS
+ * escolhe: `.live__palco--laterais`).
+ */
+export function LateralRegistos({ state, ligados, equipa, nome, on }) {
+  const { colunas } = colunasRegistos(state, ligados, on);
+  const minhas = colunas.filter((c) => c[equipa]);
+  return (
+    <aside className={`reglat reglat--${equipa === 'US' ? 'nos' : 'eles'}`} aria-label={nome}>
+      <span className={`reglat__eq ${equipa === 'THEM' ? 'reglat__eq--deles' : ''}`}>{nome}</span>
+      {minhas.map((c) => (
+        <div key={c.id} className="reglat__linha">
+          <span className="reglat__rot">{t(`registos.barra.${c.id}`)}</span>
+          <CelulaRegisto c={c[equipa]} nome={nome} on={on} />
+        </div>
+      ))}
+      {equipa === 'US' ? (
+        <button type="button" className="regbar__acao reglat__stats" onClick={on.verRegistos}>
+          {t('registos.estatisticas')}
+        </button>
+      ) : null}
+    </aside>
+  );
+}
+
 export default function BarraRegistos({ state, ligados, ourName, opponentName, on, compacta = false, semNomes = false }) {
   const { colunas, r, passeNaBarra } = colunasRegistos(state, ligados, on);
   const [escondida, setEscondida] = useState(lerEscondida);

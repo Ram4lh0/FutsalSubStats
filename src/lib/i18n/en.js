@@ -2999,4 +2999,8 @@ export default {
   "analise.totalGrupo": "Group ({n} players)",
   "analise.semJogadoresGrupo": "No player in this position played in these matches.",
   "analise.notaPosicoes": "Position and foot come from the squad. GF/GA: team goals with the player on court. Per 40' = per 40 minutes on court. The group row adds up the filtered players.",
+
+  // Jogo ao vivo em ecrã largo: banco compacto (19/11/2026)
+  "vivo.bancoHa": "On the bench for",
+  "vivo.jogoTotal": "Played {tempo}",
 };

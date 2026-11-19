@@ -564,7 +564,12 @@ export function Bench({ state, sel, clockMs, on, arrasto }) {
           <span className="bench__hint">{t('vivo.dicaEntrar')}</span>
         ) : null}
       </div>
-      <div className="bench__row" style={{ '--bench-cols': String(cols) }}>
+      <div
+        className="bench__row"
+        // Ecrã largo: uma fila só até 10 cartões (com poucos, 7 colunas, para
+        // um ou dois não esticarem pela largura toda).
+        style={{ '--bench-cols': String(cols), '--bench-cols-largo': String(Math.min(10, Math.max(7, lista.length))) }}
+      >
         {lista.length ? (
           lista.map((p) => (
             <BenchCard
@@ -675,6 +680,22 @@ function BenchCard({ p, state, sel, clockMs, on, arrasto }) {
             {t('vivo.entradas', { n: '' })}
             <b>{s.entries}</b>
           </span>
+        </div>
+      )}
+      {/* Ecrã largo: o banco cabe numa fila de 9–10 cartões estreitos, e só
+          ficam os dois números que decidem a troca — há quanto tempo está no
+          banco (grande) e quanto jogou. O CSS troca este bloco pelo de cima. */}
+      {expulso ? null : (
+        <div className="pcard__banco">
+          {s.sinceLeftMs == null ? (
+            <span className="pcard__banco-nunca">{t('vivo.aindaNaoEntrou')}</span>
+          ) : (
+            <>
+              <span className="pcard__banco-rot">{t('vivo.bancoHa')}</span>
+              <span className="pcard__banco-t">{fmt(desdeASaida)}</span>
+            </>
+          )}
+          <span className="pcard__banco-jogo">{t('vivo.jogoTotal', { tempo: fmt(s.courtMs) })}</span>
         </div>
       )}
       {selecionado ? (

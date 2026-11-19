@@ -3000,4 +3000,8 @@ export default {
   "analise.totalGrupo": "Grupo ({n} jugadores)",
   "analise.semJogadoresGrupo": "Ningún jugador de esta posición jugó en estos partidos.",
   "analise.notaPosicoes": "Posición y pie vienen de la plantilla. GF/GC: goles del equipo con el jugador en pista. Por 40' = por 40 minutos en pista. La fila del grupo suma los jugadores filtrados.",
+
+  // Jogo ao vivo em ecrã largo: banco compacto (19/11/2026)
+  "vivo.bancoHa": "En el banquillo",
+  "vivo.jogoTotal": "Jugó {tempo}",
 };
